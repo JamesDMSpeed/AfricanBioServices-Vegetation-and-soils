@@ -30,6 +30,7 @@ names(Philtrees) # Column names - good practice continous - no spaces..
 head(Philtrees, n=20L) # First 6 rows - can be extended, n=20L
 
 # Housekeeping - if it is really a factor - make sure R knows it..
+# Adding columns 
 Philtrees$farea<-as.factor(Philtrees$area)
 Philtrees$flanduse<-as.factor(Philtrees$landuse)
 Philtrees$fblock<-as.factor(Philtrees$block)
@@ -81,7 +82,7 @@ head(Philtrees)
 Philtrees$fblock.id<-as.factor(with(Philtrees, paste(farea, flanduse, fblock, sep="_")))
 Philtrees$fblock.id<-as.factor(as.numeric(Philtrees$fblock.id))
 summary(levels(Philtrees$fblock.id)) # 39 unique blocks
-# 10 * 4 = 40? No 4th block for Seronera!
+# 10 * 4 = 40? No 4th block for Seronera! <- where is the 4th block? 
 
 table(Philtrees$farea,Philtrees$fblock)
 # Large differences in tree density - but remember double dates here!
