@@ -16,11 +16,11 @@ setwd("/Users/vildehaukenes/Google Drive/Skole/Master biologi /Statistikk/02Mast
 source('MakeTransparent.R')
 
 # Read interpolated rainfall map (Raster)
-setwd("/Users/vildehaukenes/Google Drive/Skole/Master biologi /Statistikk/02MasterSessions /serengeti_mapping_stu/RAINFALL_MAP")
+setwd("/Users/vildehaukenes/Google Drive/Skole/Master biologi /Masteroppgave /03Statistics/02MasterSessions /serengeti_mapping_stu/RAINFALL_MAP")
 rain<-raster("RAIN_INTERPOLATED_UTM36S_Arc1960.tif")
 
 # Read boundary data
-setwd("/Users/vildehaukenes/Google Drive/Skole/Master biologi /Statistikk/02MasterSessions /serengeti_mapping_stu/Admin_Boundaries_ABS_UTM36S")
+setwd("/Users/vildehaukenes/Google Drive/Skole/Master biologi /Masteroppgave /03Statistics/02MasterSessions /serengeti_mapping_stu/Admin_Boundaries_ABS_UTM36S")
 sme<-readOGR(dsn=".", "Admin_Boundaries_ABS_UTM36S")
 sme<-spTransform(sme,utmproj) #transform this to the correct projection
 sme<-sme[!(sme$name %in% c("Lake Manyara NP","Tarangire NP","Lake Naivasha","Hell's gate","Ruma")),] #remove unneccesary protected areas
