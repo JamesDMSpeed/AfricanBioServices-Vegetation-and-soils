@@ -1,9 +1,10 @@
 ########################################################################
 #TBI Serengeti - Anders Masters
 #Anders Sundsdal 
-#12/06/2018
 #########################################################################
 rm(list=ls())
+install.packages("gdata")
+library(gdata) # TO USE THE READ.XLS FUNCTION
 library(lattice)
 library(MASS)
 library(ggplot2)
@@ -11,18 +12,23 @@ library(lme4)
 library(ggplot2)
 library(glmmTMB)
 library(glmmADMB)
+
 #########################################################################
 
-setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Master projects/Anders Sundsal/")
+setwd("C:/Users/ansun/Google Drive/Skole/Master/Data/AfricanBioServices-Vegetation-and-soils/Termites")
+wsdata <- read.xls("Main_dataset_MSc_AndSun.xlsx", sheet=1) #Wetseason data
+dsdata <- read.xls("Main_dataset_MSc_AndSun.xlsx", sheet=2) #Dryseason data
+#NB! NEEDED TO INSTALL ACTIVEPERL: https://www.activestate.com/activeperl/downloads, TO BE ABLE TO READ THE EXCEL FILE.
+head(wsdata)
+head(dsdata)
+wsmassvariables <- c("Season","Region","Landuse", "Treatment", "Littertype","Ashed.initial.corrected.weight..tea.only..g.","Ashed.final.corrected.weight..tea.only..g.","Massloss..g.")
+wsmass <- wsdata[wsmassvariables]
 
-#setwd("C:/Users/Anders/Dropbox/Skole/Master/Msc Data/R-analysis")
-#decomp1<-read.csv(file = "TBI_calculations_Msc_Andsun.csv", sep=";", header=T)
+dsmassvariables <- c("Season","Region","Landuse", "Treatment", "Littertype","Ashed.initial.corrected.weight..tea.only..g.","Ashed.final.corrected.weight..tea.only..g.","Massloss..g.")
+dsmass <- dsdata[dsmassvariables]
+head(dsmass)
 
-decomp1<-read.csv("TBI_Calculations_MSc_AndSunFINALwet.csv", header=T)
-
-dim(decomp1) # 880  37
-str(decomp1)
-names(decomp1)
+fulldata<-rbind(wsmass,dsmass)
 
 ########################################################################
 #Data exploration
@@ -39,11 +45,35 @@ names(decomp1)
 # Data exploration functions
 source("/Users/anotherswsmith/Documents/AfricanBioServices/Training/HighstatLibV10.R")
 
-# Outliers
-names(decomp1)
-MyVar<-c("massloss.per","rain.sum.mm","clay.per","silt.per",
-         "sand.per","OC","N.D.tree_m","N.D.Mound_m2","moisture.per","tempC")
-Mydotplot(decomp1[ ,MyVar]) 
+# Checking for outliers
+dotchart(fulldata$Ashed.final.corrected.weight..tea.only..g.)
+plot(fulldata$Ashed.final.corrected.weight..tea.only..g.)
+identify(fulldata$Ashed.final.corrected.weight..tea.only..g)
+fulldata[289,] #negative massloss value
+fulldata[772,] #negative massloss value
+fulldata <- fulldata[-c(289,772),] # Removing the rows.
+
+#Outlier in ashed data:
+dotchart(decomp$Ashed.final.subsample.percentage.....) # One very large outlier for the final weight subsample percantage
+plot(decomp$Ashed.final.subsample.percentage.....)
+#identify(decomp$Ashed.final.subsample.percentage.....) [1] 517, [1] 772
+#decomp[517, ] #G509 has wrong percentage (-474.393).
+#G509 needs re-ashing. 
+decomp1<-decomp[decomp$Teabag.code!="G509",]#Removing this from the data for now...
+decomp<-decomp1
+
+#decomp[772, ] #Teabag R530, wrong percentage (-32.311).
+#R530 needs re-ashing. Removed from the dataset for now...
+decomp1<-decomp[decomp$Teabag.code!="R530",]#Removing this from the data for now...
+decomp<-decomp1
+#Checking again:
+dotchart(decomp$Ashed.final.subsample.percentage.....) # One very large outlier for the final weight subsample percantage
+plot(decomp$Ashed.final.subsample.percentage.....)
+
+#Checking for massloss outlier
+dotchart(decomp$Massloss..g. ) # Looks OK
+plot(decomp$Massloss..g.)
+#identify(decomp$Massloss..g.)
 
 # Outliers by factors...
 par(mfrow = c(1, 1), mar = c(4, 3, 3, 2))
