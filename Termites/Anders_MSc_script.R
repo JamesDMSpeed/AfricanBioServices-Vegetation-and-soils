@@ -3,7 +3,6 @@
 #Anders Sundsdal 
 #########################################################################
 rm(list=ls())
-install.packages("gdata")
 library(gdata) # TO USE THE READ.XLS FUNCTION
 library(lattice)
 library(MASS)
@@ -15,7 +14,6 @@ library(glmmADMB)
 
 #########################################################################
 
-setwd("C:/Users/ansun/Google Drive/Skole/Master/Data/AfricanBioServices-Vegetation-and-soils/Termites")
 wsdata <- read.xls("Main_dataset_MSc_AndSun.xlsx", sheet=1) #Wetseason data
 dsdata <- read.xls("Main_dataset_MSc_AndSun.xlsx", sheet=2) #Dryseason data
 #NB! NEEDED TO INSTALL ACTIVEPERL: https://www.activestate.com/activeperl/downloads, TO BE ABLE TO READ THE EXCEL FILE.
