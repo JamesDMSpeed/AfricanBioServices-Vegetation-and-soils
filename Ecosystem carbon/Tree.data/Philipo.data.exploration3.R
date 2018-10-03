@@ -18,7 +18,7 @@ library(ggplot2)
 
 # Import data
 # Set working directoy
-setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Master projects/Philipo Jacob/")
+setwd("/Users/vildehaukenes/Google Drive/Skole/Master biologi /Masteroppgave /01Data /AfricanBioServices-Vegetation-and-soils/Ecosystem carbon/Tree.data")
 
 # Importat data with file name
 Philtrees<-read.csv(file="Tree.data.Seregenti.PhilipoBio.csv", sep=",",header=TRUE)
@@ -107,8 +107,17 @@ levels(Philtrees$tree.part)
 levels(Philtrees2$tree.part) # dropped
 # Subset data - into data based on date
 
+levels(Philtrees2$farea)
+# I dont need to have MakaoWMA, SNP Kleins gate and Ololosokwan 
+# Philtrees3<-Philtrees2[Philtrees2$area!="MakaoWMA","SNP kleins gate","Ololosokwan",] - this was not working, try another way 
+# try with %in%
+Philtrees3<-Philtrees2[!(Philtrees2$area %in% c("MakaoWMA","SNP kleins gate","Ololosokwan")),]
+dim(Philtrees3) #1802   40
+Philtrees3<-droplevels(Philtrees3) # Ensure factor level branch dropped
+levels(Philtrees3$area)
+
 # Species
-levels(Philtrees2$species) # 38 species
+levels(Philtrees3$species)
 
 ########################################################################################################
 # Test differences between May and December for trees with same ID
