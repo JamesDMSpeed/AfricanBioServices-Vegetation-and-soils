@@ -1,23 +1,24 @@
 ﻿Site,Landuse,Stuart_block,Vilde_block,Fire.freq,Year.of.last.fire
-Makao,Pasture,1,3,6,2010
 Makao,Pasture,2,1,5,2010
 Makao,Pasture,3,2,7,2010
+Makao,Pasture,1,3,6,2010
 Makao,Pasture,4,4,5.5,2010
-Maswa,Wild,1,3,1,2004
-Maswa,Wild,2,4,1,2004
 Maswa,Wild,3,1,3,2007
 Maswa,Wild,4,2,2,2007
+Maswa,Wild,1,3,1,2004
+Maswa,Wild,2,4,1,2004
+Mwantimba,Pasture,1,1,0,2000
+Mwantimba,Pasture,4,2,0,2000
+Mwantimba,Pasture,3,3,0,2000
+Mwantimba,Pasture,2,4,0,2000
+Handajega,Wild,3,1,3,2014
+Handajega,Wild,4,2,3.5,2014
+Handajega,Wild,1,3,9,2014
+Handajega,Wild,2,4,13,2016
 Seronera,Wild,1,1,4,2016
 Seronera,Wild,2,2,3.75,2016
 Seronera,Wild,3,3,6,2016
-Handajega,Wild,1,3,9,2014
-Handajega,Wild,2,4,13,2016
-Handajega,Wild,3,1,3,2014
-Handajega,Wild,4,2,3.5,2014
-Mwantimba,Pasture,1,1,0,2000
-Mwantimba,Pasture,2,4,0,2000
-Mwantimba,Pasture,3,3,0,2000
-Mwantimba,Pasture,4,2,0,2000
+Seronera,Wild,,4,,
 Park Nyigoti,Pasture,1,1,8.25,2013
 Park Nyigoti,Pasture,2,2,7,2010
 Park Nyigoti,Pasture,3,3,7,2017
