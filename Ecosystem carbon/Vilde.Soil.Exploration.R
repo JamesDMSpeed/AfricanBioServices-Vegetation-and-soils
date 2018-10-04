@@ -1,7 +1,7 @@
 ####Making tables####
 
 # Uploading the soil file
-total.soil.data<- read.csv("Total.soil.data.csv", head = TRUE)
+total.soil.data<- read.csv("Ecosystem Carbon/Total.soil.data.csv", head = TRUE)
 names(total.soil.data)
 
 # Want to have a table with soil texture (clay, silt and sand) and chemical traits
@@ -78,12 +78,27 @@ colnames(SoiltraitsSummary)<-c("Region","MAP (mm/yr)","Altitude","Year of last f
 
 SoiltraitsSummary
 
+
 # trying to save as an excel file... 
 # install.packages("openxlsx")
 # library(openxlsx)
 
+#### Bulk Density, correlation ####
 
+Bulk.density <- read.csv("Ecosystem Carbon/02BulkSoil.csv", head=T)
+names(Bulk.density)
 
+# making vectors
+BD.average <- Bulk.density$BD.average_g.cm3
+BD.controll <- Bulk.density$BD.controll_g.cm3
+
+# doing a pearson correlation test, with the result of a p< 0.05, and a 0.85 correlation coefficient  
+cor.test(BD.average,BD.controll,method = "pearson",na.rm=T)
+
+# making a lm 
+BD.model <- lm(BD.average~BD.controll,Bulk.density)
+par(mfrow=(c(2,2)))
+plot(BD.model) # outlayers: 6 (Mwantimba B2),9 (Handajega B2),13 (Park Nyigoti B2)
 
 ####Packages####
 #library(lattice)
