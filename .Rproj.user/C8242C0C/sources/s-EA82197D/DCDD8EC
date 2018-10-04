@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1538573317107.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "DCDD8EC",
+    "lastKnownWriteTime" : 7368222560965706799,
+    "last_content_update" : 1538573317107,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "3BB31EFD",
+        "caption" : "FulldataMainmean",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=FulldataMainmean&cache_key=3BB31EFD",
+        "displayedObservations" : "120",
+        "environment" : "",
+        "object" : "FulldataMainmean",
+        "preview" : "0",
+        "totalObservations" : "120",
+        "variables" : "7"
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

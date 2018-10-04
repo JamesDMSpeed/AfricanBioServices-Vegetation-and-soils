@@ -1,9 +1,8 @@
 ########################################################################
-#TBI Serengeti - Anders Masters
-#Anders Sundsdal 
+#TBI Serengeti
+#Anders Sundsdal MSc
 #########################################################################
 rm(list=ls())
-library(gdata) # TO USE THE READ.XLS FUNCTION
 library(lattice)
 library(MASS)
 library(ggplot2)
@@ -12,18 +11,14 @@ library(glmmTMB)
 library(glmmADMB)
 
 #########################################################################
-wsdata<- read.csv('Termites/Wetseason.csv', sep=';',dec=',')#Wetseason data
-dsdata <- read.csv("Termites/Dryseason.csv", sep=";",dec=",") #Dryseason data
+
+wsdata<- read.csv('Termites/Wetseason.csv', sep=';',dec='.')#Wetseason data
+dsdata <- read.csv("Termites/Dryseason.csv", sep=";",dec=".")#Dryseason data
+
 head(wsdata)
 head(dsdata)
-wsmassvariables <- c("Season","Region","Landuse", "Treatment", "Littertype","Ashed.initial.corrected.weight..tea.only..g.","Ashed.final.corrected.weight..tea.only..g.","Massloss..g.")
-wsmass <- wsdata[wsmassvariables]
+fulldata<-rbind(wsdata,dsdata)
 
-dsmassvariables <- c("Season","Region","Landuse", "Treatment", "Littertype","Ashed.initial.corrected.weight..tea.only..g.","Ashed.final.corrected.weight..tea.only..g.","Massloss..g.")
-dsmass <- dsdata[dsmassvariables]
-head(dsmass)
-
-fulldata<-rbind(wsmass,dsmass)
 
 ########################################################################
 #Data exploration
@@ -36,87 +31,97 @@ fulldata<-rbind(wsmass,dsmass)
 # G Zero inflation Y
 # H Are categorical covariates balanced?
 ########################################################################
+########################################################################
+########################################################################
+# Checking for outliers in ashed data
+#Ashed final weight
 
-# Data exploration functions
-source("/Users/anotherswsmith/Documents/AfricanBioServices/Training/HighstatLibV10.R")
-
-# Checking for outliers
 dotchart(fulldata$Ashed.final.corrected.weight..tea.only..g.)
 plot(fulldata$Ashed.final.corrected.weight..tea.only..g.)
-identify(fulldata$Ashed.final.corrected.weight..tea.only..g)
+#identify(fulldata$Ashed.final.corrected.weight..tea.only..g)
 fulldata[289,] #negative massloss value
 fulldata[772,] #negative massloss value
 fulldata <- fulldata[-c(289,772),] # Removing the rows.
 
-#Outlier in ashed data:
-dotchart(decomp$Ashed.final.subsample.percentage.....) # One very large outlier for the final weight subsample percantage
-plot(decomp$Ashed.final.subsample.percentage.....)
-#identify(decomp$Ashed.final.subsample.percentage.....) [1] 517, [1] 772
-#decomp[517, ] #G509 has wrong percentage (-474.393).
-#G509 needs re-ashing. 
-decomp1<-decomp[decomp$Teabag.code!="G509",]#Removing this from the data for now...
-decomp<-decomp1
+#Outlier in ashed data % (should be between 0-100):
 
-#decomp[772, ] #Teabag R530, wrong percentage (-32.311).
-#R530 needs re-ashing. Removed from the dataset for now...
-decomp1<-decomp[decomp$Teabag.code!="R530",]#Removing this from the data for now...
-decomp<-decomp1
-#Checking again:
-dotchart(decomp$Ashed.final.subsample.percentage.....) # One very large outlier for the final weight subsample percantage
-plot(decomp$Ashed.final.subsample.percentage.....)
+dotchart(fulldata$Ashed.final.subsample.percentage.....) # One very large outlier for the final weight subsample percantage
+plot(fulldata$Ashed.final.subsample.percentage.....)
+#identify(fulldata$Ashed.final.subsample.percentage.....) #[1] 516
+fulldata[516, ] #G509 has wrong percentage (-474.393). G509 needs re-ashing in wet season. 
+fulldata<-fulldata[-c(516),]#Removing this from the data for now...
+
+#Checking outliers in initial and final weights:
+
+#Inital weight:
+dotchart(fulldata$Initial.weight.including.bag..cord.and.label..g.)
+plot(fulldata$Initial.weight.including.bag..cord.and.label..g.)
+#identify(fulldata$Initial.weight.tea.only..g.)
+#106 and 1611 looks wierd
+fulldata[106,] # 1,191 may be too low for initial weight! Have to check for speling mistake
+fulldata[1611,] #0,229 is too low for initial weight! Have to check for speling mistake
+#No need to remove these as long as the difference in mass loss make sense.
 
 #Checking for massloss outlier
-dotchart(decomp$Massloss..g. ) # Looks OK
-plot(decomp$Massloss..g.)
+dotchart(fulldata$Massloss..g. ) # Looks OK
+plot(fulldata$Massloss..g.)
 #identify(decomp$Massloss..g.)
 
-# Outliers by factors...
-par(mfrow = c(1, 1), mar = c(4, 3, 3, 2))
-dotchart(decomp1$massloss.per,groups=decomp1$landuse,main = "landuse")
-dotchart(decomp1$massloss.per,groups=decomp1$treatment,main = "area")
-dotchart(decomp1$massloss.per,groups=decomp1$littertype,main = "landuse")
+#Checkig outliers in temperature and moisture:
 
+####################################################################################
+###################################################################################
+#####################################################################
 #B Collinearity X
-MyVar<-c("massloss.per","rain.sum.mm","clay.per","silt.per",
-         "sand.per","OC","N.D.tree_m","N.D.Mound_m2","moisture.per","tempC")
-pairs(decomp1[,MyVar],lower.panel = panel.cor)
-# Relationship between clay and moisture and sand - cannot include in same model
-# Temperautre and moisture correlated 
+MyVar<-c("Massloss..g.","rain.sum..mm.","CLAY..","SILT..",
+         "SAND..","OC..","Moisture..","Temperature..C.")
+pairs(fulldata[,MyVar]) #Not sure whats up here...
+plot(fulldata$Moisture..,fulldata$Temperature..C.)
 
 
 #Housekeeping # Ensuring factors are factors
-names(decomp1)
-decomp1$fregion<-as.factor(decomp1$region)
-decomp1$flanduse<-as.factor(decomp1$landuse)
-decomp1$fsite<-as.factor(decomp1$site)
-decomp1$ftreatment<-as.factor(decomp1$treatment)
-decomp1$flittertype<-as.factor(decomp1$littertype) 
-decomp1$fplot.id<-as.factor(decomp1$plot) # 220 plots # correct
-decomp1$fteabag_code<-as.factor(decomp1$teabag_code) # 879 teabags - missing 1 teabag (Maybe one is a duplicate?)
-decomp1$fsoil.class<-as.factor(decomp1$soil.class)
-decomp1$fmound_type<-as.factor(decomp1$mound_type)
-decomp1$ftree_ants<-as.factor(decomp1$tree_ants)
-decomp1$fblock<-as.factor(decomp1$block)
-decomp1$fblockcode<-as.factor(decomp1$blockcode)
-decomp1$fblockdesign<-as.factor(decomp1$block.design)
+names(fulldata)
+fulldata$fsite<-as.factor(fulldata$Site)
+fulldata$fregion<-as.factor(fulldata$Region)
+fulldata$flanduse<-as.factor(fulldata$Landuse)
+fulldata$ftreatment<-as.factor(fulldata$Treatment)
+fulldata$flittertype<-as.factor(fulldata$Littertype) 
+fulldata$fplot.id<-as.factor(fulldata$Plot) # 220 plots # correct
+fulldata$fteabag_code<-as.factor(fulldata$Teabag.code) # 879 teabags - missing 1 teabag (Maybe one is a duplicate?)
+fulldata$fsoil.class<-as.factor(fulldata$Soil.Class)
+fulldata$fmound_type<-as.factor(fulldata$Mound.type)
+fulldata$ftree_ants<-as.factor(fulldata$Tree.with.ants)
+fulldata$fblock<-as.factor(fulldata$Block)
+fulldata$fblockcode<-as.factor(fulldata$Blockcode)
+fulldata$fholes<-as.factor(fulldata$Sign.of.hole.s.)
+fulldata$fcheeting<-as.factor(fulldata$Sign.of.termite.cheeting)
+fulldata$froots<-as.factor(fulldata$Sign.of.roots)
+
+#################################################################################
+# Main experiment - decomposition in landuse 
+#################################################################################
+
+
+
+
+
 
 #################################################################################
 # Common Garden versus Main experiment 
 #################################################################################
-
-names(decomp1)
+names(fulldata)
 # Seperate experiments
-decompCG<-decomp1[decomp1$experiment=="common",]
-decompMain<-decomp1[decomp1$experiment=="main",]
+FulldataCG<-fulldata[fulldata$Landuse=="Common Garden",] # Only commongarden data
+FulldataMain<-fulldata[fulldata$Landuse!="Common Garden",] #Only landuse experiemnt data
 
-head(decompCG) # 112  51
-SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Standard Error
 # Main experiment means (include blocks) # Need to seperate out Agricutlure in Makao and Mwantimba
-decompMainMean<-aggregate(massloss.per~fregion+ftreatment+flittertype+flanduse+fblock,decompMain, mean)
-#decompMainMean<-aggregate(massloss.per~fblockcode+ftreatment+flittertype,decompMain, mean)
-# 96
+names(FulldataMain)
+FulldataMainmean<-aggregate(Massloss..g..Ash.uncorrected~Season+fregion+ftreatment+flittertype+flanduse+fblock, FulldataMain, mean)
+
 # Means by land-use without block
-decompMainMean2<-aggregate(massloss.per~fregion+ftreatment+flittertype+flanduse,decompMain, mean)
+FulldataMainnmean2<-aggregate(Massloss..g..Ash.uncorrected~Season+fregion+ftreatment+flittertype+flanduse, FulldataMain, mean)
 decompMainMean2SE<-aggregate(massloss.per~fregion+ftreatment+flittertype+flanduse,decompMain, SE)
 decompMainMean2$se<-decompMainMean2SE$massloss.per
 # 24 data points
