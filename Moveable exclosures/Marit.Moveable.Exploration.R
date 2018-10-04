@@ -8,7 +8,6 @@ rm(list=ls())
 library(lattice)
 library(MASS)
 library(dplyr)
-#library(plyr)
 library(lubridate)
 library(data.table)  
 library(ggplot2)
@@ -18,7 +17,7 @@ library(ggpubr)
 ################################################################
 
 # Import data seasonal biomass, dung, PRC and environmental data
-setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/VegSoil_GitHub/AfricanBioServices-Vegetation-and-soils/Moveable exclosures")
+#setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/VegSoil_GitHub/AfricanBioServices-Vegetation-and-soils/Moveable exclosures")
 OnMove<-read.csv(file="Movable.exclosure.data.csv", sep=",",header=TRUE)
 
 # Explore dataset
@@ -69,10 +68,3 @@ egg::ggarrange(TargetAbPlot,OtherAbPlot, ncol=2)
 #ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Data/VegSoil_GitHub/AfricanBioServices-Vegetation-and-soils/Moveable exclosures/MissingNP.jpeg",
 #       width= 18, height = 12,units ="cm",
 #       dpi = 600, limitsize = TRUE)
-
-# Nicer way to do this with dplyer
-NtargetSummary<-OnMove  %>% group_by (harvest) %>%
-  summarise(harvest, count(N.target))
-  
-  summarise(total.count=n(),count=sum(is.na(N.target)))
-
