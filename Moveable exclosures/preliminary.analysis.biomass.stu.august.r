@@ -1,4 +1,3 @@
-###TEST
 #### Preliminary analysis for report Sept 2018 ####
 #Productivity and consumption #Hjelpefiler: ggplot2.training.R og Dataexploration.R
 #setwd("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Data/R/Preliminary")
