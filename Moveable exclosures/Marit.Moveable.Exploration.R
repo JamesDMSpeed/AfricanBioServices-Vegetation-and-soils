@@ -119,7 +119,7 @@ dim(SharedMissingNother) # ******18 non-target*******
 MissingSamplesSHARED<-rbind(SharedMissingN,SharedMissingNother)
 dim(MissingSamplesSHARED)# 27 samples with issues
 
-# Export missing sample list
+# Export missing sample from SUA that overlap with NTNU 
 write.table(MissingSamplesSHARED, file = "Moveable exclosures/MissingSamplesSHARED.csv",row.names=T, na="",col.names=T, sep=";")
 
 ##############################################################
@@ -136,7 +136,36 @@ OnMove2Pt$P.target
 OnMove2PtOK<-OnMove2Pt %>% filter(!plot.id %in% MissingSamplesSHARED$plot.id) # Remove samples codes with issues
 OnMove2PtOK$P.target
 dim(OnMove2PtOK) # 82
-OnMove2PtOKb$P.target
+OnMove2PtOK$P.target 
 OnMove2PtOKb<-OnMove2PtOK[rev(order(OnMove2PtOK$P.target)),]
 OnMove2PtOKb$P.target
 # 70 - 9 = 61
+
+OnMove2Po<-OnMove2[!is.na(OnMove2$P.other), ] #Remove any target P without value
+OnMove2Po$P.other
+OnMove2PoOK<-OnMove2Po %>% filter(!plot.id %in% MissingSamplesSHARED$plot.id) # Remove samples codes with issues
+OnMove2PoOK$P.other
+dim(OnMove2PoOK) # 131
+OnMove2PoOK$P.other #
+OnMove2PoOKb<-OnMove2PoOK[rev(order(OnMove2PoOK$P.other)),]
+OnMove2PoOKb$P.other # 131
+
+# Select only relevant columns # Create a target and other column
+names(OnMove2PtOKb)
+OnMove2PtOKb$target
+MyVar<-c("plot.id","block.id", "harvest","P.target","P.other")
+OverlapPtarget<-OnMove2PtOKb[ ,MyVar]
+OverlapPother<-OnMove2PoOKb[ ,MyVar]
+OverlapPtarget$fx<-"target"
+OverlapPother$fx<-"other"
+
+# Combine target and non-target P samples
+SUA_P_overlap<-rbind(OverlapPtarget,OverlapPother)
+
+# Export overlap samples between SUA and NTNU - select 16 for reanalysis
+write.table(SUA_P_overlap, file = "Moveable exclosures/SUA_P_overlap.csv",row.names=F, na="",col.names=T, sep=";")
+# Please select from target and other category 
+
+##############################################################
+####  End  ####
+##############################################################
