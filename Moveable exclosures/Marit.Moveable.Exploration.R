@@ -17,8 +17,7 @@ library(ggpubr)
 ################################################################
 
 # Import data seasonal biomass, dung, PRC and environmental data
-setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/GitHubVegSoils/AfricanBioServices-Vegetation-and-soils-master/Moveable exclosures")
-OnMove<-read.csv(file="Movable.exclosure.data.FULL.csv", sep=";",header=TRUE)
+OnMove<-read.csv(file="Moveable exclosures/Movable.exclosure.data.FULL.csv", sep=",",header=TRUE)
 
 # Explore dataset
 names(OnMove)
@@ -73,43 +72,71 @@ egg::ggarrange(TargetAbPlot,OtherAbPlot, ncol=2)
 #       width= 18, height = 12,units ="cm",
 #       dpi = 600, limitsize = TRUE)
 
-# Nicer way to do this with dplyer
-NtargetSummary<-OnMove  %>% group_by (harvest) %>%
-  summarise(harvest, count(N.target))
+##############################################
+####  Sub-sampling for NTNU CNP analysis ####
+##############################################
 
-summarise(total.count=n(),count=sum(is.na(N.target)))
-
+##############################################
+####  Samples with issues at SUA ####
+##############################################
 # How many subsamples are at SUA/NTNU
-count(OnMove$Sub.SUA)
-class(OnMove$Sub.NTNU)
+# BASED ON TARGET SUB SUA AND SUB NTNU
 SubsamplesSUA<-OnMove[!is.na(OnMove$Sub.SUA), ] # Remove NAs
-SubsamplesSUA<-droplevels(Subsamples)
-dim(SubsamplesSUA$Sub.SUA)# 226
+SubsamplesSUA$harvest
+dim(SubsamplesSUA)# 226 
+SubsamplesSUA<-SubsamplesSUA[!SubsamplesSUA$harvest=="H5" & !SubsamplesSUA$harvest=="H6" & !SubsamplesSUA$harvest=="H7",]
+SubsamplesSUA<-droplevels(SubsamplesSUA)
+dim(SubsamplesSUA)# 118
 
 SubsamplesNTNU<-OnMove[!is.na(OnMove$Sub.NTNU), ] # Remove NAs
 SubsamplesNTNU<-droplevels(SubsamplesNTNU)
-dim(SubsamplesNTNU$Sub.NTNU)# 138
+dim(SubsamplesNTNU)# 138
+
+# Remove H5, 6 and 7
+OnMove2<-OnMove[!OnMove$harvest=="H5" & !OnMove$harvest=="H6" & !OnMove$harvest=="H7",]
+OnMove2<-droplevels(OnMove2)
 
 # Target NTNU and SUA
-Sub2Institues<-OnMove[OnMove$Sub.SUA>.1 & OnMove$Sub.NTNU>.1,]
-Sub2Institues<-subset(OnMove, Sub.SUA >.1 | Sub.NTNU>.1) 
+Sub2Institues<-OnMove2[OnMove2$Sub.SUA>.1 & OnMove2$Sub.NTNU>.1,]
+Sub2Institues<-subset(OnMove2, Sub.SUA >.1 | Sub.NTNU>.1) 
 Sub2Institues<-Sub2Institues[!is.na(Sub2Institues$Sub.NTNU), ]
 Sub2Institues<-Sub2Institues[!is.na(Sub2Institues$Sub.SUA), ]
-dim(Sub2Institues)  # 70 target shared
+dim(Sub2Institues)  # ****70 target shared****
 SharedMissingN<-Sub2Institues[is.na(Sub2Institues$N.target), ]
-dim(SharedMissingN) # 9 target
+dim(SharedMissingN) # ****9 target OVERLAP AND ISSUE ****
 
 # Non-target (other) NTNU and SUA
-Sub2Institues1<-OnMove[OnMove$Sub.SUA.1>.1 & OnMove$Sub.NTNU.1>.1,]
-Sub2Institues1<-subset(OnMove, Sub.SUA.1 >.1 | Sub.NTNU.1>.1) 
+Sub2Institues1<-OnMove2[OnMove2$Sub.SUA.1>.1 & OnMove2$Sub.NTNU.1>.1,]
+Sub2Institues1<-subset(OnMove2, Sub.SUA.1 >.1 | Sub.NTNU.1>.1) 
 Sub2Institues1<-Sub2Institues1[!is.na(Sub2Institues1$Sub.NTNU.1), ]
 Sub2Institues1<-Sub2Institues1[!is.na(Sub2Institues1$Sub.SUA.1), ]
 dim(Sub2Institues1)  # 119 non-target shared 
 
 SharedMissingNother<-Sub2Institues1[is.na(Sub2Institues1$N.other), ]
-dim(SharedMissingNother) # 18 non-target
+dim(SharedMissingNother) # ******18 non-target*******
 
 
 MissingSamplesSHARED<-rbind(SharedMissingN,SharedMissingNother)
-# Export missing samples
-write.table(MissingSamplesSHARED, file = "MissingSamplesSHARED.csv",row.names=T, na="",col.names=T, sep=";")
+dim(MissingSamplesSHARED)# 27 samples with issues
+
+# Export missing sample list
+write.table(MissingSamplesSHARED, file = "Moveable exclosures/MissingSamplesSHARED.csv",row.names=T, na="",col.names=T, sep=";")
+
+##############################################################
+####  Samples no issues at SUA - retest for equipment ####
+##############################################################
+
+OnMoveOK<-OnMove[!MissingSamplesSHARED$plot.id, ]
+subset(!MissingSamplesSHARED$plot.id)
+
+library(dplyr)
+OnMove2<-OnMove[!OnMove$harvest=="H5" & !OnMove$harvest=="H6" & !OnMove$harvest=="H7",] # Remove H5, H6, H7
+OnMove2Pt<-OnMove2[!is.na(OnMove2$P.target), ] #Remove any target P without value
+OnMove2Pt$P.target
+OnMove2PtOK<-OnMove2Pt %>% filter(!plot.id %in% MissingSamplesSHARED$plot.id) # Remove samples codes with issues
+OnMove2PtOK$P.target
+dim(OnMove2PtOK) # 82
+OnMove2PtOKb$P.target
+OnMove2PtOKb<-OnMove2PtOK[rev(order(OnMove2PtOK$P.target)),]
+OnMove2PtOKb$P.target
+# 70 - 9 = 61
