@@ -97,11 +97,97 @@ fulldata$fholes<-as.factor(fulldata$Sign.of.hole.s.)
 fulldata$fcheeting<-as.factor(fulldata$Sign.of.termite.cheeting)
 fulldata$froots<-as.factor(fulldata$Sign.of.roots)
 
+
+names(fulldata)
+# Seperate experiments
+FulldataCG<-fulldata[fulldata$Landuse=="Common Garden",] # Only commongarden data
+FulldataMain<-fulldata[fulldata$Landuse!="Common Garden",] #Only landuse experiemnt data
+
+
+se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Standard Error
+# Main experiment means and standard error (include blocks) # Need to seperate out Agricutlure in Makao and Mwantimba
+names(FulldataMain)
+FulldataMainmean<-aggregate(Massloss..g..Ash.uncorrected~Season+fregion+ftreatment+flittertype+flanduse+fblock, FulldataMain, mean)
+FulldataMainSE <-aggregate(Massloss..g..Ash.uncorrected~Season+fregion+ftreatment+flittertype+flanduse+fblock, FulldataMain, se)
+#Creating new columns with the means and se in the Fulldata main dataset
+#FulldataMain<-cbind(MyData5,CG.x[5],CG.se[5])
+#colnames(MyData6)[7]<-"SE"
+#colnames(MyData6)[10]<-"Mass.loss"
+#colnames(MyData6)[11]<-"se"
+
 #################################################################################
 # Main experiment - decomposition in landuse 
 #################################################################################
 
+# Mass loss by landuse - USING UNASHED DATA
+names(FulldataMain)
+Mainp <- ggplot(data=FulldataMainmean, aes(x=flanduse,y=Massloss..g..Ash.uncorrected, shape=flanduse, col=flittertype, fill=ftreatment))
+Mainp<- Mainp+ geom_point(size=5,stroke=1.2,position=position_dodge(width=.35),show.legend=F) # Legend T on individual graph
+#Mainp<- Mainp+ facet_wrap(~fregion, scale ="fixed")
+Mainp<- Mainp+ facet_grid(fregion ~ Season, scale ="fixed", labeller= label_both)
 
+Mainp
+
+
+######################
+cp<- ggplot(data=FulldataMainmean,
+            aes(y=Massloss..g..Ash.uncorrected,x=flanduse, shape=flanduse,
+                ymin=(Massloss..g..Ash.uncorrected-se),
+                ymax=(Massloss..g..Ash.uncorrected+se),
+                col=flittertype,fill=ftreatment)+
+              )
+cp
+#cp<- cp+ geom_errorbar(data=MyData5, aes(x=flanduse, ymin=SeLo , ymax=SeUp ),colour="dark grey", width=.1)
+#cp<- cp+  geom_point(data = MyData5,aes(x =flanduse, y = Mass.loss),size = 3,
+#                     color = "dark grey")
+cp<- cp+ geom_errorbar(width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F)
+cp<- cp+ geom_point(size=5,stroke=1.2,position=position_dodge(width=.35),show.legend=F) # Legend T on individual graph
+cp<- cp+ facet_wrap(~fregion, scale ="fixed")
+#cp<- cp+ facet_wrap(~fregion, scale ="fixed")
+cp<- cp+ scale_color_manual(values=c("green4", "orangered3"))
+cp<- cp+ scale_fill_manual(values=c("green4","white","orangered3","white"))
+cp<- cp+scale_shape_manual(values=c(21,24,22))
+cp<- cp+scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
+cp <- cp + xlab("Land-use") +  ylab("Mass loss (%)")  
+cp <- cp + theme_bw() +
+  theme(plot.background = element_blank()
+        #,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank()
+        ,axis.text=element_text(size=12,color="black")
+        ,axis.title.y=element_text(size=14,color="black")
+        ,axis.title.x=element_text(size=14,vjust=-.4,color="black")
+        ,axis.text.x = element_text(size=12,color="black",
+                                    margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,legend.text=element_text(size=12,color="black")
+        ,axis.ticks.length=unit(-1.5, "mm")
+        ,axis.ticks.x = element_blank()
+        ,axis.line.y = element_blank()
+        ,axis.line.x = element_line(color="black", size = .75)
+        ,plot.margin = unit(c(5,12,5,5), "mm")
+        ,strip.background = element_blank()
+        ,strip.text.x = element_text(size = 16,colour = "black")
+        ,panel.spacing = unit(1, "lines")
+        ,legend.title=element_blank()
+        ,legend.position = c(.99, .95)
+        ,legend.spacing.y = unit(-0.5, "mm"))
+cp <- cp + annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
+  annotate(geom = "segment", x = -Inf, xend = -Inf, y =  5, yend = 18,
+           linetype = "dashed", color = "white",size = 1.15) 
+#cp <- cp + guides(colour=F, fill=F,shape = guide_legend(override.aes = list(shape=c(21,24,22),
+#                                                                            size=3.2,fill="grey30",col="grey30", stroke=1.5)))
+
+#cp2 <- cp +  geom_point(data = MyData6, aes(size=ftreatment, shape = NA), colour = "grey50")
+#cp2 <- cp2 + guides(size=guide_legend("Source", override.aes=list(shape=c(21, 1), size=4.5,fill="grey30",col="grey30", stroke=1.5)))
+#cp2 
+cp
+
+ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Master projects/Anders Sundsal/AndersMainLanduseWET.jpeg",
+       width= 25, height = 12,units ="cm",
+       dpi = 600, limitsize = TRUE)
 
 
 
