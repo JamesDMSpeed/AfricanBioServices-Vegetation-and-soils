@@ -16,10 +16,6 @@ library(ggplot2)
 ##########################################################################
 # Import Philipo's tree density data
 
-# Import data
-# Set working directoy
-setwd("/Users/vildehaukenes/Google Drive/Skole/Master biologi /Masteroppgave /01Data /AfricanBioServices-Vegetation-and-soils/Ecosystem carbon/Tree.data")
-
 # Importat data with file name
 Philtrees<-read.csv(file="Tree.data.Seregenti.PhilipoBio.csv", sep=",",header=TRUE)
 
