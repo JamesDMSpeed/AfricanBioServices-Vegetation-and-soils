@@ -119,12 +119,21 @@ FulldataMainSE <-aggregate(Massloss..g..Ash.uncorrected~Season+fregion+ftreatmen
 # Main experiment - decomposition in landuse 
 #################################################################################
 
+# Fill by termite * landuse = empty = absence filled = prescence 
+FulldataMainmean$tea.hole<-as.factor(with(FulldataMainmean, paste(flittertype, ftreatment, sep="")))
+levels(FulldataMainmean$tea.hole)
+#levels(FulldataMainmean$fregion)<-c("Dry region","Wet region")
+levels(FulldataMainmean$fregion)
+
 # Mass loss by landuse - USING UNASHED DATA
-names(FulldataMain)
-Mainp <- ggplot(data=FulldataMainmean, aes(x=flanduse,y=Massloss..g..Ash.uncorrected, shape=flanduse, col=flittertype, fill=ftreatment))
-Mainp<- Mainp+ geom_point(size=5,stroke=1.2,position=position_dodge(width=.35),show.legend=F) # Legend T on individual graph
+names(FulldataMainmean)
+Mainp <- ggplot(data=FulldataMainmean, aes(x=flanduse,y=Massloss..g..Ash.uncorrected, shape=flanduse, col=flittertype, fill=tea.hole))
+Mainp<- Mainp+ geom_point(size=5,stroke=1.2,position=position_dodge(width=.35),show.legend=T) # Legend T on individual graph
 #Mainp<- Mainp+ facet_wrap(~fregion, scale ="fixed")
 Mainp<- Mainp+ facet_grid(fregion ~ Season, scale ="fixed", labeller= label_both)
+Mainp <- Mainp + xlab("Land-use") +  ylab("Mass loss (%)") 
+Mainp<-Mainp+scale_color_manual(values=c("green4", "orangered3")) #Gives what color the points shall have
+Mainp<- Mainp+ scale_fill_manual(values=c("green4","white","orangered3","white")) #Assign collor to the different categories within tea.hole column.
 
 Mainp
 
