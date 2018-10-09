@@ -17,7 +17,7 @@ library(ggplot2)
 # Import Philipo's tree density data
 
 # Importat data with file name
-Philtrees<-read.csv(file="Tree.data.Seregenti.PhilipoBio.csv", sep=",",header=TRUE)
+Philtrees<-read.csv(file="Ecosystem carbon/Tree.data/Tree.data.Seregenti.PhilipoBio.csv", sep=",",header=TRUE)
 
 # Explore the basics
 dim(Philtrees) # 2130 rows   34 columns
@@ -104,16 +104,16 @@ levels(Philtrees2$tree.part) # dropped
 # Subset data - into data based on date
 
 levels(Philtrees2$farea)
-# I dont need to have MakaoWMA, SNP Kleins gate and Ololosokwan 
+# Vilde: I dont need to have MakaoWMA, SNP Kleins gate and Ololosokwan 
 # Philtrees3<-Philtrees2[Philtrees2$area!="MakaoWMA","SNP kleins gate","Ololosokwan",] - this was not working, try another way 
 # try with %in%
-Philtrees3<-Philtrees2[!(Philtrees2$area %in% c("MakaoWMA","SNP kleins gate","Ololosokwan")),]
-dim(Philtrees3) #1802   40
-Philtrees3<-droplevels(Philtrees3) # Ensure factor level branch dropped
-levels(Philtrees3$area)
+#Philtrees3<-Philtrees2[!(Philtrees2$area %in% c("MakaoWMA","SNP kleins gate","Ololosokwan")),]
+#dim(Philtrees3) #1802   40
+#Philtrees3<-droplevels(Philtrees3) # Ensure factor level branch dropped
+#levels(Philtrees3$area)
 
 # Species
-levels(Philtrees3$species)
+#levels(Philtrees3$species)
 
 ########################################################################################################
 # Test differences between May and December for trees with same ID
