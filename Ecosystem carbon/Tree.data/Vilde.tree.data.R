@@ -62,25 +62,39 @@ colnames(Tree.carbon) <- c("Region","Block.id","Block_area.m2","Philipo.Block","
 # Adding a collumn of carbon per m2 
 Tree.carbon$carbon.m2 <- Tree.carbon$Tree_C.kg_block/Tree.carbon$Block_area.m2
 names(Tree.carbon)
+levels(Tree.carbon$Region)
 
-Tree.carbon.Vilde <- Tree.carbon[,c(1,2,3,4,5,10,6,7,8,9)]
+# adding a collumn of landuse
+landuse <- c("Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild")
+Tree.carbon$landuse <- landuse
+
+Tree.carbon.Vilde <- Tree.carbon[,c(1,2,3,4,11,5,10,6,7,8,9)]
 
 write.csv(Tree.carbon,file="Tree.Carbon.Vilde.csv") # for further use 
 
 #### 2. Make a table at "region level" for my method ####
 
-Tree.Carbon <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.Carbon.Vilde.csv", head=T)
-levels(Tree.Carbon$Region)# Remember wrong order of regions.. 
-names(Tree.Carbon)
+rm(list=ls())
 
-Carbon.per.block<-aggregate(Tree_C.kg_block~Region, Tree.Carbon,sum)
-No.trees <- aggregate(No_trees~Region, Tree.Carbon,sum)
-Region.area_m2<-aggregate(Block_area.m2~Region,Tree.Carbon,sum)
-MAP <- aggregate(MAP.mm_yr~Region,Tree.Carbon,mean)
-MAP.sd <- aggregate(MAP.mm_yr~Region,Tree.Carbon,sd)
-Fire.frequency <- aggregate(Fire_frequency.2000_2017~Region,Tree.Carbon,mean)
-Fire.frequency.sd <- aggregate(Fire_frequency.2000_2017~Region,Tree.Carbon,sd)
-Year.of.last.fire <- aggregate(Last_fire.yr~Region,Tree.Carbon,mean)
+Tree.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.Carbon.Vilde.csv", head=T)
+levels(Tree.carbon$Region)# Remember wrong order of regions.. 
+names(Tree.carbon)
+
+#Relevel
+Tree.carbon$Region<- factor(Tree.carbon$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
+
+levels(Tree.carbon$Region) # Releveled
+
+# remember this is Philipos block number.. 
+
+Carbon.per.block<-aggregate(Tree_C.kg_block~Region, Tree.carbon,sum)
+No.trees <- aggregate(No_trees~Region, Tree.carbon,sum)
+Region.area_m2<-aggregate(Block_area.m2~Region,Tree.carbon,sum)
+MAP <- aggregate(MAP.mm_yr~Region,Tree.carbon,mean)
+MAP.sd <- aggregate(MAP.mm_yr~Region,Tree.carbon,sd)
+Fire.frequency <- aggregate(Fire_frequency.2000_2017~Region,Tree.carbon,mean)
+Fire.frequency.sd <- aggregate(Fire_frequency.2000_2017~Region,Tree.carbon,sd)
+Year.of.last.fire <- aggregate(Last_fire.yr~Region,Tree.carbon,mean)
 
 Tree.carbon.Region <- cbind(Region.area_m2,MAP[2],MAP.sd[2],Fire.frequency[2],Fire.frequency.sd[2],Year.of.last.fire[2],Carbon.per.block[2],No.trees[2])
 
@@ -94,15 +108,32 @@ write.csv(Tree.carbon.Region, file="Tree.carbon.Region.csv")
 #### 3. Exploring the data #### 
 par(mfrow=c(1,2))
 
-boxplot(carbon.per.m2 ~ Region, 
+# C and no. trees per Region
+boxplot(carbon.m2 ~ Region, 
         xlab = "Region",
-        ylab = "Carbon_m2",
-        data = Tree.carbon)
-  
-boxplot(No.trees.block ~ Region, 
+        ylab = "Carbon.m2",
+        data = Tree.Carbon)
+
+boxplot(No_trees ~ Region, 
         xlab = "Region",
         ylab = "#Trees",
-        data = Tree.carbon)
+        data = Tree.Carbon)
+
+# C and no. trees per landuse
+plot(No_trees~landuse,
+     xlab = "Land Use",
+     ylab = "#Trees",
+     data=Tree.carbon)
+
+plot(carbon.m2~landuse,
+     xlab = "Land Use",
+     ylab = "Carbon per m2",
+     data=Tree.carbon)
+
+# test weather no. trees 
+anova()
+
+
 
 
 
