@@ -88,6 +88,8 @@ SoiltraitsSummary
 Bulk.density <- read.csv("Ecosystem Carbon/02BulkSoil.csv", head=T)
 names(Bulk.density)
 
+tail(Bulk.density) # Removed NA rows
+
 # making vectors
 BD.average <- Bulk.density$BD.average_g.cm3
 BD.controll <- Bulk.density$BD.controll_g.cm3
@@ -97,8 +99,27 @@ cor.test(BD.average,BD.controll,method = "pearson",na.rm=T)
 
 # making a lm 
 BD.model <- lm(BD.average~BD.controll,Bulk.density)
-par(mfrow=(c(2,2)))
+summary(BD.model)
+par(mfrow=(c(1,1)))
 plot(BD.model) # outlayers: 6 (Mwantimba B2),9 (Handajega B2),13 (Park Nyigoti B2)
+
+# Prediction line
+av<-seq(0,1.5, length.out=15)
+Bulkpred.lm<-predict(BD.model, list(BD.controll=av),
+                     se.fit=T) # Se fit gives 95% confience interval estimates
+length(Bulkpred.lm)
+
+# Plot + prediction line # This is nicer/easier in ggplot with geom_ribbon...
+plot(BD.average~BD.controll, data =Bulk.density)
+lines(av,Bulkpred.lm$fit+Bulkpred.lm$se.fit,lty = 2, lwd =1.75, col = "red")
+lines(av,Bulkpred.lm$fit-Bulkpred.lm$se.fit,lty = 2, lwd =1.75, col = "red")
+lines(av,Bulkpred.lm$fit,lty = 1, lwd =1.75, col = "red")
+
+# This is interactive to identify missing outliers - outside error
+#identify(Bulk.density$BD.average~Bulk.density$BD.controll)
+# 9 and 13 are large outliers
+Bulk.density[9,] # Handajega   S4 
+Bulk.density[13,] # Park Nyigoti   S6
 
 ####Packages####
 #library(lattice)
