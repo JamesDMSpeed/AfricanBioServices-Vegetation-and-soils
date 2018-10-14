@@ -111,6 +111,7 @@ length(Bulkpred.lm)
 
 # Plot + prediction line # This is nicer/easier in ggplot with geom_ribbon...
 plot(BD.average~BD.controll, data =Bulk.density)
+abline(c(0,1), col="black", lwd=3)
 lines(av,Bulkpred.lm$fit+Bulkpred.lm$se.fit,lty = 2, lwd =1.75, col = "red")
 lines(av,Bulkpred.lm$fit-Bulkpred.lm$se.fit,lty = 2, lwd =1.75, col = "red")
 lines(av,Bulkpred.lm$fit,lty = 1, lwd =1.75, col = "red")
