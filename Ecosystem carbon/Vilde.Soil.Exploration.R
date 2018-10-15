@@ -88,17 +88,16 @@ SoiltraitsSummary
 Bulk.density <- read.csv("Ecosystem Carbon/02BulkSoil.csv", head=T)
 names(Bulk.density)
 
-tail(Bulk.density) # Removed NA rows
+tail(Bulk.density) # A lot of NA rows
+Bulk.density2 <- Bulk.density[,c(1:7)]  
+Bulk.density2 <- na.omit(Bulk.density2)# Remove NA rows
 
 # making vectors
-BD.average <- Bulk.density$BD.average_g.cm3
-BD.controll <- Bulk.density$BD.controll_g.cm3
-
-# doing a pearson correlation test, with the result of a p< 0.05, and a 0.85 correlation coefficient  
-cor.test(BD.average,BD.controll,method = "pearson",na.rm=T)
+BD.average <- Bulk.density2$BD.average.block_g.cm3
+BD.controll <- Bulk.density2$BD.controll_g.cm3
 
 # making a lm 
-BD.model <- lm(BD.average~BD.controll,Bulk.density)
+BD.model <- lm(BD.average~BD.controll,Bulk.density2)
 summary(BD.model)
 par(mfrow=(c(2,2)))
 plot(BD.model) # outlayers: 6 (Mwantimba B2),9 (Handajega B2),13 (Park Nyigoti B2)
@@ -120,8 +119,21 @@ lines(av,Bulkpred.lm$fit,lty = 1, lwd =1.75, col = "red") # line of best fit
 # This is interactive to identify missing outliers - outside error
 identify(Bulk.density$BD.average~Bulk.density$BD.controll)
 # 9 and 13 are large outliers
-Bulk.density[9,] # Handajega   S4 
-Bulk.density[13,] # Park Nyigoti   S6
+Bulk.density[9,] # Handajega   S4, B2 
+Bulk.density[13,] # Park Nyigoti   S6, B2 
+
+#### Clay vs MAP, correlation ####
+
+total.soil.data<- read.csv("Ecosystem Carbon/Total.soil.data.csv", head = TRUE)
+names(total.soil.data)
+
+MAP.clay <- total.soil.data[,c(1:6,14,17,30)]
+
+# making unique block id (factor) by using the paste function - creating block.id column with region and block together seperated by "_" 
+MAP.clay$Block.id <- as.factor(with(MAP.clay,paste(Region,Block,sep="_")))
+# Then transforming each unique combination into a number
+MAP.clay$Block.id <- as.factor(as.numeric(MAP.clay$Block.id))
+summary(levels(MAP.clay$Block.id)) # 27 unique blocks (nit 28 - missing one in Seronera)
 
 ####Packages####
 #library(lattice)

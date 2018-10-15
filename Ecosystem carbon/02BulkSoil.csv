@@ -1,4 +1,4 @@
-﻿Region,Site,Block,Total.Weight.g,Volume.cm3,BD.average_g.cm3,BD.controll_g.cm3,Average_SubBefore_Dry,Average_SubAfter_Sieved,Tot_weight_fine_earth_air_dry.g,Clay.per,Silt.per,Sand.per
+﻿Region,Site,Block,Total.Weight.g,Volume.cm3,BD.average.block_g.cm3,BD.controll_g.cm3,Average_SubBefore_Dry,Average_SubAfter_Sieved,Tot_weight_fine_earth_air_dry.g,Clay.per,Silt.per,Sand.per
 Makao ,S1,B4,130.1,100,1.07,1.06,63.79,52.08,106.22,21.5,16,62.5
 Maswa,S2,B1,117.5,100,1.03,1.05,62.47,56.04,105.41,62,26,12
 Maswa,S2,B2,118,100,1,1.09,64.59,59.79,109.23,,,
@@ -8,9 +8,25 @@ Mwantimba ,S3,B2,159.6,100,1.36,1.48,63.69,59,147.85,28,27,46
 Mwantimba ,S3,B4,131.76,100,1.12,1.17,62.5,55.69,117.4,,,
 Handajega,S4,B1,155.5,100,1.43,1.42,62.42,56.86,141.65,16,18,65
 Handajega,S4,B2,137.4,100,1.46,1.26,64.99,59.71,126.24,20,20,60
-Seronera,S5,B1,162.46,100,1.44,1.43,62.54,55,142.87,10,21,69
+Seronera,S5,B1,162.46,100,1.32,1.43,62.54,55,142.87,10,21,69
 Seronera,S5,B3,174.1,100,1.41,1.47,61.24,51.54,146.52,12,21,67
 Park Nyigoti,S6,B1,137,100,1.14,1.17,67.32,57.5,117.02,23,46,32
 Park Nyigoti,S6,B2,140,100,0.99,1.19,65.49,55.72,119.11,21,36,44
 Ikorongo,S7,B1,134.6,100,1.16,1.16,62.43,53.96,116.34,35,40,25
 Ikorongo,S7,B3,151.9,100,1.2,1.31,62.14,53.41,130.56,25,44,31
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
