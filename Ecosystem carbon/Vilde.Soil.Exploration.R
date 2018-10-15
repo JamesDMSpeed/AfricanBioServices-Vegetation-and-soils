@@ -100,24 +100,25 @@ cor.test(BD.average,BD.controll,method = "pearson",na.rm=T)
 # making a lm 
 BD.model <- lm(BD.average~BD.controll,Bulk.density)
 summary(BD.model)
-par(mfrow=(c(1,1)))
+par(mfrow=(c(2,2)))
 plot(BD.model) # outlayers: 6 (Mwantimba B2),9 (Handajega B2),13 (Park Nyigoti B2)
 
 # Prediction line
 av<-seq(0,1.5, length.out=15)
 Bulkpred.lm<-predict(BD.model, list(BD.controll=av),
-                     se.fit=T) # Se fit gives 95% confience interval estimates
+                     se.fit=T) # Se fit gives 95% confience interval estimates (standard error)
 length(Bulkpred.lm)
 
 # Plot + prediction line # This is nicer/easier in ggplot with geom_ribbon...
+par(mfrow=(c(1,1)))
 plot(BD.average~BD.controll, data =Bulk.density)
 abline(c(0,1), col="black", lwd=3)
-lines(av,Bulkpred.lm$fit+Bulkpred.lm$se.fit,lty = 2, lwd =1.75, col = "red")
-lines(av,Bulkpred.lm$fit-Bulkpred.lm$se.fit,lty = 2, lwd =1.75, col = "red")
-lines(av,Bulkpred.lm$fit,lty = 1, lwd =1.75, col = "red")
+lines(av,Bulkpred.lm$fit+Bulkpred.lm$se.fit,lty = 2, lwd =1.75, col = "red") # upper se-line 
+lines(av,Bulkpred.lm$fit-Bulkpred.lm$se.fit,lty = 2, lwd =1.75, col = "red") # lower se-line
+lines(av,Bulkpred.lm$fit,lty = 1, lwd =1.75, col = "red") # line of best fit
 
 # This is interactive to identify missing outliers - outside error
-#identify(Bulk.density$BD.average~Bulk.density$BD.controll)
+identify(Bulk.density$BD.average~Bulk.density$BD.controll)
 # 9 and 13 are large outliers
 Bulk.density[9,] # Handajega   S4 
 Bulk.density[13,] # Park Nyigoti   S6
