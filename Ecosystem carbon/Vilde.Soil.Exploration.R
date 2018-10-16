@@ -121,19 +121,47 @@ identify(Bulk.density$BD.average~Bulk.density$BD.controll)
 # 9 and 13 are large outliers
 Bulk.density[9,] # Handajega   S4, B2 
 Bulk.density[13,] # Park Nyigoti   S6, B2 
+# I have tried to look at both of these outliers to check if I have made some mistakes - but the values seems to be correct Handajega B2 have heavy samples in general, while Park Nyigoti B2 have light samples in general. 
 
-#### Clay vs MAP, correlation ####
+#### Clay, correlation with MAP, fire, land-use? ####
 
 total.soil.data<- read.csv("Ecosystem Carbon/Total.soil.data.csv", head = TRUE)
 names(total.soil.data)
 
-MAP.clay <- total.soil.data[,c(1:6,14,17,30)]
+MAP.clay.total <- total.soil.data[,c(1:6,14:16,17,30)] #reducing the dataset
+names(MAP.clay.total) 
+tail(MAP.clay.total)
+MAP.clay <- na.omit(MAP.clay.total) # removing NAs
+
+# Making a simple plot of clay as a function of MAP 
+par(mfrow=c(2,2))
+plot(Clay.per~MAP.mm_yr, data=MAP.clay)
+plot(Clay.per~factor(Land_Use), data=MAP.clay)
+plot(Clay.per~Last_fire.yr, data=MAP.clay)
+plot(Clay.per~Fire_frequency.2000_2017, data=MAP.clay)
+
+# Boxplot illustrating difference in clay per site with colors indicating amount of MAP
+par(mfrow=c(1,1))
+plot(Clay.per~factor(Region), 
+     xlab= "Region",
+     ylab= "Clay (%)",
+     data=MAP.clay,
+     border=c("blueviolet", "darkcyan", "darkgoldenrod2", "darkgoldenrod2", "blueviolet", "darkcyan","palegreen3"))
+
+
+#### Making models (Not doing yet!!) ####
+# Making a lm to check what is affecting clay.
+#summary(lm(Clay.per~MAP.mm_yr, data=MAP.clay)) # MAP not significant 
+#total.model <- lm(Clay.per~MAP.mm_yr*factor(Land_Use)*Last_fire.yr*Fire_frequency.2000_2017, data=MAP.clay) # all the "possible" explainatory variables, use drop1? 
+#summary(total.model)
+#summary(lm(Clay.per~factor(Land_Use)+Last_fire.yr, data=MAP.clay))
+#summary(lm(Clay.per~Last_fire.yr*MAP.mm_yr, data=MAP.clay)) # Year of last fire is significant, and good to use together with MAP?
 
 # making unique block id (factor) by using the paste function - creating block.id column with region and block together seperated by "_" 
-MAP.clay$Block.id <- as.factor(with(MAP.clay,paste(Region,Block,sep="_")))
+#MAP.clay$Block.id <- as.factor(with(MAP.clay,paste(Region,Block,sep="_")))
 # Then transforming each unique combination into a number
-MAP.clay$Block.id <- as.factor(as.numeric(MAP.clay$Block.id))
-summary(levels(MAP.clay$Block.id)) # 27 unique blocks (nit 28 - missing one in Seronera)
+#MAP.clay$Block.id <- as.factor(as.numeric(MAP.clay$Block.id))
+#summary(levels(MAP.clay$Block.id))
 
 ####Packages####
 #library(lattice)
