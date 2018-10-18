@@ -86,6 +86,9 @@ names(total.soil.data)
 BD.total <- total.soil.data[,c(1:7,14,23)]
 tail(BD.total)
 BD.total <- na.omit(BD.total)
+# Remove O-hor as I only have this for very few plots. 
+BD.total <- BD.total[BD.total$Horizon!="O-hor",]
+BD.total <- droplevels(BD.total)
 
 # Look at the difference between A-horizon, Min and O-Horizon 
 plot(BD_fine_earth_air_dry~factor(Horizon), data=BD.total)
@@ -99,27 +102,30 @@ BD.total$Region <- factor(BD.total$Region,levels = c("Makao","Maswa","Mwantimba"
 
 # Look at BD per region for the different horizons 
 library(ggplot2)
+library(dplyr)
+
+# SE function to use in R 
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+BD.SE <- aggregate(BD_fine_earth_air_dry~Horizon+Region,data=BD.total,SE)
+BD <- aggregate(BD_fine_earth_air_dry~Horizon+Region,data=BD.total,mean)
+
+BD.horizon <- cbind(BD,BD.SE[3])
+colnames(BD.horizon)[4] <- "BD_SE" 
+colnames(BD.horizon)[3] <- "BD"
 
 # Per Region
 BD.plot.region <- ggplot(data=BD.total, aes(x = Region,y = BD_fine_earth_air_dry))
 BD.plot.region + geom_boxplot()
 
-# Want to group by Horizon 
-BD.horizon <- BD.total %>%
-  group_by(Region, Horizon,BD_fine_earth_air_dry) %>%
-  tally
-
-# Remove O-hor as I only have this for very few plots. 
-BD.horizon <- BD.horizon[BD.horizon$Horizon!="O-hor",]
-
-BD.plot.horizon <- ggplot(data = BD.horizon, aes(x = Region,y = BD_fine_earth_air_dry, group = Horizon, colour= Horizon))
+# and Horizon
+BD.plot.horizon <- ggplot(data = BD.horizon, aes(x = Region,y = BD, ymin=BD-BD_SE,ymax=BD+BD_SE, group = Horizon, colour= Horizon))
 
 Lines_gone <- theme(panel.grid.major.x = element_blank(),
                     panel.grid.minor.x = element_blank(),
                     panel.grid.major.y = element_blank(),
                     panel.grid.minor.y = element_blank())
 
-BD.plot.horizon + geom_point() + theme_bw() + Lines_gone + geom_errorbar()
+BD.plot.horizon + geom_point() + theme_bw() + Lines_gone + geom_errorbar(stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=1),show.legend=F) 
 
 
 # Uploading the table of Bulk density per block and Bulk density "control"
