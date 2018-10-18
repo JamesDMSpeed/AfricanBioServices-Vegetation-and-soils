@@ -4,7 +4,7 @@
 total.soil.data<- read.csv("Ecosystem Carbon/Total.soil.data.csv", head = TRUE)
 names(total.soil.data)
 
-# Want to have a table with soil texture (clay, silt and sand) and chemical traits
+# Want to have a table with SOIL TEXTURE (clay, silt and sand) and chemical traits
 # First, reorganizing and removing collumns 
 soil.chemistry <- total.soil.data[,c(1:5,30:32,36:41)]
 names(soil.chemistry)
@@ -47,7 +47,7 @@ colnames(SoilcheSummary)<-c("Region","Clay","Clay.sd","Silt","Silt.sd","Sand","S
 
 SoilcheSummary
 
-# want to have a table with region, land use, year of last fire, fire frequency, MAP, altitude 
+# Want to have a table with region, land use, year of last fire, fire frequency, MAP, altitude 
 
 # First, reorganizing and removing collumns 
 site.traits <- total.soil.data[,c(1:5,13:17)]
@@ -78,13 +78,51 @@ colnames(SoiltraitsSummary)<-c("Region","MAP (mm/yr)","Altitude","Year of last f
 
 SoiltraitsSummary
 
+#### Bulk Density exploration ####
 
-# trying to save as an excel file... 
-# install.packages("openxlsx")
-# library(openxlsx)
+total.soil.data<- read.csv("Ecosystem Carbon/Total.soil.data.csv", head = TRUE)
+names(total.soil.data)
 
-#### Bulk Density, correlation ####
+BD.total <- total.soil.data[,c(1:7,14,23)]
+tail(BD.total)
+BD.total <- na.omit(BD.total)
 
+# Look at the difference between A-horizon, Min and O-Horizon 
+plot(BD_fine_earth_air_dry~factor(Horizon), data=BD.total)
+
+# Look at BD per land-use
+plot(BD_fine_earth_air_dry~factor(Land_Use), data=BD.total)
+
+# Look at BD per Region 
+levels(BD.total$Region)
+BD.total$Region <- factor(BD.total$Region,levels = c("Makao","Maswa","Mwantimba","Handajega", "Seronera","Park Nyigoti","Ikorongo"))
+
+# Look at BD per region for the different horizons 
+library(ggplot2)
+
+# Per Region
+BD.plot.region <- ggplot(data=BD.total, aes(x = Region,y = BD_fine_earth_air_dry))
+BD.plot.region + geom_boxplot()
+
+# Want to group by Horizon 
+BD.horizon <- BD.total %>%
+  group_by(Region, Horizon,BD_fine_earth_air_dry) %>%
+  tally
+
+# Remove O-hor as I only have this for very few plots. 
+BD.horizon <- BD.horizon[BD.horizon$Horizon!="O-hor",]
+
+BD.plot.horizon <- ggplot(data = BD.horizon, aes(x = Region,y = BD_fine_earth_air_dry, group = Horizon, colour= Horizon))
+
+Lines_gone <- theme(panel.grid.major.x = element_blank(),
+                    panel.grid.minor.x = element_blank(),
+                    panel.grid.major.y = element_blank(),
+                    panel.grid.minor.y = element_blank())
+
+BD.plot.horizon + geom_point() + theme_bw() + Lines_gone + geom_errorbar()
+
+
+# Uploading the table of Bulk density per block and Bulk density "control"
 Bulk.density <- read.csv("Ecosystem Carbon/02BulkSoil.csv", head=T)
 names(Bulk.density)
 
@@ -122,6 +160,20 @@ identify(Bulk.density$BD.average~Bulk.density$BD.controll)
 Bulk.density[9,] # Handajega   S4, B2 
 Bulk.density[13,] # Park Nyigoti   S6, B2 
 # I have tried to look at both of these outliers to check if I have made some mistakes - but the values seems to be correct Handajega B2 have heavy samples in general, while Park Nyigoti B2 have light samples in general. 
+
+# Aggrigate BD per region 
+BD.average_region <- aggregate(BD.average.block_g.cm3~Region,Bulk.density2,mean)
+BD.control_region <- aggregate(BD.controll_g.cm3~Region,Bulk.density2,mean)
+
+# Making a dataset of BD per region 
+BD.region <- cbind(BD.average_region,BD.control_region[2])
+colnames(BD.region) <- c("Region","BD.average","BD.control")
+
+# Looking for correlation
+BD.model2 <- lm(BD.average~BD.control, data=BD.region)
+summary(BD.model2)
+par(mfrow=(c(2,2)))
+plot(BD.model2)
 
 #### Clay, correlation with MAP, fire, land-use? ####
 
