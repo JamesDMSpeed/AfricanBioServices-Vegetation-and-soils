@@ -68,7 +68,10 @@ levels(Tree.carbon$Region)
 landuse <- c("Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild")
 Tree.carbon$landuse <- landuse
 
-Tree.carbon.Vilde <- Tree.carbon[,c(1,2,3,4,11,5,10,6,7,8,9)]
+# Make a collumn for my Block.id
+Vilde.block <- c(1,2,3,4,3,1,2,4,3,4,1,2,1,4,3,2,1,2,3,4,1,2,3,3,4,1,2)
+Tree.carbon$Vilde.block <- Vilde.block
+Tree.carbon.Vilde <- Tree.carbon[,c(1,2,3,12,4,11,5,10,6,7,8,9)]
 
 write.csv(Tree.carbon,file="Tree.Carbon.Vilde.csv") # for further use 
 
