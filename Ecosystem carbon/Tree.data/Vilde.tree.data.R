@@ -103,7 +103,7 @@ colnames(Tree.carbon.Region) <- c("Region","Area.m2","MAP.mm_yr","MAP.sd","Fire_
 Tree.carbon.Region$Carbon.m2 <- Tree.carbon.Region$Tree_C.kg/Tree.carbon.Region$Area.m2
 Tree.carbon.Region <- Tree.carbon.Region[,c(1,2,3,4,5,6,7,8,10,9)]
 
-write.csv(Tree.carbon.Region, file="Tree.carbon.Region.csv")
+# write.csv(Tree.carbon.Region, file="Tree.carbon.Region.csv")
 
 #### 3. Exploring the data #### 
 par(mfrow=c(1,2))
@@ -112,12 +112,12 @@ par(mfrow=c(1,2))
 boxplot(carbon.m2 ~ Region, 
         xlab = "Region",
         ylab = "Carbon.m2",
-        data = Tree.Carbon)
+        data = Tree.carbon)
 
 boxplot(No_trees ~ Region, 
         xlab = "Region",
         ylab = "#Trees",
-        data = Tree.Carbon)
+        data = Tree.carbon)
 
 # C and no. trees per landuse
 plot(No_trees~landuse,
@@ -130,8 +130,18 @@ plot(carbon.m2~landuse,
      ylab = "Carbon per m2",
      data=Tree.carbon)
 
-# test weather no. trees 
-anova()
+# Carbon per tree in pasture vs wild  
+par(mfrow=c(1,1))
+plot (Tree_C.kg_block/No_trees~landuse,
+       xlab = "Land Use",
+       ylab = "Carbon per tree",
+       data=Tree.carbon)
+
+# trees vs clay 
+
+MAP.clay<-read.csv("Ecosystem carbon/MAP.clay.csv", head=T)
+
+
 
 
 

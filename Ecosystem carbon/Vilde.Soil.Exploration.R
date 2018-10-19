@@ -125,7 +125,7 @@ Lines_gone <- theme(panel.grid.major.x = element_blank(),
                     panel.grid.major.y = element_blank(),
                     panel.grid.minor.y = element_blank())
 
-BD.plot.horizon + geom_point() + theme_bw() + Lines_gone + geom_errorbar(stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=1),show.legend=F) 
+BD.plot.horizon + geom_point(size = 3, shape=20,stroke=2)  + theme_bw() + Lines_gone + geom_errorbar(stat = "identity",width=.2,lwd=1.1,show.legend=F) 
 
 
 # Uploading the table of Bulk density per block and Bulk density "control"
@@ -191,6 +191,11 @@ names(MAP.clay.total)
 tail(MAP.clay.total)
 MAP.clay <- na.omit(MAP.clay.total) # removing NAs
 
+levels(MAP.clay$Region)
+MAP.clay$Region <- factor(MAP.clay$Region,levels = c("Makao","Maswa","Mwantimba","Handajega", "Seronera","Park Nyigoti","Ikorongo"))
+
+#write.csv(MAP.clay,file="Ecosystem carbon/MAP.clay.csv" )
+
 # Making a simple plot of clay as a function of MAP 
 par(mfrow=c(2,2))
 plot(Clay.per~MAP.mm_yr, data=MAP.clay)
@@ -204,7 +209,7 @@ plot(Clay.per~factor(Region),
      xlab= "Region",
      ylab= "Clay (%)",
      data=MAP.clay,
-     border=c("blueviolet", "darkcyan", "darkgoldenrod2", "darkgoldenrod2", "blueviolet", "darkcyan","palegreen3"))
+     border=c("darkgoldenrod2","darkgoldenrod2","blueviolet","blueviolet","palegreen3","darkcyan","darkcyan"))
 
 
 #### Making models (Not doing yet!!) ####
