@@ -109,6 +109,8 @@ Tree.carbon.Region <- Tree.carbon.Region[,c(1,2,3,4,5,6,7,8,10,9)]
 # write.csv(Tree.carbon.Region, file="Tree.carbon.Region.csv")
 
 #### 3. Exploring the data #### 
+Tree.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.Carbon.Vilde.csv", head=T)
+
 par(mfrow=c(1,2))
 
 # C and no. trees per Region
@@ -140,11 +142,34 @@ plot (Tree_C.kg_block/No_trees~landuse,
        ylab = "Carbon per tree",
        data=Tree.carbon)
 
-# trees vs clay 
+# No of trees vs clay 
 
 MAP.clay<-read.csv("Ecosystem carbon/MAP.clay.csv", head=T)
 
+# aggregate 
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+No.trees <- aggregate(No_trees~Region, Tree.carbon,sum)
+No.trees.se <- aggregate(No_trees~Region, Tree.carbon,SE)
+Clay<-aggregate(Clay.per~Region,MAP.clay,mean)
+Clay.SE<-aggregate(Clay.per~Region,MAP.clay,SE)
 
+Trees.clay <- cbind(No.trees,No.trees.se[2],Clay[2],Clay.SE[2])
+names(Trees.clay)
+colnames(Trees.clay) <- c("Region","No.trees","No.trees.se","Clay.per","Clay.per.se")
+Trees.clay$Land.Use <- c("Wild","Pasture","Wild","Pasture","Pasture","Wild","Wild")
+
+plot(No_trees ~ Clay.per, data=Trees.clay)
+
+library(ggplot2)
+
+Plot.trees.clay <- ggplot(data = Trees.clay, aes(x = Clay.per,y = No.trees, ymin=No.trees-No.trees.se,ymax=No.trees+No.trees.se, group = Land.Use, colour= Land.Use))
+
+Lines_gone <- theme(panel.grid.major.x = element_blank(),
+                    panel.grid.minor.x = element_blank(),
+                    panel.grid.major.y = element_blank(),
+                    panel.grid.minor.y = element_blank())
+
+Plot.trees.clay + geom_point(size = 3, shape=20,stroke=2)  + theme_bw() + Lines_gone + geom_errorbar(stat = "identity",width=.2,lwd=1.1,show.legend=F) 
 
 
 

@@ -189,7 +189,12 @@ names(total.soil.data)
 MAP.clay.total <- total.soil.data[,c(1:6,14:16,17,30)] #reducing the dataset
 names(MAP.clay.total) 
 tail(MAP.clay.total)
-MAP.clay <- na.omit(MAP.clay.total) # removing NAs
+# Exclude all with NA 
+MAP.clay.fire <- na.omit(MAP.clay.total) # removing NAs
+
+# Making a dataset without fire 
+MAP.clay <- total.soil.data[,c(1:6,14,17,30)]
+MAP.clay <- na.omit(MAP.clay)
 
 levels(MAP.clay$Region)
 MAP.clay$Region <- factor(MAP.clay$Region,levels = c("Makao","Maswa","Mwantimba","Handajega", "Seronera","Park Nyigoti","Ikorongo"))
@@ -200,8 +205,8 @@ MAP.clay$Region <- factor(MAP.clay$Region,levels = c("Makao","Maswa","Mwantimba"
 par(mfrow=c(2,2))
 plot(Clay.per~MAP.mm_yr, data=MAP.clay)
 plot(Clay.per~factor(Land_Use), data=MAP.clay)
-plot(Clay.per~Last_fire.yr, data=MAP.clay)
-plot(Clay.per~Fire_frequency.2000_2017, data=MAP.clay)
+plot(Clay.per~Last_fire.yr, data=MAP.clay.fire)
+plot(Clay.per~Fire_frequency.2000_2017, data=MAP.clay.fire)
 
 # Boxplot illustrating difference in clay per site with colors indicating amount of MAP
 par(mfrow=c(1,1))
