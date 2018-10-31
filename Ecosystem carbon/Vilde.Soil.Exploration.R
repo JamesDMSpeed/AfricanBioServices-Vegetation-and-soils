@@ -217,6 +217,42 @@ plot(Clay.per~factor(Region),
      border=c("darkgoldenrod2","darkgoldenrod2","blueviolet","blueviolet","palegreen3","darkcyan","darkcyan"))
 
 
+# Making a table with BD and clay to see if they are correlated.
+Clay <- aggregate(Clay.per~Horizon+Region, data=MAP.clay,mean)
+Clay.se <- aggregate(Clay.per~Horizon+Region, data=MAP.clay,SE)
+
+Clay.BD <- cbind(BD.horizon,Clay[3],Clay.se[3])
+colnames(Clay.BD) <- c("Horizon","Region","BD","BD.se","Clay","Clay.se")
+
+# Checking for correlation between Clay and BD to see if I can use BD instead of clay 
+
+par(mfrow=c(2,2))
+summary(Model.clay.BD <- lm(BD~Clay,data=Clay.BD)) # significant 
+plot(Model.clay.BD)
+
+par(mfrow=c(1,1))
+plot(Clay~BD, data=Clay.BD)
+
+# Creating a dataframe for clay with the fit of the model, and the SE of the fit. 
+xseq <- seq(from=min(Clay.BD$Clay),to=max(Clay.BD$Clay), 1)
+CorrLine<-data.frame(Clay= xseq, predict(Model.clay.BD, data.frame(Clay=xseq), se.fit= TRUE))
+
+# Plot prediction line using ggplot and geom_ribbon 
+
+Clay.BD.plot <- ggplot(data = Clay.BD, aes(x = Clay,y = BD))
+
+Lines_gone <- theme(panel.grid.major.x = element_blank(),
+                    panel.grid.minor.x = element_blank(),
+                    panel.grid.major.y = element_blank(),
+                    panel.grid.minor.y = element_blank())
+
+Clay.BD.plot +
+  geom_point(aes(color=Region)) +
+  geom_line(data=CorrLine, aes(Clay, fit))+
+  geom_ribbon(data=CorrLine, aes(ymin=fit-se.fit, ymax=fit+se.fit, x = Clay), alpha=0.4,inherit.aes = FALSE)+
+  Lines_gone
+
+
 #### Making models (Not doing yet!!) ####
 # Making a lm to check what is affecting clay.
 #summary(lm(Clay.per~MAP.mm_yr, data=MAP.clay)) # MAP not significant 
