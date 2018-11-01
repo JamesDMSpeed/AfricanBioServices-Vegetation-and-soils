@@ -67,6 +67,11 @@ plot(fulldata$Massloss..g.)
 #identify(decomp$Massloss..g.)
 
 #Checkig outliers in temperature and moisture:
+dotchart(fulldata$Temperature..C.) #Looks ok
+plot(fulldata$Temperature..C.)
+#identify(fulldata$Temperature..C.)
+dotchart(fulldata$Moisture..) #Looks ok
+plot(fulldata$Moisture..)
 
 ####################################################################################
 ###################################################################################
