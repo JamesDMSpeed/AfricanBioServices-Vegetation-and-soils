@@ -218,6 +218,7 @@ plot(Clay.per~factor(Region),
 
 
 # Making a table with BD and clay to see if they are correlated.
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 Clay <- aggregate(Clay.per~Horizon+Region, data=MAP.clay,mean)
 Clay.se <- aggregate(Clay.per~Horizon+Region, data=MAP.clay,SE)
 
@@ -239,7 +240,7 @@ CorrLine<-data.frame(Clay= xseq, predict(Model.clay.BD, data.frame(Clay=xseq), s
 
 # Plot prediction line using ggplot and geom_ribbon 
 
-Clay.BD.plot <- ggplot(data = Clay.BD, aes(x = Clay,y = BD))
+Clay.BD.plot <- ggplot(data = Clay.BD, aes(x = Clay,y = BD, group_by(Horizon)))
 
 Lines_gone <- theme(panel.grid.major.x = element_blank(),
                     panel.grid.minor.x = element_blank(),
@@ -247,7 +248,7 @@ Lines_gone <- theme(panel.grid.major.x = element_blank(),
                     panel.grid.minor.y = element_blank())
 
 Clay.BD.plot +
-  geom_point(aes(color=Region)) +
+  geom_point(aes(shape=factor(Horizon),stroke=3,color=Region)) +
   geom_line(data=CorrLine, aes(Clay, fit))+
   geom_ribbon(data=CorrLine, aes(ymin=fit-se.fit, ymax=fit+se.fit, x = Clay), alpha=0.4,inherit.aes = FALSE)+
   Lines_gone

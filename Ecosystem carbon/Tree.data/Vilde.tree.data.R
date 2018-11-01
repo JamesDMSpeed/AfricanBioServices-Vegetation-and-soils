@@ -73,7 +73,7 @@ Vilde.block <- c(1,2,3,4,3,1,2,4,3,4,1,2,1,4,3,2,1,2,3,4,1,2,3,3,4,1,2)
 Tree.carbon$Vilde.block <- Vilde.block
 Tree.carbon.Vilde <- Tree.carbon[,c(1,2,3,12,4,11,5,10,6,7,8,9)]
 
-write.csv(Tree.carbon,file="Tree.Carbon.Vilde.csv") # for further use 
+write.csv(Tree.carbon.Vilde,file="Tree.Carbon.Vilde.csv") # for further use 
 
 #### 2. Make a table at "region level" for my method ####
 
@@ -88,8 +88,7 @@ Tree.carbon$Region<- factor(Tree.carbon$Region, levels = c("Makao","Maswa","Mwan
 
 levels(Tree.carbon$Region) # Releveled
 
-# remember this is Philipos block number.. 
-
+# Making a table for Carbon per region 
 Carbon.per.block<-aggregate(Tree_C.kg_block~Region, Tree.carbon,sum)
 No.trees <- aggregate(No_trees~Region, Tree.carbon,sum)
 Region.area_m2<-aggregate(Block_area.m2~Region,Tree.carbon,sum)
@@ -142,37 +141,65 @@ plot (Tree_C.kg_block/No_trees~landuse,
        ylab = "Carbon per tree",
        data=Tree.carbon)
 
-# No of trees vs clay 
+# No of trees vs BD 
+total.soil.data<- read.csv("Ecosystem Carbon/Total.soil.data.csv", head = TRUE)
+names(total.soil.data)
 
-MAP.clay<-read.csv("Ecosystem carbon/MAP.clay.csv", head=T)
+BD.total <- total.soil.data[,c(1:7,14,23)]
+tail(BD.total)
+BD.total <- na.omit(BD.total)
+# Remove O-hor as I only have this for very few plots. 
+BD.total <- BD.total[BD.total$Horizon!="O-hor",]
+BD.total <- droplevels(BD.total)
 
-# aggregate 
+BD.total$Region <- factor(BD.total$Region,levels = c("Makao","Maswa","Mwantimba","Handajega", "Seronera","Park Nyigoti","Ikorongo"))
+
+# SE function to use in R + aggrigate 
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+BD.SE <- aggregate(BD_fine_earth_air_dry~Region,data=BD.total,SE)
+BD <- aggregate(BD_fine_earth_air_dry~Region,data=BD.total,mean)
 No.trees <- aggregate(No_trees~Region, Tree.carbon,sum)
 No.trees.se <- aggregate(No_trees~Region, Tree.carbon,SE)
-Clay<-aggregate(Clay.per~Region,MAP.clay,mean)
-Clay.SE<-aggregate(Clay.per~Region,MAP.clay,SE)
+MAP <- aggregate(MAP.mm_yr~Region, Tree.carbon,mean)
 
-Trees.clay <- cbind(No.trees,No.trees.se[2],Clay[2],Clay.SE[2])
-names(Trees.clay)
-colnames(Trees.clay) <- c("Region","No.trees","No.trees.se","Clay.per","Clay.per.se")
-Trees.clay$Land.Use <- c("Wild","Pasture","Wild","Pasture","Pasture","Wild","Wild")
+Trees.BD <- cbind(No.trees,No.trees.se[2],BD[2],BD.SE[2],MAP[2])
+names(Trees.BD)
+colnames(Trees.BD) <- c("Region","No.trees","No.trees.se","BD","BD.se","MAP")
+Trees.BD$Land.Use <- as.factor(c("Pasture","Wild","Pasture","Wild", "Wild", "Pasture","Wild"))
 
-plot(No_trees ~ Clay.per, data=Trees.clay)
+plot(BD~No.trees, data=Trees.BD)
+plot(No.trees~BD, data=Trees.BD)
+plot(No.trees~MAP, data=Trees.BD)
+plot(BD~MAP, data=Trees.BD)
+
+summary(lm(BD~No.trees, data=Trees.BD))
+summary(lm(No.trees~MAP, data=Trees.BD))
+summary(lm(BD~MAP, data=Trees.BD))
+summary(lm(No.trees~MAP+BD, data=Trees.BD))
 
 library(ggplot2)
 
-Plot.trees.clay <- ggplot(data = Trees.clay, aes(x = Clay.per,y = No.trees, ymin=No.trees-No.trees.se,ymax=No.trees+No.trees.se, group = Land.Use, colour= Land.Use))
+# Plotting trees against BD 
+
+Plot.trees.BD <- ggplot(data = Trees.BD, aes(x = No.trees,y = BD, ymin=BD-BD.se,ymax=BD+BD.se, colour= Region))
 
 Lines_gone <- theme(panel.grid.major.x = element_blank(),
                     panel.grid.minor.x = element_blank(),
                     panel.grid.major.y = element_blank(),
                     panel.grid.minor.y = element_blank())
 
-Plot.trees.clay + geom_point(size = 3, shape=20,stroke=2)  + theme_bw() + Lines_gone + geom_errorbar(stat = "identity",width=.2,lwd=1.1,show.legend=F) 
+Plot.trees.BD + geom_point(aes(shape= factor(Land.Use)),stroke=2,size=3)  + theme_bw() + Lines_gone + geom_errorbar(stat = "identity",width=.2,lwd=1.1,show.legend=F) 
 
+# Plotting trees against MAP 
 
+Plot.trees.MAP <- ggplot(data = Trees.BD, aes(x = MAP,y = No.trees, ymin=No.trees-No.trees.se,ymax=No.trees+No.trees.se, colour= Region))
 
+Lines_gone <- theme(panel.grid.major.x = element_blank(),
+                    panel.grid.minor.x = element_blank(),
+                    panel.grid.major.y = element_blank(),
+                    panel.grid.minor.y = element_blank())
+
+Plot.trees.MAP + geom_point(aes(shape= factor(Land.Use)),stroke=2,size=3)  + theme_bw() + Lines_gone + geom_errorbar(stat = "identity",width=.2,lwd=1.1,show.legend=F) 
 
 
 
