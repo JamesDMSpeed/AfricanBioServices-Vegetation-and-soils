@@ -203,10 +203,12 @@ MAP.clay$Region <- factor(MAP.clay$Region,levels = c("Makao","Maswa","Mwantimba"
 
 # Making a simple plot of clay as a function of MAP 
 par(mfrow=c(2,2))
-plot(Clay.per~MAP.mm_yr, data=MAP.clay)
+plot(Clay.per~MAP.mm_yr, data=MAP.clay,col=MAP.clay$Region)
 plot(Clay.per~factor(Land_Use), data=MAP.clay)
 plot(Clay.per~Last_fire.yr, data=MAP.clay.fire)
 plot(Clay.per~Fire_frequency.2000_2017, data=MAP.clay.fire)
+
+summary(lm(Clay.per~MAP.mm_yr, data=MAP.clay))
 
 # Boxplot illustrating difference in clay per site with colors indicating amount of MAP
 par(mfrow=c(1,1))
@@ -228,7 +230,8 @@ colnames(Clay.BD) <- c("Horizon","Region","BD","BD.se","Clay","Clay.se")
 # Checking for correlation between Clay and BD to see if I can use BD instead of clay 
 
 par(mfrow=c(2,2))
-summary(Model.clay.BD <- lm(BD~Clay,data=Clay.BD)) # significant 
+Model.clay.BD <- lm(BD~Clay,data=Clay.BD)
+summary(Model.clay.BD) # significant 
 plot(Model.clay.BD)
 
 par(mfrow=c(1,1))
@@ -251,7 +254,9 @@ Clay.BD.plot +
   geom_point(aes(shape=factor(Horizon),stroke=3,color=Region)) +
   geom_line(data=CorrLine, aes(Clay, fit))+
   geom_ribbon(data=CorrLine, aes(ymin=fit-se.fit, ymax=fit+se.fit, x = Clay), alpha=0.4,inherit.aes = FALSE)+
+  theme_bw() +
   Lines_gone
+  
 
 
 #### Making models (Not doing yet!!) ####
