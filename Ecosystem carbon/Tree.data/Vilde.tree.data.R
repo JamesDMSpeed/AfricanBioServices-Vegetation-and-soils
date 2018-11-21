@@ -57,10 +57,11 @@ Year.of.last.fire <- aggregate(Year.of.last.fire~area+block.id,Vildetrees,mean)
 
 # creating a dataset at block size # WHY STILL WRONG ORDER OF REGIONS?? 
 Tree.carbon <- cbind(Block.size,Block[3],Carbon.per.block[3],Trees.per.block[3],MAP.mm_2015_2017[3],Fire.freq[3],Year.of.last.fire[3])
-colnames(Tree.carbon) <- c("Region","Block.id","Block_area.m2","Philipo.Block","Tree_C.kg_block","No_trees", "MAP.mm_yr","Fire_frequency.2000_2017", "Last_fire.yr")
+colnames(Tree.carbon) <- c("Region","Block.id","Block_area.m2","Philipo.Block","TreeC.kg_block","No_trees", "MAP.mm_yr","Fire_frequency.2000_2017", "Last_fire.yr")
 
-# Adding a collumn of carbon per m2 
-Tree.carbon$carbon.m2 <- Tree.carbon$Tree_C.kg_block/Tree.carbon$Block_area.m2
+# Adding a collumn of carbon in g, and per m2 
+Tree.carbon$TreeC.g_block <- Tree.carbon$TreeC.kg_block*1000
+Tree.carbon$TreeC.m2 <- Tree.carbon$TreeC.g_block/Tree.carbon$Block_area.m2
 names(Tree.carbon)
 levels(Tree.carbon$Region)
 
@@ -71,7 +72,13 @@ Tree.carbon$landuse <- landuse
 # Make a collumn for my Block.id
 Vilde.block <- c(1,2,3,4,3,1,2,4,3,4,1,2,1,4,3,2,1,2,3,4,1,2,3,3,4,1,2)
 Tree.carbon$Vilde.block <- Vilde.block
-Tree.carbon.Vilde <- Tree.carbon[,c(1,2,3,12,4,11,5,10,6,7,8,9)]
+names(Tree.carbon)
+Tree.carbon.Vilde <- Tree.carbon[,c(1,2,12,3,13,6,5,10,11,7,8,9)]
+
+# Order the dataset so my block id is increasing
+Tree.carbon.Vilde <- Tree.carbon.Vilde[
+  order( Tree.carbon.Vilde[,1], Tree.carbon.Vilde[,5] ),
+  ]
 
 write.csv(Tree.carbon.Vilde,file="Tree.Carbon.Vilde.csv") # for further use 
 
@@ -110,10 +117,12 @@ Tree.carbon.Region <- Tree.carbon.Region[,c(1,2,3,4,5,6,7,8,10,9)]
 #### 3. Exploring the data #### 
 Tree.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.Carbon.Vilde.csv", head=T)
 
+Tree.carbon$Region<- factor(Tree.carbon$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
+
 par(mfrow=c(1,2))
 
 # C and no. trees per Region
-boxplot(carbon.m2 ~ Region, 
+boxplot(TreeC.m2 ~ Region, 
         xlab = "Region",
         ylab = "Carbon.m2",
         data = Tree.carbon)
@@ -129,20 +138,20 @@ plot(No_trees~landuse,
      ylab = "#Trees",
      data=Tree.carbon)
 
-plot(carbon.m2~landuse,
+plot(TreeC.m2~landuse,
      xlab = "Land Use",
      ylab = "Carbon per m2",
      data=Tree.carbon)
 
 # Carbon per tree in pasture vs wild  
 par(mfrow=c(1,1))
-plot (Tree_C.kg_block/No_trees~landuse,
+plot (TreeC.m2/No_trees~landuse,
        xlab = "Land Use",
        ylab = "Carbon per tree",
        data=Tree.carbon)
 
 # No of trees vs BD 
-total.soil.data<- read.csv("Ecosystem Carbon/Total.soil.data.csv", head = TRUE)
+total.soil.data<- read.csv("Ecosystem Carbon/Soil.data/Total.soil.data.csv", head = TRUE)
 names(total.soil.data)
 
 BD.total <- total.soil.data[,c(1:7,14,23)]
@@ -201,7 +210,30 @@ Lines_gone <- theme(panel.grid.major.x = element_blank(),
 
 Plot.trees.MAP + geom_point(aes(shape= factor(Land.Use)),stroke=2,size=3)  + theme_bw() + Lines_gone + geom_errorbar(stat = "identity",width=.2,lwd=1.1,show.legend=F) 
 
+#### Adding dead wood data ####
+Dead.wood <- read.csv("Ecosystem carbon/Tree.data/03Dead_wood.csv",head=T)
+names(Dead.wood)
+Dead.wood.red <- Dead.wood[,c(1:5,10:16)]
+Dead.wood.red<-na.omit(Dead.wood.red)
+Dead.wood.red <- droplevels(Dead.wood.red)
+levels(Dead.wood.red$Region)
+class(Dead.wood.red$Region)
 
+# Aggregate dead wood per circle - and then per block
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+Dead.wood.circle <- aggregate(Carbon.g~Circle+Block+Region,data=Dead.wood.red,sum)
+Dead.wood.block <- aggregate(Carbon.g~Block+Region,data=Dead.wood.circle,sum)
+Dead.wood.block.SE <- aggregate(Carbon.g~Block+Region,data=Dead.wood.circle,SE)
+
+DW.block <- cbind(Dead.wood.block, Dead.wood.block.SE[3])
+DW.block <- DW.block[,c(2,1,3,4)]
+colnames(DW.block) <- c("Region","Block","DWC.g_block","SE_DWC")
+
+# Adding a collumn of Carbon in kg and a collumn of C per m2 
+DW.block$DWC.g_m2 <- DW.block$DWC.g_block/2500 # dividing by 2500 as this is the block size 
+
+# Exploring the data 
+plot(DWC.g_m2~Region,DW.block)
 
 
 
