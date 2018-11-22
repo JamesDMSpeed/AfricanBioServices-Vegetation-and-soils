@@ -82,7 +82,7 @@ Tree.carbon.Vilde <- Tree.carbon.Vilde[
 
 write.csv(Tree.carbon.Vilde,file="Tree.Carbon.Vilde.csv") # for further use 
 
-#### 2. Make a table at "region level" for my method ####
+#### 2. Make a table at "region level"####
 
 rm(list=ls())
 
@@ -95,29 +95,35 @@ Tree.carbon$Region<- factor(Tree.carbon$Region, levels = c("Makao","Maswa","Mwan
 
 levels(Tree.carbon$Region) # Releveled
 
-# Making a table for Carbon per region 
-Carbon.per.block<-aggregate(Tree_C.kg_block~Region, Tree.carbon,sum)
+# Making a table for Tree Carbon per region 
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+TreeC.Region.m2<-aggregate(TreeC.m2~Region, Tree.carbon,sum)
+TreeC.Region.m2.SE<-aggregate(TreeC.m2~Region, Tree.carbon,SE)
 No.trees <- aggregate(No_trees~Region, Tree.carbon,sum)
-Region.area_m2<-aggregate(Block_area.m2~Region,Tree.carbon,sum)
+No.trees.SE <- aggregate(No_trees~Region, Tree.carbon,SE)
 MAP <- aggregate(MAP.mm_yr~Region,Tree.carbon,mean)
 MAP.sd <- aggregate(MAP.mm_yr~Region,Tree.carbon,sd)
 Fire.frequency <- aggregate(Fire_frequency.2000_2017~Region,Tree.carbon,mean)
 Fire.frequency.sd <- aggregate(Fire_frequency.2000_2017~Region,Tree.carbon,sd)
 Year.of.last.fire <- aggregate(Last_fire.yr~Region,Tree.carbon,mean)
 
-Tree.carbon.Region <- cbind(Region.area_m2,MAP[2],MAP.sd[2],Fire.frequency[2],Fire.frequency.sd[2],Year.of.last.fire[2],Carbon.per.block[2],No.trees[2])
+TreeC.Region <- cbind(TreeC.Region.m2,TreeC.Region.m2.SE[2],No.trees[2],No.trees.SE[2],MAP[2],MAP.sd[2],Fire.frequency[2],Fire.frequency.sd[2],Year.of.last.fire[2])
 
-colnames(Tree.carbon.Region) <- c("Region","Area.m2","MAP.mm_yr","MAP.sd","Fire_frequency.2000_2017","Fire_frequency.sd","Last_fire.yr","Tree_C.kg", "No_trees")
+colnames(TreeC.Region) <- c("Region","TreeC_m2","SE.TreeC_m2","No_trees","SE.No_trees","MAP.mm_yr","MAP.sd","Fire_frequency.2000_2017","Fire_frequency.sd","Last_fire.yr")
 
-Tree.carbon.Region$Carbon.m2 <- Tree.carbon.Region$Tree_C.kg/Tree.carbon.Region$Area.m2
-Tree.carbon.Region <- Tree.carbon.Region[,c(1,2,3,4,5,6,7,8,10,9)]
+# Add landuse
+TreeC.Region$Region
+TreeC.Region$Landuse <- as.factor(c("Pasture","Wild","Pasture","Wild", "Wild", "Pasture","Wild"))
 
-# write.csv(Tree.carbon.Region, file="Tree.carbon.Region.csv")
-
+#write.csv(TreeC.Region, file="TreeC.Region.csv")
 #### 3. Exploring the data #### 
 Tree.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.Carbon.Vilde.csv", head=T)
+TreeC.Region <- read.csv(file="Ecosystem Carbon/Tree.data/TreeC.Region.csv", head=T)
 
+# Relevel before making plots
 Tree.carbon$Region<- factor(Tree.carbon$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
+
+TreeC.Region$Region<- factor(TreeC.Region$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
 
 par(mfrow=c(1,2))
 
@@ -146,9 +152,22 @@ plot(TreeC.m2~landuse,
 # Carbon per tree in pasture vs wild  
 par(mfrow=c(1,1))
 plot (TreeC.m2/No_trees~landuse,
-       xlab = "Land Use",
-       ylab = "Carbon per tree",
-       data=Tree.carbon)
+      xlab = "Land Use",
+      ylab = "Carbon per tree",
+      data=Tree.carbon)
+
+# Plotting trees per Region 
+
+library(ggplot2)
+
+TreeC.Region.plot <- ggplot(data = TreeC.Region, aes(x = Region,y = TreeC_m2, ymin=TreeC_m2-SE.TreeC_m2,ymax=TreeC_m2+SE.TreeC_m2, group = Landuse, colour= Landuse))
+
+Lines_gone <- theme(panel.grid.major.x = element_blank(),
+                    panel.grid.minor.x = element_blank(),
+                    panel.grid.major.y = element_blank(),
+                    panel.grid.minor.y = element_blank())
+
+TreeC.Region.plot + xlab("Region") + ylab("Woody plant carbon")  + geom_point(size = 3, shape=20,stroke=2)  + theme_bw() + Lines_gone + geom_errorbar(stat = "identity",width=.2,lwd=1.1,show.legend=F) +  scale_color_manual(breaks = c("Pasture", "Wild"),values=c("goldenrod3", "forestgreen"))
 
 # No of trees vs BD 
 total.soil.data<- read.csv("Ecosystem Carbon/Soil.data/Total.soil.data.csv", head = TRUE)
@@ -170,6 +189,7 @@ BD <- aggregate(BD_fine_earth_air_dry~Region,data=BD.total,mean)
 No.trees <- aggregate(No_trees~Region, Tree.carbon,sum)
 No.trees.se <- aggregate(No_trees~Region, Tree.carbon,SE)
 MAP <- aggregate(MAP.mm_yr~Region, Tree.carbon,mean)
+
 
 Trees.BD <- cbind(No.trees,No.trees.se[2],BD[2],BD.SE[2],MAP[2])
 names(Trees.BD)
@@ -210,6 +230,7 @@ Lines_gone <- theme(panel.grid.major.x = element_blank(),
 
 Plot.trees.MAP + geom_point(aes(shape= factor(Land.Use)),stroke=2,size=3)  + theme_bw() + Lines_gone + geom_errorbar(stat = "identity",width=.2,lwd=1.1,show.legend=F) 
 
+
 #### Adding dead wood data ####
 Dead.wood <- read.csv("Ecosystem carbon/Tree.data/03Dead_wood.csv",head=T)
 names(Dead.wood)
@@ -219,21 +240,55 @@ Dead.wood.red <- droplevels(Dead.wood.red)
 levels(Dead.wood.red$Region)
 class(Dead.wood.red$Region)
 
-# Aggregate dead wood per circle - and then per block
+# Aggregate dead wood per circle - and then per Block and Region
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 Dead.wood.circle <- aggregate(Carbon.g~Circle+Block+Region,data=Dead.wood.red,sum)
 Dead.wood.block <- aggregate(Carbon.g~Block+Region,data=Dead.wood.circle,sum)
 Dead.wood.block.SE <- aggregate(Carbon.g~Block+Region,data=Dead.wood.circle,SE)
 
-DW.block <- cbind(Dead.wood.block, Dead.wood.block.SE[3])
-DW.block <- DW.block[,c(2,1,3,4)]
+Dead.wood.Region <- aggregate(Carbon.g~Region,data=Dead.wood.circle,sum)
+Dead.wood.Region.SE <- aggregate(Carbon.g~Region,data=Dead.wood.circle,SE)
+
+DW.Region <- cbind(Dead.wood.Region, Dead.wood.Region.SE[2])
+colnames(DW.Region) <- c("Region","DWC.g","SE_DWC")
+
+DW.Block <- cbind(Dead.wood.block, Dead.wood.block.SE[3])
+DW.Block <- DW.block[,c(2,1,3,4)]
 colnames(DW.block) <- c("Region","Block","DWC.g_block","SE_DWC")
 
-# Adding a collumn of Carbon in kg and a collumn of C per m2 
-DW.block$DWC.g_m2 <- DW.block$DWC.g_block/2500 # dividing by 2500 as this is the block size 
+# Adding a collumn of C per m2 and SE per m2
+DW.Region$DWC.g_m2 <- DW.Region$DWC.g/2500 # dividing by 2500 as this is the block size 
+DW.Region$SE_DWC_m2 <- DW.Region$SE_DWC/2500
 
-# Exploring the data 
+DW.block$DWC.g_m2 <- DW.block$DWC.g_block/2500 
+DW.block$SE_DWC_m2 <- DW.block$SE_DWC/2500
+
+# Adding a collumn of land-use
+Landuse <- c("Wild","Wild","Pasture","Wild","Pasture")
+DW.Region$Landuse <- Landuse
+
+DW.Region$Region<- factor(DW.Region$Region, levels = c("Makao","Maswa","Handajega","Park Nyigoti","Ikorongo"))
+
+write.csv(DW.Region,file="Ecosystem carbon/Tree.data/DW.Region.csv")
+
+# Exploring the data DW per region
+library(ggplot2)
 plot(DWC.g_m2~Region,DW.block)
+names(DW.Region)
+
+DWC.plot <- ggplot(data = DW.Region, aes(x = Region,y = DWC.g_m2, ymin=DWC.g_m2-SE_DWC_m2,ymax=DWC.g_m2+SE_DWC_m2, group = Landuse, colour= Landuse))
+
+Lines_gone <- theme(panel.grid.major.x = element_blank(),
+                    panel.grid.minor.x = element_blank(),
+                    panel.grid.major.y = element_blank(),
+                    panel.grid.minor.y = element_blank())
+
+DWC.plot + xlab("Region") + ylab("Dead wood carbon")  + geom_point(size = 3, shape=20,stroke=2)  + theme_bw() + Lines_gone + geom_errorbar(stat = "identity",width=.2,lwd=1.1,show.legend=F) +  scale_color_manual(breaks = c("Pasture", "Wild"),values=c("goldenrod3", "forestgreen"))
+
+# Changing colors to ggplot: 
+# 1. Manually: + scale_color_manual(breaks = c("Pasture", "Wild"),values=c("goldenrod3", "forestgreen")
+# 2. by a predefined palette: + scale_color_brewer(palette="Dark2")
+
 
 
 
