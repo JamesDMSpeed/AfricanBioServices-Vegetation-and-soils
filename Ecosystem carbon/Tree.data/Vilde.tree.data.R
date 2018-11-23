@@ -31,7 +31,7 @@ levels(Philtrees4$area)
 
 # Reducing the data - removing columns I dont need
 names(Philtrees4)
-Vildetrees <- Philtrees4[,c(1:7,9,28,31:33)]
+Vildetrees <- Philtrees4[,c(1:7,9,26,28,31:33)]
 
 # Rearanging my data in the order I visited the sites: 
 Vildetrees$area<- factor(Vildetrees$area, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
@@ -48,6 +48,7 @@ summary(levels(Vildetrees$block.id)) # 27 unique blocks (nit 28 - missing one in
 names(Vildetrees)
 
 Carbon.per.block<-aggregate(Carbon.kg.per.tree~area+block.id, Vildetrees,sum)
+Median.Biomass.per.block <- aggregate(Biomass.kg.per.tree~area+block.id,Vildetrees,median)
 Trees.per.block <- aggregate(number~area+block.id, Vildetrees,length)
 Block.size<-aggregate(area.m2~area+block.id,Vildetrees,mean)
 Block <- aggregate(block~area+block.id,Vildetrees,mean)
@@ -56,12 +57,15 @@ Fire.freq <- aggregate(Fire.freq~area+block.id,Vildetrees,mean)
 Year.of.last.fire <- aggregate(Year.of.last.fire~area+block.id,Vildetrees,mean)
 
 # creating a dataset at block size # WHY STILL WRONG ORDER OF REGIONS?? 
-Tree.carbon <- cbind(Block.size,Block[3],Carbon.per.block[3],Trees.per.block[3],MAP.mm_2015_2017[3],Fire.freq[3],Year.of.last.fire[3])
-colnames(Tree.carbon) <- c("Region","Block.id","Block_area.m2","Philipo.Block","TreeC.kg_block","No_trees", "MAP.mm_yr","Fire_frequency.2000_2017", "Last_fire.yr")
+Tree.carbon <- cbind(Block.size,Block[3],Carbon.per.block[3],Median.Biomass.per.block[3],Trees.per.block[3],MAP.mm_2015_2017[3],Fire.freq[3],Year.of.last.fire[3])
+colnames(Tree.carbon) <- c("Region","Block.id","Block_area.m2","Philipo.Block","TreeC.kg_block","Median.Tree.biomass.block","No_trees", "MAP.mm_yr","Fire_frequency.2000_2017", "Last_fire.yr")
 
-# Adding a collumn of carbon in g, and per m2 
+# Adding a collumn of carbon in g, and per m2, and no of trees per m2 
 Tree.carbon$TreeC.g_block <- Tree.carbon$TreeC.kg_block*1000
-Tree.carbon$TreeC.m2 <- Tree.carbon$TreeC.g_block/Tree.carbon$Block_area.m2
+Tree.carbon$TreeC_m2 <- Tree.carbon$TreeC.g_block/Tree.carbon$Block_area.m2
+Tree.carbon$Median.TreeBM.g <- Tree.carbon$Median.Tree.biomass.block*1000
+Tree.carbon$Median.TreeBM_m2 <- Tree.carbon$TreeBM.g/Tree.carbon$Block_area.m2
+Tree.carbon$No_trees.m2 <- Tree.carbon$No_trees/Tree.carbon$Block_area.m2
 names(Tree.carbon)
 levels(Tree.carbon$Region)
 
@@ -73,14 +77,14 @@ Tree.carbon$landuse <- landuse
 Vilde.block <- c(1,2,3,4,3,1,2,4,3,4,1,2,1,4,3,2,1,2,3,4,1,2,3,3,4,1,2)
 Tree.carbon$Vilde.block <- Vilde.block
 names(Tree.carbon)
-Tree.carbon.Vilde <- Tree.carbon[,c(1,2,12,3,13,6,5,10,11,7,8,9)]
+Tree.carbon.Vilde <- Tree.carbon[,c(1,2,16,3,15,8:10,12:14)]
 
 # Order the dataset so my block id is increasing
 Tree.carbon.Vilde <- Tree.carbon.Vilde[
-  order( Tree.carbon.Vilde[,1], Tree.carbon.Vilde[,5] ),
+  order(Tree.carbon.Vilde[,1], Tree.carbon.Vilde[,3] ),
   ]
 
-write.csv(Tree.carbon.Vilde,file="Tree.Carbon.Vilde.csv") # for further use 
+write.csv(Tree.carbon.Vilde,file="Ecosystem carbon/Tree.data/Tree.Carbon.Vilde.csv") # for further use 
 
 #### 2. Make a table at "region level"####
 
@@ -97,25 +101,28 @@ levels(Tree.carbon$Region) # Releveled
 
 # Making a table for Tree Carbon per region 
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
-TreeC.Region.m2<-aggregate(TreeC.m2~Region, Tree.carbon,sum)
-TreeC.Region.m2.SE<-aggregate(TreeC.m2~Region, Tree.carbon,SE)
-No.trees <- aggregate(No_trees~Region, Tree.carbon,sum)
-No.trees.SE <- aggregate(No_trees~Region, Tree.carbon,SE)
+TreeC.Region.m2<-aggregate(TreeC_m2~Region, Tree.carbon,mean)
+TreeC.Region.m2.SE<-aggregate(TreeC_m2~Region, Tree.carbon,SE)
+No.trees.m2 <- aggregate(No_trees.m2~Region, Tree.carbon,mean)
+No.trees.m2.SE <- aggregate(No_trees.m2~Region, Tree.carbon,SE)
+TreeBM.m2 <- aggregate(TreeBM_m2~Region,Tree.carbon,mean)
+TreeBM.m2.SE <- aggregate(TreeBM_m2~Region,Tree.carbon,SE)
+Median.TreeBM.m2 <- aggregate(TreeBM_m2~Region,Tree.carbon,median)
 MAP <- aggregate(MAP.mm_yr~Region,Tree.carbon,mean)
 MAP.sd <- aggregate(MAP.mm_yr~Region,Tree.carbon,sd)
 Fire.frequency <- aggregate(Fire_frequency.2000_2017~Region,Tree.carbon,mean)
 Fire.frequency.sd <- aggregate(Fire_frequency.2000_2017~Region,Tree.carbon,sd)
 Year.of.last.fire <- aggregate(Last_fire.yr~Region,Tree.carbon,mean)
 
-TreeC.Region <- cbind(TreeC.Region.m2,TreeC.Region.m2.SE[2],No.trees[2],No.trees.SE[2],MAP[2],MAP.sd[2],Fire.frequency[2],Fire.frequency.sd[2],Year.of.last.fire[2])
+TreeC.Region <- cbind(TreeC.Region.m2,TreeC.Region.m2.SE[2],No.trees.m2[2],No.trees.m2.SE[2],TreeBM.m2[2],TreeBM.m2.SE[2],Median.TreeBM.m2[2],MAP[2],MAP.sd[2],Fire.frequency[2],Fire.frequency.sd[2],Year.of.last.fire[2])
 
-colnames(TreeC.Region) <- c("Region","TreeC_m2","SE.TreeC_m2","No_trees","SE.No_trees","MAP.mm_yr","MAP.sd","Fire_frequency.2000_2017","Fire_frequency.sd","Last_fire.yr")
+colnames(TreeC.Region) <- c("Region","TreeC_m2","SE.TreeC_m2","No_trees.m2","SE.No_trees.m2","TreeBM.m2","TreeBM.m2.SE","Median.TreeBM.m2","MAP.mm_yr","MAP.sd","Fire_frequency.2000_2017","Fire_frequency.sd","Last_fire.yr")
 
 # Add landuse
 TreeC.Region$Region
 TreeC.Region$Landuse <- as.factor(c("Pasture","Wild","Pasture","Wild", "Wild", "Pasture","Wild"))
 
-#write.csv(TreeC.Region, file="TreeC.Region.csv")
+write.csv(TreeC.Region, file="Ecosystem carbon/Tree.data/TreeC.Region.csv")
 #### 3. Exploring the data #### 
 Tree.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.Carbon.Vilde.csv", head=T)
 TreeC.Region <- read.csv(file="Ecosystem Carbon/Tree.data/TreeC.Region.csv", head=T)
