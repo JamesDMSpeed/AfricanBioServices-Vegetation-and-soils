@@ -5,11 +5,10 @@ Woody <- read.csv(file="Ecosystem carbon/Tree.data/TreeC.Region.csv", header=T)
 Deadwood <- read.csv(file="Ecosystem carbon/Tree.data/DW.Region.csv",header=T)
 
 # Renaming SNP Handajega to Handajega 
-
-Woody <- Woody[,c(3:10,15)]
-
 Woody$Region <- as.factor(c("Makao","Maswa", "Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
-Woody$Woody.cover <- Woody$Median.TreeBM.m2/Woody$No_trees.m2
+names(Woody)
+Woody <- Woody[,c(1,2,11:13,3:10)]
+
 
 #Relevel 
 Woody$Region<- factor(Woody$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
@@ -17,11 +16,11 @@ Woody$Region<- factor(Woody$Region, levels = c("Makao","Maswa","Mwantimba","Hand
 Herbaceous$Region<- factor(Herbaceous$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera"))
 
 # Merge the three datasets in two steps 
-Ecosystem.C1 <- merge(Woody[,c(1:2,8:10)],Herbaceous[2:4],all.x = TRUE,by="Region")
+Ecosystem.C1 <- merge(Woody[,c(1:3,6,7,12,13)],Herbaceous[2:4],all.x = TRUE,by="Region")
 Ecosystem.C <- merge(Ecosystem.C1,Deadwood[2:6],all.x = TRUE,by="Region")
 
-EcosystemCarbon <- Ecosystem.C[,c(1,5,4,2,6,10)]
-EcosystemCarbonSE <- Ecosystem.C[,c(1,3,7,11)]
+EcosystemCarbon <- Ecosystem.C[,c(1:3,6,4,8,12)]
+EcosystemCarbonSE <- Ecosystem.C[,c(1,5,9,13)]
 
 # Make the data into a long format instead of a wide
 library(tidyr)
@@ -69,7 +68,36 @@ Tree.no.plot <- ggplot(data=Woody, aes(x=Region,y=No_trees.m2, ymin=No_trees.m2-
 Tree.no.plot + xlab("Region") + ylab("No of trees")  + geom_point(size = 2, shape=20,stroke=2, na.rm=T)  + theme_bw() + Lines_gone + geom_errorbar(stat = "identity",width=.2,lwd=1.1,show.legend=F, na.rm=T) + scale_color_manual(breaks = c("Pasture", "Wild"),values=c("chocolate2","forestgreen"))
 
 # Woody cover 
-Woody.cover.plot <- ggplot(data=Woody, aes(x=Region,y=Woody.cover,group=Landuse, colour=Landuse))
 
-Woody.cover.plot + xlab("Region") + ylab("Median Tree BM/No_trees.m2") + geom_point(size = 2, shape=20,stroke=2, na.rm=T)  + theme_bw() + Lines_gone
+# Point plot per Region 
+
+#Aggregate per region first: 
+AbovegroundC <- aggregate(C.amount~Region, data=Tot.EcosystemCarbon,sum)
+Woody.Cover <- aggregate(Median.Woody.cover_m2~Region, data=Tot.EcosystemCarbon,sum)
+Aboveground.Carbon <- cbind(AbovegroundC,Woody.Cover[2])
+colnames(Aboveground.Carbon) <- c("Region","C.amount","Woody.Cover") # Maswa extreamly high in C and woody cover
+Aboveground.Carbon$Landuse <- as.factor(c("Pasture","Wild","Pasture","Wild", "Wild", "Pasture","Wild"))
+
+# Seperate per land-use 
+Wild.AbovegroundC <- Aboveground.Carbon[Aboveground.Carbon$Landuse!="Pasture",]# Only wild regions
+Wild.AbovegroundC <- droplevels(Wild.AbovegroundC)
+Pasture.AbovegroundC <- Aboveground.Carbon[Aboveground.Carbon$Landuse!="Wild",]# Only wild regions
+Pasture.AbovegroundC <- droplevels(Pasture.AbovegroundC)
+
+# Plot both land-use
+Woody.cover.plot <- ggplot(data=Aboveground.Carbon, aes(x=Woody.Cover,y=C.amount, group=Landuse, colour=Landuse))
+
+Woody.cover.plot + xlab("Woody Cover (g/m2)") + ylab("Aboveground Carbon (g/m2)") + geom_point(size = 2, shape=20,stroke=2, na.rm=T)  + theme_bw() + Lines_gone + scale_color_manual(breaks = c("Pasture", "Wild"),values=c("chocolate2","forestgreen"))
+
+# Wild plot
+Woody.cover.plot.wild <- ggplot(data=Wild.AbovegroundC, aes(x=Woody.Cover,y=C.amount, colour="Wild"))
+
+Woody.cover.plot.wild + xlab("Woody cover") + ylab("Carbon amount") + geom_point(size = 2, shape=20,stroke=2, na.rm=T)  + theme_bw() + Lines_gone + scale_color_manual(breaks = c("Wild"),values=c("forestgreen"))
+
+# Pasture plot
+Woody.cover.plot.pasture <- ggplot(data=Pasture.AbovegroundC, aes(x=Woody.Cover,y=C.amount,colour="Pasture"))
+
+Woody.cover.plot.pasture + xlab("Woody cover") + ylab("Carbon amount") + geom_point(size = 2, shape=20,stroke=2, na.rm=T)  + theme_bw() + Lines_gone + scale_color_manual(breaks = c("Pasture"),values=c("chocolate2"))
+
+
 
