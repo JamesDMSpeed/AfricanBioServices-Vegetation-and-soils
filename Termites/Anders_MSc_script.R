@@ -17,6 +17,7 @@ dsdata <- read.csv("Termites/Dryseason.csv", sep=";",dec=".")#Dryseason data
 head(wsdata)
 head(dsdata)
 fulldata<-rbind(wsdata,dsdata)
+fulldata$Massloss.per <- (1-fulldata$Ashed.final.corrected.weight..tea.only..g./fulldata$Ashed.initial.corrected.weight..tea.only..g.)*100
 
 
 ########################################################################
@@ -38,20 +39,14 @@ fulldata<-rbind(wsdata,dsdata)
 dotchart(fulldata$Ashed.final.corrected.weight..tea.only..g.)
 plot(fulldata$Ashed.final.corrected.weight..tea.only..g.)
 #identify(fulldata$Ashed.final.corrected.weight..tea.only..g)
-fulldata[289,] #negative massloss value
-fulldata[772,] #negative massloss value
-fulldata <- fulldata[-c(289,772),] # Removing the rows.
 
 #Outlier in ashed data % (should be between 0-100):
 
 dotchart(fulldata$Ashed.final.subsample.percentage.....) # One very large outlier for the final weight subsample percantage
 plot(fulldata$Ashed.final.subsample.percentage.....)
 #identify(fulldata$Ashed.final.subsample.percentage.....) #[1] 516
-fulldata[516, ] #G509 has wrong percentage (-474.393). G509 needs re-ashing in wet season. 
-fulldata<-fulldata[-c(516),]#Removing this from the data for now...
 
 #Checking outliers in initial and final weights:
-
 #Inital weight:
 dotchart(fulldata$Initial.weight.including.bag..cord.and.label..g.)
 plot(fulldata$Initial.weight.including.bag..cord.and.label..g.)
@@ -62,10 +57,13 @@ fulldata[1611,] #0,229 is too low for initial weight! Have to check for speling 
 #No need to remove these as long as the difference in mass loss make sense.
 
 #Checking for massloss outlier
-dotchart(fulldata$Massloss..g. ) # Looks OK
+dotchart(fulldata$Massloss..g. ) #
 plot(fulldata$Massloss..g.)
-#identify(decomp$Massloss..g.)
-
+#identify(fulldata$Massloss..g.)
+fulldata[289,] # Minus massloss check this code: R414
+fulldata[1614,] # Minus mass loss check this code: R275
+#Removing these for now: 289 and 1614 rows:
+fulldata <- fulldata[-c(289, 1614), ]
 #Checkig outliers in temperature and moisture:
 dotchart(fulldata$Temperature..C.) #Looks ok
 plot(fulldata$Temperature..C.)
@@ -87,6 +85,7 @@ plot(fulldata$Moisture..,fulldata$Temperature..C.)
 names(fulldata)
 fulldata$fsite<-as.factor(fulldata$Site)
 fulldata$fregion<-as.factor(fulldata$Region)
+fulldata$fseason<-as.factor(fulldata$Season)
 fulldata$flanduse<-as.factor(fulldata$Landuse)
 fulldata$ftreatment<-as.factor(fulldata$Treatment)
 fulldata$flittertype<-as.factor(fulldata$Littertype) 
@@ -105,7 +104,7 @@ fulldata$froots<-as.factor(fulldata$Sign.of.roots)
 names(fulldata)
 # Seperate the experiments
 FulldataCG<-fulldata[fulldata$Landuse=="Common Garden",] # Only commongarden data
-FulldataCG<-droplevels(FulldataCG)
+FulldataCG<-droplevels(FulldataCG) # Ensure factor level pasture,agriculture and wild dropped
 
 FulldataMain<-fulldata[fulldata$Landuse!="Common Garden",] #Only landuse experiemnt data
 FulldataMain<-droplevels(FulldataMain)# Ensure factor level common garden dropped
@@ -115,44 +114,47 @@ levels(FulldataMain$Landuse)
 levels(FulldataCG$Landuse)
 
 se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Standard Error
-# Main experiment means and standard error (include blocks) # Need to seperate out Agricutlure in Makao and Mwantimba(WHY?)
+# Main experiment means and standard error (include blocks) # From Stu: Need to seperate out Agricutlure in Makao and Mwantimba(WHY?)
 names(FulldataMain)
 #Creating means by landuse (excluding blocks)
-FulldataMainmean<-aggregate(Massloss..g..Ash.uncorrected~Season+fregion+ftreatment+flittertype+flanduse, FulldataMain, mean)
-FulldataMainse <-aggregate(Massloss..g..Ash.uncorrected~Season+fregion+ftreatment+flittertype+flanduse, FulldataMain, se)
+FulldataMainmean<-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, FulldataMain, mean)
+FulldataMainse <-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, FulldataMain, se)
 #Creating new column with the SE in the Mainmean dataset.
-FulldataMainmean$SE <- FulldataMainse$Massloss..g..Ash.uncorrected 
-#120 datapoints of means from 1533 observations
+FulldataMainmean$SE <- FulldataMainse$Massloss.per 
 
 #################################################################################
-# Main experiment - decomposition in landuse 
+# Main experiment - decomposition across landuse 
 #################################################################################
 
-# Fill by termite * landuse = empty = absence filled = prescence 
+# Fill by termite * landuse = empty = absence, filled = prescence 
 FulldataMainmean$tea.hole<-as.factor(with(FulldataMainmean, paste(flittertype, ftreatment, sep="")))
 levels(FulldataMainmean$tea.hole)
 #levels(FulldataMainmean$fregion)<-c("Dry region","Wet region")
 FulldataMainmean$fregion <- factor(FulldataMainmean$fregion)#Need to "re-factor" the region as levels are changed fro 3 to 2 in landuse experiment (only wet and dry).
 levels(FulldataMainmean$fregion)
+levels(FulldataMainmean$Season)
 
-# Mass loss by landuse - USING UNASHED DATA
-
+# Mass loss by landuse
+colnames(FulldataMainmean)[1]<-"Season"
+colnames(FulldataMainmean)[2]<-"Region"
 names(FulldataMainmean)
-Mainp <- ggplot(data=FulldataMainmean, aes(x=flanduse,y=Massloss..g..Ash.uncorrected,
-                                           ymin=Massloss..g..Ash.uncorrected-SE, ymax=Massloss..g..Ash.uncorrected+SE,
+Mainp <- ggplot(data=FulldataMainmean, aes(x=flanduse,y=Massloss.per,
+                                           ymin=Massloss.per-SE, ymax=Massloss.per+SE,
                                            fill = tea.hole,
                                            col = flittertype,
                                            shape=flanduse))
-Mainp<- Mainp+ geom_point(size=5,stroke=1.2,position=position_dodge(width=.35),show.legend=F) # Legend T on individual graph
+Mainp<- Mainp+ geom_point(size=5,stroke=1,position=position_dodge(width=.35),show.legend=F) # Legend T on individual graph
 
-Mainp<- Mainp+ geom_errorbar(width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F)
-Mainp<- Mainp+ facet_grid( Season ~ fregion, scale ="fixed", labeller= label_both)
+Mainp<- Mainp+ geom_errorbar(width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F) #Assign error bars on points.
+Mainp<- Mainp+ facet_grid(Region ~ Season, scale ="fixed", labeller= label_both)
 Mainp<-Mainp+scale_color_manual(values=c("green4", "orangered3")) #Gives what color the points shall have based on littertype
 Mainp<- Mainp+ scale_fill_manual(values=c("green4","white","orangered3","white")) #Assign colour to the different categories within tea.hole column, shoulde be 4.
-Mainp<- Mainp+scale_shape_manual(values=c(21,24,22))
+Mainp<- Mainp+scale_shape_manual(values=c(21,24,22))#Assgn the diferent shapes, here based on landuse
 #Mainp<- Mainp+scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
 Mainp <- Mainp + xlab("Land-use") +  ylab("Mass loss (%)") 
 Mainp
+
+
 
 
 ######################
