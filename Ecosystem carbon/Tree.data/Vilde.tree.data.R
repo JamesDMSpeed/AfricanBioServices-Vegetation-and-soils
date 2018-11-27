@@ -5,12 +5,13 @@ rm(list=ls())
 # packages 
 #library(lattice)
 #library(MASS)
-#library(dplyr)
-#library(plyr)
+library(dplyr)
+library(plyr)
 #library(lubridate)
 #library(data.table)
 #library(xlsx)
-#library(ggplot2)
+library(ggplot2)
+library(tidyr)
 
 # Data
 Philtrees<-read.csv(file="Ecosystem carbon/Tree.data/Tree.data.Seregenti.PhilipoBio.csv", sep=",",header=TRUE)
@@ -23,15 +24,15 @@ class(Philtrees$area)
 Philtrees2<-Philtrees[Philtrees$tree.part!="branch",]
 Philtrees3 <- Philtrees2[Philtrees2$area!="MakaoWMA",]
 Philtrees3 <- Philtrees3[Philtrees3$area!="Ololosokwan",]
-Philtrees4 <- Philtrees3[Philtrees3$area!="SNP kleins gate",]
-
+Philtrees3 <- Philtrees3[Philtrees3$area!="SNP kleins gate",]
+Philtrees4 <- Philtrees3[Philtrees3$Biomass.kg.per.tree!=0,]
 Philtrees4<-droplevels(Philtrees4)
 
 levels(Philtrees4$area)
 
 # Reducing the data - removing columns I dont need
 names(Philtrees4)
-Vildetrees <- Philtrees4[,c(1:7,9,26,28,31:33)]
+Vildetrees <- Philtrees4[,c(1:7,9,25,26,28,31:33)]
 
 # Rearanging my data in the order I visited the sites: 
 Vildetrees$area<- factor(Vildetrees$area, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
@@ -52,7 +53,8 @@ names(Vildetrees)
 
 Carbon.per.block<-aggregate(Carbon.g.tree~area+block.id, Vildetrees,sum)
 Trees.per.block <- aggregate(number~area+block.id, Vildetrees,length)
-Median.TreeBM.block <- aggregate(Biomass.g.tree~area+block.id, Vildetrees,median)
+Tree.BM.block <- aggregate(Biomass.g.tree~area+block.id, Vildetrees,sum)
+# Median.TreeBM.block <- aggregate(Biomass.g.tree~area+block.id, Vildetrees,median)
 Block.size<-aggregate(area.m2~area+block.id,Vildetrees,mean)
 Block <- aggregate(block~area+block.id,Vildetrees,mean)
 MAP.mm_2015_2017 <- aggregate(annual.precip.mm2015_2017~area+block.id,Vildetrees,mean)
@@ -61,15 +63,16 @@ Year.of.last.fire <- aggregate(Year.of.last.fire~area+block.id,Vildetrees,mean)
 
 
 # creating a dataset at block size # WHY STILL WRONG ORDER OF REGIONS?? 
-Tree.carbon <- cbind(Block.size,Block[3],Carbon.per.block[3],Median.TreeBM.block[3],Trees.per.block[3],MAP.mm_2015_2017[3],Fire.freq[3],Year.of.last.fire[3])
-colnames(Tree.carbon) <- c("Region","Block.id","Block_area.m2","Philipo.Block","TreeC.g_block","Median.Tree.BM_g","No_trees", "MAP.mm_yr","Fire_frequency.2000_2017", "Last_fire.yr")
+Tree.carbon <- cbind(Block.size,Block[3],Carbon.per.block[3],Tree.BM.block[3],Trees.per.block[3],MAP.mm_2015_2017[3],Fire.freq[3],Year.of.last.fire[3])
+colnames(Tree.carbon) <- c("Region","Block.id","Block_area.m2","Philipo.Block","TreeC.g_block","TreeBM.block","No_trees", "MAP.mm_yr","Fire_frequency.2000_2017", "Last_fire.yr")
 
 # Adding a collumn of carbon per m2, and no of trees per m2 
 Tree.carbon$TreeC_m2 <- Tree.carbon$TreeC.g_block/Tree.carbon$Block_area.m2
-Tree.carbon$Median.TreeBM_m2 <- Tree.carbon$Median.Tree.BM_g/Tree.carbon$Block_area.m2
+Tree.carbon$TreeBM_m2 <- Tree.carbon$TreeBM.block/Tree.carbon$Block_area.m2
+# Tree.carbon$Median.TreeBM_m2 <- Tree.carbon$Median.Tree.BM_g/Tree.carbon$Block_area.m2
 Tree.carbon$No_trees_m2 <- Tree.carbon$No_trees/Tree.carbon$Block_area.m2
-Tree.carbon$Woody.cover <- Tree.carbon$No_trees * Tree.carbon$Median.Tree.BM_g
-Tree.carbon$Woody.cover_m2 <- Tree.carbon$Woody.cover/Tree.carbon$Block_area.m2
+#Tree.carbon$Woody.cover <- Tree.carbon$No_trees * Tree.carbon$Median.Tree.BM_g
+#Tree.carbon$Woody.cover_m2 <- Tree.carbon$Woody.cover/Tree.carbon$Block_area.m2
 names(Tree.carbon)
 levels(Tree.carbon$Region)
 
@@ -81,7 +84,7 @@ Tree.carbon$landuse <- landuse
 Vilde.block <- c(1,2,3,4,3,1,2,4,3,4,1,2,1,4,3,2,1,2,3,4,1,2,3,3,4,1,2)
 Tree.carbon$Vilde.block <- Vilde.block
 names(Tree.carbon)
-Tree.carbon.Vilde <- Tree.carbon[,c(1,17,3,16,8:10,11:15)]
+Tree.carbon.Vilde <- Tree.carbon[,c(1,15,3,14,8:10,11:13)]
 
 # Order the dataset so my block id is increasing
 Tree.carbon.Vilde <- Tree.carbon.Vilde[
@@ -96,7 +99,6 @@ rm(list=ls())
 
 Tree.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.Carbon.Vilde.csv", head=T)
 levels(Tree.carbon$Region)# Remember wrong order of regions.. 
-names(Tree.carbon)
 
 #Relevel
 Tree.carbon$Region<- factor(Tree.carbon$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
@@ -110,25 +112,26 @@ TreeC.Region_m2<-aggregate(TreeC_m2~Region, Tree.carbon,mean)
 TreeC.Region_m2.SE<-aggregate(TreeC_m2~Region, Tree.carbon,SE)
 No.trees_m2 <- aggregate(No_trees_m2~Region, Tree.carbon,mean)
 No.trees_m2.SE <- aggregate(No_trees_m2~Region, Tree.carbon,SE)
-Median.TreeBM_m2 <- aggregate(Median.TreeBM_m2~Region,Tree.carbon,mean)
-Median.TreeBM_m2.SE <- aggregate(Median.TreeBM_m2~Region,Tree.carbon,SE)
-Median.Woody.Cover <- aggregate(Woody.cover_m2~Region,Tree.carbon,mean)
-Median.Woody.Cover.SE <- aggregate(Woody.cover_m2~Region,Tree.carbon,SE)
+TreeBM_m2 <- aggregate(TreeBM_m2~Region,Tree.carbon,mean)
+TreeBM_m2.SE <- aggregate(TreeBM_m2~Region,Tree.carbon,SE)
+#Median.Woody.Cover <- aggregate(Woody.cover_m2~Region,Tree.carbon,mean)
+#Median.Woody.Cover.SE <- aggregate(Woody.cover_m2~Region,Tree.carbon,SE)
 MAP <- aggregate(MAP.mm_yr~Region,Tree.carbon,mean)
 MAP.sd <- aggregate(MAP.mm_yr~Region,Tree.carbon,sd)
 Fire.frequency <- aggregate(Fire_frequency.2000_2017~Region,Tree.carbon,mean)
 Fire.frequency.sd <- aggregate(Fire_frequency.2000_2017~Region,Tree.carbon,sd)
 Year.of.last.fire <- aggregate(Last_fire.yr~Region,Tree.carbon,mean)
 
-TreeC.Region <- cbind(TreeC.Region_m2,TreeC.Region_m2.SE[2],No.trees_m2[2],No.trees_m2.SE[2],Median.TreeBM_m2[2],Median.TreeBM_m2.SE[2],Median.Woody.Cover[2],Median.Woody.Cover.SE[2],MAP[2],Fire.frequency[2],Year.of.last.fire[2])
+TreeC.Region <- cbind(TreeC.Region_m2,TreeC.Region_m2.SE[2],No.trees_m2[2],No.trees_m2.SE[2],TreeBM_m2[2],TreeBM_m2.SE[2],MAP[2],Fire.frequency[2],Year.of.last.fire[2])
 
-colnames(TreeC.Region) <- c("Region","TreeC_m2","SE.TreeC_m2","No.trees_m2","SE.No.trees_m2","Median.TreeBM_m2","SE.Median.TreeBM_m2","Median.Woody.cover_m2","SE.Median.Woody.cover_m2","MAP.mm_yr","Fire_frequency.2000_2017","Last_fire.yr")
+colnames(TreeC.Region) <- c("Region","TreeC_m2","SE.TreeC_m2","No.trees_m2","SE.No.trees_m2","TreeBM_m2","SE.TreeBM_m2","MAP.mm_yr","Fire_frequency.2000_2017","Last_fire.yr")
 
 # Add landuse
 TreeC.Region$Region
 TreeC.Region$Landuse <- as.factor(c("Pasture","Wild","Pasture","Wild", "Wild", "Pasture","Wild"))
 
 write.csv(TreeC.Region, file="Ecosystem carbon/Tree.data/TreeC.Region.csv")
+
 #### 3. Exploring the data #### 
 Tree.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.Carbon.Vilde.csv", head=T)
 TreeC.Region <- read.csv(file="Ecosystem Carbon/Tree.data/TreeC.Region.csv", head=T)
@@ -140,34 +143,124 @@ TreeC.Region$Region<- factor(TreeC.Region$Region, levels = c("Makao","Maswa","Mw
 
 par(mfrow=c(1,2))
 
+# Look at the size distribution of trees in Serengeti 
+#----------------------------------------------------
+
+# Properties of the data
+mean(Vildetrees$Biomass.g.tree) #72342
+median(Vildetrees$Biomass.g.tree) #1677
+
+mean(Vildetrees$total.basal.area.m2) # 0.01163054
+median(Vildetrees$total.basal.area.m2) # 0.0003142
+
+# Sort by median tree BM  
+large.trees.median <- Vildetrees %>%
+  filter(Biomass.g.tree >= 1677) %>%
+  select(Biomass.g.tree,area,landuse)
+
+table(large.trees.median$area)
+
+small.trees.median <- Vildetrees %>%
+  filter(Biomass.g.tree < 1677) %>%
+  select(Biomass.g.tree,area,landuse)
+
+table(small.trees.median$area)
+
+# Make a new long data set based on median tree BM size 
+large.trees <- aggregate(Biomass.g.tree~area,data=large.trees.median,length)
+colnames(large.trees) <- c("Region","Large")
+small.trees <- aggregate(Biomass.g.tree~area,data=small.trees.median,length)
+colnames(small.trees) <- c("Region","Small")
+Tree.size <- cbind(large.trees,small.trees[2])
+Tree.size.dist <- gather(Tree.size,Size, Count, Large:Small,factor_key=TRUE)
+Tree.size.dist <- arrange(Tree.size.dist,Region)
+
+# Sort by mean tree BM 
+large.trees.mean <- Vildetrees %>%
+  filter(Biomass.g.tree >= 72342) %>%
+  select(Biomass.g.tree,area,landuse)
+
+table(large.trees.mean$area)
+
+small.trees.mean <- Vildetrees %>%
+  filter(Biomass.g.tree < 72342) %>%
+  select(Biomass.g.tree,area,landuse)
+
+table(small.trees.mean$area)
+
+# Make a new long data set based on mean tree BM size 
+large.trees2 <- aggregate(Biomass.g.tree~area,data=large.trees.mean,length)
+colnames(large.trees2) <- c("Region","Large")
+small.trees2 <- aggregate(Biomass.g.tree~area,data=small.trees.mean,length)
+colnames(small.trees2) <- c("Region","Small")
+Tree.size2 <- cbind(large.trees2,small.trees2[2])
+Tree.size.dist2 <- gather(Tree.size2,Size, Count, Large:Small,factor_key=TRUE)
+Tree.size.dist2 <- arrange(Tree.size.dist2,Region)
+
+# PLOTTING
+#-------------------------------------------
+# Plotting the size distribution based on median tree biomass. 
+size.plot <- ggplot(Tree.size.dist, aes(x=Region,y=Count, fill= Size))
+
+size.plot + geom_bar(stat="identity", position="stack",na.rm=T) + xlab("Region") + ylab("Number of Trees")+ ggtitle("Median tree biomass") + theme_bw() + Lines_gone + scale_fill_manual(breaks = c("Large", "Small"),values=c("goldenrod3", "forestgreen"))
+
+# Plotting the size distribution based on mean tree biomass. 
+size.plot2 <- ggplot(Tree.size.dist2, aes(x=Region,y=Count, fill= Size))
+
+size.plot2 + geom_bar(stat="identity", position="stack",na.rm=T) + xlab("Region") + ylab("Number of Trees")+ ggtitle("Mean tree biomass") + theme_bw() + Lines_gone + scale_fill_manual(breaks = c("Large", "Small"),values=c("goldenrod3", "forestgreen"))
+
+# Make a histogram of the distribution of trees 
+p <- ggplot(Vildetrees,aes(x=Biomass.g.tree))
+p + geom_histogram()+facet_grid(~area)+theme_bw()
+
+hist(Vildetrees$Biomass.g.tree[Vildetrees$area=="Makao"])
+     
+table(Vildetrees$block.id, Vildetrees$area) # Ikorongo,Makao, Maswa, Mwantimba, Park Nyigoti, Seronera, Handajega 
+
+plot(Biomass.g.tree~block.id,
+     xlab = "Block",
+     ylab = "Tree Biomass (g)",
+     col=c(landuse),
+     data=Vildetrees)
+
+dotchart(Vildetrees$Biomass.g.tree,groups=Vildetrees$area,main = "area")
+dotchart(Vildetrees$Biomass.g.tree,groups=Vildetrees$landuse,main = "landuse")
+
+
 # C and no. trees per Region
-boxplot(TreeC.m2 ~ Region, 
+boxplot(TreeC_m2 ~ Region, 
         xlab = "Region",
-        ylab = "Carbon.m2",
+        ylab = "Tree Carbon (g/m2)",
         data = Tree.carbon)
 
-boxplot(No_trees ~ Region, 
+boxplot(No_trees_m2 ~ Region, 
         xlab = "Region",
         ylab = "#Trees",
         data = Tree.carbon)
 
+boxplot(total.basal.area.m2~area,
+        xlab="Region",
+        ylab= "Tree cover",
+        data= Vildetrees)
+
 # C and no. trees per landuse
-plot(No_trees~landuse,
+plot(No_trees_m2~landuse,
      xlab = "Land Use",
      ylab = "#Trees",
      data=Tree.carbon)
 
-plot(TreeC.m2~landuse,
+plot(TreeC_m2~landuse,
      xlab = "Land Use",
      ylab = "Carbon per m2",
      data=Tree.carbon)
 
 # Carbon per tree in pasture vs wild  
 par(mfrow=c(1,1))
-plot (TreeC.m2/No_trees~landuse,
+plot (TreeC_m2/No_trees_m2~landuse,
       xlab = "Land Use",
       ylab = "Carbon per tree",
       data=Tree.carbon)
+
 
 # Plotting trees per Region 
 
@@ -277,11 +370,14 @@ DW.block$DWC.g_m2 <- DW.block$DWC.g_block/2500
 DW.block$SE_DWC_m2 <- DW.block$SE_DWC/2500
 
 # Adding a collumn of land-use
+DW.Block$Landuse <- as.factor(c("Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture"))
+
 Landuse <- c("Wild","Wild","Pasture","Wild","Pasture")
 DW.Region$Landuse <- Landuse
 
 DW.Region$Region<- factor(DW.Region$Region, levels = c("Makao","Maswa","Handajega","Park Nyigoti","Ikorongo"))
 
+write.csv(DW.Block,file="Ecosystem carbon/Tree.data/DW.Block.csv")
 write.csv(DW.Region,file="Ecosystem carbon/Tree.data/DW.Region.csv")
 
 # Exploring the data DW per region
