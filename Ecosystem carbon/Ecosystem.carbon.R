@@ -8,28 +8,45 @@ Herbaceous <- na.omit(Herbaceous)
 Herbaceous <- droplevels(Herbaceous)
 names(Herbaceous)
 
-#### Exploring all data at region level ####
+####SOIL####
+#Soilfull <- read.csv(file="Ecosystem carbon/Soil.data/Soil.texture.csv",header=T)
+#Soilfull <- Soilfull[,c(2:5,7:11)]
+#SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+#Clay.se <- aggregate(Clay.per~Region+Land_Use,data=Soilfull,SE)
+#Clay <- aggregate(Clay.per~Region+Land_Use,data=Soilfull,mean)
+#Silt.se <- aggregate(Silt.per~Region+Land_Use,data=Soilfull,SE)
+#Silt <- aggregate(Silt.per~Region+Land_Use,data=Soilfull,mean)
+#Sand.se <- aggregate(Sand.per~Region+Land_Use,data=Soilfull,SE)
+#Sand <- aggregate(Sand.per~Region+Land_Use,data=Soilfull,mean)
+#Soil <- cbind(Clay,Clay.se[3],Silt[3],Silt.se[3],Sand[3],Sand.se[3])
+#colnames(Soil) <- c("Region","Landuse","Clay","SE.Clay","Silt","SE.Silt","Sand","SE.Sand")
+#write.csv(Soil,file="Ecosystem carbon/Soil.data/Soil.texture.csv")
+# Renaming SNP Handajega to Handajega 
 
+#### Exploring the data at Region level ####
 Herbaceous <- read.csv(file="Ecosystem carbon/HerbC.Region.csv", header=T)
 Woody <- read.csv(file="Ecosystem carbon/Tree.data/TreeC.Region.csv", header=T)
 Deadwood <- read.csv(file="Ecosystem carbon/Tree.data/DW.Region.csv",header=T)
+Soil <- read.csv(file="Ecosystem carbon/Soil.data/Soil.texture.csv",header=T)
 
-# Renaming SNP Handajega to Handajega 
 Woody$Region <- as.factor(c("Makao","Maswa", "Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 names(Woody)
-Woody <- Woody[,c(1,2,12,9:11,3:8)]
+Woody <- Woody[,c(1,2,14,11:13,3:10)]
 
 #Relevel 
 Woody$Region<- factor(Woody$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
+Soil$Region<- factor(Soil$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+
 Herbaceous$Region<- factor(Herbaceous$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera"))
 
 # Merge the three datasets in two steps 
-Ecosystem.C1 <- merge(Woody[,c(2:4,7:12)],Herbaceous[2:4],all.x = TRUE,by="Region")
-Ecosystem.C <- merge(Ecosystem.C1,Deadwood[2:6],all.x = TRUE,by="Region")
+Ecosystem.C1 <- merge(Woody[,c(2:6,7:14)],Herbaceous[2:4],all.x = TRUE,by="Region")
+Ecosystem.C2 <- merge(Ecosystem.C1,Deadwood[2:6],all.x = TRUE,by="Region")
+Ecosystem.C <- merge(Ecosystem.C2,Soil[2:9],all.x = TRUE,by="Region")
 
-EcosystemCarbon <- Ecosystem.C[,c(1:3,6,8,4,10,14)]
-EcosystemCarbonSE <- Ecosystem.C[,c(1,5,11,15)]
+EcosystemCarbon <- Ecosystem.C[,c(1:5,6,14,18,21:26,8:13)]
+EcosystemCarbonSE <- Ecosystem.C[,c(1,7,15,19)]
 
 # Make the data into a long format instead of a wide
 library(tidyr)
@@ -47,39 +64,129 @@ levels(Tot.EcosystemCarbon$Carbon.pool)[levels(Tot.EcosystemCarbon$Carbon.pool)=
 
 Tot.EcosystemCarbon <- arrange(Tot.EcosystemCarbon,Region)
 
+write.csv(Tot.EcosystemCarbon,file="Ecosystem carbon/Tot.Ecosystem.Carbon.csv")
 #### Ploting Ecosystem Carbon  #### 
+
+Total.ecosystem.carbon <- read.csv("Ecosystem carbon/Tot.Ecosystem.Carbon.csv", head=T)
+
+levels(Total.ecosystem.carbon$Carbon.pool)
+Total.ecosystem.carbon$Carbon.pool<- factor(Total.ecosystem.carbon$Carbon.pool, levels = c("TreeC","HerbC", "DWC"))
 
 library(ggplot2)
 
 # Plots per region of ECOSYSTEM CARBON
-#-------------------------------------
-# Point
-EcosystemC.plot <- ggplot(data = Tot.EcosystemCarbon, aes(x = Region,y = C.amount, ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, group = Carbon.pool, colour= Carbon.pool))
+
+# Legend titeles
+legend_titleLAND <- "Land-use"
+legend_titleCarbon <- "Carbon Pool"
 
 Lines_gone <- theme(panel.grid.major.x = element_blank(),
                     panel.grid.minor.x = element_blank(),
                     panel.grid.major.y = element_blank(),
                     panel.grid.minor.y = element_blank())
 
-EcosystemC.plot + xlab("Region") + ylab("Aboveground Carbon (g/m2)")  + geom_point(size = 2, shape=20,stroke=2, na.rm=T)  + theme_bw() + Lines_gone + geom_errorbar(stat = "identity",width=.2,lwd=1.1,show.legend=F, na.rm=T) + scale_color_manual(breaks = c("TreeC", "HerbC","DWC"),values=c("darkolivegreen4","forestgreen","chocolate2"))
+# TOT ECOSYSTEM C - REGION
+# Point
 
-# Bar
-EcosystemC.bar <- ggplot(data = Tot.EcosystemCarbon, aes(x=Region,y=C.amount,ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, fill=Carbon.pool))
+# To get different shape of point: scale_shape_manual(values=c(1,15))
+EcosystemC.plot1 <- ggplot(data = Total.ecosystem.carbon, aes(x = Region,y = C.amount, ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, group = Carbon.pool, colour= Carbon.pool))
 
-EcosystemC.bar + geom_bar(stat="identity", position="stack",na.rm=T) + theme_bw() + Lines_gone  + xlab("Region") + ylab("Aboveground Carbon (g/m2)")  + geom_errorbar(width=.2,show.legend=F, na.rm=T) + scale_fill_manual(breaks = c("TreeC", "HerbC","DWC"),values=c("darkolivegreen4","forestgreen","chocolate2"))
+EcosystemC.plot1 + xlab("Region") + ylab("Aboveground Carbon (g/m2)")  + 
+  geom_point(size = 4, shape=20,stroke=2, na.rm=T)  + 
+  geom_errorbar(stat = "identity",width=.4,lwd=1.1,show.legend=F, na.rm=T) +
+  theme_bw() + Lines_gone +  
+  scale_color_manual(legend_titleCarbon, breaks = c("TreeC", "HerbC","DWC"),values=c("darkolivegreen4","forestgreen","chocolate2"))
+
+# Other version 
+
+EcosystemC.plot2 <- ggplot(data = Total.ecosystem.carbon, aes(x = Region,y = C.amount, ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, colour= Carbon.pool, shape= Landuse.x))
+
+EcosystemC.plot2 + 
+  geom_point(size=4,fill="white",stroke=1.2,position=position_dodge(width=.5),show.legend=T) + 
+  geom_errorbar(width=1,lwd=1,position=position_dodge(width=.5),show.legend=F) +
+  scale_shape_manual(legend_titleLAND,values=c(4,1))  + 
+  scale_color_manual(legend_titleCarbon, breaks = c("TreeC", "HerbC","DWC"),values=c("darkolivegreen4","forestgreen","chocolate2")) + 
+  theme_bw() + Lines_gone + 
+  xlab("Region") + ylab("Aboveground Carbon (g/m2)")
+
+# Bar - dodge 
+EcosystemC.bar1 <- ggplot(data = Total.ecosystem.carbon, aes(x=Region,y=C.amount,ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, fill=Carbon.pool))
+
+EcosystemC.bar1 + 
+  geom_errorbar(width=0.6,lwd=0.5,position=position_dodge(width=0.9),show.legend=F) +
+  geom_bar(stat="identity", position="dodge",na.rm=T) + 
+  theme_bw() + Lines_gone  + xlab("Region") + ylab("Aboveground Carbon (g/m2)") + 
+  scale_fill_manual(breaks = c("TreeC", "HerbC","DWC"),values=c("darkolivegreen4","forestgreen","chocolate2"))
+
+# Bar - stacked 
+EcosystemC.bar2 <- ggplot(data = Total.ecosystem.carbon, aes(x=Region,y=C.amount,ymin=C.amount-C.amountSE, ymax=C.amount+C.amountSE, fill=factor(Carbon.pool)))
+
+EcosystemC.bar2 + 
+  geom_bar(stat="identity", position="stack",width = 0.7,na.rm=T) +
+  theme_bw() + Lines_gone  + 
+  xlab("Region") + ylab("Aboveground Carbon (g/m2)") + 
+  scale_fill_manual(legend_titleCarbon, breaks = c("TreeC", "HerbC","DWC"),values=c("darkolivegreen4","forestgreen","chocolate2"))
+
+#+ geom_errorbar(position="dodge",width=.2,show.legend=F, na.rm=T)
 
 # MAP and ECOSYSTEM CARBON
-#------------------------------------- 
-EcosystemC.MAP.bar <- ggplot(data = Tot.EcosystemCarbon, aes(x = MAP.mm_yr,y = C.amount, ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, fill = Carbon.pool))
+# Seems to be a positive relationship between MAP and C Except for Maswa which is quite hight in tree C even though it is considered a dry region. 
+EcosystemC.MAP <- ggplot(data = Total.ecosystem.carbon, aes(x = MAP.mm_yr,y = C.amount, ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, group = Carbon.pool, colour= Carbon.pool))
 
-EcosystemC.MAP.bar + geom_bar(stat="identity", position="stack", na.rm=T) + theme_bw() + Lines_gone  + xlab("MAP (mm/yr)") + ylab("Aboveground Carbon (g/m2)")  + geom_errorbar(stat = "identity",show.legend=F, na.rm=T) + scale_fill_manual(breaks = c("TreeC", "HerbC","DWC"),values=c("darkolivegreen4","forestgreen","chocolate2"))
+EcosystemC.MAP + xlab("MAP (mm/yr)") + ylab("Aboveground Carbon (g/m2)")  + 
+  geom_point(size = 4, shape=20,stroke=2, na.rm=T)  + 
+  geom_errorbar(stat = "identity",width=30,lwd=1.1,show.legend=F, na.rm=T) + 
+  theme_bw() + Lines_gone  + scale_color_manual(legend_titleCarbon, breaks = c("TreeC", "HerbC","DWC"),values=c("darkolivegreen4","forestgreen","chocolate2"))
 
-# Aggregate per region
-#------------------------
-AbovegroundC <- aggregate(C.amount~Region, data=Tot.EcosystemCarbon,sum)
-AbovegroundCSE <- aggregate(C.amountSE~Region, data=Tot.EcosystemCarbon,sum)
-No.trees_m2 <- aggregate(No.trees_m2~Region, data=Tot.EcosystemCarbon,median)
-TreeBM_m2 <- aggregate(TreeBM_m2~Region, data=Tot.EcosystemCarbon,median)
+# Tre basal area and ECOSYSTEM CARBON
+# Tree basal area per m2 seems to affect C positive - will be exciting here to see the relationship with soil C. 
+
+EcosystemC.basal.area <- ggplot(data = Total.ecosystem.carbon, aes(x = TreeBasalA_m2,y = C.amount, ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, group = Carbon.pool, colour= Carbon.pool))
+
+EcosystemC.basal.area  + xlab("Tree basal area (m2)") + ylab("Aboveground Carbon (g/m2)")  + 
+  geom_point(size = 4, shape=20,stroke=2, na.rm=T)  + 
+  geom_errorbar(stat = "identity",width=0.01,lwd=1.1,show.legend=F, na.rm=T) +
+  theme_bw() + Lines_gone +  
+  scale_color_manual(legend_titleCarbon, breaks = c("TreeC", "HerbC","DWC"),values=c("darkolivegreen4","forestgreen","chocolate2"))
+
+# Number of trees and ECOSYSTEM CARBON
+# Difficult to incorporate this relationship - Really scewed. Mwantimba has highest number of trees... 
+EcosystemC.No.trees<- ggplot(data = Total.ecosystem.carbon, aes(x = No.trees_m2,y = C.amount, ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, group = Carbon.pool, colour= Carbon.pool))
+
+EcosystemC.No.trees  + xlab("Number of trees (m2)") + ylab("Aboveground Carbon (g/m2)")  + 
+  geom_point(size = 4, shape=20,stroke=2, na.rm=T)  + 
+  geom_errorbar(stat = "identity",width=0.001,lwd=1.1,show.legend=F, na.rm=T) +
+  theme_bw() + Lines_gone +  
+  scale_color_manual(legend_titleCarbon, breaks = c("TreeC", "HerbC","DWC"),values=c("darkolivegreen4","forestgreen","chocolate2"))
+
+# Tree Biomass and ECOSYSTEM CARBON
+# Difficult relationship - not really a pattern here. 
+
+EcosystemC.treeBM<- ggplot(data = Total.ecosystem.carbon, aes(x = TreeBM_m2,y = C.amount, ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, group = Carbon.pool, colour= Carbon.pool))
+
+EcosystemC.treeBM  + xlab("Tree Biomass (g/m2)") + ylab("Aboveground Carbon (g/m2)")  + 
+  geom_point(size = 4, shape=20,stroke=2, na.rm=T)  + 
+  geom_errorbar(stat = "identity",width=35,lwd=1.1,show.legend=F, na.rm=T) +
+  theme_bw() + Lines_gone +  
+  scale_color_manual(legend_titleCarbon, breaks = c("TreeC", "HerbC","DWC"),values=c("darkolivegreen4","forestgreen","chocolate2"))
+
+# Soil texture and ECOSYSTEM CARBON
+# Clay seems to be affecting ecosystem C positive, except for with Handajega (low clay, but loads of aboveground C) 
+
+EcosystemC.Soil.texture<- ggplot(data = Total.ecosystem.carbon, aes(x = Clay,y = C.amount, ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, group = Carbon.pool, colour= Carbon.pool))
+
+EcosystemC.Soil.texture  + xlab("Clay (%)") + ylab("Aboveground Carbon (g/m2)")  + 
+  geom_point(size = 4, shape=20,stroke=2, na.rm=T)  + 
+  geom_errorbar(stat = "identity",width=3,lwd=1.1,show.legend=F, na.rm=T) +
+  theme_bw() + Lines_gone +  
+  scale_color_manual(legend_titleCarbon, breaks = c("TreeC", "HerbC","DWC"),values=c("darkolivegreen4","forestgreen","chocolate2"))
+
+### Aggregate TOTAL CARBON per region ####
+
+AbovegroundC <- aggregate(C.amount~Region, data=Total.ecosystem.carbon,sum)
+AbovegroundCSE <- aggregate(C.amountSE~Region, data=Total.ecosystem.carbon,sum)
+No.trees_m2 <- aggregate(No.trees_m2~Region, data=Total.ecosystem.carbon,median)
+TreeBM_m2 <- aggregate(TreeBM_m2~Region, data=Total.ecosystem.carbon,median)
 Aboveground.Carbon <- cbind(AbovegroundC,AbovegroundCSE[2],No.trees_m2[2],TreeBM_m2[2])
 colnames(Aboveground.Carbon) <- c("Region","C.amount","SE.C.Amount","No.trees_m2","TreeBM_m2") # Maswa extreamly high in C and woody cover
 Aboveground.Carbon$Landuse <- as.factor(c("Pasture","Wild","Pasture","Wild", "Wild", "Pasture","Wild"))
@@ -87,23 +194,21 @@ Aboveground.Carbon$Landuse <- as.factor(c("Pasture","Wild","Pasture","Wild", "Wi
 # Seperate per land-use 
 Wild.AbovegroundC <- Aboveground.Carbon[Aboveground.Carbon$Landuse!="Pasture",]# Only wild regions
 Wild.AbovegroundC <- droplevels(Wild.AbovegroundC)
-Pasture.AbovegroundC <- Aboveground.Carbon[Aboveground.Carbon$Landuse!="Wild",]# Only wild regions
+Pasture.AbovegroundC <- Aboveground.Carbon[Aboveground.Carbon$Landuse!="Wild",]# Only pasture regions
 Pasture.AbovegroundC <- droplevels(Pasture.AbovegroundC)
 
 # Number of trees and ECOSYSTEM CARBON
-#-------------------------------------
 # Point
 Tree.no.plot <- ggplot(data=Aboveground.Carbon, aes(x=No.trees_m2,y = C.amount, ymin=C.amount-SE.C.Amount,ymax=C.amount+SE.C.Amount, group = Landuse, colour= Landuse))
 
-Tree.no.plot + xlab("# Trees") + ylab("Aboveground Carbon (g/m2)")  + geom_point(size = 2, shape=20,stroke=2, na.rm=T)  + theme_bw() + Lines_gone + geom_errorbar(stat="identity",width=.01,show.legend=F, na.rm=T) + scale_color_manual(breaks = c("Wild", "Pasture"),values=c("forestgreen","chocolate2"))
+Tree.no.plot + xlab("# Trees") + ylab("Aboveground Carbon (g/m2)")  + geom_point(size = 2, shape=20,stroke=2, na.rm=T)  + theme_bw() + Lines_gone + geom_errorbar(stat="identity",width=.001,show.legend=F, na.rm=T) + scale_color_manual(breaks = c("Wild", "Pasture"),values=c("forestgreen","chocolate2"))
 
 # Biomass of trees and ECOSYSTEM CARBON
-#-------------------------------------
 
 # Point
 BM.plot <- ggplot(data=Aboveground.Carbon, aes(x=TreeBM_m2,y = C.amount, ymin=C.amount-SE.C.Amount,ymax=C.amount+SE.C.Amount, group = Landuse, colour= Landuse))
 
-BM.plot + xlab("Tree Biomass (g/m2)") + ylab("Aboveground Carbon (g/m2)")  + geom_point(size = 2, shape=20,stroke=2, na.rm=T)  + theme_bw() + Lines_gone + geom_errorbar(width=0.2,show.legend=F, na.rm=T) + scale_color_manual(breaks = c("Wild", "Pasture"),values=c("forestgreen","chocolate2"))
+BM.plot + xlab("Tree Biomass (g/m2)") + ylab("Aboveground Carbon (g/m2)")  + geom_point(size = 2, shape=20,stroke=2, na.rm=T)  + theme_bw() + Lines_gone + geom_errorbar(width=35,show.legend=F, na.rm=T) + scale_color_manual(breaks = c("Wild", "Pasture"),values=c("forestgreen","chocolate2"))
 
 #???
 # Wild plot
