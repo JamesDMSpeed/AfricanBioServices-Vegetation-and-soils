@@ -154,7 +154,51 @@ Tree.carbon$Region<- factor(Tree.carbon$Region, levels = c("Makao","Maswa","Mwan
 
 TreeC.Region$Region<- factor(TreeC.Region$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
 
+# Make a histogram of the distribution of trees 
+p <- ggplot(Vildetrees,aes(x=Biomass.g.tree))
+p + geom_histogram()+facet_grid(~area)+theme_bw()
+
+hist(Vildetrees$Biomass.g.tree[Vildetrees$area=="Makao"])
+
+table(Vildetrees$block.id, Vildetrees$area) # Ikorongo,Makao, Maswa, Mwantimba, Park Nyigoti, Seronera, Handajega 
+
+# Simple plots of trees 
+plot(Biomass.g.tree~block.id,
+     xlab = "Block",
+     ylab = "Tree Biomass (g)",
+     col=c(landuse),
+     data=Vildetrees)
+
 par(mfrow=c(1,2))
+dotchart(Vildetrees$Biomass.g.tree,groups=Vildetrees$area,main = "area") # Maswa and Handajega have big trees. 
+dotchart(Vildetrees$Biomass.g.tree,groups=Vildetrees$landuse,main = "landuse") # wild have bigger trees than pasture. 
+
+par(mfrow=c(1,1))
+
+# Tree carbon vs LANDUSE
+plot(No.trees_m2~landuse,
+     xlab = "Land Use",
+     ylab = "Number of Trees",
+     data=Tree.carbon)
+
+plot(TreeC_m2~landuse,
+     xlab = "Land Use",
+     ylab = "",
+     data=Tree.carbon)
+
+title(ylab= expression("Tree Carbon" ~ (g ~ m^{-2})), line=2)
+#cex.lab=1.2, family="Calibri Light"
+
+# Carbon per tree in pasture vs wild  
+plot (TreeC_m2/No.trees_m2~landuse,
+      xlab = "Land Use",
+      ylab = "Carbon per tree",  
+      data=Tree.carbon)
+# Tree basal area vs landuse 
+plot (Total.basal.area_m2~landuse,
+      xlab = "Land Use",
+      ylab = "Tree basal area per m2",  
+      data=Tree.carbon)
 
 # Look at the size distribution of trees in Serengeti 
 #----------------------------------------------------
@@ -187,8 +231,9 @@ colnames(small.trees) <- c("Region","Small")
 Tree.size <- cbind(large.trees,small.trees[2])
 Tree.size.dist <- gather(Tree.size,Size, Count, Large:Small,factor_key=TRUE)
 Tree.size.dist <- arrange(Tree.size.dist,Region)
-
-# Sort by mean tree BM 
+Tree.size.dist$Region<- factor(Tree.size.dist$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
+Tree.size.dist$Landuse <- as.factor(c("Wild","Wild","Pasture","Pasture","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild"))
+#### Sort by mean tree BM ####
 large.trees.mean <- Vildetrees %>%
   filter(Biomass.g.tree >= 51656.06) %>%
   select(Biomass.g.tree,area,landuse)
@@ -213,90 +258,58 @@ Tree.size.dist2 <- arrange(Tree.size.dist2,Region)
 # PLOTTING
 #-------------------------------------------
 # Plotting the size distribution based on median tree biomass. 
-size.plot.density <- ggplot(Tree.size.dist, aes(x=Count, fill= Size))
-size.plot.density + geom_density() # Smooth histogram, shows the distribution of the small and large trees. So some regions had a lot of small trees, some had really few, but most regions had something in the midle. While small trees where more spread out. 
-
-size.plot <- ggplot(Tree.size.dist, aes(x= Region, y= Count, fill= Size)) # Want to look at all regions at the same time. 
-
-size.plot + 
-  geom_point(size = 4, shape=20,stroke=2, na.rm=T) +
-  facet_wrap(~Region) # Trying to look at all regions at the same time, with dots here - one for large and one for small trees - next step, show this by colour. 
-
-size.plot + 
-  geom_bar(stat="identity", position="stack",na.rm=T) + 
-  theme_bw() + xlab("Region") + ylab("Number of Trees") + ggtitle("Median tree biomass")  + 
-  scale_fill_manual(breaks = c("Large", "Small"),values=c("goldenrod3", "forestgreen")) 
-
-# Plotting the size distribution based on mean tree biomass. 
-size.plot2 <- ggplot(Tree.size.dist2, aes(x=Region,y=Count, fill= Size))
-
-size.plot2 + geom_bar(stat="identity", position="stack",na.rm=T) + xlab("Region") + ylab("Number of Trees")+ ggtitle("Mean tree biomass") + theme_bw()  + scale_fill_manual(breaks = c("Large", "Small"),values=c("goldenrod3", "forestgreen"))
-
-# Make a histogram of the distribution of trees 
-p <- ggplot(Vildetrees,aes(x=Biomass.g.tree))
-p + geom_histogram()+facet_grid(~area)+theme_bw()
-
-hist(Vildetrees$Biomass.g.tree[Vildetrees$area=="Makao"])
-     
-table(Vildetrees$block.id, Vildetrees$area) # Ikorongo,Makao, Maswa, Mwantimba, Park Nyigoti, Seronera, Handajega 
-
-plot(Biomass.g.tree~block.id,
-     xlab = "Block",
-     ylab = "Tree Biomass (g)",
-     col=c(landuse),
-     data=Vildetrees)
-
-dotchart(Vildetrees$Biomass.g.tree,groups=Vildetrees$area,main = "area")
-dotchart(Vildetrees$Biomass.g.tree,groups=Vildetrees$landuse,main = "landuse")
-
-
-# C and no. trees per Region
-boxplot(TreeC_m2 ~ Region, 
-        xlab = "Region",
-        ylab = "Tree Carbon (g/m2)",
-        data = Tree.carbon)
-
-boxplot(No_trees_m2 ~ Region, 
-        xlab = "Region",
-        ylab = "#Trees",
-        data = Tree.carbon)
-
-boxplot(total.basal.area.m2~area,
-        xlab="Region",
-        ylab= "Tree cover",
-        data= Vildetrees)
-
-# C and no. trees per landuse
-plot(No_trees_m2~landuse,
-     xlab = "Land Use",
-     ylab = "#Trees",
-     data=Tree.carbon)
-
-plot(TreeC_m2~landuse,
-     xlab = "Land Use",
-     ylab = "Carbon per m2",
-     data=Tree.carbon)
-
-# Carbon per tree in pasture vs wild  
-par(mfrow=c(1,1))
-plot (TreeC_m2/No_trees_m2~landuse,
-      xlab = "Land Use",
-      ylab = "Carbon per tree",
-      data=Tree.carbon)
-
-
-# Plotting trees per Region 
-
-library(ggplot2)
-
-TreeC.Region.plot <- ggplot(data = TreeC.Region, aes(x = Region,y = TreeC_m2, ymin=TreeC_m2-SE.TreeC_m2,ymax=TreeC_m2+SE.TreeC_m2, group = Landuse, colour= Landuse))
 
 Lines_gone <- theme(panel.grid.major.x = element_blank(),
                     panel.grid.minor.x = element_blank(),
                     panel.grid.major.y = element_blank(),
                     panel.grid.minor.y = element_blank())
 
-TreeC.Region.plot + xlab("Region") + ylab("Woody plant carbon")  + geom_point(size = 3, shape=20,stroke=2)  + theme_bw() + Lines_gone + geom_errorbar(stat = "identity",width=.2,lwd=1.1,show.legend=F) +  scale_color_manual(breaks = c("Pasture", "Wild"),values=c("goldenrod3", "forestgreen"))
+legend_titleLAND <- "Land-use"
+legent_titleSIZE <- "Size"
+
+# DENSITY PLOT 
+size.plot.density <- ggplot(Tree.size.dist, aes(x=Count, fill= Size))
+size.plot.density + geom_density() # Smooth histogram, shows the distribution of the small and large trees. So some regions had a lot of small trees, some had really few, but most regions had something in the midle. While small trees where more spread out. 
+
+# FACET WRAP - Want to look at all regions at the same time. 
+size.plot.wrap <- ggplot(Tree.size.dist, aes(x= Size, y= Count, colour=Landuse, shape=Size)) 
+
+size.plot.wrap + 
+  geom_point(size = 4,stroke=2, na.rm=T, show.legend = T) +
+  facet_wrap(~Region) + 
+  scale_shape_manual(legent_titleSIZE, values=c(4,1)) + 
+  scale_color_manual(legend_titleLAND,breaks = c("Wild", "Pasture"),values=c("goldenrod3", "forestgreen")) +
+  theme_bw() +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  Lines_gone
+
+# Barplot of size 
+size.plot.bar <- ggplot(Tree.size.dist, aes(x=Region,y=Count, fill= Size))
+  
+size.plot.bar+ 
+  geom_bar(stat="identity", position="stack",na.rm=T) + 
+  theme_bw() + Lines_gone + xlab("Region") + ylab("Number of Trees") + ggtitle("Median tree biomass")  + 
+  scale_fill_manual(breaks = c("Large", "Small"),values=c("goldenrod3", "forestgreen")) 
+
+# Plotting the size distribution based on mean tree biomass. 
+#size.plot2 <- ggplot(Tree.size.dist2, aes(x=Region,y=Count, fill= Size))
+#size.plot2 + geom_bar(stat="identity", position="stack",na.rm=T) + xlab("Region") + ylab("Number of Trees")+ ggtitle("Mean tree biomass") + theme_bw()  + scale_fill_manual(breaks = c("Large", "Small"),values=c("goldenrod3", "forestgreen"))
+
+#### Plotting Tree data at Regional Level ####
+
+Lines_gone <- theme(panel.grid.major.x = element_blank(),
+                    panel.grid.minor.x = element_blank(),
+                    panel.grid.major.y = element_blank(),
+                    panel.grid.minor.y = element_blank())
+
+TreeC.Region.plot <- ggplot(data = TreeC.Region, aes(x = Region,y = TreeC_m2, ymin=TreeC_m2-SE.TreeC_m2,ymax=TreeC_m2+SE.TreeC_m2, group = Landuse, colour= Landuse))
+
+TreeC.Region.plot + xlab("Region") + ylab("Woody plant carbon")  + 
+  geom_point(size = 3, shape=20,stroke=2)  +
+  geom_errorbar(stat = "identity",width=.2,lwd=1.1,show.legend=F) + 
+  theme_bw() + Lines_gone +  scale_color_manual(breaks = c("Pasture", "Wild"),values=c("goldenrod3", "forestgreen"))
 
 # No of trees vs BD 
 total.soil.data<- read.csv("Ecosystem Carbon/Soil.data/Total.soil.data.csv", head = TRUE)
@@ -311,19 +324,15 @@ BD.total <- droplevels(BD.total)
 
 BD.total$Region <- factor(BD.total$Region,levels = c("Makao","Maswa","Mwantimba","Handajega", "Seronera","Park Nyigoti","Ikorongo"))
 
-# SE function to use in R + aggrigate 
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 BD.SE <- aggregate(BD_fine_earth_air_dry~Region,data=BD.total,SE)
 BD <- aggregate(BD_fine_earth_air_dry~Region,data=BD.total,mean)
-No.trees <- aggregate(No_trees~Region, Tree.carbon,sum)
-No.trees.se <- aggregate(No_trees~Region, Tree.carbon,SE)
-MAP <- aggregate(MAP.mm_yr~Region, Tree.carbon,mean)
 
-
-Trees.BD <- cbind(No.trees,No.trees.se[2],BD[2],BD.SE[2],MAP[2])
+# Include BD in Tree dataset 
+Trees.BD <- cbind(TreeC.Region,BD[2],BD.SE[2])
 names(Trees.BD)
-colnames(Trees.BD) <- c("Region","No.trees","No.trees.se","BD","BD.se","MAP")
-Trees.BD$Land.Use <- as.factor(c("Pasture","Wild","Pasture","Wild", "Wild", "Pasture","Wild"))
+colnames(Trees.BD)[15] <-"BD"
+colnames(Trees.BD)[16] <-"SE.BD"
 
 plot(BD~No.trees, data=Trees.BD)
 plot(No.trees~BD, data=Trees.BD)
@@ -335,30 +344,36 @@ summary(lm(No.trees~MAP, data=Trees.BD))
 summary(lm(BD~MAP, data=Trees.BD))
 summary(lm(No.trees~MAP+BD, data=Trees.BD))
 
-library(ggplot2)
-
 # Plotting trees against BD 
 
-Plot.trees.BD <- ggplot(data = Trees.BD, aes(x = No.trees,y = BD, ymin=BD-BD.se,ymax=BD+BD.se, colour= Region))
+Plot.trees.BD <- ggplot(data = Trees.BD, aes(x = BD,y = TreeBasalA_m2, ymin=TreeBasalA_m2-SE.TreeBasalA_m2,ymax=TreeBasalA_m2+SE.TreeBasalA_m2, colour= Region))
 
-Lines_gone <- theme(panel.grid.major.x = element_blank(),
-                    panel.grid.minor.x = element_blank(),
-                    panel.grid.major.y = element_blank(),
-                    panel.grid.minor.y = element_blank())
-
-Plot.trees.BD + geom_point(aes(shape= factor(Land.Use)),stroke=2,size=3)  + theme_bw() + Lines_gone + geom_errorbar(stat = "identity",width=.2,lwd=1.1,show.legend=F) 
+Plot.trees.BD + 
+  geom_point(aes(shape= factor(Landuse)),stroke=2,size=3)  + 
+  geom_errorbar(stat = "identity",width=.02,lwd=1.1,show.legend=F) + 
+  theme_bw() + Lines_gone 
 
 # Plotting trees against MAP 
 
-Plot.trees.MAP <- ggplot(data = Trees.BD, aes(x = MAP,y = No.trees, ymin=No.trees-No.trees.se,ymax=No.trees+No.trees.se, colour= Region))
+# Number of trees 
+Plot.notrees.MAP <- ggplot(data = Trees.BD, aes(x = MAP.mm_yr,y = No.trees_m2, ymin=No.trees_m2-SE.No.trees_m2,ymax=No.trees_m2+ SE.No.trees_m2, colour= Landuse, shape=Landuse))
 
-Lines_gone <- theme(panel.grid.major.x = element_blank(),
-                    panel.grid.minor.x = element_blank(),
-                    panel.grid.major.y = element_blank(),
-                    panel.grid.minor.y = element_blank())
+Plot.notrees.MAP + 
+  geom_point(size=4,fill="white",stroke=1.2,position=position_dodge(width=.5),show.legend=T) + 
+  geom_errorbar(stat = "identity",width=20,lwd=1.1,show.legend=F) + 
+  scale_shape_manual(legend_titleLAND,values=c(4,1))  + 
+  theme_bw() + Lines_gone + 
+  xlab(expression(paste("MAP (mm", yr^-1,")"))) + ylab("Number of trees per m2")
 
-Plot.trees.MAP + geom_point(aes(shape= factor(Land.Use)),stroke=2,size=3)  + theme_bw() + Lines_gone + geom_errorbar(stat = "identity",width=.2,lwd=1.1,show.legend=F) 
+# Tree biomass
+Plot.TreeBM.MAP <- ggplot(data = Trees.BD, aes(x = MAP.mm_yr,y =TreeBM_m2, ymin=TreeBM_m2-SE.TreeBM_m2,ymax=TreeBM_m2+ SE.TreeBM_m2, colour= Landuse, shape=Landuse))
 
+Plot.TreeBM.MAP + 
+  geom_point(size=4,fill="white",stroke=1.2,position=position_dodge(width=.5),show.legend=T) + 
+  geom_errorbar(stat = "identity",width=20,lwd=1.1,show.legend=F) + 
+  scale_shape_manual(legend_titleLAND,values=c(4,1))  + 
+  theme_bw() + Lines_gone + 
+  xlab(expression(paste("MAP (mm", yr^-1,")"))) + ylab(expression(paste("Tree biomass (g", m^-2,")")))
 
 #### Adding dead wood data ####
 Dead.wood <- read.csv("Ecosystem carbon/Tree.data/03Dead_wood.csv",head=T)

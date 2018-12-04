@@ -23,7 +23,7 @@ names(Herbaceous)
 #write.csv(Soil,file="Ecosystem carbon/Soil.data/Soil.texture.csv")
 # Renaming SNP Handajega to Handajega 
 
-#### Exploring the data at Region level ####
+### Exploring the data at Region level ####
 Herbaceous <- read.csv(file="Ecosystem carbon/HerbC.Region.csv", header=T)
 Woody <- read.csv(file="Ecosystem carbon/Tree.data/TreeC.Region.csv", header=T)
 Deadwood <- read.csv(file="Ecosystem carbon/Tree.data/DW.Region.csv",header=T)
@@ -65,7 +65,7 @@ levels(Tot.EcosystemCarbon$Carbon.pool)[levels(Tot.EcosystemCarbon$Carbon.pool)=
 Tot.EcosystemCarbon <- arrange(Tot.EcosystemCarbon,Region)
 
 write.csv(Tot.EcosystemCarbon,file="Ecosystem carbon/Tot.Ecosystem.Carbon.csv")
-#### Ploting Ecosystem Carbon  #### 
+### Ploting Ecosystem Carbon  #### 
 
 Total.ecosystem.carbon <- read.csv("Ecosystem carbon/Tot.Ecosystem.Carbon.csv", head=T)
 
@@ -91,11 +91,13 @@ Lines_gone <- theme(panel.grid.major.x = element_blank(),
 # To get different shape of point: scale_shape_manual(values=c(1,15))
 EcosystemC.plot1 <- ggplot(data = Total.ecosystem.carbon, aes(x = Region,y = C.amount, ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, group = Carbon.pool, colour= Carbon.pool))
 
-EcosystemC.plot1 + xlab("Region") + ylab("Aboveground Carbon (g/m2)")  + 
+EcosystemC.plot1 + xlab("Region") +  ylab(expression(paste("Aboveground Carbon (g", m^-2,")")))  + 
   geom_point(size = 4, shape=20,stroke=2, na.rm=T)  + 
   geom_errorbar(stat = "identity",width=.4,lwd=1.1,show.legend=F, na.rm=T) +
   theme_bw() + Lines_gone +  
   scale_color_manual(legend_titleCarbon, breaks = c("TreeC", "HerbC","DWC"),values=c("darkolivegreen4","forestgreen","chocolate2"))
+
+#ylab(expression(paste("Aboveground Carbon (g", m^-2,")")))
 
 # Other version 
 
@@ -133,7 +135,7 @@ EcosystemC.bar2 +
 # Seems to be a positive relationship between MAP and C Except for Maswa which is quite hight in tree C even though it is considered a dry region. 
 EcosystemC.MAP <- ggplot(data = Total.ecosystem.carbon, aes(x = MAP.mm_yr,y = C.amount, ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, group = Carbon.pool, colour= Carbon.pool))
 
-EcosystemC.MAP + xlab("MAP (mm/yr)") + ylab("Aboveground Carbon (g/m2)")  + 
+EcosystemC.MAP + xlab(expression(paste("MAP (mm", yr^-1,")")))+ ylab(expression(paste("Aboveground Carbon (g", m^-2,")"))) + 
   geom_point(size = 4, shape=20,stroke=2, na.rm=T)  + 
   geom_errorbar(stat = "identity",width=30,lwd=1.1,show.legend=F, na.rm=T) + 
   theme_bw() + Lines_gone  + scale_color_manual(legend_titleCarbon, breaks = c("TreeC", "HerbC","DWC"),values=c("darkolivegreen4","forestgreen","chocolate2"))
@@ -143,7 +145,7 @@ EcosystemC.MAP + xlab("MAP (mm/yr)") + ylab("Aboveground Carbon (g/m2)")  +
 
 EcosystemC.basal.area <- ggplot(data = Total.ecosystem.carbon, aes(x = TreeBasalA_m2,y = C.amount, ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, group = Carbon.pool, colour= Carbon.pool))
 
-EcosystemC.basal.area  + xlab("Tree basal area (m2)") + ylab("Aboveground Carbon (g/m2)")  + 
+EcosystemC.basal.area  + xlab(expression(paste("Tree basal area (per ", m^-2,")"))) + ylab(expression(paste("Aboveground Carbon (g", m^-2,")")))  + 
   geom_point(size = 4, shape=20,stroke=2, na.rm=T)  + 
   geom_errorbar(stat = "identity",width=0.01,lwd=1.1,show.legend=F, na.rm=T) +
   theme_bw() + Lines_gone +  
@@ -175,7 +177,7 @@ EcosystemC.treeBM  + xlab("Tree Biomass (g/m2)") + ylab("Aboveground Carbon (g/m
 
 EcosystemC.Soil.texture<- ggplot(data = Total.ecosystem.carbon, aes(x = Clay,y = C.amount, ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, group = Carbon.pool, colour= Carbon.pool))
 
-EcosystemC.Soil.texture  + xlab("Clay (%)") + ylab("Aboveground Carbon (g/m2)")  + 
+EcosystemC.Soil.texture  + xlab("Clay (%)") + ylab(expression(paste("Aboveground Carbon (g", m^-2,")"))) + 
   geom_point(size = 4, shape=20,stroke=2, na.rm=T)  + 
   geom_errorbar(stat = "identity",width=3,lwd=1.1,show.legend=F, na.rm=T) +
   theme_bw() + Lines_gone +  
@@ -223,3 +225,30 @@ Woody.cover.plot.pasture + xlab("Woody cover") + ylab("Carbon amount") + geom_po
 
 
 
+
+### Correlation between variables #### 
+
+# RUN THIS CODE FIRST (FROM STU)
+
+panel.cor <- function(x, y, digits=1, prefix="", cex.cor = 6)
+{
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1))
+  r1=cor(x,y,use="pairwise.complete.obs")
+  r <- abs(cor(x, y,use="pairwise.complete.obs"))
+  txt <- format(c(r1, 0.123456789), digits=digits)[1]
+  txt <- paste(prefix, txt, sep="")
+  if(missing(cex.cor)) { cex <- 0.9/strwidth(txt) } else {
+    cex = cex.cor}
+  text(0.5, 0.5, txt, cex = cex * r)
+}
+
+# Then select the variables to use in the pair function with panel.cor
+
+names(Total.ecosystem.carbon)
+MyVar<-c("MAP.mm_yr","Clay","TreeBasalA_m2","No.trees_m2","Last_fire.yr")
+
+pairs(Total.ecosystem.carbon[,MyVar],lower.panel = panel.cor) 
+# The values here is pearson correlation coeficients - in other words, the r value (between -1 and 1 where 0 is no correlation). 
+# Tree basal area is 100 % correlated with Tree biomass, no need to use both, however, not so correlated with number of trees. 
+# Number of trees have a strong negative relationship with year of last fire. and quite a strong positive relationship with MAP. 
