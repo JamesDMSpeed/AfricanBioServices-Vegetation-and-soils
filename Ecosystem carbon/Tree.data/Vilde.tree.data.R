@@ -1,6 +1,6 @@
 #### 1. Sorting tree data to what I need to use ####
 
-rm(list=ls())
+rm(list=ls()) 
 
 # packages 
 #library(lattice)
@@ -158,11 +158,15 @@ TreeC.Region$Region<- factor(TreeC.Region$Region, levels = c("Makao","Maswa","Mw
 p <- ggplot(Vildetrees,aes(x=Biomass.g.tree))
 p + geom_histogram()+facet_grid(~area)+theme_bw()
 
-hist(Vildetrees$Biomass.g.tree[Vildetrees$area=="Makao"])
+hist(Vildetrees$Biomass.g.tree[Vildetrees$area=="SNP handejega"])
+hist(Vildetrees$Biomass.g.tree)
 
 table(Vildetrees$block.id, Vildetrees$area) # Ikorongo,Makao, Maswa, Mwantimba, Park Nyigoti, Seronera, Handajega 
 
 # Simple plots of trees 
+legend_titleLAND <- "Land-use"
+legend_titleCarbon <- "Carbon Pool"
+
 plot(Biomass.g.tree~block.id,
      xlab = "Block",
      ylab = "Tree Biomass (g)",
@@ -170,7 +174,7 @@ plot(Biomass.g.tree~block.id,
      data=Vildetrees)
 
 par(mfrow=c(1,2))
-dotchart(Vildetrees$Biomass.g.tree,groups=Vildetrees$area,main = "area") # Maswa and Handajega have big trees. 
+dotchart(Vildetrees$Biomass.g.tree,groups=Vildetrees$area,main = "area") # Maswa and Handajega have big trees
 dotchart(Vildetrees$Biomass.g.tree,groups=Vildetrees$landuse,main = "landuse") # wild have bigger trees than pasture. 
 
 par(mfrow=c(1,1))
@@ -190,10 +194,25 @@ title(ylab= expression("Tree Carbon" ~ (g ~ m^{-2})), line=2)
 #cex.lab=1.2, family="Calibri Light"
 
 # Carbon per tree in pasture vs wild  
+
 plot (TreeC_m2/No.trees_m2~landuse,
       xlab = "Land Use",
       ylab = "Carbon per tree",  
       data=Tree.carbon)
+
+identify(Tree.carbon$TreeC_m2/Tree.carbon$No.trees_m2~Tree.carbon$landuse) # The outliar in Pasture is Park Nyigoti block 1. 
+
+# Making a plot of total number of trees over median size of trees per Region 
+size.number <- cbind((aggregate(total.basal.area.m2~area+block+landuse + annual.precip.mm2015_2017,data=Vildetrees, median)),(aggregate(X~area+block+landuse,data=Vildetrees,length))[4])
+
+colnames(size.number) <- c("Region","block","landuse","MAP","median.basal.area","no.trees")
+size.number <- arrange(size.number,Region)
+
+size.number$Region<- factor(size.number$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
+
+plot(no.trees/median.basal.area~landuse, data=size.number)
+plot(no.trees/median.basal.area~MAP, data=size.number)
+
 # Tree basal area vs landuse 
 plot (Total.basal.area_m2~landuse,
       xlab = "Land Use",
@@ -229,31 +248,30 @@ colnames(large.trees) <- c("Region","Large")
 small.trees <- aggregate(Biomass.g.tree~area,data=small.trees.median,length)
 colnames(small.trees) <- c("Region","Small")
 Tree.size <- cbind(large.trees,small.trees[2])
-Tree.size.dist <- gather(Tree.size,Size, Count, Large:Small,factor_key=TRUE)
-Tree.size.dist <- arrange(Tree.size.dist,Region)
-Tree.size.dist$Region<- factor(Tree.size.dist$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
-Tree.size.dist$Landuse <- as.factor(c("Wild","Wild","Pasture","Pasture","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild"))
+Tree.BM.dist <- gather(Tree.size,Size, Count, Large:Small,factor_key=TRUE)
+Tree.BM.dist <- arrange(Tree.BM.dist,Region)
+Tree.BM.dist$Region<- factor(Tree.BM.dist$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
+Tree.BM.dist$Landuse <- as.factor(c("Wild","Wild","Pasture","Pasture","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild"))
 #### Sort by mean tree BM ####
 large.trees.mean <- Vildetrees %>%
   filter(Biomass.g.tree >= 51656.06) %>%
   select(Biomass.g.tree,area,landuse)
 
-table(large.trees.mean$area)
+large.trees2 <- as.data.frame(table(large.trees.mean$area))
 
 small.trees.mean <- Vildetrees %>%
   filter(Biomass.g.tree < 51656.06) %>%
   select(Biomass.g.tree,area,landuse)
 
-table(small.trees.mean$area)
+small.trees2 <- as.data.frame(table(small.trees.mean$area))
 
 # Make a new long data set based on mean tree BM size 
-large.trees2 <- aggregate(Biomass.g.tree~area,data=large.trees.mean,length)
-colnames(large.trees2) <- c("Region","Large")
-small.trees2 <- aggregate(Biomass.g.tree~area,data=small.trees.mean,length)
-colnames(small.trees2) <- c("Region","Small")
-Tree.size2 <- cbind(large.trees2,small.trees2[2]) # different number, missing Mwantimba, not large enough trees. 
-Tree.size.dist2 <- gather(Tree.size2,Size, Count, Large:Small,factor_key=TRUE)
-Tree.size.dist2 <- arrange(Tree.size.dist2,Region)
+Tree.size2 <- cbind(large.trees2,small.trees2[2]) 
+colnames(Tree.size2) <- c("Region","Large","Small")
+Tree.BM.dist2 <- gather(Tree.size2,Size, Freq, Large:Small,factor_key=TRUE)
+Tree.BM.dist2 <- arrange(Tree.BM.dist2,Region)
+Tree.BM.dist2$Region<- factor(Tree.BM.dist$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
+Tree.BM.dist2$Landuse <- as.factor(c("Wild","Wild","Pasture","Pasture","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild"))
 
 # PLOTTING
 #-------------------------------------------
@@ -268,11 +286,11 @@ legend_titleLAND <- "Land-use"
 legent_titleSIZE <- "Size"
 
 # DENSITY PLOT 
-size.plot.density <- ggplot(Tree.size.dist, aes(x=Count, fill= Size))
+size.plot.density <- ggplot(Tree.BM.dist, aes(x=Count, fill= Size))
 size.plot.density + geom_density() # Smooth histogram, shows the distribution of the small and large trees. So some regions had a lot of small trees, some had really few, but most regions had something in the midle. While small trees where more spread out. 
 
-# FACET WRAP - Want to look at all regions at the same time. 
-size.plot.wrap <- ggplot(Tree.size.dist, aes(x= Size, y= Count, colour=Landuse, shape=Size)) 
+# FACET WRAP - Want to look at all regions at the same time MEDIAN
+size.plot.wrap <- ggplot(Tree.BM.dist, aes(x= Size, y= Count, colour=Landuse, shape=Size)) 
 
 size.plot.wrap + 
   geom_point(size = 4,stroke=2, na.rm=T, show.legend = T) +
@@ -285,8 +303,23 @@ size.plot.wrap +
         axis.ticks.x=element_blank()) +
   Lines_gone
 
+# FACET WRAP - Want to look at all regions at the same time MEAN
+size.plot.wrap2 <- ggplot(Tree.BM.dist2, aes(x= Size, y= Freq, colour=Landuse, shape=Size)) 
+
+size.plot.wrap2 + 
+  geom_point(size = 4,stroke=2, na.rm=T, show.legend = T) +
+  facet_wrap(~Region) + 
+  scale_shape_manual(legent_titleSIZE, values=c(4,1)) + 
+  scale_color_manual(legend_titleLAND,breaks = c("Wild", "Pasture"),values=c("goldenrod3", "forestgreen")) +
+  theme_bw() +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  Lines_gone
+
+
 # Barplot of size 
-size.plot.bar <- ggplot(Tree.size.dist, aes(x=Region,y=Count, fill= Size))
+size.plot.bar <- ggplot(Tree.BM.dist, aes(x=Region,y=Count, fill= Size))
   
 size.plot.bar+ 
   geom_bar(stat="identity", position="stack",na.rm=T) + 
