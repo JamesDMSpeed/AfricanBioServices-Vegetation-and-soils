@@ -10,23 +10,29 @@ head(SoiltextA)
 SoiltextA<- SoiltextA[c(1,3,5,7:9)]
 colnames(SoiltextA)<-c("Region","Landuse","Block","Clay.per","Silt.per","Sand.per")
 head(SoiltextA)
+se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Standard Error
 
 Clay<-aggregate(Clay.per~Region+Landuse,SoiltextA,mean)
-Clay.sd<-aggregate(Clay.per~Region+Landuse,SoiltextA,sd)
+Clay.se<-aggregate(Clay.per~Region+Landuse,SoiltextA,se)
 
 Silt<-aggregate(Silt.per~Region+Landuse,SoiltextA,mean)
-Silt.sd<-aggregate(Silt.per~Region+Landuse,SoiltextA,sd)
+Silt.se<-aggregate(Silt.per~Region+Landuse,SoiltextA,se)
 
 Sand<-aggregate(Sand.per~Region+Landuse,SoiltextA,mean)
-Sand.sd<-aggregate(Sand.per~Region+Landuse,SoiltextA,sd)
+Sand.se<-aggregate(Sand.per~Region+Landuse,SoiltextA,se)
 
 
-SoiltextA.Summary<-cbind(Clay[c(1:3)],Clay.sd[3],Silt[3],Silt.sd[3],Sand[3],Sand.sd[3])
+SoiltextA.Summary<-cbind(Clay[c(1:3)],Clay.se[3],Silt[3],Silt.se[3],Sand[3],Sand.se[3])
 
-colnames(SoiltextA.Summary)<-c("Region","Landuse","Clay","Clay.sd","Silt","Silt.sd","Sand","Sand.sd")
+colnames(SoiltextA.Summary)<-c("Region","Landuse","AClay","AClay.se","ASilt","ASilt.se","ASand","ASand.se")
 head(SoiltextA.Summary)
+SoiltextA.Summary$Who <- SoiltextA.Summary$AWho
+SoiltextA.Summary$AWho<-"SUA"
+head(SoiltextA.Summary)
+SoiltextA.Summary<- SoiltextA.Summary[SoiltextA.Summary$Landuse!="Agriculture",]
+SoiltextA.Summary[2,"Landuse"]
+SoiltextA.Summary$Landuse <- gsub("Common Garden", "Wild",SoiltextA.Summary$Landuse)
 
-SoiltextA.Summary$Who<-"SUA"
 #Vilde soil####
 SoiltextV<-read.csv("Ecosystem carbon/Soil.data/Soil.texture.csv", head = TRUE)
 head(SoiltextV)
@@ -34,59 +40,88 @@ SoiltextV<-SoiltextV[SoiltextV$Horizon=="A-hor",]
 SoiltextV<-SoiltextV[c(3,5,8:11)]
 colnames(SoiltextV)<-c("Region","Block","Landuse","Clay.per","Silt.per","Sand.per")
 head(SoiltextV)
-
+se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Standard Error
 
 Clay<-aggregate(Clay.per~Region+Landuse,SoiltextV,mean)
-Clay.sd<-aggregate(Clay.per~Region+Landuse,SoiltextV,sd)
+Clay.se<-aggregate(Clay.per~Region+Landuse,SoiltextV,se)
 
 Silt<-aggregate(Silt.per~Region+Landuse,SoiltextV,mean)
-Silt.sd<-aggregate(Silt.per~Region+Landuse,SoiltextV,sd)
+Silt.se<-aggregate(Silt.per~Region+Landuse,SoiltextV,se)
 
 Sand<-aggregate(Sand.per~Region+Landuse,SoiltextV,mean)
-Sand.sd<-aggregate(Sand.per~Region+Landuse,SoiltextV,sd)
+Sand.se<-aggregate(Sand.per~Region+Landuse,SoiltextV,se)
 
 
-SoiltextV.Summary<-cbind(Clay[c(1:3)],Clay.sd[3],Silt[3],Silt.sd[3],Sand[3],Sand.sd[3])
+SoiltextV.Summary<-cbind(Clay[c(1:3)],Clay.se[3],Silt[3],Silt.se[3],Sand[3],Sand.se[3])
 
-colnames(SoiltextV.Summary)<-c("Region","Landuse","Clay","Clay.sd","Silt","Silt.sd","Sand","Sand.sd")
+colnames(SoiltextV.Summary)<-c("Region","Landuse","VClay","VClay.se","VSilt","VSilt.se","VSand","VSand.se")
 head(SoiltextV.Summary)
-SoiltextV.Summary$Who<-"NMBU"
+SoiltextV.Summary$Who<-SoiltextV.Summary$VWho
+SoiltextV.Summary$VWho<-"NMBU"
 SoiltextV.Summary<-SoiltextV.Summary[SoiltextV.Summary$Region!="Ikorongo",]
 SoiltextV.Summary<-SoiltextV.Summary[SoiltextV.Summary$Region!="Park Nyigoti",]
 
 #Plotting the soil texture for comparison####
-SoiltextAV<-rbind(SoiltextA.Summary,SoiltextV.Summary)
+SoiltextAV<-merge(SoiltextA.Summary,SoiltextV.Summary)
 
-head(SoiltextAV)
-ClayP <- ggplot(data=SoiltextAV, aes(x=Region,y=Clay, ymin=Clay-Clay.sd , ymax=Clay+Clay.sd, shape=Landuse))
-ClayP<- ClayP+geom_errorbar(width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F)
-ClayP<- ClayP+geom_point(size=5,stroke=1, color="Darkgreen",position=position_dodge(width=.35),show.legend=T)
-ClayP <- ClayP + facet_wrap( ~ Who, scale ="fixed")
-ClayP <- ClayP + xlab("Region") +  ylab("Clay %") 
-ClayP
+names(SoiltextAV)
+
+Clayplot <- ggplot(SoiltextAV, aes(x=VClay, y=AClay, shape=Landuse,fill=Region,color=Region))+
+  geom_abline(slope=1, intercept=0, size =.95) + 
+  geom_errorbar(aes(ymin = AClay-AClay.se,ymax =  AClay+AClay.se),show.legend=F) + 
+  geom_errorbarh(aes(xmin = VClay-VClay.se, xmax =  VClay+VClay.se),show.legend=F) +
+  geom_point(size=4.5,stroke=1.5,position=position_dodge(width=.35), show.legend=T) +
+  scale_fill_manual(values=c("green4","orangered3","Blue","Purple","Black")) +
+  scale_color_manual(values=c("green4","orangered3","Blue","Purple","Black")) +
+  #scale_fill_manual(values=c("green4","orangered3","white","white"))+
+  scale_shape_manual(values=c(21,23,24,22)) + 
+  #guides(fill = guide_legend(override.aes=list(shape=25, color=c("green4","orangered3","green4","orangered3"))),color=F)+
+  scale_x_continuous(limits = c(0,80), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))+
+  scale_y_continuous(limits = c(0,80), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))+
+  xlab("Clay (%) NMBU") +  ylab("Clay (%) SUA")
+    
+Clayplot
+
 ggsave("Termites/Soil data/ClayP.png",
        width= 25, height = 15,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
 
+Siltplot <-ggplot(SoiltextAV, aes(x=VSilt, y=ASilt, shape=Landuse,fill=Region,color=Region))+
+  geom_abline(slope=1, intercept=0, size =.95) + 
+  geom_errorbar(aes(ymin = ASilt-ASilt.se,ymax =  ASilt+ASilt.se),show.legend=F) + 
+  geom_errorbarh(aes(xmin = VSilt-VSilt.se, xmax =  VSilt+VSilt.se),show.legend=F) +
+  geom_point(size=4.5,stroke=1.5,position=position_dodge(width=.35), show.legend=T) +
+  scale_fill_manual(values=c("green4","orangered3","Blue","Purple","Black")) +
+  scale_color_manual(values=c("green4","orangered3","Blue","Purple","Black")) +
+  #scale_fill_manual(values=c("green4","orangered3","white","white"))+
+  scale_shape_manual(values=c(21,23,24,22)) + 
+  #guides(fill = guide_legend(override.aes=list(shape=25, color=c("green4","orangered3","green4","orangered3"))),color=F)+
+  scale_x_continuous(limits = c(0,40), expand = c(0,0),breaks = c(0,10,20,30,40), labels = c(0,10,20,30,40))+
+  scale_y_continuous(limits = c(0,40), expand = c(0,0),breaks = c(0,10,20,30,40), labels = c(0,10,20,30,40))+
+  xlab("Silt (%) NMBU") +  ylab("Silt (%) SUA")
 
-SiltP <- ggplot(data=SoiltextAV, aes(x=Region,y=Silt, ymin=Silt-Silt.sd , ymax=Silt+Silt.sd, shape=Landuse))
-SiltP<- SiltP+geom_errorbar(width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F)
-SiltP<- SiltP+geom_point(size=5,stroke=1, color="Darkgreen",position=position_dodge(width=.35),show.legend=T)
-SiltP <- SiltP + facet_wrap( ~ Who, scale ="fixed")
-SiltP <- SiltP + xlab("Region") +  ylab("Silt %") 
-SiltP
+Siltplot
+
 ggsave("Termites/Soil data/SiltP.png",
        width= 25, height = 15,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
 
-SandP <- ggplot(data=SoiltextAV, aes(x=Region,y=Sand, ymin=Sand-Sand.sd , ymax=Sand+Sand.sd, shape=Landuse))
-SandP<- SandP+geom_errorbar(width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F)
-SandP<- SandP+geom_point(size=5,stroke=1, color="Darkgreen",position=position_dodge(width=.35),show.legend=T)
-SandP <- SandP + facet_wrap( ~ Who, scale ="fixed")
-SandP <- SandP + xlab("Region") +  ylab("Sand %") 
-SandP
+Sandplot <-ggplot(SoiltextAV, aes(x=VSand, y=ASand, shape=Landuse,fill=Region,color=Region))+
+  geom_abline(slope=1, intercept=0, size =.95) + 
+  geom_errorbar(aes(ymin = ASand-ASand.se,ymax =  ASand+ASand.se),show.legend=F) + 
+  geom_errorbarh(aes(xmin = VSand-VSand.se, xmax =  VSand+VSand.se),show.legend=F) +
+  geom_point(size=4.5,stroke=1.5,position=position_dodge(width=.35), show.legend=T) +
+  scale_fill_manual(values=c("green4","orangered3","Blue","Purple","Black")) +
+  scale_color_manual(values=c("green4","orangered3","Blue","Purple","Black")) +
+  #scale_fill_manual(values=c("green4","orangered3","white","white"))+
+  scale_shape_manual(values=c(21,23,24,22)) + 
+  #guides(fill = guide_legend(override.aes=list(shape=25, color=c("green4","orangered3","green4","orangered3"))),color=F)+
+  scale_x_continuous(limits = c(0,80), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))+
+  scale_y_continuous(limits = c(0,80), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))+
+  xlab("Sand (%) NMBU") +  ylab("Sand (%) SUA")
+
+Sandplot
+
 ggsave("Termites/Soil data/SandP.png",
        width= 25, height = 15,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
-
-write.csv(SoiltextAV,file="Termites/Soil data/Soiltexture_comparison.csv")
