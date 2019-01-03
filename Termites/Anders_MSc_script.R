@@ -8,13 +8,11 @@ library(MASS)
 library(ggplot2)
 library(lme4)
 library(glmmTMB)
-library(glmmADMB)
-install.packages(glmmADMB)
 
 #########################################################################
 
-wsdata<- read.csv('Termites/Wetseason.csv', sep=';',dec='.')#Wetseason data
-dsdata <- read.csv("Termites/Dryseason.csv", sep=";",dec=".")#Dryseason data
+wsdata<- read.csv('Termites/Main & CG experiment/Wetseason.csv', sep=';',dec='.')#Wetseason data
+dsdata <- read.csv("Termites/Main & CG experiment/Dryseason.csv", sep=";",dec=".")#Dryseason data
 head(wsdata)
 head(dsdata)
 fulldata<-rbind(wsdata,dsdata)
@@ -104,10 +102,10 @@ fulldata$froots<-as.factor(fulldata$Sign.of.roots)
 
 names(fulldata)
 #### Seperate the experiments ####
-FulldataCG<-fulldata[fulldata$Landuse=="Common Garden",] # Only commongarden data
-FulldataCG<-droplevels(FulldataCG) # Ensure factor level pasture,agriculture and wild dropped
+FulldataCG<-fulldata[fulldata$Experiment=="CG",] # Only commongarden data
+FulldataCG<-droplevels(FulldataCG) # Ensure factor level "Main" is removed.
 
-FulldataMain<-fulldata[fulldata$Landuse!="Common Garden",] #Only landuse experiemnt data
+FulldataMain<-fulldata[fulldata$Experiment!="CG",] #Only landuse experiement data
 FulldataMain<-droplevels(FulldataMain)# Ensure factor level common garden dropped
 
 levels(fulldata$Landuse) # All levels incl. common garden
@@ -128,34 +126,88 @@ FulldataMainmean1$SE <- FulldataMainse1$Massloss.per
 
 
 # Fill by termite * landuse = empty = absence, filled = prescence 
-FulldataMainmean1$tea.hole<-as.factor(with(FulldataMainmean1, paste(flittertype, ftreatment, sep="")))
+FulldataMainmean1$tea.hole<-as.factor(with(FulldataMainmean1, paste(flittertype, ftreatment, sep=" ")))
 levels(FulldataMainmean1$tea.hole)
 #levels(FulldataMainmean$fregion)<-c("Dry region","Wet region")
-FulldataMainmean1$fregion <- factor(FulldataMainmean1$fregion)#Need to "re-factor" the region as levels are changed fro 3 to 2 in landuse experiment (only wet and dry).
+FulldataMainmean1$fregion <- as.factor(FulldataMainmean1$fregion)#Need to "re-factor" the region as levels are changed fro 3 to 2 in landuse experiment (only wet and dry).
 levels(FulldataMainmean1$fregion)
 levels(FulldataMainmean1$fseason)
+Mainexp <- FulldataMainmean1
 
 #Now, ready for graphing: Main experiment massloss against landuse
-colnames(FulldataMainmean1)[1]<-"Season"
-colnames(FulldataMainmean1)[2]<-"Region"
-names(FulldataMainmean1)
-Mainp <- ggplot(data=FulldataMainmean1, aes(x=flanduse,y=Massloss.per,
-                                           ymin=Massloss.per-SE, ymax=Massloss.per+SE,
-                                           fill = tea.hole,
-                                           col = flittertype,
-                                           shape=flanduse))
-Mainp<- Mainp+ geom_errorbar(width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F) #Assign error bars on points.
-Mainp<- Mainp+ geom_point(size=5,stroke=1,position=position_dodge(width=.35),show.legend=T) # Legend T on individual graph
+#Want to reorder tea.hole to have a nicer legend:
+Mainexp$tea.hole <- ordered(Mainexp$tea.hole, levels=c("Green Exclosed", "Rooibos Exclosed","Green Open","Rooibos Open"))
+levels(Mainexp$tea.hole)
+#Creating a label name list for facet labels on the upcoming plot:
+Mainlabelx <- c("Wet Season", "Dry Season")
+Mainlabely <- c("Dry Region", "Wet Region")
 
-Mainp<- Mainp+ facet_grid(Region ~ Season, scale ="fixed", labeller= label_both)
-Mainp<-Mainp+scale_color_manual(values=c("green4", "orangered3")) #Gives what color the points shall have based on littertype
-Mainp<- Mainp+ scale_fill_manual(values=c("green4","white","orangered3","white")) #Assign colour to the different categories within tea.hole column, shoulde be 4.
-Mainp<- Mainp+scale_shape_manual(values=c(21,24,22))#Assgn the diferent shapes, here based on landuse
-#Mainp<- Mainp+scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
-Mainp <- Mainp + xlab("Land-use") +  ylab("Mass loss (%)") 
+colnames(Mainexp)[1]<-"Season"
+colnames(Mainexp)[2]<-"Region"
+names(Mainexp)
+Mainp <- ggplot(data=Mainexp, aes(x=flanduse,y=Massloss.per,
+                                  ymin=(Massloss.per-SE),
+                                  ymax=(Massloss.per+SE),
+                                  fill = tea.hole,
+                                  color = flittertype,
+                                  shape=flanduse)
+                )+
+                  
+  geom_errorbar(width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F) + 
+  geom_point(size=5,stroke=1.2,position=position_dodge(width=.35),show.legend=T)+ 
+  facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region"),
+                                                                Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))+
+  scale_color_manual(values=c("green4", "orangered3"))+
+  scale_fill_manual(values=c("green4","orangered3","white","white"))+
+  scale_shape_manual(values=c(21,23,24))+
+  guides(fill = guide_legend(override.aes=list(shape=25, color=c("green4","orangered3","green4","orangered3"))),color=F)+
+  scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))+
+  xlab("Land-use")+
+  ylab("Mass loss (%)"
+       )+
+  
+  theme(rect = element_rect(fill ="transparent")
+        ,panel.background=element_rect(fill="transparent")
+        ,plot.background=element_rect(fill="transparent",colour=NA)
+        ,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank()
+        ,axis.text=element_text(size=12,color="black")
+        ,axis.title.y=element_text(size=14,color="black")
+        ,axis.title.x=element_text(size=14,vjust=-.4,color="black")
+        ,axis.text.x = element_text(size=10,color="black",
+                                    margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.ticks.length=unit(-1.5, "mm")
+        #,axis.line.y = element_blank()
+        ,axis.line.x = element_blank()
+        ,plot.margin = unit(c(8,50,5,5), "mm")
+        ,strip.background = element_rect(fill="transparent",colour=NA)
+        ,strip.text.x = element_text(size = 14,colour = "black")
+        ,strip.text.y = element_text(size = 14,colour = "black")
+        ,panel.spacing = unit(1, "lines")
+        ,legend.background = element_rect(fill = "transparent")
+        ,legend.title=element_blank()
+        ,legend.position = c(1.3,0.5)
+        ,legend.spacing.y = unit(-0.8, "mm")
+        ,legend.key.height=unit(7.5,"mm")
+        ,legend.key.width=unit(7.5,"mm")
+        ,legend.key = element_rect(colour = NA, fill = NA)
+        ,legend.key.size = unit(7,"mm")
+        ,legend.text=element_text(size=12,color="black")
+        
+        )+
+
+  annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
+  annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15) +
+  annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
+  annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
+
 Mainp
 ggsave("Termites/Mainexp.png",
-       width= 25, height = 15,units ="cm",bg ="transparent",
+       width= 20, height = 15,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
 
 #### Graphing: Main experiment and CG experiment ####
@@ -166,72 +218,76 @@ se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Stand
 # Main experiment means and standard error (include blocks) # From Stu: Need to seperate out Agricutlure in Makao and Mwantimba(WHY?)
 names(FulldataMain)
 #Creating means by landuse (excluding blocks)
-FulldataMainmean<-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse + fblock, FulldataMain, mean)
-FulldataMainse <-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse + fblock, FulldataMain, se)
+FulldataMainmean<-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, FulldataMain, mean)
+FulldataMainse <-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, FulldataMain, se)
 #Creating new column with the SE in the Mainmean dataset.
 FulldataMainmean$SE <- FulldataMainse$Massloss.per 
 # Fill by termite * landuse = empty = absence, filled = prescence 
-FulldataMainmean$tea.hole<-as.factor(with(FulldataMainmean, paste(flittertype, ftreatment, sep="")))
+FulldataMainmean$tea.hole<-as.factor(with(FulldataMainmean, paste(flittertype, ftreatment, sep=" ")))
 levels(FulldataMainmean$tea.hole)
 #levels(FulldataMainmean$fregion)<-c("Dry region","Wet region")
 FulldataMainmean$fregion <- factor(FulldataMainmean$fregion)#Need to "re-factor" the region as levels are changed fro 3 to 2 in landuse experiment (only wet and dry).
 levels(FulldataMainmean$fregion)
 levels(FulldataMainmean$fseason)
 
-#Common garden means and standard error (include blocks)
+#Common garden means and standard error (Exclude blocks)
 names(FulldataCG)
-FulldataCGmean <- aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse + fblock, FulldataCG, mean)
-FulldataCGse <-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse + fblock, FulldataCG, se)
+FulldataCGmean <- aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, FulldataCG, mean)
+FulldataCGse <-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, FulldataCG, se)
 #Creating new column with the SE in the CGmean dataset.
 FulldataCGmean$SE <- FulldataCGse$Massloss.per
 # Fill by termite * landuse = empty = absence, filled = prescence 
-FulldataCGmean$tea.hole<-as.factor(with(FulldataCGmean, paste(flittertype, ftreatment, sep="")))
+FulldataCGmean$tea.hole<-as.factor(with(FulldataCGmean, paste(flittertype, ftreatment, sep=" ")))
 levels(FulldataCGmean$tea.hole)
 levels(FulldataCGmean$fregion)
 levels(FulldataCGmean$fseason)
+
+#Need to add Intermediate into Maindata set. To have the local soil appear on the 1:1 line in the upcoming graph.
+IntermediateCG<-FulldataCGmean[FulldataCGmean$fregion=="Intermediate",] #extracting rows with "intermediate" from CG dataset
+
+FulldataMainmean<-rbind(FulldataMainmean,IntermediateCG) #Putting in the intermediate data into main dataset.
+levels(FulldataMainmean$fregion)
+
 #Putting CG means and SE with Main means and Se in the same dataset
 names(FulldataMainmean)
 names(FulldataCGmean)
 #Renaming colums to restrict merging of the Massloss and SE from the two experiments, when using merge() later.
-colnames(FulldataMainmean)[7]<-"massloss.perMain"
-colnames(FulldataMainmean)[8]<-"SEMain"
-colnames(FulldataCGmean)[7]<-"massloss.perCG"
-colnames(FulldataCGmean)[8]<-"SECG"
+colnames(FulldataMainmean)[6]<-"massloss.perMain"
+colnames(FulldataMainmean)[7]<-"SEMain"
+colnames(FulldataCGmean)[6]<-"massloss.perCG"
+colnames(FulldataCGmean)[7]<-"SECG"
+#Now that we have same amount of observations in both CG and Main dataset, we combine the massloss columns to create on dataset:
+MainCG <- merge(FulldataMainmean,FulldataCGmean)
 
-write.csv(FulldataMainCGmean,"Termites/FulldataMainCGmean.csv")
-#write.csv(FulldataCGmean,"Termites/FulldataCGmean.csv")
-#write.csv(FulldataMainmean,"Termites/FulldataMainmean.csv")
-
-#Rearrange the data into one csv file, then import it:
-read.csv(FulldataMainCGmean )
-
-
-#names(FulldataMainCGmean)
-#levels(FulldataMainCGmean$fregion)
-#levels(FulldataMainCGmean$fseason)
+#Want to reorder tea.hole to have a nicer legend:
+MainCG$tea.hole <- ordered(MainCG$tea.hole, levels=c("Green Exclosed", "Rooibos Exclosed","Green Open","Rooibos Open"))
+levels(MainCG$tea.hole)
 
 #Now, ready for graphing: Main experiment vs CG 
 
 # facets for rain region # colour for littetype # holes for open
 # Shape for land-use # Errors x and y # abline 1 = 1
-names(FulldataMainCGmean)
-CGmain<-ggplot(FulldataMainCGmean, aes(x=massloss.perMain, y=massloss.perCG, fill=tea.hole,colour=flittertype,shape=flanduse))
-CGmain<-CGmain+geom_abline(slope=1, intercept=0, size =.95) # Reference line
-CGmain<-CGmain+geom_errorbar(aes(ymin = massloss.perCG-SECG,ymax = massloss.perCG+SECG),show.legend=F) 
-CGmain<-CGmain+geom_errorbarh(aes(xmin = massloss.perMain-SEMain,xmax = massloss.perMain+SEMain),show.legend=F)
-CGmain<-CGmain+geom_point(size=4.5,stroke=1.5,show.legend=F)
-CGmain<-CGmain+facet_wrap(~fregion, scale ="fixed")
-CGmain<-CGmain+scale_color_manual(values=c("green4", "orangered3"))
-CGmain<-CGmain+scale_fill_manual(values=c("green4","white","orangered3","white"))
-CGmain<-CGmain+ scale_shape_manual(values=c(21,23,24,22))
-CGmain<-CGmain+scale_x_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
-CGmain<-CGmain+scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
-CGmain<-CGmain+ xlab("Main experiment mass loss (%)") +  ylab("Common garden mass loss (%)")  
-CGmain<-CGmain+ #theme_bw() +
+names(MainCG)
+
+colnames(MainCG)[1]<-"Season"
+MainCGplot<-ggplot(MainCG, aes(x=massloss.perMain, y=massloss.perCG, fill=tea.hole,color=flittertype,shape=flanduse)) +
+  geom_abline(slope=1, intercept=0, size =.95) + 
+  geom_errorbar(aes(ymin = massloss.perCG-SECG,ymax = massloss.perCG+SECG),show.legend=F) + 
+  geom_errorbarh(aes(xmin = massloss.perMain-SEMain,xmax = massloss.perMain+SEMain),show.legend=F) +
+  geom_point(size=4.5,stroke=1.5, show.legend=T) +
+  facet_wrap(~Season, scale ="fixed", labeller=labeller(Season = c(`Wet`= "Wet Season", `Dry`="Dry Season"))) +
+  scale_color_manual(values=c("green4","orangered3")) +
+  scale_fill_manual(values=c("green4","orangered3","white","white"))+
+  scale_shape_manual(values=c(21,23,24,22)) + 
+  guides(fill = guide_legend(override.aes=list(shape=25, color=c("green4","orangered3","green4","orangered3"))),color=F)+
+  scale_x_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))+
+  scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))+
+  xlab("Main experiment mass loss (%)") +  ylab("Common garden mass loss (%)") +
+ 
   theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="transparent")
         ,plot.background=element_rect(fill="transparent",colour=NA)
-        #,panel.grid.major = element_blank()
+        ,panel.grid.major = element_blank()
         ,panel.grid.minor = element_blank()
         ,panel.border = element_blank()
         ,panel.grid.major.x = element_blank()
@@ -242,33 +298,44 @@ CGmain<-CGmain+ #theme_bw() +
         ,axis.text.x = element_text(size=12,color="black",
                                     margin=margin(2.5,2.5,2.5,2.5,"mm"))
         ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
-        ,legend.text=element_text(size=12,color="black")
         ,axis.ticks.length=unit(-1.5, "mm")
         ,axis.line.y = element_blank()
         ,axis.line.x = element_blank()
-        ,plot.margin = unit(c(8,5,5,5), "mm")
+        ,plot.margin = unit(c(15,45,5,5), "mm")
         ,strip.background = element_rect(fill="transparent",colour=NA)
         ,strip.text.x = element_text(size = 16,colour = "black")
-        ,panel.spacing = unit(1, "lines")
-        #,legend.background = element_rect(fill = "transparent")
+        ,panel.spacing = unit(1.5, "lines")
+        ,legend.background = element_rect(fill = "transparent")
         ,legend.title=element_blank()
-        ,legend.position = c(.1, .85)
-        ,legend.spacing.y = unit(-0.5, "mm"))
-CGmain<-CGmain+annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
+        ,legend.position = c(1.1, 0.50)
+        ,legend.spacing.y = unit(-0.8, "mm")
+        ,legend.key.height=unit(7.5,"mm")
+        ,legend.key.width=unit(7.5,"mm")
+        ,legend.key = element_rect(colour = NA, fill = NA)
+        ,legend.key.size = unit(7,"mm")
+        ,legend.text=element_text(size=11,color="black"))+
+  
+  annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
   annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15) +
   annotate(geom = "segment", x = -Inf, xend = -Inf, y =  5, yend = 18,
            linetype = "dashed", color = "white",size = 1.15) +
   annotate(geom = "segment", x = 5, xend = 18, y =  -Inf, yend = -Inf,
            linetype = "dashed", color = "white",size = 1.15)
+
+
+
+MainCGplot
+ggsave("Termites/Main & CG experiment/CommongardenvsMain.png",
+      width= 30, height = 15,units ="cm",bg ="transparent",
+     dpi = 600, limitsize = TRUE)
+
 #CGmain<-CGmain+guides(colour=F, fill=F,shape = guide_legend(override.aes = list(shape=c(21,23,24,22),
 #                                                                         size=3.2,fill="grey30",col="grey30", stroke=1.5)))
 CGmain
 #CGmain2 <- CGmain + geom_point(data = FulldataMainmean, aes(size=ftreatment, shape = NA), colour = "grey50")
 #CGmain2 <- CGmain2 + guides(size=guide_legend("Source", override.aes=list(shape=c(21, 1), size=3.2,fill="grey30",col="grey30", stroke=1.5)))
 #CGmain2
-ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Master projects/Anders Sundsal/MainCGcorrelation2.png",
-       width= 25, height = 12,units ="cm",bg ="transparent",
-       dpi = 600, limitsize = TRUE)
+
 
 
 
