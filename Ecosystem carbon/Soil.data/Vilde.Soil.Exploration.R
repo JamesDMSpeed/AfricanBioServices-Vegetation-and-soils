@@ -1,82 +1,98 @@
 ####Making tables####
 
 # Uploading the soil file
-total.soil.data<- read.csv("Ecosystem Carbon/Total.soil.data.csv", head = TRUE)
+total.soil.data<- read.csv("Ecosystem Carbon/Soil.data/Total.Soil.Data.csv", head = TRUE)
 names(total.soil.data)
+
+compare <- read.csv("Ecosystem Carbon/Soil.data/TBS.NMBU.csv", head=T)
+
+summary(lm(C.per.TBS~C.per.NMBU, data=compare))
+cor.test(compare$C.per.TBS,compare$C.per.NMBU, method=c("pearson"))
 
 # Want to have a table with SOIL TEXTURE (clay, silt and sand) and chemical traits
 # First, reorganizing and removing collumns 
-soil.chemistry <- total.soil.data[,c(1:5,30:32,36:41)]
-names(soil.chemistry)
+soil.properties.full <- total.soil.data[,c(1:6,14:17,8,23,30:44)]
+names(soil.properties.full)
+tail(soil.properties.full)
+soil.properties.full <- droplevels(soil.properties.full)
+soil.properties.full$Region<- factor(soil.properties.full$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
-# Can do this to make sure R knows that Region, Site, Block and Circle are factors 
-#soil.chemistry$fRegion <- as.factor(soil.chemistry$Region)
-#soil.chemistry$fSite <- as.factor(soil.chemistry$Site)
-#soil.chemistry$fBlock <- as.factor(soil.chemistry$Block)
-#soil.chemistry$fCircle <- as.factor(soil.chemistry$Circle)
+soil.properties.full$Land_Use<- factor(soil.properties.full$Land_Use, levels = c("Pasture","Wild"))
+
+# Properties of pH 
+max(soil.properties$pH,na.rm = T)
+min(soil.properties$pH,na.rm = T)
+# pH range 5.68 - 8.4
 
 #Making a table, by using the aggregata function - taking the mean values of texture by region 
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 
-Clay<-aggregate(Clay.per~Region,soil.chemistry,mean)
-Clay.sd<-aggregate(Clay.per~Region,soil.chemistry,sd)
+Soil.properties <- cbind((aggregate(MAP.mm_yr~Block+Region,soil.properties.full,mean, na.action = na.pass)),
+                         (aggregate(Last_fire.yr~Block+Region,soil.properties.full,mean, na.action = na.pass))[3], 
+                (aggregate(Fire_frequency.2000_2017~Block+Region,soil.properties.full,mean, na.action=na.pass))[3], 
+                         (aggregate(Clay.per~Block+Region,soil.properties.full,mean))[3],
+                         (aggregate(Clay.per~Block+Region,soil.properties.full,SE))[3], 
+                         (aggregate(Sand.per~Block+Region,soil.properties.full,mean))[3],
+                         (aggregate(Sand.per~Block+Region,soil.properties.full,SE))[3],
+                         (aggregate(Silt.per~Block+Region,soil.properties.full,mean))[3],
+                         (aggregate(Silt.per~Block+Region,soil.properties.full,SE))[3],
+                        (aggregate(CEC.cmol_kg~Block+Region,soil.properties.full,mean))[3],
+                        (aggregate(CEC.cmol_kg~Block+Region,soil.properties.full,SE))[3],
+                         (aggregate(Al.g_kg~Block+Region,soil.properties.full,mean))[3],
+                         (aggregate(Al.g_kg~Block+Region,soil.properties.full,SE))[3],
+                         (aggregate(Fe.g_kg~Block+Region,soil.properties.full,mean))[3],
+                         (aggregate(Fe.g_kg~Block+Region,soil.properties.full,SE))[3],
+                         (aggregate(P.g_kg~Block+Region,soil.properties.full,mean))[3],
+                         (aggregate(P.g_kg~Block+Region,soil.properties.full,SE))[3])
 
-Sand<-aggregate(Sand.per~Region,soil.chemistry,mean)
-Sand.sd<-aggregate(Sand.per~Region,soil.chemistry,sd)
+colnames(Soil.properties)<-c("Block","Region","MAP","Last.fire","Fire.freq","Clay","Clay.SE","Sand","Sand.SE","Silt","Silt.SE","CEC","CEC.SE","Al","Al.SE","Fe","Fe.SE","P","P.SE")
+#pH<-aggregate(pH~Block+Region,soil.properties,mean)
+#SE.pH<-aggregate(pH~Block+Region,soil.properties,SE)
 
-Silt<-aggregate(Silt.per~Region,soil.chemistry,mean)
-Silt.sd<-aggregate(Silt.per~Region,soil.chemistry,sd)
+write.csv(Soil.properties,file="Ecosystem carbon/Soil.data/Soil.Properties.csv")
 
-pH<-aggregate(pH~Region,soil.chemistry,mean)
-pH.sd<-aggregate(pH~Region,soil.chemistry,sd)
+# Making a table for soil C and N 
+Soilfull <- read.csv(file="Ecosystem carbon/Soil.data/Total.Soil.Data.csv",header=T)
+names(Soilfull)
+Soilred <- Soilfull[,c(2:4,6,14,31:34,37)]
+AHorizon <- Soilred[Soilred$Horizon=="A-hor",]
+MinHorizon <- Soilred[Soilred$Horizon=="Min-hor",]
+OrgHorizon <- Soilred[Soilred$Horizon=="O-hor",]
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+Soil <- cbind((aggregate(Clay.per~Region+Land_Use,data=Soilred,mean)),
+              (aggregate(Clay.per~Region+Land_Use,data=Soilred,SE))[3],
+              (aggregate(Silt.per~Region+Land_Use,data=Soilred,mean))[3],
+              (aggregate(Silt.per~Region+Land_Use,data=Soilred,SE))[3],
+              (aggregate(Sand.per~Region+Land_Use,data=Soilred,mean))[3],
+              (aggregate(Sand.per~Region+Land_Use,data=Soilred,SE))[3],
+              #(aggregate(C.g_m2~Region+Land_Use,data=OrgHorizon,mean))[3],
+              #(aggregate(C.g_m2~Region+Land_Use,data=OrgHorizon,SE))[3],
+              (aggregate(C.g_m2~Region+Land_Use,data=AHorizon,mean))[3],
+              (aggregate(C.g_m2~Region+Land_Use,data=AHorizon,SE))[3],
+              (aggregate(C.g_m2~Region+Land_Use,data=MinHorizon,mean))[3],
+              (aggregate(C.g_m2~Region+Land_Use,data=MinHorizon,SE))[3],
+              (aggregate(N.g.m2~Region+Land_Use,data=Soilred,mean))[3],
+              (aggregate(N.g.m2~Region+Land_Use,data=Soilred,SE))[3])
 
-CEC<-aggregate(CEC.cmol_kg~Region,soil.chemistry,mean)
-CEC.sd<-aggregate(CEC.cmol_kg~Region,soil.chemistry,sd)
+colnames(Soil) <- c("Region","Landuse","Clay","SE.Clay","Silt","SE.Silt","Sand","SE.Sand","CAHor","SE.CAHor","CMinHor","SE.CMinHor","N","SE.N")
+write.csv(Soil,file="Ecosystem carbon/Soil.data/Soil.Carbon.csv")
 
-Al<-aggregate(Al.mg_kg~Region,soil.chemistry,mean)
-Al.sd<-aggregate(Al.mg_kg~Region,soil.chemistry,sd)
+#### Ploting soil C #### 
+Soil.carbon <- read.csv(file="Ecosystem carbon/Soil.data/Soil.Carbon.csv",head=T)
+soil.full <- read.csv(file="Ecosystem carbon/Soil.data/Total.Soil.Data.csv",head=T)
 
-Fe<-aggregate(Fe.mg_kg~Region,soil.chemistry,mean)
-Fe.sd<-aggregate(Fe.mg_kg~Region,soil.chemistry,sd)
+soil.full$Region<- factor(soil.properties.full$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
-P<-aggregate(P.mg_kg~Region,soil.chemistry,mean)
-P.sd<-aggregate(P.mg_kg~Region,soil.chemistry,sd)
+soil.full$Land_Use<- factor(soil.properties.full$Land_Use, levels = c("Pasture","Wild"))
 
-# using cbind to make one table, then colnames to change the table names 
-SoilcheSummary<-cbind(Clay,Clay.sd[2],Silt[2],Silt.sd[2],Sand[2],Sand.sd[2],pH[2],pH.sd[2],CEC[2],CEC.sd[2],Al[2],Al.sd[2],Fe[2],Fe.sd[2],P[2],P.sd[2])
-colnames(SoilcheSummary)<-c("Region","Clay","Clay.sd","Silt","Silt.sd","Sand","Sand.sd","pH","pH.sd","CEC","CEC.sd","Al","Al.sd","Fe","Fe.sd","P","P.sd")
+par(mfrow=c(1,2))
+plot(Tot.C.per~Land_Use, data= soil.full)
+plot(Tot.N.per~Land_Use, data= soil.full)
 
-SoilcheSummary
+plot(Tot.C.per~Region,data=soil.full)
+plot(Tot.N.per~Region,data=soil.full)
 
-# Want to have a table with region, land use, year of last fire, fire frequency, MAP, altitude 
-
-# First, reorganizing and removing collumns 
-site.traits <- total.soil.data[,c(1:5,13:17)]
-names(site.traits)
-
-site.traits$fRegion <- as.factor(site.traits$Region)
-site.traits$fLand_Use <- as.factor(site.traits$Land_Use)
-#soil.chemistry$fSite <- as.factor(soil.chemistry$Site)
-#soil.chemistry$fBlock <- as.factor(soil.chemistry$Block)
-#soil.chemistry$fCircle <- as.factor(soil.chemistry$Circle)
-
-# aggrigate 
-MAP <- aggregate(MAP.mm_yr~fRegion,site.traits,mean)
-MAP.sd <- aggregate(MAP.mm_yr~fRegion,site.traits,sd)
-
-Altitude <- aggregate(Altitude~fRegion,site.traits,mean)
-Altitude.sd <- aggregate(Altitude~fRegion,site.traits,sd)
-
-Last.Fire <- aggregate(Last_fire.yr~fRegion,site.traits,mean)
-Last.Fire.sd <- aggregate(Last_fire.yr~fRegion,site.traits,sd)
-  
-Fire.freq <- aggregate(Fire_frequency.2000_2017~fRegion,site.traits,mean)
-Fire.freq.sd <- aggregate(Fire_frequency.2000_2017~fRegion,site.traits,sd)
-
-# using cbind to make one table, then colnames to change the table names 
-SoiltraitsSummary<-cbind(MAP,Altitude[2],Last.Fire[2],Fire.freq[2])
-colnames(SoiltraitsSummary)<-c("Region","MAP (mm/yr)","Altitude","Year of last fire","Fire frequescy") 
-
-SoiltraitsSummary
+levels(soil.full)
 
 #### Bulk Density exploration ####
 

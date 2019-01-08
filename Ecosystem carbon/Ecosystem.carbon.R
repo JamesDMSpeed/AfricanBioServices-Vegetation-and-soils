@@ -1,32 +1,18 @@
 #### Exploring data on block level #### 
 Tree.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.Carbon.Vilde.csv", head=T)
 Herbaceous.carbon <- read.csv(file="Ecosystem Carbon/12Herbaceous.csv", head=T)
-Deadwood.carbon <- read.csv(file="Ecosystem Carbon/DW.Block.csv",head=T)
+Deadwood.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/DW.Block.csv",head=T)
 
 # Remove NAs 
 Herbaceous <- na.omit(Herbaceous)
 Herbaceous <- droplevels(Herbaceous)
 names(Herbaceous)
 
-####SOIL####
-#Soilfull <- read.csv(file="Ecosystem carbon/Soil.data/Soil.texture.csv",header=T)
-#Soilfull <- Soilfull[,c(2:5,7:11)]
-#SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
-#Clay.se <- aggregate(Clay.per~Region+Land_Use,data=Soilfull,SE)
-#Clay <- aggregate(Clay.per~Region+Land_Use,data=Soilfull,mean)
-#Silt.se <- aggregate(Silt.per~Region+Land_Use,data=Soilfull,SE)
-#Silt <- aggregate(Silt.per~Region+Land_Use,data=Soilfull,mean)
-#Sand.se <- aggregate(Sand.per~Region+Land_Use,data=Soilfull,SE)
-#Sand <- aggregate(Sand.per~Region+Land_Use,data=Soilfull,mean)
-#Soil <- cbind(Clay,Clay.se[3],Silt[3],Silt.se[3],Sand[3],Sand.se[3])
-#colnames(Soil) <- c("Region","Landuse","Clay","SE.Clay","Silt","SE.Silt","Sand","SE.Sand")
-#write.csv(Soil,file="Ecosystem carbon/Soil.data/Soil.texture.csv")
-
 ### Exploring the data at Region level ####
 Herbaceous <- read.csv(file="Ecosystem carbon/HerbC.Region.csv", header=T)
 Woody <- read.csv(file="Ecosystem carbon/Tree.data/TreeC.Region.csv", header=T)
 Deadwood <- read.csv(file="Ecosystem carbon/Tree.data/DW.Region.csv",header=T)
-Soil <- read.csv(file="Ecosystem carbon/Soil.data/Soil.texture.csv",header=T)
+Soil <- read.csv(file="Ecosystem carbon/Soil.data/Soil.Carbon.csv",header=T)
 
 Woody$Region <- as.factor(c("Makao","Maswa", "Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 names(Woody)
@@ -42,17 +28,17 @@ Herbaceous$Region<- factor(Herbaceous$Region, levels = c("Makao","Maswa","Mwanti
 # Merge the three datasets in two steps 
 Ecosystem.C1 <- merge(Woody[,c(2:6,7:14)],Herbaceous[2:4],all.x = TRUE,by="Region")
 Ecosystem.C2 <- merge(Ecosystem.C1,Deadwood[2:6],all.x = TRUE,by="Region")
-Ecosystem.C <- merge(Ecosystem.C2,Soil[2:9],all.x = TRUE,by="Region")
+Ecosystem.C <- merge(Ecosystem.C2,Soil[2:15],all.x = TRUE,by="Region")
 
-EcosystemCarbon <- Ecosystem.C[,c(1:5,6,14,18,21:26,8:13)]
-EcosystemCarbonSE <- Ecosystem.C[,c(1,7,15,19)]
+EcosystemCarbon <- Ecosystem.C[,c(1:6,14,18,27,29,21:26,31:32,8:13)]
+EcosystemCarbonSE <- Ecosystem.C[,c(1,7,15,19,28,30)]
 
 # Make the data into a long format instead of a wide
 library(tidyr)
 library(plyr)
 
-data_long.C <- gather(EcosystemCarbon, Carbon.pool,C.amount, TreeC_m2:DWC.g_m2,factor_key=TRUE)
-data_long.CSE <- gather(EcosystemCarbonSE, Carbon.poolSE,C.amountSE, SE.TreeC_m2:SE_DWC_m2,factor_key=TRUE)
+data_long.C <- gather(EcosystemCarbon, Carbon.pool,C.amount, TreeC_m2:CMinHor,factor_key=TRUE)
+data_long.CSE <- gather(EcosystemCarbonSE, Carbon.poolSE,C.amountSE, SE.TreeC_m2:SE.CMinHor,factor_key=TRUE)
 
 Tot.EcosystemCarbon <- cbind(data_long.C,data_long.CSE[3])
 
@@ -60,10 +46,12 @@ Tot.EcosystemCarbon <- cbind(data_long.C,data_long.CSE[3])
 levels(Tot.EcosystemCarbon$Carbon.pool)[levels(Tot.EcosystemCarbon$Carbon.pool)=="TreeC_m2"] <- "WoodyC"
 levels(Tot.EcosystemCarbon$Carbon.pool)[levels(Tot.EcosystemCarbon$Carbon.pool)=="HerbC_m2"] <- "HerbC"
 levels(Tot.EcosystemCarbon$Carbon.pool)[levels(Tot.EcosystemCarbon$Carbon.pool)=="DWC.g_m2"] <- "DWC"
+levels(Tot.EcosystemCarbon$Carbon.pool)[levels(Tot.EcosystemCarbon$Carbon.pool)=="CAHor"] <- "SoilCAHor"
+levels(Tot.EcosystemCarbon$Carbon.pool)[levels(Tot.EcosystemCarbon$Carbon.pool)=="CMinHor"] <- "SoilCMinHor"
 
 Tot.EcosystemCarbon <- arrange(Tot.EcosystemCarbon,Region)
 colnames(Tot.EcosystemCarbon)[colnames(Tot.EcosystemCarbon) == "Landuse.x"] <- "Landuse"
-Tot.EcosystemCarbon$Climate <- as.factor(c("Dry","Dry","Dry","Dry","Dry","Dry","Wet","Wet","Wet","Wet","Wet","Wet","Int-Dry","Int-Dry","Int-Dry","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet"))
+Tot.EcosystemCarbon$Climate <- as.factor(c("Dry","Dry","Dry","Dry","Dry","Dry","Dry","Dry","Dry","Dry","Wet","Wet","Wet","Wet","Wet","Wet","Wet","Wet","Wet","Wet","Int-Dry","Int-Dry","Int-Dry","Int-Dry","Int-Dry","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet"))
 
 write.csv(Tot.EcosystemCarbon,file="Ecosystem carbon/Tot.Ecosystem.Carbon.csv")
 ### Ploting Ecosystem Carbon  #### 
@@ -71,7 +59,7 @@ write.csv(Tot.EcosystemCarbon,file="Ecosystem carbon/Tot.Ecosystem.Carbon.csv")
 Total.ecosystem.carbon <- read.csv("Ecosystem carbon/Tot.Ecosystem.Carbon.csv", head=T)
 
 levels(Total.ecosystem.carbon$Carbon.pool)
-Total.ecosystem.carbon$Carbon.pool<- factor(Total.ecosystem.carbon$Carbon.pool, levels = c("WoodyC","HerbC", "DWC"))
+Total.ecosystem.carbon$Carbon.pool<- factor(Total.ecosystem.carbon$Carbon.pool, levels = c("WoodyC","HerbC", "DWC","SoilCAHor","SoilCMinHor"))
 
 library(ggplot2)
 
@@ -96,7 +84,7 @@ EcosystemC.plot1 + xlab("Region") +  ylab(expression(paste("Aboveground Carbon (
   geom_point(size = 4, shape=20,stroke=2, na.rm=T)  + 
   geom_errorbar(stat = "identity",width=.4,lwd=1.1,show.legend=F, na.rm=T) +
   theme_bw() + Lines_gone +  
-  scale_color_manual(legend_titleCarbon, breaks = c("WoodyC", "HerbC","DWC"),values=c("dimgray","forestgreen","chocolate2"))
+  scale_color_manual(legend_titleCarbon, breaks = c("WoodyC", "HerbC","DWC","SoilCAHor","SoilCMinHor"),values=c("dimgray","forestgreen","chocolate2","chocolate3","salmon4"))
 
 #ylab(expression(paste("Aboveground Carbon (g", m^-2,")")))
 
@@ -261,13 +249,26 @@ panel.cor <- function(x, y, digits=1, prefix="", cex.cor = 6)
 
 # Then select the variables to use in the pair function with panel.cor
 
-names(Total.ecosystem.carbon)
-names(Tree.carbon)
-MyVar2 <- c("MAP.mm_yr","Total.basal.area_m2","No.trees_m2","Last.fire_yr", "Fire_frequency.2000_2017")
-MyVar<-c("MAP.mm_yr","Clay","TreeBasalA_m2","No.trees_m2","Last_fire.yr", "Fire_frequency.2000_2017")
+# Want to do the analysis at block size 
+Soil.properties <- read.csv("Ecosystem carbon/Soil.data/Soil.properties.csv", head=T) # 28 obs
+Tree.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.Carbon.Vilde.csv", head=T) #27 obs, missing one in Seronera 
 
+install.packages("DataCombine")
+library(DataCombine)
+
+New.row <- c("20","Seronera","Wild",2500,855.6199,NA,NA,NA,NA,NA,NA,NA)
+
+InsertRow(Tree.carbon,New.row,20)
+
+names(Soil.properties)
+names(Tree.carbon)
+# How can I combine them when I miss one in Seronera? 
+MyVar2 <- c("MAP.mm_yr","Total.basal.area_m2","No.trees_m2","Last.fire_yr", "Fire_frequency.2000_2017")
+MyVar<-c("MAP","Clay","Last.fire", "Fire.freq")
+
+# Want to get these two in one matrix. 
 pairs(Tree.carbon[,MyVar2],lower.panel = panel.cor)
-pairs(Total.ecosystem.carbon[,MyVar],lower.panel = panel.cor)
+pairs(Soil.properties[,MyVar],lower.panel = panel.cor)
 
 # If I want these values in a table:
 Red.Ecosystem.C <- Total.ecosystem.carbon[,c(4:7,13,17)] # first select the collums I want to use 
