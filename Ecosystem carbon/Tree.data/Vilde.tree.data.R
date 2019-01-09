@@ -176,7 +176,6 @@ plot(Biomass.g.tree~block.id,
 par(mfrow=c(1,2))
 dotchart(Vildetrees$Biomass.g.tree,groups=Vildetrees$area,main = "area") # Maswa and Handajega have big trees
 dotchart(Vildetrees$Biomass.g.tree,groups=Vildetrees$landuse,main = "landuse") # wild have bigger trees than pasture. 
-
 par(mfrow=c(1,1))
 
 # Tree carbon vs LANDUSE

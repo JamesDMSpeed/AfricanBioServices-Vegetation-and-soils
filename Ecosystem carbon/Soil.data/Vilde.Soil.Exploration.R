@@ -54,7 +54,7 @@ write.csv(Soil.properties,file="Ecosystem carbon/Soil.data/Soil.Properties.csv")
 # Making a table for soil C and N 
 Soilfull <- read.csv(file="Ecosystem carbon/Soil.data/Total.Soil.Data.csv",header=T)
 names(Soilfull)
-Soilred <- Soilfull[,c(2:4,6,14,31:34,37)]
+Soilred <- Soilfull[,c(2:4,6,16,32:36,38:39)]
 AHorizon <- Soilred[Soilred$Horizon=="A-hor",]
 MinHorizon <- Soilred[Soilred$Horizon=="Min-hor",]
 OrgHorizon <- Soilred[Soilred$Horizon=="O-hor",]
@@ -71,19 +71,33 @@ Soil <- cbind((aggregate(Clay.per~Region+Land_Use,data=Soilred,mean)),
               (aggregate(C.g_m2~Region+Land_Use,data=AHorizon,SE))[3],
               (aggregate(C.g_m2~Region+Land_Use,data=MinHorizon,mean))[3],
               (aggregate(C.g_m2~Region+Land_Use,data=MinHorizon,SE))[3],
-              (aggregate(N.g.m2~Region+Land_Use,data=Soilred,mean))[3],
-              (aggregate(N.g.m2~Region+Land_Use,data=Soilred,SE))[3])
+              (aggregate(N.g_m2~Region+Land_Use,data=AHorizon,mean))[3],
+              (aggregate(N.g_m2~Region+Land_Use,data=AHorizon,SE))[3],
+              (aggregate(N.g_m2~Region+Land_Use,data=MinHorizon,mean))[3],
+              (aggregate(N.g_m2~Region+Land_Use,data=MinHorizon,SE))[3])
 
-colnames(Soil) <- c("Region","Landuse","Clay","SE.Clay","Silt","SE.Silt","Sand","SE.Sand","CAHor","SE.CAHor","CMinHor","SE.CMinHor","N","SE.N")
+colnames(Soil) <- c("Region","Landuse","Clay","SE.Clay","Silt","SE.Silt","Sand","SE.Sand","CAHor","SE.CAHor","CMinHor","SE.CMinHor","NAHor","SE.NAHor","NMinHor","SE.NMinHor")
 write.csv(Soil,file="Ecosystem carbon/Soil.data/Soil.Carbon.csv")
 
-#### Ploting soil C #### 
+#### Exploring soil C and N ####
+
+library(dplyr)
+library(plyr)
+library(ggplot2)
+library(tidyr)
+
 Soil.carbon <- read.csv(file="Ecosystem carbon/Soil.data/Soil.Carbon.csv",head=T)
 soil.full <- read.csv(file="Ecosystem carbon/Soil.data/Total.Soil.Data.csv",head=T)
 
-soil.full$Region<- factor(soil.properties.full$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+soil.full$Region<- factor(soil.full$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
-soil.full$Land_Use<- factor(soil.properties.full$Land_Use, levels = c("Pasture","Wild"))
+soil.full$Land_Use<- factor(soil.full$Land_Use, levels = c("Pasture","Wild"))
+tail(soil.full) #lots of NAs.
+names(soil.full)
+
+SoilCN <- soil.full[c(1:19,35,36,38,39)]
+SoilCN <- na.omit(SoilCN)
+tail(SoilCN)
 
 par(mfrow=c(1,2))
 plot(Tot.C.per~Land_Use, data= soil.full)
@@ -92,7 +106,24 @@ plot(Tot.N.per~Land_Use, data= soil.full)
 plot(Tot.C.per~Region,data=soil.full)
 plot(Tot.N.per~Region,data=soil.full)
 
-levels(soil.full)
+# Dotchart C and N (g/m2)
+dotchart(SoilCN$C.g_m2, groups=SoilCN$Region,main = "Region")
+dotchart(SoilCN$C.g_m2,groups=SoilCN$Land_Use,main = "landuse")
+
+dotchart(SoilCN$N.g_m2, groups=SoilCN$Region,main = "Region")
+dotchart(SoilCN$N.g_m2,groups=SoilCN$Land_Use,main = "landuse")
+
+# Dotchart per horizon based on total C and N (%)
+dotchart(soil.full$Tot.C.per, groups=soil.full$Horizon, main= "Carbon pool")
+dotchart(soil.full$Tot.N.per, groups=soil.full$Horizon, main= "Nitrogen pool")
+
+par(mfrow=c(1,1))
+
+p <- ggplot(SoilC,aes(x=C.g_m2))
+p + geom_histogram()+facet_grid(~Region)+theme_bw()
+
+hist(SoilC$C.g_m2[SoilC$Region=="Handejega"])
+hist(SoilC$C.g_m2)
 
 #### Bulk Density exploration ####
 
