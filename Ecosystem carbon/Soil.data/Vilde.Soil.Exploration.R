@@ -376,3 +376,5 @@ ClayLanduse <- lm(C.kg_m2~Clay.per*factor(Landuse), data=Soil.carbon.block)
 summary(ClayLanduse)
 
 
+
+
