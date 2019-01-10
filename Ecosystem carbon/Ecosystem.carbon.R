@@ -279,11 +279,6 @@ Soil.properties <- read.csv("Ecosystem carbon/Soil.data/Soil.properties.csv", he
 Tree.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.Carbon.Vilde.csv", head=T) #27 obs, missing one in Seronera 
 
 # Using DataCombine to insert a new row in Tree data 
-library(DataCombine)
-
-New.row <- c("20","Seronera",4,"Wild",2500,855.6199,NA,NA,NA,NA,NA,NA)
-Tree.carbon <- InsertRow(Tree.carbon,New.row,20)
-
 names(Soil.properties)
 names(Tree.carbon)
 
