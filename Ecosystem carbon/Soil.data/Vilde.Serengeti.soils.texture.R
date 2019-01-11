@@ -7,7 +7,7 @@ library(MASS)
 # Serengeti - Soil texture triangle
 #Insert data & observe data structure
 Total.soil.data<-read.csv("Ecosystem carbon/Soil.data/Total.soil.data.csv", sep=",",header=TRUE)
-Soil.texture <- Total.soil.data[,c(1:6,14,30:32)]
+Soil.texture <- Total.soil.data[,c(2:7,16,32:34)]
 tail(Soil.texture)
 Soil.texture <- na.omit(Soil.texture)
 dim(Soil.texture) #28 10
@@ -15,7 +15,7 @@ str(Soil.texture)
 head(Soil.texture)	
 names(Soil.texture)
 
-write.csv(Soil.texture,file="Ecosystem carbon/Soil.data/Soil.texture.csv")
+#write.csv(Soil.texture,file="Ecosystem carbon/Soil.data/Soil.texture.csv")
 
 #### corrected the sand,silt,clay to SUM100 ####
 
@@ -56,7 +56,7 @@ my.text<-data.frame(Soil.texture$Region,Soil.texture$Clay.per,Soil.texture$Silt.
 
 # Points for landuse
 pt.landuse<- nlevels(Soil.texture$Land_Use) # 2 landuses
-pt.to.landuse <- c(0,19)
+pt.to.landuse <- c(19,0)
 my.text$pt.pch<-pt.to.landuse [Soil.texture$Land_Use]
 my.text$pt.pch
 
@@ -108,7 +108,7 @@ legend (x= 98,  y= 100, legend=levels(my.text$REGION),  pch=19,
 #       bty= "n")
 
 # Legend for landuse 
-legend (x= 98,  y= 40, legend=levels(Soil.texture$Land_Use),pch=c(0,19), 
+legend (x= 98,  y= 40, legend=levels(Soil.texture$Land_Use),pch=c(19,0), 
         cex =1.2, pt.cex=2, y.intersp =.8,x.intersp =.8, text.col="black", col="gray21",bty= "n")
 
 # Quick linear model to see if differences in Area by Clay %
@@ -116,3 +116,4 @@ names(Soil.texture)
 Sertext<-lm(Clay.per~Region,data=Soil.texture)
 summary(Sertext)
 anova(Sertext) # Significant 
+
