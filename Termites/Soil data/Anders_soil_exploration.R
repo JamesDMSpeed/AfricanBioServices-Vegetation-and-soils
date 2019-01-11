@@ -69,7 +69,7 @@ names(SoiltextV.Summary)
 colnames(SoiltextV.Summary)<-c("Region","Block","Landuse","VClay","VClay.se","VSilt","VSilt.se","VSand","VSand.se")
 head(SoiltextV.Summary)
 SoiltextV.Summary$Who<-SoiltextV.Summary$VWho
-SoiltextV.Summary$VWho<-"NTNU"
+SoiltextV.Summary$VWho<-"NMBU"
 SoiltextV.Summary<-SoiltextV.Summary[SoiltextV.Summary$Region!="Ikorongo",]
 SoiltextV.Summary<-SoiltextV.Summary[SoiltextV.Summary$Region!="Park Nyigoti",]
 
@@ -82,10 +82,24 @@ levels(SoiltextA.Summary$Block)
 #Plotting the soil texture for comparison####
 SoiltextAV<-merge(SoiltextA.Summary,SoiltextV.Summary)
 
-names(SoiltextAV)
+####Estimating prediction lines####
+Claymod <- lm(SoiltextAV$AClay~SoiltextAV$VClay)
+summary(Claymod)
 
+Siltmod <- lm(SoiltextAV$ASilt~SoiltextAV$VSilt)
+summary(Siltmod)
+
+Sandmod <- lm(SoiltextAV$ASand~SoiltextAV$VSand)
+summary(Sandmod)
+
+
+names(SoiltextAV)
+####Making Graf####
 Clayplot <- ggplot(SoiltextAV, aes(x=VClay, y=AClay, shape=Landuse,fill=Block,color=Region))+
-  geom_abline(slope=1, intercept=0, size =.95) + 
+  #geom_abline(slope=1, intercept=0, size =.95) + 
+  geom_abline(slope=0.56, intercept=14.0789, size =.95) +
+  geom_abline(slope = 0.56+0.1151,intercept = 14.0789+3.9255, size =0.95, linetype="dotted")+
+  geom_abline(slope = 0.56-0.1151,intercept = 14.0789-3.9255, size =0.95, linetype="dotted")+
   geom_errorbar(aes(ymin = AClay-AClay.se,ymax =  AClay+AClay.se),show.legend=F) + 
   geom_errorbarh(aes(xmin = VClay-VClay.se, xmax =  VClay+VClay.se),show.legend=F) +
   geom_point(size=4.5,stroke=1.5,position=position_dodge(width=.35), show.legend=T) +
@@ -95,7 +109,7 @@ Clayplot <- ggplot(SoiltextAV, aes(x=VClay, y=AClay, shape=Landuse,fill=Block,co
   guides(fill = guide_legend(override.aes=list(shape=21, color=c("Grey","Black")))) +
   scale_x_continuous(limits = c(0,80), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))+
   scale_y_continuous(limits = c(0,80), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))+
-  xlab("Clay (%) NTNU") +  ylab("Clay (%) SUA")
+  xlab("Clay (%) NMBU") +  ylab("Clay (%) SUA")
     
 Clayplot
 
@@ -104,7 +118,10 @@ ggsave("Termites/Soil data/ClayP.png",
       dpi = 600, limitsize = TRUE)
 
 Siltplot <- ggplot(SoiltextAV, aes(x=VSilt, y=ASilt, shape=Landuse,fill=Block,color=Region))+
-  geom_abline(slope=1, intercept=0, size =.95) + 
+  #geom_abline(slope=1, intercept=0, size =.95) + 
+  geom_abline(slope=1.0138, intercept=-10.8513, size =.95) +
+  geom_abline(slope = 1.0138+0.1867,intercept = -10.8513+4.4625, size =0.95, linetype="dotted")+
+  geom_abline(slope = 1.0138-0.1867,intercept = -10.8513-4.4625, size =0.95, linetype="dotted")+
   geom_errorbar(aes(ymin = ASilt-ASilt.se,ymax =  ASilt+ASilt.se),show.legend=F) + 
   geom_errorbarh(aes(xmin = VSilt-VSilt.se, xmax =  VSilt+VSilt.se),show.legend=F) +
   geom_point(size=4.5,stroke=1.5,position=position_dodge(width=.35), show.legend=T) +
@@ -114,7 +131,7 @@ Siltplot <- ggplot(SoiltextAV, aes(x=VSilt, y=ASilt, shape=Landuse,fill=Block,co
   guides(fill = guide_legend(override.aes=list(shape=21, color=c("Grey","Black")))) +
   scale_x_continuous(limits = c(0,80), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))+
   scale_y_continuous(limits = c(0,80), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))+
-  xlab("Silt (%) NTNU") +  ylab("Silt (%) SUA")
+  xlab("Silt (%) NMBU") +  ylab("Silt (%) SUA")
 
 Siltplot
 ggsave("Termites/Soil data/SiltP.png",
@@ -122,7 +139,10 @@ ggsave("Termites/Soil data/SiltP.png",
        dpi = 600, limitsize = TRUE)
 
 Sandplot <- ggplot(SoiltextAV, aes(x=VSand, y=ASand, shape=Landuse,fill=Block,color=Region))+
-  geom_abline(slope=1, intercept=0, size =.95) + 
+  #geom_abline(slope=1, intercept=0, size =.95) + 
+  geom_abline(slope=0.81558, intercept=18.50620, size =.95) +
+  geom_abline(slope = 0.81558+0.0783,intercept = 18.50620+3.87157, size =0.95, linetype="dotted")+
+  geom_abline(slope = 0.81558-0.0783,intercept = 18.50620-3.87157, size =0.95, linetype="dotted")+
   geom_errorbar(aes(ymin = ASand-ASand.se,ymax =  ASand+ASand.se),show.legend=F) + 
   geom_errorbarh(aes(xmin = VSand-VSand.se, xmax =  VSand+VSand.se),show.legend=F) +
   geom_point(size=4.5,stroke=1.5,position=position_dodge(width=.35), show.legend=T) +
@@ -132,7 +152,7 @@ Sandplot <- ggplot(SoiltextAV, aes(x=VSand, y=ASand, shape=Landuse,fill=Block,co
   guides(fill = guide_legend(override.aes=list(shape=21, color=c("Grey","Black")))) +
   scale_x_continuous(limits = c(0,80), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))+
   scale_y_continuous(limits = c(0,80), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))+
-  xlab("Sand (%) NTNU") +  ylab("Sand (%) SUA")
+  xlab("Sand (%) NMBU") +  ylab("Sand (%) SUA")
 
 Sandplot
 ggsave("Termites/Soil data/SandP.png",
