@@ -1,29 +1,29 @@
-"","ID","Region","Site","Block","Circle","Horizon","Land_Use","Clay.per","Silt.per","Sand.per"
-"1",1,"Makao",1,1,1,"A-hor","Pasture",21,14,65
-"2",2,"Makao",1,1,1,"Min-hor","Pasture",28,14,59
-"17",17,"Makao",1,3,1,"A-hor","Pasture",22,18,60
-"18",18,"Makao",1,3,1,"Min-hor","Pasture",26,17,58
-"33",33,"Maswa",2,1,1,"A-hor","Wild",62,26,12
-"34",34,"Maswa",2,1,1,"Min-hor","Wild",62,26,12
-"49",49,"Maswa",2,3,1,"A-hor","Wild",44,39,17
-"50",50,"Maswa",2,3,1,"Min-hor","Wild",45,39,16
-"65",65,"Mwantimba",3,1,1,"A-hor","Pasture",34,20,46
-"66",66,"Mwantimba",3,1,1,"Min-hor","Pasture",37,19,44
-"81",81,"Mwantimba",3,3,1,"A-hor","Pasture",28,27,46
-"82",82,"Mwantimba",3,3,1,"Min-hor","Pasture",34,26,39
-"97",97,"Handajega",4,1,1,"A-hor","Wild",16,18,65
-"98",98,"Handajega",4,1,1,"Min-hor","Wild",21,15,64
-"121",121,"Handajega",4,3,1,"A-hor","Wild",20,20,60
-"122",122,"Handajega",4,3,1,"Min-hor","Wild",22,18,59
-"150",158,"Seronera",5,2,1,"A-hor","Wild",12,21,67
-"151",159,"Seronera",5,2,1,"Min-hor","Wild",24,17,60
-"169",141,"Seronera",5,4,1,"A-hor","Wild",10,21,69
-"170",142,"Seronera",5,4,1,"Min-hor","Wild",21,16,62
-"177",177,"Park Nyigoti",6,1,1,"A-hor","Pasture",23,46,32
-"178",178,"Park Nyigoti",6,1,1,"Min-hor","Pasture",26,39,35
-"193",193,"Park Nyigoti",6,3,1,"A-hor","Pasture",21,36,44
-"194",194,"Park Nyigoti",6,3,1,"Min-hor","Pasture",22,37,41
-"209",209,"Ikorongo",7,1,1,"A-hor","Wild",35,40,25
-"210",210,"Ikorongo",7,1,1,"Min-hor","Wild",39,36,25
-"225",225,"Ikorongo",7,3,1,"A-hor","Wild",25,44,31
-"226",226,"Ikorongo",7,3,1,"Min-hor","Wild",28,40,31
+,Region,Site,Block,Circle,Block.ID,Horizon,Land_Use,Clay.per,Silt.per,Sand.per,SUM,,
+1,Makao,1,1,1,1,A-hor,Pasture,21,14,65,100,,0.333333333
+2,Makao,1,1,1,1,Min-hor,Pasture,27.66666667,13.66666667,58.66666667,100,,
+17,Makao,1,3,1,3,A-hor,Pasture,22,18,60,100,,
+18,Makao,1,3,1,3,Min-hor,Pasture,25.66666667,16.66666667,57.66666667,100,,
+33,Maswa,2,1,1,5,A-hor,Wild,62,26,12,100,,
+34,Maswa,2,1,1,5,Min-hor,Wild,62,26,12,100,,
+49,Maswa,2,3,1,7,A-hor,Wild,44,39,17,100,,
+50,Maswa,2,3,1,7,Min-hor,Wild,45,39,16,100,,
+65,Mwantimba,3,1,1,9,A-hor,Pasture,34,20,46,100,,
+66,Mwantimba,3,1,1,9,Min-hor,Pasture,37,19,44,100,,
+81,Mwantimba,3,3,1,11,A-hor,Pasture,27.66666667,26.66666667,45.66666667,100,,
+82,Mwantimba,3,3,1,11,Min-hor,Pasture,34.33333333,26.33333333,39.33333333,100,,
+97,Handajega,4,1,1,13,A-hor,Wild,16.33333333,18.33333333,65.33333333,100,,
+98,Handajega,4,1,1,13,Min-hor,Wild,21,15,64,100,,
+121,Handajega,4,3,1,15,A-hor,Wild,20,20,60,100,,
+122,Handajega,4,3,1,15,Min-hor,Wild,22.33333333,18.33333333,59.33333333,100,,
+150,Seronera,5,2,1,18,A-hor,Wild,12,21,67,100,,
+151,Seronera,5,2,1,18,Min-hor,Wild,23.66666667,16.66666667,59.66666667,100,,
+169,Seronera,5,4,1,20,A-hor,Wild,10,21,69,100,,
+170,Seronera,5,4,1,20,Min-hor,Wild,21.33333333,16.33333333,62.33333333,100,,
+177,Park Nyigoti,6,1,1,21,A-hor,Pasture,22.66666667,45.66666667,31.66666667,100,,
+178,Park Nyigoti,6,1,1,21,Min-hor,Pasture,26,39,35,100,,
+193,Park Nyigoti,6,3,1,23,A-hor,Pasture,20.66666667,35.66666667,43.66666667,100,,
+194,Park Nyigoti,6,3,1,23,Min-hor,Pasture,22,37,41,100,,
+209,Ikorongo,7,1,1,25,A-hor,Wild,35,40,25,100,,
+210,Ikorongo,7,1,1,25,Min-hor,Wild,39,36,25,100,,
+225,Ikorongo,7,3,1,27,A-hor,Wild,25,44,31,100,,
+226,Ikorongo,7,3,1,27,Min-hor,Wild,28.33333333,40.33333333,31.33333333,100,,
