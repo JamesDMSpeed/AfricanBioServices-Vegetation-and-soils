@@ -444,13 +444,17 @@ DW.circle <- cbind((aggregate(Block.ID~Region+Block+Circle,data=Dead.wood.red,me
 DW.block <- cbind((aggregate(Block.ID~Block+Region,data=DW.circle,mean)),
                   (aggregate(Carbon.kg_m2~Block+Region,data=DW.circle,mean))[3], 
                   (aggregate(Carbon.kg_m2~Block+Region,data=DW.circle,SE))[3])
-
 colnames(DW.block) <- c("Block","Region","Block.ID","DWC.kg_m2","SE.DWC.kg_m2")
+
+DW.Region <- cbind((aggregate(DWC.kg_m2~Region,data=DW.block,mean)), 
+                    (aggregate(DWC.kg_m2~Region,data=DW.block,SE))[2])
+colnames(DW.Region) <- c("Region","DWC.kg_m2","SE.DWC.kg_m2")
 
 # Adding a collumn of land-use
 DW.block$Landuse <- as.factor(c("Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild"))
 
 write.csv(DW.block,file="Ecosystem carbon/Tree.data/DW.Block.csv")
+write.csv(DW.Region,file="Ecosystem carbon/Tree.data/DW.Region.csv")
 
 # Exploring the data DW per Block
 library(ggplot2)

@@ -10,14 +10,14 @@ levels(Herbaceous$Region)
 Herbaceous$Region<- factor(Herbaceous$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera"))
 
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
-HerbC.m2<-aggregate(C_m2~Region, Herbaceous,sum)
-HerbC.m2.SE<-aggregate(C_m2~Region,Herbaceous,SE)
+HerbC.kg_m2<-aggregate(C.kg_m2~Region, Herbaceous,sum)
+HerbC.kg_m2.SE<-aggregate(C.kg_m2~Region,Herbaceous,SE)
 
-Herb.Region <- cbind(HerbC.m2,HerbC.m2.SE[2])
-colnames(Herb.Region) <- c("Region","HerbC_m2","SE.HerbC_m2")
+Herb.Region <- cbind(HerbC.kg_m2,HerbC.kg_m2.SE[2])
+colnames(Herb.Region) <- c("Region","HerbC.kg_m2","SE.HerbC.kg_m2")
 Herb.Region$Landuse <- as.factor(c("Pasture","Wild","Pasture","Wild", "Wild"))
 
-write.csv(Herb.Region,file="HerbC.Region.csv")
+write.csv(Herb.Region,file="Ecosystem carbon/HerbC.Region.csv")
 
 # Explore the data 
 library(ggplot2)

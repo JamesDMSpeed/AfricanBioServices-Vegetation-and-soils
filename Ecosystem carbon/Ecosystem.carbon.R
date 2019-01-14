@@ -2,17 +2,77 @@
 Tree.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.Carbon.Vilde.csv", head=T)
 Herbaceous.carbon <- read.csv(file="Ecosystem Carbon/12Herbaceous.csv", head=T)
 Deadwood.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/DW.Block.csv",head=T)
+Soil.C <- read.csv(file="Ecosystem Carbon/Soil.data/Soil.Carbon.Block.csv", head=T)
 
-# Remove NAs 
-Herbaceous <- na.omit(Herbaceous)
-Herbaceous <- droplevels(Herbaceous)
-names(Herbaceous)
+library(tidyr)
+library(plyr)
+library(dplyr)
+
+# Fixing the data for further processing 
+Tree.carbon$Region <- as.character(Tree.carbon$Region)
+Tree.carbon$Region[Tree.carbon$Region == "SNP handejega"] <- "Handajega"
+
+SoilAHor.carbon <- Soil.C %>%
+  filter(Horizon== "A-hor")
+
+SoilMinHor.carbon <- Soil.C %>%
+  filter(Horizon=="Min-hor")
+
+colnames(Herbaceous.carbon)[colnames(Herbaceous.carbon) == "C.kg_m2"] <- "HerbC.kg_m2"
+colnames(SoilAHor.carbon)[colnames(SoilAHor.carbon) == "C.kg_m2"] <- "SoilAC.kg_m2"
+colnames(SoilAHor.carbon)[colnames(SoilAHor.carbon) == "SE.C.kg_m2"] <- "SE.SoilAC.kg_m2"
+colnames(SoilMinHor.carbon)[colnames(SoilMinHor.carbon) == "C.kg_m2"] <- "SoilMC.kg_m2"
+colnames(SoilMinHor.carbon)[colnames(SoilMinHor.carbon) == "SE.C.kg_m2"] <- "SE.SoilMC.kg_m2"
+
+Soil.carbon <- merge(SoilAHor.carbon[,c(2:5,8,9)],SoilMinHor.carbon[,c(4,8,9)],all.x = TRUE,by="Block.ID")
+
+#Relevel 
+Tree.carbon$Region<- factor(Tree.carbon$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+
+Herbaceous.carbon$Region<- factor(Herbaceous.carbon$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+
+Deadwood.carbon$Region<- factor(Deadwood.carbon$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+
+Soil.carbon$Region<- factor(Soil.carbon$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+
+# Merge the datasets 
+Ecosystem.carbon1 <- merge(Tree.carbon[,c(2:8,14:18)],Herbaceous.carbon[,c(3,11)],all.x = TRUE,by="Block.ID")
+
+Ecosystem.carbon2 <- merge(Soil.carbon,Deadwood.carbon[,c(4:6)],all.x = TRUE,by="Block.ID")
+
+#Ecosystem.carbon3 <- merge(Ecosystem.carbon2,Soil.carbon[,c(1,5:8)],all.x = TRUE,by="Block.ID")
+
+Ecosystem.Carbon1 <- Ecosystem.carbon1[,c(1,4,2,3,5:9,11,12,10,13)]
+Ecosystem.Carbon2 <- Ecosystem.carbon2[,c(1,4,2,3,5,7,9)]
+SE.Ecosystem.Carbon2 <- Ecosystem.carbon2[,c(1,4,2,6,8,10)]
+
+# Make the data into a long format instead of a wide
+data_long.CTreeHerb <- gather(Ecosystem.Carbon1, Carbon.pool,C.amount, TreeC.kg_m2:HerbC.kg_m2,factor_key=TRUE)
+
+data_long.CSoilDW <- gather(Ecosystem.Carbon2, Carbon.pool,C.amount, SoilAC.kg_m2:DWC.kg_m2,factor_key=TRUE)
+
+SE.data_long.CSoilDW <- gather(SE.Ecosystem.Carbon2, Carbon.pool,C.amount, SE.SoilAC.kg_m2:SE.DWC.kg_m2,factor_key=TRUE)
+
+EcosystemC.SoilDW<- cbind(data_long.CSoilDW,SE.data_long.CSoilDW[5])
+colnames(EcosystemC.SoilDW) <- c("Block.ID","Landuse","Region","Block","Carbon.pool","C.amount","SE.C.amount")
+
+EcosystemC.SoilDW <- EcosystemCarbon.SoilDW[
+  order(EcosystemCarbon.SoilDW[,1], EcosystemCarbon.SoilDW[,3] ),
+  ]
+
+data_long.CTreeHerb <- data_long.CTreeHerb[
+  order(data_long.CTreeHerb[,1], data_long.CTreeHerb[,3] ),
+  ]
+
+write.csv(EcosystemC.SoilDW,file="Ecosystem carbon/Soil.DW.Carbon.Block")
+write.csv(data_long.CTreeHerb,file="Ecosystem carbon/Tree.Herb.Carbon.Block")
+
 
 ### Exploring the data at Region level ####
 Herbaceous <- read.csv(file="Ecosystem carbon/HerbC.Region.csv", header=T)
 Woody <- read.csv(file="Ecosystem carbon/Tree.data/TreeC.Region.csv", header=T)
 Deadwood <- read.csv(file="Ecosystem carbon/Tree.data/DW.Region.csv",header=T)
-Soil <- read.csv(file="Ecosystem carbon/Soil.data/Soil.Carbon.csv",header=T)
+Soil <- read.csv(file="Ecosystem carbon/Soil.data/Soil.Carbon.Region.csv",header=T)
 
 Woody$Region <- as.factor(c("Makao","Maswa", "Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 names(Woody)
@@ -26,19 +86,19 @@ Soil$Region<- factor(Soil$Region, levels = c("Makao","Maswa","Mwantimba","Handaj
 Herbaceous$Region<- factor(Herbaceous$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera"))
 
 # Merge the three datasets in two steps 
-Ecosystem.C1 <- merge(Woody[,c(2:6,7:14)],Herbaceous[2:4],all.x = TRUE,by="Region")
-Ecosystem.C2 <- merge(Ecosystem.C1,Deadwood[2:6],all.x = TRUE,by="Region")
+Ecosystem.C1 <- merge(Woody[,c(2:6,7:14)],Herbaceous[,c(2:4)],all.x = TRUE,by="Region")
+Ecosystem.C2 <- merge(Ecosystem.C1,Deadwood[2:4],all.x = TRUE,by="Region")
 Ecosystem.C <- merge(Ecosystem.C2,Soil[2:16],all.x = TRUE,by="Region")
 
-EcosystemCarbon <- Ecosystem.C[,c(1:6,14,18,27,29,21:26,31,33,8:13)]
-EcosystemCarbonSE <- Ecosystem.C[,c(1,7,15,19,28,30)]
+EcosystemCarbon <- Ecosystem.C[,c(1:5,18,8,10,12,19,21,23,6,14,16,25,27)]
+EcosystemCarbonSE <- Ecosystem.C[,c(1,18,7,15,17,26,28)]
 
 # Make the data into a long format instead of a wide
 library(tidyr)
 library(plyr)
 
-data_long.C <- gather(EcosystemCarbon, Carbon.pool,C.amount, TreeC_m2:CMinHor,factor_key=TRUE)
-data_long.CSE <- gather(EcosystemCarbonSE, Carbon.poolSE,C.amountSE, SE.TreeC_m2:SE.CMinHor,factor_key=TRUE)
+data_long.C <- gather(EcosystemCarbon, Carbon.pool,C.amount, TreeC.kg_m2:CMinHor,factor_key=TRUE)
+data_long.CSE <- gather(EcosystemCarbonSE, Carbon.poolSE,C.amountSE, SE.TreeC.kg_m2:SE.CMinHor,factor_key=TRUE)
 
 Tot.EcosystemCarbon <- cbind(data_long.C,data_long.CSE[3])
 
@@ -53,10 +113,12 @@ Tot.EcosystemCarbon <- arrange(Tot.EcosystemCarbon,Region)
 colnames(Tot.EcosystemCarbon)[colnames(Tot.EcosystemCarbon) == "Landuse.x"] <- "Landuse"
 Tot.EcosystemCarbon$Climate <- as.factor(c("Dry","Dry","Dry","Dry","Dry","Dry","Dry","Dry","Dry","Dry","Wet","Wet","Wet","Wet","Wet","Wet","Wet","Wet","Wet","Wet","Int-Dry","Int-Dry","Int-Dry","Int-Dry","Int-Dry","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet"))
 
-write.csv(Tot.EcosystemCarbon,file="Ecosystem carbon/Tot.Ecosystem.Carbon.csv")
+write.csv(Tot.EcosystemCarbon,file="Ecosystem carbon/Tot.Ecosystem.Carbon.Region.csv")
 ### Ploting Ecosystem Carbon  #### 
 
-Total.ecosystem.carbon <- read.csv("Ecosystem carbon/Tot.Ecosystem.Carbon.csv", head=T)
+Total.ecosystem.carbon.Region <- read.csv("Ecosystem carbon/Tot.Ecosystem.Carbon.Region.csv", head=T)
+Soil.DW.Carbon.Block <- read.csv("Ecosystem carbon/Soil.DW.Carbon.Block", head=T)
+Tree.Herb.Carbon.Block <- read.csv("Ecosystem carbon/Tree.Herb.Carbon.Block", head=T)
 
 levels(Total.ecosystem.carbon$Carbon.pool)
 Total.ecosystem.carbon$Carbon.pool<- factor(Total.ecosystem.carbon$Carbon.pool, levels = c("WoodyC","HerbC", "DWC","SoilCAHor","SoilCMinHor"))
