@@ -9,7 +9,7 @@ compare <- read.csv("Ecosystem Carbon/Soil.data/TBS.NMBU.csv", head=T)
 summary(lm(C.per.TBS~C.per.NMBU, data=compare))
 cor.test(compare$C.per.TBS,compare$C.per.NMBU, method=c("pearson"))
 
-# Want to have a table with SOIL TEXTURE (clay, silt and sand) and chemical traits
+# Want to have a table with SOIL TEXTURE (clay, silt and sand) and chemical traits for the analysis I did - now have data from Anders and Stu also - not included here..  
 # First, reorganizing and removing collumns 
 soil.properties.full <- total.soil.data[,c(1:7,16,26:34,41:45)]
 names(soil.properties.full)
@@ -50,7 +50,7 @@ write.csv(Soil.properties,file="Ecosystem carbon/Soil.data/Soil.Properties.csv")
 # Making tables for C and N 
 Soilfull <- read.csv(file="Ecosystem carbon/Soil.data/Total.Soil.Data.csv",header=T)
 names(Soilfull)
-Soilred <- Soilfull[,c(2:7,16,19,32:34,36,39)]
+Soilred <- Soilfull[,c(2:7,16:19,36,39)]
 Soilred$Region<- factor(Soilred$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
 #AHorizon <- Soilred[Soilred$Horizon=="A-hor",]
@@ -60,30 +60,38 @@ SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 library(dplyr)
 
 # On Block size
-Soil.Block <- cbind((aggregate(MAP.mm_yr~Region+Block+Horizon,data=Soilred,mean)),
+Soil.Block <- cbind((aggregate(Block.ID~Region+Block+Horizon,data=Soilred,mean)),
+                    (aggregate(MAP.mm_yr~Region+Block+Horizon,data=Soilred,mean))[4],
                     (aggregate(C.kg_m2~Region+Block+Horizon,data=Soilred,mean))[4],
                      (aggregate(C.kg_m2~Region+Block+Horizon,data=Soilred,SE))[4],
                      #(aggregate(C.kg_m2~Region+Block,data=MinHorizon,mean))[3],
                      #(aggregate(C.kg_m2~Region+Block,data=MinHorizon,SE))[3],
                      (aggregate(N.kg_m2~Region+Block+Horizon,data=Soilred,mean))[4],
                      (aggregate(N.kg_m2~Region+Block+Horizon,data=Soilred,SE))[4])
+                    
                      #(aggregate(N.kg_m2~Region+Block,data=MinHorizon,mean))[3],
                      #(aggregate(N.kg_m2~Region+Block,data=MinHorizon,SE))[3])
 
-colnames(Soil.Block) <- c("Region","Block","Horizon","MAP","C.kg_m2","SE.C.kg_m2","N.kg_m2","SE.N.kg_m2")
-Clay <- aggregate(Clay.per~Region+Block+Horizon,data=Soilred,unique)
-Silt <- aggregate(Silt.per~Region+Block+Horizon,data=Soilred,unique)
-Sand <- aggregate(Sand.per~Region+Block+Horizon,data=Soilred,unique)
+colnames(Soil.Block) <- c("Region","Block","Horizon","Block.ID","MAP","C.kg_m2","SE.C.kg_m2","N.kg_m2","SE.N.kg_m2")
+#Clay <- aggregate(Clay.per~Region+Block+Horizon,data=Soilred,unique)
+#Silt <- aggregate(Silt.per~Region+Block+Horizon,data=Soilred,unique)
+#Sand <- aggregate(Sand.per~Region+Block+Horizon,data=Soilred,unique)
+Last.fire <- aggregate(Last_fire.yr~Region+Block+Horizon,data=Soilred,unique)
+Fire.freq <- aggregate(Fire_frequency.2000_2017~Region+Block+Horizon,data=Soilred,unique)
 ID <- Soil.Block[c(1,2,3)]
-Clay.full <- full_join(ID,Clay)
-Silt.full <- full_join(ID,Silt)
-Sand.full <- full_join(ID,Sand)
+#Clay.full <- full_join(ID,Clay)
+#Silt.full <- full_join(ID,Silt)
+#Sand.full <- full_join(ID,Sand)
+Last.fire <- full_join(ID,Last.fire)
+Fire.freq <- full_join(ID,Fire.freq)
 
-SoilBlock <- cbind(Soil.Block,Clay.full[4],Silt.full[4],Sand.full[4])
+SoilBlock <- cbind(Soil.Block,Last.fire[4],Fire.freq[4])
 
 SoilBlock <- SoilBlock[
   order(SoilBlock[,1], SoilBlock[,2] ),
   ]
+
+SoilBlock$Landuse <- as.factor(c("Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild"))
 
 write.csv(SoilBlock,file="Ecosystem carbon/Soil.data/Soil.Carbon.Block.csv")
 

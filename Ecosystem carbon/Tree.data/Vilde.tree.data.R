@@ -426,9 +426,9 @@ Plot.TreeBM.MAP +
   xlab(expression(paste("MAP (mm", yr^-1,")"))) + ylab(expression(paste("Tree biomass (g", m^-2,")")))
 
 #### Adding dead wood data ####
-Dead.wood <- read.csv("Ecosystem carbon/Tree.data/03Dead_wood.csv",head=T)
+Dead.wood <- read.csv("Ecosystem carbon/Tree.data/Dead_wood.csv",head=T)
 names(Dead.wood)
-Dead.wood.red <- Dead.wood[,c(1:6,17:19)]
+Dead.wood.red <- Dead.wood[,c(2,4:6,9)]
 #Dead.wood.red<-na.omit(Dead.wood.red)
 Dead.wood.red <- droplevels(Dead.wood.red)
 levels(Dead.wood.red$Region)
@@ -437,24 +437,31 @@ Dead.wood.red$Region<- factor(Dead.wood.red$Region, levels = c("Makao","Maswa","
 
 # Aggregate dead wood per circle - and then per Block and Region
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+names(Dead.wood.red)
 
-DW.circle <- cbind((aggregate(Block.ID~Region+Block+Circle,data=Dead.wood.red,mean)), 
-             (aggregate(Carbon.kg_m2~Region+Block+Circle,data=Dead.wood.red,sum, na.action = na.pass))[4])
+Block.ID <- aggregate(Block.ID~Region+Block,data=Dead.wood.red,mean)
+DW.Carbon <- aggregate(Carbon.kg_m2~Region+Block+Block.ID,data=Dead.wood.red,mean)
+SE.DW.Carbon <- aggregate(Carbon.kg_m2~Region+Block+Block.ID,data=Dead.wood.red,SE)
 
-DW.block <- cbind((aggregate(Block.ID~Block+Region,data=DW.circle,mean)),
-                  (aggregate(Carbon.kg_m2~Block+Region,data=DW.circle,mean))[3], 
-                  (aggregate(Carbon.kg_m2~Block+Region,data=DW.circle,SE))[3])
-colnames(DW.block) <- c("Block","Region","Block.ID","DWC.kg_m2","SE.DWC.kg_m2")
+SE.C.DW <- full_join(Block.ID,SE.DW.Carbon)
+C.DW <- full_join(Block.ID,DW.Carbon)
 
-DW.Region <- cbind((aggregate(DWC.kg_m2~Region,data=DW.block,mean)), 
-                    (aggregate(DWC.kg_m2~Region,data=DW.block,SE))[2])
-colnames(DW.Region) <- c("Region","DWC.kg_m2","SE.DWC.kg_m2")
+Dead.wood.C.block <- cbind(C.DW,SE.C.DW[4])
+colnames(Dead.wood.C.block) <- c("Region","Block","Block.ID","DWC.kg_m2","SE.DWC.kg_m2")
+
+Dead.wood.C.block <- Dead.wood.C.block[
+  order(Dead.wood.C.block[,1], Dead.wood.C.block[,2] ),
+  ]
+
+#DW.Region <- cbind((aggregate(DWC.kg_m2~Region,data=DW.block,mean)), 
+#                    (aggregate(DWC.kg_m2~Region,data=DW.block,SE))[2])
+#colnames(DW.Region) <- c("Region","DWC.kg_m2","SE.DWC.kg_m2")
 
 # Adding a collumn of land-use
-DW.block$Landuse <- as.factor(c("Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild"))
+Dead.wood.C.block$Landuse <- as.factor(c("Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild"))
 
 write.csv(DW.block,file="Ecosystem carbon/Tree.data/DW.Block.csv")
-write.csv(DW.Region,file="Ecosystem carbon/Tree.data/DW.Region.csv")
+#write.csv(DW.Region,file="Ecosystem carbon/Tree.data/DW.Region.csv")
 
 # Exploring the data DW per Block
 library(ggplot2)
