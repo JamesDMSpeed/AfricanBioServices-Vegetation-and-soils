@@ -209,8 +209,8 @@ EcosystemC.MAP <- ggplot(data = Block.Eco.C, aes(x = MAP.mm_yr,y = C.amount, ymi
 
 EcosystemC.MAP + xlab(expression(paste("MAP (mm", yr^-1,")")))+ ylab(expression(paste("Ecosystem Carbon (kg", m^-2,")"))) + 
   facet_wrap(~Carbon.pool,scales = "free") +
-  geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
   geom_errorbar(stat = "identity",width=25,lwd=1.1,show.legend=F, na.rm=T) + 
+  geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  +
   scale_shape_manual(legend_titleLAND,values=c(16,0)) +
   scale_color_manual(legend_titleCarbon, breaks = c("WoodyC", "HerbC","DWC","SoilCAHor","SoilCMinHor"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) + 
   theme_bw() + Lines_gone
@@ -228,8 +228,8 @@ EcosystemC.Soil.clay<- ggplot(data = Block.Eco.C, aes(x = Clay.pip.per,y = C.amo
 
 EcosystemC.Soil.clay  + xlab("Clay (%)") + ylab(expression(paste("Ecosystem Carbon (kg", m^-2,")"))) +
   facet_wrap(~Carbon.pool,scales = "free") +
-  geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
   geom_errorbar(stat = "identity",width=3,lwd=1.1,show.legend=F, na.rm=T) +
+  geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
   scale_shape_manual(legend_titleLAND,values=c(16,0)) +
   scale_color_manual(legend_titleCarbon, breaks = c("WoodyC", "HerbC","DWC","SoilCAHor","SoilCMinHor"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) + 
   theme_bw() + Lines_gone 
@@ -244,8 +244,8 @@ EcosystemC.Soil.sand<- ggplot(data = Block.Eco.C, aes(x = Sand.pip.per,y = C.amo
 
 EcosystemC.Soil.sand  + xlab("Sand (%)") + ylab(expression(paste("Ecosystem Carbon (kg", m^-2,")"))) +
   facet_wrap(~Carbon.pool,scales = "free")+
-  geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
   geom_errorbar(stat = "identity",width=3,lwd=1.1,show.legend=F, na.rm=T) +
+  geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
   scale_shape_manual(legend_titleLAND,values=c(16,0)) +
   scale_color_manual(legend_titleCarbon, breaks = c("WoodyC", "HerbC","DWC","SoilCAHor","SoilCMinHor"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) + 
   theme_bw() + Lines_gone 
