@@ -254,6 +254,37 @@ ggsave("Ecosystem carbon/Figures/EcoC.Sand.png",
        width= 25, height = 15,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
 
+# Fire and Ecosystem Carbon 
+# year of last fire 
+EcosystemC.Fire<- ggplot(data = Block.Eco.C, aes(x = Last.fire_yr,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool, shape= landuse))
+
+EcosystemC.Fire  + xlab("Year of last fire") + ylab(expression(paste("Carbon pool (kg", m^-2,")"))) +
+  facet_wrap(~Carbon.pool,scales = "free")+
+  geom_errorbar(stat = "identity",width=2,lwd=1.1,show.legend=F, na.rm=T) +
+  geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
+  scale_shape_manual(legend_titleLAND,values=c(16,0)) +
+  scale_color_manual(legend_titleCarbon, breaks = c("WoodyC", "HerbC","DWC","SoilCAHor","SoilCMinHor"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) + 
+  theme_bw() + Lines_gone 
+
+ggsave("Ecosystem carbon/Figures/EcoC.Year.of.last.fire.png",
+       width= 25, height = 15,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
+
+# Fire freq
+EcosystemC.Fire<- ggplot(data = Block.Eco.C, aes(x = Fire_frequency.2000_2017,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool, shape= landuse))
+
+EcosystemC.Fire  + xlab("Fire frequency") + ylab(expression(paste("Carbon pool (kg", m^-2,")"))) +
+  facet_wrap(~Carbon.pool,scales = "free")+
+  geom_errorbar(stat = "identity",width=1.5,lwd=1.1,show.legend=F, na.rm=T) +
+  geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
+  scale_shape_manual(legend_titleLAND,values=c(16,0)) +
+  scale_color_manual(legend_titleCarbon, breaks = c("WoodyC", "HerbC","DWC","SoilCAHor","SoilCMinHor"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) + 
+  theme_bw() + Lines_gone 
+
+ggsave("Ecosystem carbon/Figures/EcoC.Fire.freq.png",
+       width= 25, height = 15,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
+
 #### Trees and ECOSYSTEM CARBON - maybe not so relevant #### 
 # Tre basal area and ECOSYSTEM CARBON
 
@@ -293,18 +324,25 @@ EcosystemC.treeBM  + xlab("Tree Biomass (g/m2)") + ylab("Aboveground Carbon (g/m
 # Tre basal area and SOIL CARBON
 
 # Creating a table with soil carbon 
-Soil.carbon <- Total.ecosystem.carbon %>%
+Soil.carbon <- Block.Eco.C %>%
   filter(Carbon.pool == "SoilCAHor" | Carbon.pool== "SoilCMinHor")
 Soil.carbon <- arrange(Soil.carbon,Region)
 
-SoilC.basal.area <- ggplot(data = Soil.carbon, aes(x = TreeBasalA_m2,y = C.amount, ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, colour= Carbon.pool, shape= Landuse))
+names(Soil.carbon)
 
-SoilC.basal.area  + xlab(expression(paste("Tree basal area (per ", m^-2,")"))) + ylab(expression(paste("Soil Carbon (g", m^-2,")")))  + 
-  geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
+SoilC.basal.area <- ggplot(data = Soil.carbon, aes(x = Total.basal.area_m2,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool, shape= landuse))
+
+SoilC.basal.area  + xlab("Tree basal area") + ylab(expression(paste("Carbon pool (kg", m^-2,")")))  + 
+  facet_wrap(~Carbon.pool,scales = "free") +
   geom_errorbar(stat = "identity",width=0.01,lwd=1.1,show.legend=F, na.rm=T) +
+  geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
   scale_shape_manual(legend_titleLAND,values=c(16,0)) +
   scale_color_manual(legend_titleCarbon, breaks = c("SoilCAHor","SoilCMinHor"),values=c("salmon4","burlywood4")) + 
   theme_bw() + Lines_gone
+
+ggsave("Ecosystem carbon/Figures/SoilC.TreeBA.png",
+       width= 25, height = 15,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
 
 # Number of trees and SOIL CARBON
 # Difficult to incorporate this relationship - Really scewed. Mwantimba has highest number of trees... 

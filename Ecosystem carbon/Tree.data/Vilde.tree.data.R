@@ -252,6 +252,39 @@ Tree.size.long <- Tree.size.long[
   order(Tree.size.long[,1], Tree.size.long[,2] ),
   ]
 
+# Density distribution tree size from Philipo
+
+#########################################################################
+# Tree biomass historgraph graph
+#########################################################################
+names(Vildetrees)
+
+# Group means
+grp.mean<-aggregate(log(Biomass.kg.per.tree+1)~landuse+area,data=Vildetrees,mean)
+colnames(grp.mean)[3]<-"log.Biomass.kg.per.tree"
+Vildetrees$log.Biomass.kg.per.tree<-log(Vildetrees$Biomass.kg.per.tree+1)
+max(Vildetrees$Biomass.kg.per.tree)
+log(2813.959+1) # ~ 8 
+log(2+1) # 1.098612 = threshold for small trees
+
+# Main graph tree biomass density 
+Tree.biomass <-ggplot()
+Tree.biomass + geom_density(data=Vildetrees, aes(log.Biomass.kg.per.tree, fill = landuse,colour =landuse),alpha=0.4) +
+  facet_wrap(~area)+
+  scale_fill_manual("Land-use",values=c("tan3","turquoise3"))+
+  scale_colour_manual("Land-use",values=c("tan3", "turquoise3"))+
+  scale_x_continuous(expand=c(0,0), limits = c(0, 8))+
+  scale_y_continuous(labels = c(0,5,10,15,20,25), breaks = c(0,.5,1.0,1.5,2.0,2.5), limits = c(0, 2.5), expand=c(0,0))+
+  geom_vline(data=grp.mean, aes(xintercept=log.Biomass.kg.per.tree,colour = landuse,linetype = landuse),size=.75)+
+  scale_linetype_manual("Land-use",values = c(wild = "solid", pasture = "dashed"))+ 
+  xlab("log tree biomass (kg)") +  ylab("Density (%)")+ 
+  theme_bw() + 
+  Lines_gone
+
+ggsave("Ecosystem carbon/Figures/Log.treeBM.png",
+       width= 25, height = 15,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
+
 #### 4. Plotting Tree data ####
 
 #frequency of big trees in densoty plot (%)
@@ -260,7 +293,7 @@ Lines_gone <- theme(panel.grid.major.x = element_blank(),
                     panel.grid.minor.x = element_blank(),
                     panel.grid.major.y = element_blank(),
                     panel.grid.minor.y = element_blank())
-# Per Region 
+# Per Region BM - density plot 
 BM.tree.plot <- ggplot(data= Vildetrees)
 
 BM.tree.plot + geom_density(aes(x=Biomass.kg.per.tree, fill = landuse,colour =landuse),alpha=0.4) +
@@ -277,22 +310,18 @@ ggsave("Ecosystem carbon/Figures/TreeBM.dist.png",
        width= 25, height = 15,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
 
-# Big trees vs small trees 
+# Per Region Basal area - frequency plot 
+Basal.area.tree.plot <- ggplot(data= Vildetrees)
 
-BM.tree.plot2 <- ggplot(data= SmallTrees)
-
-BM.tree.plot + geom_density(aes(x=Biomass.kg.per.tree, fill = landuse,colour =landuse),alpha=0.4) +
-  geom_density(data= LargeTrees, aes(x=Biomass.kg.per.tree, fill = landuse,colour =landuse),alpha=0.4) + 
+Basal.area.tree.plot + geom_freqpoly(aes(x=total.basal.area.m2,colour=landuse),bins=30,size=1) +
   facet_wrap(~area) +
-  scale_fill_manual("Land-use",values=c("tan3","turquoise3"))+
-  scale_colour_manual("Land-use",values=c("tan3", "turquoise3"))+
-  scale_x_continuous(expand=c(0,0), limits = c(0, 4))+
-  scale_y_continuous(labels = c(0,5,10,15,20,25,30), breaks = c(0,.5,1.0,1.5,2.0,2.5,3.0), limits = c(0, 2.5), expand=c(0,0)) + 
-  xlab("Tree biomass (kg)") +  ylab("Density (%)") + 
+  scale_fill_manual("Land-use",values=c("darkorange","chartreuse4"))+
+  scale_colour_manual("Land-use",values=c("darkorange", "chartreuse4")) + 
+  xlab("Tree basal area (%)") +  ylab("Frequency") + 
   theme_bw() +
   Lines_gone 
 
-ggsave("Ecosystem carbon/Figures/TreeBM.dist.png",
+ggsave("Ecosystem carbon/Figures/TreeBasalArea.Freq.png",
        width= 25, height = 15,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
 
@@ -332,16 +361,16 @@ size.plot.density <- ggplot(Tree.size.long, aes(x=Count, fill= Size))
 size.plot.density + geom_density() 
 
 # FACET WRAP - Want to look at all regions at the same time MEDIAN
-size.plot.density +
-  geom_density() +
-  facet_wrap(~area) +
+Size.plot <- ggplot(data=Tree.size.long, aes(x=Block.ID, y=Count))
+
+Size.plot +                  
+  facet_wrap(~Block.ID) +
   scale_fill_manual(legent_titleSIZE,values=c("tan3","turquoise3"))+
   scale_colour_manual(legent_titleSIZE,values=c("tan3", "turquoise3"))+
-  scale_x_continuous(expand=c(0,0), limits = c(0, 15)) + 
-  xlab("Count") +  ylab("Density (%)") + 
+  xlab("Region") +  ylab("Count") + 
   theme_bw() +
   Lines_gone
-
+  
 ggsave("Ecosystem carbon/Figures/Tree.size.dist.png",
        width= 25, height = 15,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
