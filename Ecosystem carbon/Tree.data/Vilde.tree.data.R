@@ -31,6 +31,16 @@ Philtrees4<-droplevels(Philtrees4)
 levels(Philtrees4$area)
 levels(Philtrees4$date)
 
+# Trying to find a cut of value for basal area at 2 m height (maybe I dont have to do this)
+#names(Philtrees4)
+#str(Philtrees4)
+#Philtrees4$height.cm[Philtrees4$height.cm == 0] <- NA
+
+#Height.BA <- na.omit(Philtrees4 %>%
+#  select(height.cm,total.basal.area.m2))
+
+#plot(total.basal.area.m2~height.cm, data=Height.BA)
+
 TargetMAY <- c("06.05.2017","07.05.2017","11.05.2017","13.05.2017", "14.5.2017", "17.05.2017", "9.5.2017")  
 TargetDEC<- c("10.12.2017", "12.12.2017", "13.12.2017",  "14.12.2017","16.12.2017", "17.12.2017", "18.12.2017") 
 
@@ -205,10 +215,9 @@ dotchart(Vildetrees$Biomass.kg.per.tree,groups=Vildetrees$landuse,main = "landus
 
 # Looking for outliars 
 max(Vildetrees$Biomass.kg.per.tree, na.rm=T) # One gigant tree in Handajega... 2813.959 kg 
+max(Vildetrees$total.basal.area.m2, na.rm=T)
 plot(Vildetrees$Biomass.kg.per.tree~Vildetrees$Block.ID)
 identify(Vildetrees$Biomass.kg.per.tree~Vildetrees$Block.ID) # row number 78 
-
-Vildetrees2<-Vildetrees[-78,] # If I want to look at it without the outliar 
 
 dim(Vildetrees) #166 trees
 names(Vildetrees)
@@ -219,7 +228,6 @@ AllTrees<- Vildetrees %>%
   select(Biomass.kg.per.tree,area,block,Block.ID) %>%
   group_by(area,block,Block.ID) %>%
   tally()
-
 AllTrees <- as.data.frame(AllTrees)
 
 SmallTrees <- Vildetrees %>%
@@ -248,9 +256,18 @@ colnames(Tree.size) <- c("area", "block", "Block.ID", "small", "large")
 
 Tree.size.long <- gather(Tree.size,Size,Count, small:large,factor_key=TRUE)
 
+New.row1 <- c("Seronera",4,NA,"small",NA)
+New.row2 <- c("Seronera",4,NA,"large",NA)
+Tree.size.long <- InsertRow(Tree.size.long,New.row1,20)
+Tree.size.long <- InsertRow(Tree.size.long,New.row2,48)
+
+Tree.size.long$Block.ID <- as.numeric(c(1:28,1:28))
+
 Tree.size.long <- Tree.size.long[
   order(Tree.size.long[,1], Tree.size.long[,2] ),
   ]
+
+write.csv(Tree.size.long,file="Ecosystem carbon/Tree.data/Tree.size.csv")
 
 # Density distribution tree size from Philipo
 
@@ -265,19 +282,25 @@ colnames(grp.mean)[3]<-"log.Biomass.kg.per.tree"
 Vildetrees$log.Biomass.kg.per.tree<-log(Vildetrees$Biomass.kg.per.tree+1)
 max(Vildetrees$Biomass.kg.per.tree)
 log(2813.959+1) # ~ 8 
-log(2+1) # 1.098612 = threshold for small trees
+log(2+1) # 1.098612 = cut of for small trees
 
 # Main graph tree biomass density 
+
+Lines_gone <- theme(panel.grid.major.x = element_blank(),
+                    panel.grid.minor.x = element_blank(),
+                    panel.grid.major.y = element_blank(),
+                    panel.grid.minor.y = element_blank())
+
 Tree.biomass <-ggplot()
 Tree.biomass + geom_density(data=Vildetrees, aes(log.Biomass.kg.per.tree, fill = landuse,colour =landuse),alpha=0.4) +
   facet_wrap(~area)+
-  scale_fill_manual("Land-use",values=c("tan3","turquoise3"))+
-  scale_colour_manual("Land-use",values=c("tan3", "turquoise3"))+
+  scale_fill_manual("Land-use",values=c("darkorange","chartreuse4"))+
+  scale_colour_manual("Land-use",values=c("darkorange","chartreuse4"))+
   scale_x_continuous(expand=c(0,0), limits = c(0, 8))+
   scale_y_continuous(labels = c(0,5,10,15,20,25), breaks = c(0,.5,1.0,1.5,2.0,2.5), limits = c(0, 2.5), expand=c(0,0))+
   geom_vline(data=grp.mean, aes(xintercept=log.Biomass.kg.per.tree,colour = landuse,linetype = landuse),size=.75)+
   scale_linetype_manual("Land-use",values = c(wild = "solid", pasture = "dashed"))+ 
-  xlab("log tree biomass (kg)") +  ylab("Density (%)")+ 
+  xlab("Log tree biomass (kg)") +  ylab("Density (%)")+ 
   theme_bw() + 
   Lines_gone
 
@@ -287,19 +310,14 @@ ggsave("Ecosystem carbon/Figures/Log.treeBM.png",
 
 #### 4. Plotting Tree data ####
 
-#frequency of big trees in densoty plot (%)
-
-Lines_gone <- theme(panel.grid.major.x = element_blank(),
-                    panel.grid.minor.x = element_blank(),
-                    panel.grid.major.y = element_blank(),
-                    panel.grid.minor.y = element_blank())
+# Density plot (%)
 # Per Region BM - density plot 
 BM.tree.plot <- ggplot(data= Vildetrees)
 
 BM.tree.plot + geom_density(aes(x=Biomass.kg.per.tree, fill = landuse,colour =landuse),alpha=0.4) +
   facet_wrap(~area) +
-  scale_fill_manual("Land-use",values=c("tan3","turquoise3"))+
-  scale_colour_manual("Land-use",values=c("tan3", "turquoise3"))+
+  scale_fill_manual("Land-use",values=c("darkorange","chartreuse4"))+
+  scale_colour_manual("Land-use",values=c("darkorange","chartreuse4"))+
   scale_x_continuous(expand=c(0,0), limits = c(0, 4))+
   scale_y_continuous(labels = c(0,5,10,15,20,25,30), breaks = c(0,.5,1.0,1.5,2.0,2.5,3.0), limits = c(0, 2.5), expand=c(0,0)) + 
   xlab("Tree biomass (kg)") +  ylab("Density (%)") + 
@@ -317,39 +335,13 @@ Basal.area.tree.plot + geom_freqpoly(aes(x=total.basal.area.m2,colour=landuse),b
   facet_wrap(~area) +
   scale_fill_manual("Land-use",values=c("darkorange","chartreuse4"))+
   scale_colour_manual("Land-use",values=c("darkorange", "chartreuse4")) + 
-  xlab("Tree basal area (%)") +  ylab("Frequency") + 
+  xlab(expression(paste("Tree basal area (", m^-2,")"))) +  ylab("Frequency") + 
   theme_bw() +
   Lines_gone 
 
 ggsave("Ecosystem carbon/Figures/TreeBasalArea.Freq.png",
        width= 25, height = 15,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
-
-# Per Land-Use 
-
-BM.tree.plot2 <- ggplot(data= Vildetrees)
-
-BM.tree.plot2 + geom_density(aes(x=Biomass.kg.per.tree, fill = landuse,colour =landuse),alpha=0.4) +
-  facet_wrap(~landuse) +
-  scale_fill_manual("Land-use",values=c("tan3","turquoise3"))+
-  scale_colour_manual("Land-use",values=c("tan3", "turquoise3"))+
-  scale_x_continuous(expand=c(0,0), limits = c(0, 8))+
-  scale_y_continuous(labels = c(0,5,10,15,20,25,30), breaks = c(0,.5,1.0,1.5,2.0,2.5,3.0), limits = c(0, 2.5), expand=c(0,0)) + 
-  xlab("Tree biomass (kg)") +  ylab("Density (%)") + 
-  theme_bw() +
-  Lines_gone 
-
-# Plotting BM.kg_m2 
-BM.kg_m2.plot <- ggplot()
-BM.kg_m2.plot + geom_density(data=Tree.carbon, aes(x=TreeBM.kg_m2, fill = landuse,colour =landuse),alpha=0.4) +
-  facet_wrap(~Region) +
-  scale_fill_manual("Land-use",values=c("tan3","turquoise3"))+
-  scale_colour_manual("Land-use",values=c("tan3", "turquoise3"))+
-  scale_x_continuous(expand=c(0,0), limits = c(0, 8))+
-  scale_y_continuous(labels = c(0,5,10,15,20,25,30), breaks = c(0,.5,1.0,1.5,2.0,2.5,3.0), limits = c(0, 2.5), expand=c(0,0)) + 
-  xlab(expression(paste("Tree biomass (kg", m^-2,")"))) +  ylab("Density (%)") + 
-  theme_bw() +
-  Lines_gone 
 
 # PLOTTING
 # Plotting the size distribution with small and large trees 
@@ -360,20 +352,20 @@ legent_titleSIZE <- "Tree size"
 size.plot.density <- ggplot(Tree.size.long, aes(x=Count, fill= Size))
 size.plot.density + geom_density() 
 
-# FACET WRAP - Want to look at all regions at the same time MEDIAN
-Size.plot <- ggplot(data=Tree.size.long, aes(x=Block.ID, y=Count))
+#  Want to look at all regions at the same time
+Tree.size.region <- Tree.size.long %>%
+  select(area,Size,Count) %>%
+  group_by(area,Size) %>%
+  tally(Count)
 
-Size.plot +                  
-  facet_wrap(~Block.ID) +
-  scale_fill_manual(legent_titleSIZE,values=c("tan3","turquoise3"))+
-  scale_colour_manual(legent_titleSIZE,values=c("tan3", "turquoise3"))+
+Size.plot <- ggplot(data=Tree.size.region, aes(x=area, y=n, colour= Size))
+
+Size.plot +
+  geom_point(fill="white",size=4,stroke=1.2,show.legend=T)+
+  scale_colour_manual(legent_titleSIZE,breaks= c("large","small"),values=c("darkorange","chartreuse4"))+
   xlab("Region") +  ylab("Count") + 
   theme_bw() +
   Lines_gone
-  
-ggsave("Ecosystem carbon/Figures/Tree.size.dist.png",
-       width= 25, height = 15,units ="cm",bg ="transparent",
-       dpi = 600, limitsize = TRUE)
 
 #### Adding dead wood data ####
 Dead.wood <- read.csv("Ecosystem carbon/Tree.data/Dead_wood.csv",head=T)

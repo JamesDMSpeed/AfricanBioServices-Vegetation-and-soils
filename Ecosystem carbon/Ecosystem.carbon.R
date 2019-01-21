@@ -1,18 +1,30 @@
 #### Exploring data on block level #### 
 Tree.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.Carbon.Vilde.csv", head=T)
-Herbaceous.carbon <- read.csv(file="Ecosystem Carbon/12Herbaceous.csv", head=T)
+Herbaceous.carbon <- read.csv(file="Ecosystem Carbon/Herbaceous.data/12Herbaceous.csv", head=T)
 Deadwood.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/DW.Block.csv",head=T)
 Soil.C <- read.csv(file="Ecosystem Carbon/Soil.data/Soil.Carbon.Block.csv", head=T)
 Soil.texture <- read.csv(file="Ecosystem Carbon/Soil.data/Soil.texture.Min_Hor.csv",head=T)
+Tree.size <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.size.csv",head=T)
 
 library(tidyr)
 library(plyr)
 library(dplyr)
 
 # Fixing the data for further processing 
+# Tree data
 Tree.carbon$Region <- as.character(Tree.carbon$Region)
 Tree.carbon$Region[Tree.carbon$Region == "SNP handejega"] <- "Handajega"
 
+Tree.size.small <- Tree.size %>%
+  filter(Size== "small")
+
+Tree.size.large <- Tree.size %>%
+  filter(Size=="large")
+
+Tree.size <- merge(Tree.size.small[,c(2:4,6)],Tree.size.large[,c(4,6)],all.x = TRUE,by="Block.ID")
+colnames(Tree.size) <- c("Block.ID","Region","Block","No.small.trees","No.large.trees")
+
+# Soil data
 SoilAHor.carbon <- Soil.C %>%
   filter(Horizon== "A-hor")
 
@@ -37,23 +49,28 @@ Deadwood.carbon$Region<- factor(Deadwood.carbon$Region, levels = c("Makao","Masw
 
 Soil.carbon$Region<- factor(Soil.carbon$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
+Tree.size$Region<- factor(Tree.size$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+
 # Merge the datasets 
 names(Soil.carbon)
 names(Tree.carbon)
 names(Soil.texture)
 names(Deadwood.carbon)
-Ecosystem.carbon1 <- merge(Tree.carbon[,c(18,2,4,3,6,8,7,14:17)],Herbaceous.carbon[,c(3,11)],all.x = TRUE,by="Block.ID")
-Ecosystem.Carbon1 <- merge(Ecosystem.carbon1, Soil.texture[,c(5:8)],all.x=TRUE, by="Block.ID")
+names(Tree.size)
+Ecosystem.Carbon1a <- merge(Tree.carbon[,c(18,2,4,3,6,8,7,14:17)],Herbaceous.carbon[,c(3,11)],all.x = TRUE,by="Block.ID")
+Ecosystem.Carbon1b <- merge(Ecosystem.Carbon1a, Soil.texture[,c(5:8)],all.x=TRUE, by="Block.ID")
+Ecosystem.Carbon1c <- merge(Ecosystem.Carbon1b,Tree.size[,c(1,4:5)],all.x=TRUE, by="Block.ID")
 
-Ecosystem.carbon2 <- merge(Soil.carbon,Deadwood.carbon[,c(4:6)],all.x = TRUE,by="Block.ID")
-Ecosystem.Carbon2 <- merge(Ecosystem.carbon2,Soil.texture[,c(5:8)],all.x = TRUE,by="Block.ID")
-Ecosystem.Carbon2 <- merge(Ecosystem.Carbon2,Ecosystem.Carbon1[,c(1,8,10,11)],all.x = TRUE,by="Block.ID")
+Ecosystem.Carbon2a <- merge(Soil.carbon,Deadwood.carbon[,c(4:6)],all.x = TRUE,by="Block.ID")
+Ecosystem.Carbon2b <- merge(Ecosystem.Carbon2a,Soil.texture[,c(5:8)],all.x = TRUE,by="Block.ID")
+Ecosystem.Carbon2c <- merge(Ecosystem.Carbon2b,Ecosystem.Carbon1c[,c(1,8,10,11)],all.x = TRUE,by="Block.ID")
+Ecosystem.Carbon2d <- merge(Ecosystem.Carbon2c,Tree.size[,c(1,4:5)],all.x=TRUE, by="Block.ID")
 
-names(Ecosystem.Carbon1)
-names(Ecosystem.Carbon2)
-Ecosystem.CHerbTree <- Ecosystem.Carbon1[,c(1:7,13:15,8,10,11,9,12)]
-Ecosystem.CSoilDW <- Ecosystem.Carbon2[,c(1:7,14:19,8,10,12)]
-SE.Ecosystem.CSoilDW <- Ecosystem.carbon2[,c(1:3,9,11,13)]
+names(Ecosystem.Carbon1c)
+names(Ecosystem.Carbon2d)
+Ecosystem.CHerbTree <- Ecosystem.Carbon1c[,c(1:7,13:15,8,10,11,16,17,9,12)]
+Ecosystem.CSoilDW <- Ecosystem.Carbon2d[,c(1:7,14:21,8,10,12)]
+SE.Ecosystem.CSoilDW <- Ecosystem.Carbon2d[,c(1:3,9,11,13)]
 
 # Make the data into a long format instead of a wide
 data_long.CTreeHerb <- gather(Ecosystem.CHerbTree, Carbon.pool,C.amount, TreeC.kg_m2:HerbC.kg_m2,factor_key=TRUE)
@@ -65,7 +82,7 @@ SE.data_long.CSoilDW <- gather(SE.Ecosystem.CSoilDW, Carbon.pool,C.amount, SE.So
 EcosystemC.SoilDW<- cbind(data_long.CSoilDW,SE.data_long.CSoilDW[5])
 names(EcosystemC.SoilDW)
 names(data_long.CTreeHerb)
-colnames(EcosystemC.SoilDW) <- c("Block.ID","Region","Vilde.block","landuse","MAP.mm_yr","Last.fire_yr","Fire_frequency.2000_2017","Clay.pip.per","Silt.pip.per","Sand.pip.per","Total.basal.area_m2","TreeBM.kg_m2", "No.trees_m2","Carbon.pool","C.amount","SE.C.amount")
+colnames(EcosystemC.SoilDW) <- c("Block.ID","Region","Vilde.block","landuse","MAP.mm_yr","Last.fire_yr","Fire_frequency.2000_2017","Clay.pip.per","Silt.pip.per","Sand.pip.per","Total.basal.area_m2","TreeBM.kg_m2", "No.trees_m2","No.small.trees","No.large.trees","Carbon.pool","C.amount","SE.C.amount")
 
 EcosystemC.SoilDW <- EcosystemC.SoilDW[
   order(EcosystemC.SoilDW[,1], EcosystemC.SoilDW[,2] ),
@@ -330,9 +347,9 @@ Soil.carbon <- arrange(Soil.carbon,Region)
 
 names(Soil.carbon)
 
-SoilC.basal.area <- ggplot(data = Soil.carbon, aes(x = Total.basal.area_m2,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool, shape= landuse))
+SoilC.tree.biomass <- ggplot(data = Soil.carbon, aes(x = TreeBM.kg_m2,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool, shape= landuse))
 
-SoilC.basal.area  + xlab("Tree basal area") + ylab(expression(paste("Carbon pool (kg", m^-2,")")))  + 
+SoilC.tree.biomass  + xlab(expression(paste("Tree Biomass (kg", m^-2,")"))) + ylab(expression(paste("Carbon pool (kg", m^-2,")")))  + 
   facet_wrap(~Carbon.pool,scales = "free") +
   geom_errorbar(stat = "identity",width=0.01,lwd=1.1,show.legend=F, na.rm=T) +
   geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
@@ -340,9 +357,39 @@ SoilC.basal.area  + xlab("Tree basal area") + ylab(expression(paste("Carbon pool
   scale_color_manual(legend_titleCarbon, breaks = c("SoilCAHor","SoilCMinHor"),values=c("salmon4","burlywood4")) + 
   theme_bw() + Lines_gone
 
-ggsave("Ecosystem carbon/Figures/SoilC.TreeBA.png",
+ggsave("Ecosystem carbon/Figures/SoilC.TreeBM.png",
        width= 25, height = 15,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
+
+# Size of trees 
+# Small trees 
+SoilC.Small.Trees <- ggplot(data = Soil.carbon,aes(x=No.small.trees,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool))
+
+SoilC.Small.Trees +
+  xlab("Number of small trees") + ylab(expression(paste("Carbon pool (kg", m^-2,")"))) + 
+  facet_wrap(~Carbon.pool,scales = "free") +
+  facet_wrap(~Carbon.pool,scales = "free") +
+  geom_errorbar(stat = "identity",width=0.3,lwd=1.1,show.legend=F, na.rm=T) +
+  geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
+  scale_shape_manual(legend_titleLAND,values=c(16,0)) +
+  scale_color_manual(legend_titleCarbon, breaks = c("SoilCAHor","SoilCMinHor"),values=c("salmon4","burlywood4")) + 
+  theme_bw() + Lines_gone
+
+ggsave("Ecosystem carbon/Figures/SoilC.SmallTrees.png",
+       width= 25, height = 15,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
+# Large trees 
+SoilC.Large.Trees <- ggplot(data = Soil.carbon,aes(x=No.large.trees,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool))
+
+SoilC.Large.Trees +
+  xlab("Number of large trees") + ylab(expression(paste("Carbon pool (kg", m^-2,")"))) + 
+  facet_wrap(~Carbon.pool,scales = "free") +
+  facet_wrap(~Carbon.pool,scales = "free") +
+  geom_errorbar(stat = "identity",width=0.3,lwd=1.1,show.legend=F, na.rm=T) +
+  geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
+  scale_shape_manual(legend_titleLAND,values=c(16,0)) +
+  scale_color_manual(legend_titleCarbon, breaks = c("SoilCAHor","SoilCMinHor"),values=c("salmon4","burlywood4")) + 
+  theme_bw() + Lines_gone
 
 # Number of trees and SOIL CARBON
 # Difficult to incorporate this relationship - Really scewed. Mwantimba has highest number of trees... 
@@ -355,16 +402,6 @@ SoilC.No.trees  + xlab("Number of trees (m2)") + ylab("Soil Carbon (g/m2)")  +
   scale_color_manual(legend_titleCarbon, breaks = c("SoilCAHor","SoilCMinHor"),values=c("salmon4","burlywood4")) + 
   theme_bw() + Lines_gone
 
-# Tree Biomass and SOIL CARBON
-
-SoilC.treeBM<- ggplot(data = Soil.carbon, aes(x = TreeBM_m2,y = C.amount, ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, colour= Carbon.pool, shape= Landuse))
-
-SoilC.treeBM  + xlab("Tree Biomass (g/m2)") + ylab("Soil Carbon (g/m2)")  + 
-  geom_point(fill="white",size=4,stroke=1.2,show.legend=T)   + 
-  geom_errorbar(stat = "identity",width=35,lwd=1.1,show.legend=F, na.rm=T) +
-  scale_shape_manual(legend_titleLAND,values=c(16,0)) +
-  scale_color_manual(legend_titleCarbon, breaks = c("SoilCAHor","SoilCMinHor"),values=c("salmon4","burlywood4")) +
-  theme_bw() + Lines_gone
 
 ### Aggregate TOTAL CARBON per region ####
 
@@ -409,20 +446,22 @@ Woody.cover.plot.pasture + xlab("Woody cover") + ylab("Carbon amount") + geom_po
 ### Correlation between variables #### 
 
 # Want to do the analysis at block size 
-Soil.properties <- read.csv("Ecosystem carbon/Soil.data/Soil.properties.csv", head=T) # 28 obs
-Tree.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.Carbon.Vilde.csv", head=T) #27 obs, missing one in Seronera 
+Ecosystem.Carbon <- read.csv(file="Ecosystem Carbon/Ecosystem.Carbon.csv", head=T)
+names(Ecosystem.Carbon)
 
-# Using DataCombine to insert a new row in Tree data 
-names(Soil.properties)
-names(Tree.carbon)
+Variables <- Ecosystem.Carbon %>%
+  filter(Carbon.pool=="HerbC.kg_m2")
 
-Correlation <- cbind(Soil.properties,Tree.carbon[9:12])
-Correlation <- na.omit(Correlation)
-Correlation <- droplevels(Correlation)
-str(Correlation)
+str(Ecosystem.Carbon)
 
-Correlation$Total.basal.area_m2<- as.numeric(Correlation$Total.basal.area_m2)
-Correlation$No.trees_m2 <- as.numeric(Correlation$No.trees_m2 )
+# Check the outliars 
+# 1. An outliar in TreeBM 
+plot(TreeBM.kg_m2~Last.fire_yr,data=Variables)
+identify(Variables$TreeBM.kg_m2~Variables$Last.fire_yr) 
+# 16 - All these outliars due to the gigant tree in Handajega 
+Variables.red1 <- Variables[-c(16),] # Try to run it without this block 
+# the Fire.freq is not correlated 0.4 with tree.BM anymore, and MAP-small trees is 0.5 instead of 0.4
+
 # RUN THIS CODE FIRST (FROM STU)
 
 panel.cor <- function(x, y, digits=1, prefix="", cex.cor = 6)
@@ -440,16 +479,20 @@ panel.cor <- function(x, y, digits=1, prefix="", cex.cor = 6)
 
 # Then select the variables to use in the pair function with panel.cor
 
-names(Correlation)
-MyVar<-c("MAP","Clay","Last.fire", "Fire.freq","No.trees_m2","Total.basal.area_m2")
+names(Variables)
+MyVar<-c("MAP.mm_yr","Clay.pip.per","Sand.pip.per","Last.fire_yr", "Fire_frequency.2000_2017","No.small.trees","No.large.trees","TreeBM.kg_m2")
 
 # Want to get these two in one matrix. 
-pairs(Correlation[,MyVar],lower.panel = panel.cor)
+pairs(Variables[,MyVar],lower.panel = panel.cor)
+
+ggsave("Ecosystem carbon/Figures/Correlation.matrix.png",
+       width= 25, height = 15,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
 
 # If I want these values in a table:
-Red.Ecosystem.C <- Total.ecosystem.carbon[,c(4:7,13,17)] # first select the collums I want to use 
+Variables2 <- Variables[,c(6:9,11,13,15,16)] # first select the collums I want to use 
 library("Hmisc")
-Mycor <- rcorr(as.matrix(Red.Ecosystem.C), type="pearson") # Use the pearson correlation (r-value)
+Mycor <- rcorr(as.matrix(Variables2), type="pearson") # Use the pearson correlation (r-value)
 MycorR <- as.data.frame(round(Mycor$r, digits=3))
 MycorP <- as.data.frame(round(Mycor$P, digits=3))
 
@@ -459,43 +502,50 @@ MycorP <- as.data.frame(round(Mycor$P, digits=3))
 
 # ANOVA on LANDUSE to look for correlation, is the variance bigger between than within? 
 par(mfrow=c(1,1))
-plot(TreeBasalA_m2~Landuse.x, data= Total.ecosystem.carbon)
-plot(No.trees_m2~Landuse.x, data= Total.ecosystem.carbon)
+plot(TreeBM.kg_m2~landuse, data= Variables)
+plot(No.trees_m2~landuse, data= Variables)
 
 # Tree basal area and landuse 1. per Region 
-Tree.basal.area <- lm(TreeBasalA_m2~factor(Landuse), data= Total.ecosystem.carbon)
+Tree.basal.area <- lm(TreeBM.kg_m2~factor(landuse), data= Variables)
 anova(Tree.basal.area) # Look at the F- value, quite high, and the P value for the F-test is significant. 
 summary(Tree.basal.area) # Not look at the P value here - because this is for the t-test!! Look at the Adjusted R-squared value (0.3597), and the difference between the estimates: Wild= 0.0087, Pasture = 0.0087+0.068 = 0.076, quite a difference -> use this if plotting the values.. 
 par(mfrow=c(2,2))
 plot(Tree.basal.area)
 TukeyHSD(aov(Tree.basal.area)) # Post Hoc test to look at the difference between the variables, not important when I only have to variables, I get the same information from summary.. 
 
-tapply(Total.ecosystem.carbon$TreeBasalA_m2, Total.ecosystem.carbon$Landuse, mean)
+tapply(Variables$TreeBM.kg_m2, Variables$landuse, mean)
 
-# Testing if correlated per block.. 
-Tree.BA <- lm(Total.basal.area_m2~factor(landuse), data=Tree.carbon)
-summary(Tree.BA) # Still a correlation, but less significant, lower r-value.. 
-
-Tree.no <- lm(No.trees_m2~factor(landuse),data=Tree.carbon)
-summary(Tree.no) # Quite the same as at regional level actually! 
-
-# Number of trees and landuse 
-Number.of.trees <- lm(No.trees_m2~factor(Landuse), data= Total.ecosystem.carbon)
-anova(Number.of.trees)
-summary(Number.of.trees)
-par(mfrow=c(2,2))
-plot(Number.of.trees)
-TukeyHSD(aov(Number.of.trees))
-
-# Landuse and correlation with other variables 
-MAP <- lm(MAP.mm_yr~factor(Landuse.x), data= Total.ecosystem.carbon)
+# Other variables
+MAP <- lm(MAP.mm_yr~factor(landuse), data= Variables)
 summary(MAP)
-Clay <- lm(Clay~factor(Landuse.x), data= Total.ecosystem.carbon)
+Clay <- lm(Clay.pip.per~factor(landuse), data= Variables)
 summary(Clay)
-Last.fire <- lm(Last_fire.yr~factor(Landuse.x), data= Total.ecosystem.carbon)
+Sand <- lm(Sand.pip.per~factor(landuse), data= Variables)
+summary(Clay)
+Last.fire <- lm(Last.fire_yr~factor(landuse), data= Variables)
 summary(Last.fire)
-Fire.freq <- lm(Fire_frequency.2000_2017~factor(Landuse.x), data= Total.ecosystem.carbon)
+Fire.freq <- lm(Fire_frequency.2000_2017~factor(landuse), data= Variables)
 summary(Fire.freq)
+Small.trees <- lm(No.small.trees~factor(landuse), data= Variables)
+summary(Small.trees)
+Large.trees <- lm(No.large.trees~factor(landuse), data= Variables)
+summary(Large.trees)
 
 
          
+### Data modelling/ analysis ####
+
+library(nlme)
+library(lme4)
+library(glmmADMB) 
+library(piecewiseSEM)
+library(MuMIn) # to make "model.sel()" of different models 
+
+# About mixed effect models (nlme package)
+# REML = restricted maximum likelihood estimation 
+# Use REML= F when looking at the fixed effects 
+# Use REML = T when looking at the random effects 
+# I have region and block.ID as random effects 
+TreeFire<-lmer(Biomass.kg.per.tree~ flanduse+N.non+Fire.freq+ annual.precip.mm2015_2017+
+                 flanduse:N.non+ N.non:Fire.freq+ N.non:annual.precip.mm2015_2017+
+                 (1|farea/fblock.id), data = Philtrees5, REML=T)
