@@ -154,14 +154,10 @@ Block.Eco.C <- read.csv("Ecosystem carbon/Ecosystem.Carbon.csv", head=T)
 levels(Block.Eco.C$Carbon.pool)
 
 # Rename the Carbon pool names 
-levels(Block.Eco.C$Carbon.pool)[levels(Block.Eco.C$Carbon.pool)=="TreeC.kg_m2"] <- "WoodyC"
-levels(Block.Eco.C$Carbon.pool)[levels(Block.Eco.C$Carbon.pool)=="HerbC.kg_m2"] <- "HerbC"
-levels(Block.Eco.C$Carbon.pool)[levels(Block.Eco.C$Carbon.pool)=="DWC.kg_m2"] <- "DWC"
-levels(Block.Eco.C$Carbon.pool)[levels(Block.Eco.C$Carbon.pool)=="SoilAC.kg_m2"] <- "SoilCAHor"
-levels(Block.Eco.C$Carbon.pool)[levels(Block.Eco.C$Carbon.pool)=="SoilMC.kg_m2"] <- "SoilCMinHor"
-
-Block.Eco.C$Carbon.pool<- factor(Block.Eco.C$Carbon.pool, levels = c("WoodyC","HerbC", "DWC","SoilCAHor","SoilCMinHor"))
+Block.Eco.C$Carbon.pool<- factor(Block.Eco.C$Carbon.pool, levels = c("TreeC.kg_m2","HerbC.kg_m2", "DWC.kg_m2","SoilAC.kg_m2","SoilMC.kg_m2"))
 Block.Eco.C$Region<- factor(Block.Eco.C$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+
+levels(Block.Eco.C$Carbon.pool) <- c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon")
 
 library(ggplot2)
 library(dplyr)
@@ -188,11 +184,11 @@ EcosystemC.plot1 + xlab("Region") +  ylab(expression(paste("Ecosystem Carbon (kg
   geom_point(size = 3, shape=20,stroke=2, na.rm=T)  + 
   geom_errorbar(stat = "identity",width=.4,lwd=1.1,show.legend=F, na.rm=T) +
   theme_bw() + Lines_gone +  
-  scale_color_manual(legend_titleCarbon, breaks = c("WoodyC", "HerbC","DWC","SoilCAHor","SoilCMinHor"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4"))
+  scale_color_manual(legend_titleCarbon, breaks = c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4"))
 
-#ggsave("Ecosystem carbon/Figures/EcoC.plot.png",
-#       width= 25, height = 15,units ="cm",bg ="transparent",
-#       dpi = 600, limitsize = TRUE)
+ggsave("Ecosystem carbon/Figures/EcoC.plot.png",
+      width= 25, height = 15,units ="cm",bg ="transparent",
+      dpi = 600, limitsize = TRUE)
 
 #ylab(expression(paste("Aboveground Carbon (g", m^-2,")")))
 
@@ -203,7 +199,7 @@ EcosystemC.bar1 +
   geom_errorbar(width=0.6,lwd=0.5,position=position_dodge(width=0.9),show.legend=F) +
   geom_bar(stat="identity", position="dodge",na.rm=T) + 
   theme_bw() + Lines_gone  + xlab("Region") + ylab(expression(paste("Ecosystem Carbon (kg", m^-2,")"))) + 
-  scale_fill_manual(breaks = c("WoodyC", "HerbC","DWC","SoilCAHor","SoilCMinHor"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) 
+  scale_fill_manual(breaks = c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) 
 
 # Bar - stacked 
 EcosystemC.bar2 <- ggplot(data = Block.Eco.C, aes(x=Region,y=C.amount,ymin=C.amount-SE.C.amount, ymax=C.amount+SE.C.amount, fill=factor(Carbon.pool)))
@@ -212,7 +208,7 @@ EcosystemC.bar2 +
   geom_bar(stat="identity", position="stack",width = 0.7,na.rm=T) +
   theme_bw() + Lines_gone  + 
   xlab("Region") + ylab(expression(paste("Ecosystem Carbon (kg", m^-2,")"))) + 
-  scale_fill_manual(breaks = c("WoodyC", "HerbC","DWC","SoilCAHor","SoilCMinHor"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) 
+  scale_fill_manual(breaks = c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) 
 
 ggsave("Ecosystem carbon/Figures/EcoC.Stacked.png",
        width= 25, height = 15,units ="cm",bg ="transparent",
@@ -229,7 +225,7 @@ EcosystemC.MAP + xlab(expression(paste("MAP (mm", yr^-1,")")))+ ylab(expression(
   geom_errorbar(stat = "identity",width=25,lwd=1.1,show.legend=F, na.rm=T) + 
   geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  +
   scale_shape_manual(legend_titleLAND,values=c(16,0)) +
-  scale_color_manual(legend_titleCarbon, breaks = c("WoodyC", "HerbC","DWC","SoilCAHor","SoilCMinHor"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) + 
+  scale_color_manual(legend_titleCarbon, breaks = c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) + 
   theme_bw() + Lines_gone
 
 ggsave("Ecosystem carbon/Figures/EcoC.MAP.png",
@@ -248,7 +244,7 @@ EcosystemC.Soil.clay  + xlab("Clay (%)") + ylab(expression(paste("Ecosystem Carb
   geom_errorbar(stat = "identity",width=3,lwd=1.1,show.legend=F, na.rm=T) +
   geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
   scale_shape_manual(legend_titleLAND,values=c(16,0)) +
-  scale_color_manual(legend_titleCarbon, breaks = c("WoodyC", "HerbC","DWC","SoilCAHor","SoilCMinHor"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) + 
+  scale_color_manual(legend_titleCarbon, breaks = c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) + 
   theme_bw() + Lines_gone 
 
 ggsave("Ecosystem carbon/Figures/EcoC.Clay.png",
@@ -264,12 +260,15 @@ EcosystemC.Soil.sand  + xlab("Sand (%)") + ylab(expression(paste("Ecosystem Carb
   geom_errorbar(stat = "identity",width=3,lwd=1.1,show.legend=F, na.rm=T) +
   geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
   scale_shape_manual(legend_titleLAND,values=c(16,0)) +
-  scale_color_manual(legend_titleCarbon, breaks = c("WoodyC", "HerbC","DWC","SoilCAHor","SoilCMinHor"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) + 
+  scale_color_manual(legend_titleCarbon, breaks = c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) + 
   theme_bw() + Lines_gone 
 
 ggsave("Ecosystem carbon/Figures/EcoC.Sand.png",
        width= 25, height = 15,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
+
+summary(lm(C.amount~Sand.pip.per+ Sand.pip.per:MAP.mm_yr,data=Herbaceous))
+
 
 # Fire and Ecosystem Carbon 
 # year of last fire 
@@ -280,7 +279,7 @@ EcosystemC.Fire  + xlab("Year of last fire") + ylab(expression(paste("Carbon poo
   geom_errorbar(stat = "identity",width=2,lwd=1.1,show.legend=F, na.rm=T) +
   geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
   scale_shape_manual(legend_titleLAND,values=c(16,0)) +
-  scale_color_manual(legend_titleCarbon, breaks = c("WoodyC", "HerbC","DWC","SoilCAHor","SoilCMinHor"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) + 
+  scale_color_manual(legend_titleCarbon, breaks = c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) + 
   theme_bw() + Lines_gone 
 
 ggsave("Ecosystem carbon/Figures/EcoC.Year.of.last.fire.png",
@@ -295,7 +294,7 @@ EcosystemC.Fire  + xlab("Fire frequency") + ylab(expression(paste("Carbon pool (
   geom_errorbar(stat = "identity",width=1.5,lwd=1.1,show.legend=F, na.rm=T) +
   geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
   scale_shape_manual(legend_titleLAND,values=c(16,0)) +
-  scale_color_manual(legend_titleCarbon, breaks = c("WoodyC", "HerbC","DWC","SoilCAHor","SoilCMinHor"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) + 
+  scale_color_manual(legend_titleCarbon, breaks = c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) + 
   theme_bw() + Lines_gone 
 
 ggsave("Ecosystem carbon/Figures/EcoC.Fire.freq.png",
@@ -344,17 +343,30 @@ EcosystemC.treeBM  + xlab("Tree Biomass (g/m2)") + ylab("Aboveground Carbon (g/m
 Soil.carbon <- Block.Eco.C %>%
   filter(Carbon.pool == "SoilCAHor" | Carbon.pool== "SoilCMinHor")
 Soil.carbon <- arrange(Soil.carbon,Region)
+Soil.carbon <- droplevels(Soil.carbon)
 
-names(Soil.carbon)
+Soil.min<- Block.Eco.C %>%
+  filter(Carbon.pool== "Soil Min-horizon")
 
+Tree.size.data <- gather(Soil.carbon, Tree.size,Count, No.small.trees:No.large.trees,factor_key=TRUE)
+
+Tree.size.data <- Tree.size.data[
+  order(Tree.size.data[,2], Tree.size.data[,3] ),
+  ]
+
+levels(Tree.size.data$Tree.size) <- c("Small trees","Large trees")
+levels(Tree.size.data$Carbon.pool) <- c("Soil A-horizon","Soil Min-horizon")
+levels(Soil.carbon$Carbon.pool) <- c("Soil A-horizon","Soil Min-horizon")
+
+# Total tree biomass
 SoilC.tree.biomass <- ggplot(data = Soil.carbon, aes(x = TreeBM.kg_m2,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool, shape= landuse))
 
 SoilC.tree.biomass  + xlab(expression(paste("Tree Biomass (kg", m^-2,")"))) + ylab(expression(paste("Carbon pool (kg", m^-2,")")))  + 
-  facet_wrap(~Carbon.pool,scales = "free") +
-  geom_errorbar(stat = "identity",width=0.01,lwd=1.1,show.legend=F, na.rm=T) +
+  facet_wrap(~Carbon.pool,ncol=1,scales = "free") +
+  geom_errorbar(stat = "identity",width=0.05,lwd=1.1,show.legend=F, na.rm=T) +
   geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
   scale_shape_manual(legend_titleLAND,values=c(16,0)) +
-  scale_color_manual(legend_titleCarbon, breaks = c("SoilCAHor","SoilCMinHor"),values=c("salmon4","burlywood4")) + 
+  scale_color_manual(legend_titleCarbon, breaks = c("Soil A-horizon","Soil Min-horizon"),values=c("salmon4","burlywood4")) + 
   theme_bw() + Lines_gone
 
 ggsave("Ecosystem carbon/Figures/SoilC.TreeBM.png",
@@ -363,33 +375,20 @@ ggsave("Ecosystem carbon/Figures/SoilC.TreeBM.png",
 
 # Size of trees 
 # Small trees 
-SoilC.Small.Trees <- ggplot(data = Soil.carbon,aes(x=No.small.trees,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool))
+SoilC.Tree.Size <- ggplot(data = Tree.size.data, aes(x=Count,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool, group= Tree.size, shape= landuse))
 
-SoilC.Small.Trees +
-  xlab("Number of small trees") + ylab(expression(paste("Carbon pool (kg", m^-2,")"))) + 
-  facet_wrap(~Carbon.pool,scales = "free") +
-  facet_wrap(~Carbon.pool,scales = "free") +
-  geom_errorbar(stat = "identity",width=0.3,lwd=1.1,show.legend=F, na.rm=T) +
+SoilC.Tree.Size +
+  xlab("# Trees") + ylab(expression(paste("Carbon pool (kg", m^-2,")"))) + 
+  facet_wrap(~Tree.size + Carbon.pool, ncol=2,scales='fixed') + 
+  geom_errorbar(stat = "identity",width=1,lwd=1.1,show.legend=F, na.rm=T) +
   geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
   scale_shape_manual(legend_titleLAND,values=c(16,0)) +
-  scale_color_manual(legend_titleCarbon, breaks = c("SoilCAHor","SoilCMinHor"),values=c("salmon4","burlywood4")) + 
+  scale_color_manual(legend_titleCarbon, breaks = c("Soil A-horizon","Soil Min-horizon"),values=c("salmon4","burlywood4")) + 
   theme_bw() + Lines_gone
 
-ggsave("Ecosystem carbon/Figures/SoilC.SmallTrees.png",
+ggsave("Ecosystem carbon/Figures/SoilC.TreeSize.png",
        width= 25, height = 15,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
-# Large trees 
-SoilC.Large.Trees <- ggplot(data = Soil.carbon,aes(x=No.large.trees,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool))
-
-SoilC.Large.Trees +
-  xlab("Number of large trees") + ylab(expression(paste("Carbon pool (kg", m^-2,")"))) + 
-  facet_wrap(~Carbon.pool,scales = "free") +
-  facet_wrap(~Carbon.pool,scales = "free") +
-  geom_errorbar(stat = "identity",width=0.3,lwd=1.1,show.legend=F, na.rm=T) +
-  geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
-  scale_shape_manual(legend_titleLAND,values=c(16,0)) +
-  scale_color_manual(legend_titleCarbon, breaks = c("SoilCAHor","SoilCMinHor"),values=c("salmon4","burlywood4")) + 
-  theme_bw() + Lines_gone
 
 # Number of trees and SOIL CARBON
 # Difficult to incorporate this relationship - Really scewed. Mwantimba has highest number of trees... 
@@ -543,9 +542,64 @@ library(MuMIn) # to make "model.sel()" of different models
 
 # About mixed effect models (nlme package)
 # REML = restricted maximum likelihood estimation 
+# Fixed effects influence the mean of y, while Random effects influence the variance of y 
 # Use REML= F when looking at the fixed effects 
-# Use REML = T when looking at the random effects 
+# Use REML = T when looking at the random effects, and the parameter estimates
 # I have region and block.ID as random effects 
-TreeFire<-lmer(Biomass.kg.per.tree~ flanduse+N.non+Fire.freq+ annual.precip.mm2015_2017+
-                 flanduse:N.non+ N.non:Fire.freq+ N.non:annual.precip.mm2015_2017+
-                 (1|farea/fblock.id), data = Philtrees5, REML=T)
+# Choose the model with the smallest AIC value 
+
+Block.Eco.C$Block.ID <- as.factor(Block.Eco.C$Block.ID)
+str(Block.Eco.C)
+Soil.min<- Block.Eco.C %>%
+  filter(Carbon.pool== "Soil Min-horizon")
+Soil.Ahor<- Block.Eco.C %>%
+  filter(Carbon.pool== "Soil A-horizon")
+DW<- Block.Eco.C %>%
+  filter(Carbon.pool== "Dead wood")
+Woody<- Block.Eco.C %>%
+  filter(Carbon.pool== "Woody")
+Herbaceous<- Block.Eco.C %>%
+  filter(Carbon.pool== "Herbaceous")
+
+# Testing my first hypothesis 1 where I think MAP has an effect on C, however, this relationship can be mediated by soil texture. 
+
+# Soil mineral horizon 
+Soil.min.H11<-lmer(C.amount~ MAP.mm_yr + (1|Region), data = Soil.min, REML=F)
+Soil.min.H12<-lmer(C.amount~ MAP.mm_yr + MAP.mm_yr:Sand.pip.per + (1|Region), data = Soil.min, REML=F)
+Soil.min.H13<-lmer(C.amount~ MAP.mm_yr*Sand.pip.per + (1|Region), data = Soil.min, REML=F)
+
+model.sel(Soil.min.H11,Soil.min.H12,Soil.min.H13)
+# AIC H11: 76.9
+# AIC H12 and H13: 72.8 -> The best models 
+
+Soil.min.H12<-lmer(C.amount~ MAP.mm_yr + MAP.mm_yr:Sand.pip.per + (1|Region), data = Soil.min, REML=T)
+Soil.min.H13<-lmer(C.amount~ MAP.mm_yr*Sand.pip.per + (1|Region), data = Soil.min, REML=T)
+
+summary(Soil.min.H12)
+summary(Soil.min.H13)
+hist(resid(Soil.min.H12)) # normally distriuted - a bit sqewed towards right 
+hist(resid(Soil.min.H13)) # normally distriuted - a bit sqewed towards right 
+anova(Soil.min.H12) # Due to high F value: MAP:Sand is very strong. MAP almost 1 
+anova(Soil.min.H13) # Sand is strong, and MAP:sand 
+AIC(Soil.min.H12) # 102.052 -> The best model 
+AIC(Soil.min.H13) # 108.1397
+
+# Soil A-horizon: The best model is taking MAP and the relationship between MAP:Sand into account
+Soil.A.H11<-lmer(C.amount~ MAP.mm_yr + (1|Region), data = Soil.Ahor, REML=F)
+Soil.A.H12<-lmer(C.amount~ MAP.mm_yr + MAP.mm_yr:Sand.pip.per + (1|Region), data = Soil.Ahor, REML=F)
+Soil.A.H13<-lmer(C.amount~ MAP.mm_yr*Sand.pip.per + (1|Region), data = Soil.Ahor, REML=F)
+Soil.A.H14<-lmer(C.amount~ Sand.pip.per + (1|Region), data = Soil.Ahor, REML=F)
+Soil.A.H15<-lmer(C.amount~ Sand.pip.per + MAP.mm_yr:Sand.pip.per + (1|Region), data = Soil.Ahor, REML=F)
+
+model.sel(Soil.A.H11,Soil.A.H12,Soil.A.H13,Soil.A.H14,Soil.A.H15)
+# AIC: H14 < H15 < H11 < H12 < H13 
+drop1(Soil.A.H15, test="Chi")
+
+Soil.A.H15<-lmer(C.amount~ Sand.pip.per + MAP.mm_yr:Sand.pip.per + (1|Region), data = Soil.Ahor, REML=T)
+
+summary(Soil.A.H15)
+hist(resid(Soil.A.H15)) # normally distriuted - a bit sqewed towards right 
+anova(Soil.A.H15, Soil.A.H14) # Due to high F value: Sand is very strong, MAP:Sand is 1.6 
+AIC(Soil.A.H15) # AIC: 30.42954
+
+

@@ -4,10 +4,19 @@
 total.soil.data<- read.csv("Ecosystem Carbon/Soil.data/Total.Soil.Data.csv", head = TRUE)
 names(total.soil.data)
 
-compare <- read.csv("Ecosystem Carbon/Soil.data/TBS.NMBU.csv", head=T)
-
-summary(lm(C.per.TBS~C.per.NMBU, data=compare))
+# Comparing data from NTNU with data from NMBU
+compare1 <- read.csv("Ecosystem Carbon/Soil.data/TBS.NMBU.csv", head=T)
+summary(lm(C.per.TBS~C.per.NMBU, data=compare1))
 cor.test(compare$C.per.TBS,compare$C.per.NMBU, method=c("pearson"))
+
+# Comparing my data with Stuart`s data 
+compare2 <- read.csv("Ecosystem Carbon/Soil.data/C.Stu.Vilde.csv", head=T)
+str(compare2)
+
+compare2$Soil.C.Vilde <- as.numeric(compare2$Soil.C.Vilde)
+
+summary(lm(Soil.C.Vilde~Soil.C.Stu, data=compare2))
+cor.test(compare2$Soil.C.Vilde,compare2$Soil.C.Stu, method=c("pearson"))
 
 # Want to have a table with SOIL TEXTURE (clay, silt and sand) and chemical traits for the analysis I did - now have data from Anders and Stu also - not included here..  
 # First, reorganizing and removing collumns 
