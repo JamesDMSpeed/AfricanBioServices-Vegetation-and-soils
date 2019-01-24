@@ -12,6 +12,7 @@ library(plyr)
 #library(xlsx)
 library(ggplot2)
 library(tidyr)
+library(DataCombine)
 
 # Data
 Philtrees<-read.csv(file="Ecosystem carbon/Tree.data/Tree.data.Seregenti.PhilipoBio.csv", sep=",",header=TRUE)
@@ -86,9 +87,9 @@ write.csv(Vildetrees,file="Ecosystem carbon/Tree.data/Vildetrees.csv")
 # Aggregate carbon per block
 
 Vildetrees <- read.csv(file="Ecosystem carbon/Tree.data/Vildetrees.csv", head=T)
-Vildetrees$area<- factor(Vildetrees$area, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
-
 names(Vildetrees)
+
+Vildetrees$area<- factor(Vildetrees$area, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera", "Park Nyigoti","Ikorongo"))
 
 Tree.carbon <- cbind((aggregate(area.m2~block+area,Vildetrees,mean)),
                      (aggregate(Carbon.g.tree~block+area, Vildetrees,sum))[3],
@@ -115,8 +116,6 @@ names(Tree.carbon)
 levels(Tree.carbon$Region)
 
 # Missing one row for Seronera - want to add this as a NA row. 
-library(DataCombine)
-
 New.row <- c(4,"Seronera",2500,NA,NA,NA,NA,NA,NA,855.6199048,NA,NA,NA,NA,NA)
 Tree.carbon <- InsertRow(Tree.carbon,New.row,20)
 
@@ -144,7 +143,7 @@ Tree.carbon.Vilde <- Tree.carbon.Vilde[
 
 #2. version - easy here. 
 Tree.carbon.Vilde$Block.ID <- as.numeric(c(1:28))
-names(Tree.carbon)
+names(Tree.carbon.Vilde)
 
 write.csv(Tree.carbon.Vilde,file="Ecosystem carbon/Tree.data/Tree.Carbon.Vilde.csv") # for further use 
 
@@ -192,7 +191,7 @@ write.csv(TreeC.Region, file="Ecosystem carbon/Tree.data/TreeC.Region.csv")
 Tree.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.Carbon.Vilde.csv", head=T)
 Vildetrees <- read.csv(file="Ecosystem Carbon/Tree.data/Vildetrees.csv",head=T)
 # Relevel before making plots
-Tree.carbon$Region<- factor(Tree.carbon$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
+Tree.carbon$Region<- factor(Tree.carbon$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera", "Park Nyigoti","Ikorongo"))
 
 Vildetrees$area<- factor(Vildetrees$area, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera", "Park Nyigoti","Ikorongo"))
 
@@ -202,7 +201,7 @@ plot(No.trees_m2~landuse,
      ylab = "Number of Trees",
      data=Tree.carbon)
 
-plot(TreeC_m2~landuse,
+plot(TreeC.kg_m2~landuse,
      xlab = "Land Use",
      ylab = "",
      data=Tree.carbon)
@@ -228,46 +227,65 @@ AllTrees<- Vildetrees %>%
   select(Biomass.kg.per.tree,area,block,Block.ID) %>%
   group_by(area,block,Block.ID) %>%
   tally()
-AllTrees <- as.data.frame(AllTrees)
 
-SmallTrees <- Vildetrees %>%
+AllTrees <- as.data.frame(AllTrees)
+ID <- AllTrees[,c(1:3)]
+
+# Select by biomass 
+SmallTreesBM <- Vildetrees %>%
+  filter(Biomass.kg.per.tree<=2) %>%
+  select(Biomass.kg.per.tree,area,block,Block.ID) %>%
+  group_by(area,block,Block.ID) 
+
+SmallTreesBM <- as.data.frame(SmallTreesBM)
+
+LargeTreesBM <- Vildetrees %>%
+  filter(Biomass.kg.per.tree>2) %>%
+  select(Biomass.kg.per.tree,area,block,Block.ID) %>%
+  group_by(area,block,Block.ID) 
+
+LargeTreesBM <- as.data.frame(LargeTreesBM)
+
+# Df with number of small and number of large 
+SmallTreesNo <- Vildetrees %>%
   filter(Biomass.kg.per.tree<=2) %>%
   select(Biomass.kg.per.tree,area,block,Block.ID) %>%
   group_by(area,block,Block.ID) %>%
   tally()
-SmallTrees <- as.data.frame(SmallTrees)
 
-LargeTrees <- Vildetrees %>%
+SmallTreesNo <- as.data.frame(SmallTreesNo)
+
+LargeTreesNo <- Vildetrees %>%
   filter(Biomass.kg.per.tree>2) %>%
   select(Biomass.kg.per.tree,area,block,Block.ID) %>%
   group_by(area,block,Block.ID) %>%
   tally()
-LargeTrees <- as.data.frame(LargeTrees)
 
-ID <- AllTrees[,c(1:3)]
-SmallTrees <- full_join(ID,SmallTrees)
-LargeTrees<- full_join(ID,LargeTrees)
+LargeTreesNo <- as.data.frame(LargeTreesNo)
 
-Tree.size <- cbind(SmallTrees,LargeTrees[4])
-names(Tree.size)
-colnames(Tree.size) <- c("area", "block", "Block.ID", "small", "large")  
+SmallTreesNo <- full_join(ID,SmallTreesNo)
+LargeTreesNo<- full_join(ID,LargeTreesNo)
+
+Tree.size.no <- cbind(SmallTreesNo,LargeTreesNo[4])
+names(Tree.size.no)
+colnames(Tree.size.no) <- c("area", "block", "Block.ID", "small", "large")  
 
 # Make a new long data set based on mean tree BM size 
 
-Tree.size.long <- gather(Tree.size,Size,Count, small:large,factor_key=TRUE)
+Tree.size.no.long <- gather(Tree.size.no,Size,Count, small:large,factor_key=TRUE)
 
 New.row1 <- c("Seronera",4,NA,"small",NA)
 New.row2 <- c("Seronera",4,NA,"large",NA)
-Tree.size.long <- InsertRow(Tree.size.long,New.row1,20)
-Tree.size.long <- InsertRow(Tree.size.long,New.row2,48)
+Tree.size.no.long <- InsertRow(Tree.size.no.long,New.row1,20)
+Tree.size.no.long <- InsertRow(Tree.size.no.long,New.row2,48)
 
-Tree.size.long$Block.ID <- as.numeric(c(1:28,1:28))
+Tree.size.no.long$Block.ID <- as.numeric(c(1:28,1:28))
 
-Tree.size.long <- Tree.size.long[
-  order(Tree.size.long[,1], Tree.size.long[,2] ),
+Tree.size.no.long <- Tree.size.no.long[
+  order(Tree.size.no.long[,1], Tree.size.no.long[,2] ),
   ]
 
-write.csv(Tree.size.long,file="Ecosystem carbon/Tree.data/Tree.size.csv")
+write.csv(Tree.size.no.long,file="Ecosystem carbon/Tree.data/Tree.size.csv")
 
 # Density distribution tree size from Philipo
 

@@ -11,9 +11,15 @@ library(plyr)
 library(dplyr)
 
 # Fixing the data for further processing 
+# Soil texture 
+levels(Soil.texture$Region)
+Soil.texture$Region<- factor(Soil.texture$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+Soil.texture <- Soil.texture[,c(1:8)]
+Soil.texture <- droplevels(Soil.texture)
+Soil.texture$Class <- c("SaClLo","SaLo","SaClLo","SaClLo","Cl","Cl","Cl","ClLo","Cl","SaCl","ClLo","SaClLo","SaClLo","SaClLo","SaClLo","SaLo","SaLo","SaClLo","SaClLo","SaClLo","ClLo","Cl","ClLo","Cl","Cl","ClLo","ClLo","Cl") 
+
 # Tree data
 Tree.carbon$Region <- as.character(Tree.carbon$Region)
-Tree.carbon$Region[Tree.carbon$Region == "SNP handejega"] <- "Handajega"
 
 Tree.size.small <- Tree.size %>%
   filter(Size== "small")
@@ -58,21 +64,79 @@ names(Soil.texture)
 names(Deadwood.carbon)
 names(Tree.size)
 Ecosystem.Carbon1a <- merge(Tree.carbon[,c(18,2,4,3,6,8,7,14:17)],Herbaceous.carbon[,c(3,11)],all.x = TRUE,by="Block.ID")
-Ecosystem.Carbon1b <- merge(Ecosystem.Carbon1a, Soil.texture[,c(5:8)],all.x=TRUE, by="Block.ID")
+Ecosystem.Carbon1b <- merge(Ecosystem.Carbon1a, Soil.texture[,c(5:9)],all.x=TRUE, by="Block.ID")
 Ecosystem.Carbon1c <- merge(Ecosystem.Carbon1b,Tree.size[,c(1,4:5)],all.x=TRUE, by="Block.ID")
 
 Ecosystem.Carbon2a <- merge(Soil.carbon,Deadwood.carbon[,c(4:6)],all.x = TRUE,by="Block.ID")
-Ecosystem.Carbon2b <- merge(Ecosystem.Carbon2a,Soil.texture[,c(5:8)],all.x = TRUE,by="Block.ID")
+Ecosystem.Carbon2b <- merge(Ecosystem.Carbon2a,Soil.texture[,c(5:9)],all.x = TRUE,by="Block.ID")
 Ecosystem.Carbon2c <- merge(Ecosystem.Carbon2b,Ecosystem.Carbon1c[,c(1,8,10,11)],all.x = TRUE,by="Block.ID")
 Ecosystem.Carbon2d <- merge(Ecosystem.Carbon2c,Tree.size[,c(1,4:5)],all.x=TRUE, by="Block.ID")
 
 names(Ecosystem.Carbon1c)
 names(Ecosystem.Carbon2d)
-Ecosystem.CHerbTree <- Ecosystem.Carbon1c[,c(1:7,13:15,8,10,11,16,17,9,12)]
-Ecosystem.CSoilDW <- Ecosystem.Carbon2d[,c(1:7,14:21,8,10,12)]
+Ecosystem.CHerbTree <- Ecosystem.Carbon1c[,c(1:7,13:16,8,10,11,17,18,9,12)]
+Ecosystem.CSoilDW <- Ecosystem.Carbon2d[,c(1:7,14:22,8,10,12)]
 SE.Ecosystem.CSoilDW <- Ecosystem.Carbon2d[,c(1:3,9,11,13)]
 
-# Make the data into a long format instead of a wide
+#### Creating a DF for the poster ####
+
+# Belowground C 
+
+Belowground.C <- Ecosystem.CSoilDW
+Belowground.C$MAP <- round(Belowground.C$MAP, digits=2)
+
+Belowground.C$MAP[Belowground.C$MAP=="717.36"] <- "736.10"
+Belowground.C$MAP[Belowground.C$MAP=="754.84"] <- "736.10"
+Belowground.C$MAP[Belowground.C$MAP=="736.10"] <- "704.07"
+Belowground.C$MAP[Belowground.C$MAP=="672.04"] <- "704.07"
+Belowground.C$MAP[Belowground.C$MAP=="1295.06"] <- "1287.16"
+Belowground.C$MAP[Belowground.C$MAP=="1279.26"] <- "1287.16"
+
+Deadwood.C <- Belowground.C[,c(1:5,19)]
+
+Belowground.C$BelowgroundC <- Belowground.C$SoilAC.kg_m2 + Belowground.C$SoilMC.kg_m2
+# Checking for significans of Clay, MAP and Lanuse 
+summary(lm(BelowgroundC~Clay.pip.per, data=Belowground.C))
+summary(lm(BelowgroundC~MAP:Clay.pip.per, data=Belowground.C))
+summary(lm(BelowgroundC~Landuse:Clay.pip.per, data=Belowground.C))
+
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+BelowgroundC <- cbind(aggregate(BelowgroundC~Region+MAP+Landuse,mean,data=Belowground.C),
+                      aggregate(BelowgroundC~Region+MAP+Landuse,SE,data=Belowground.C)[4])
+colnames(BelowgroundC) <- c("Region","MAP.mm_yr","landuse","BelowgroundC","SE.BelowgroundC")
+
+# Abovground C 
+Aboveground.C <- Ecosystem.CHerbTree
+names(Aboveground.C)
+Aboveground.C$MAP.mm_yr <- round(Aboveground.C$MAP.mm_yr, digits=2)
+
+Aboveground.C$MAP.mm_yr[Aboveground.C$MAP.mm_yr=="717.36"] <- "736.10"
+Aboveground.C$MAP.mm_yr[Aboveground.C$MAP.mm_yr=="754.84"] <- "736.10"
+Aboveground.C$MAP.mm_yr[Aboveground.C$MAP.mm_yr=="736.10"] <- "704.07"
+Aboveground.C$MAP.mm_yr[Aboveground.C$MAP.mm_yr=="672.04"] <- "704.07"
+Aboveground.C$MAP.mm_yr[Aboveground.C$MAP.mm_yr=="1295.06"] <- "1287.16"
+Aboveground.C$MAP.mm_yr[Aboveground.C$MAP.mm_yr=="1279.26"] <- "1287.16"
+
+# Creating a new collumn with all of aboveground C 
+Aboveground.C$AbovegroundC <- rowSums(Aboveground.C[,c("HerbC.kg_m2", "TreeC.kg_m2")], na.rm=TRUE)
+Aboveground.C$AbovegroundC <- Aboveground.C$AbovegroundC + Deadwood.C$DWC.kg_m2
+
+AbovegroundC <- cbind(aggregate(AbovegroundC~Region+MAP.mm_yr+landuse,mean,data=Aboveground.C),
+                          aggregate(AbovegroundC~Region+MAP.mm_yr+landuse,SE,data=Aboveground.C)[4])
+colnames(AbovegroundC) <- c("Region","MAP.mm_yr","landuse","AbovegroundC","SE.AbovegroundC")
+
+Above_below.C <- cbind(AbovegroundC,BelowgroundC[,c(4,5)])
+
+AboveBelow <- Above_below.C[,c(1:4,6)]
+SE.AboveBelow <- Above_below.C[,c(1:3,5,7)]
+
+AboveBelow <- gather(AboveBelow, Carbon.pool,C.amount, AbovegroundC,BelowgroundC,factor_key=TRUE)
+SE.AboveBelow <- gather(SE.AboveBelow, Carbon.pool,SE.C.amount, SE.AbovegroundC,SE.BelowgroundC,factor_key=TRUE)
+AboveBelow <- cbind(AboveBelow,SE.AboveBelow[5])
+
+write.csv(AboveBelow,file="Ecosystem carbon/Above_Below.C.csv")
+
+#### Make the data into a long format instead of a wide ####
 data_long.CTreeHerb <- gather(Ecosystem.CHerbTree, Carbon.pool,C.amount, TreeC.kg_m2:HerbC.kg_m2,factor_key=TRUE)
 
 data_long.CSoilDW <- gather(Ecosystem.CSoilDW, Carbon.pool,C.amount, SoilAC.kg_m2:DWC.kg_m2,factor_key=TRUE)
@@ -82,7 +146,7 @@ SE.data_long.CSoilDW <- gather(SE.Ecosystem.CSoilDW, Carbon.pool,C.amount, SE.So
 EcosystemC.SoilDW<- cbind(data_long.CSoilDW,SE.data_long.CSoilDW[5])
 names(EcosystemC.SoilDW)
 names(data_long.CTreeHerb)
-colnames(EcosystemC.SoilDW) <- c("Block.ID","Region","Vilde.block","landuse","MAP.mm_yr","Last.fire_yr","Fire_frequency.2000_2017","Clay.pip.per","Silt.pip.per","Sand.pip.per","Total.basal.area_m2","TreeBM.kg_m2", "No.trees_m2","No.small.trees","No.large.trees","Carbon.pool","C.amount","SE.C.amount")
+colnames(EcosystemC.SoilDW) <- c("Block.ID","Region","Vilde.block","landuse","MAP.mm_yr","Last.fire_yr","Fire_frequency.2000_2017","Clay.pip.per","Silt.pip.per","Sand.pip.per","Class","Total.basal.area_m2","TreeBM.kg_m2", "No.trees_m2","No.small.trees","No.large.trees","Carbon.pool","C.amount","SE.C.amount")
 
 EcosystemC.SoilDW <- EcosystemC.SoilDW[
   order(EcosystemC.SoilDW[,1], EcosystemC.SoilDW[,2] ),
@@ -146,6 +210,68 @@ colnames(Tot.EcosystemCarbon)[colnames(Tot.EcosystemCarbon) == "Landuse.x"] <- "
 Tot.EcosystemCarbon$Climate <- as.factor(c("Dry","Dry","Dry","Dry","Dry","Dry","Dry","Dry","Dry","Dry","Wet","Wet","Wet","Wet","Wet","Wet","Wet","Wet","Wet","Wet","Int-Dry","Int-Dry","Int-Dry","Int-Dry","Int-Dry","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet","Int-Wet"))
 
 write.csv(Tot.EcosystemCarbon,file="Ecosystem carbon/Tot.Ecosystem.Carbon.Region.csv")
+
+#### Plotting for poster ####
+library(ggplot2)
+library(dplyr)
+
+legend_titleLAND <- "Land-use"
+legend_titleCarbon <- "Carbon Pool"
+
+Lines_gone <- theme(panel.grid.major.x = element_blank(),
+                    panel.grid.minor.x = element_blank(),
+                    panel.grid.major.y = element_blank(),
+                    panel.grid.minor.y = element_blank())
+
+Above_Below.C <- read.csv("Ecosystem carbon/Above_Below.C.csv",head=T)
+
+# Remove Seronera from my dataset 
+Above_Below.C <- Above_Below.C %>%
+  filter(Region != "Seronera")
+Above_Below.C <- droplevels(Above_Below.C)
+
+Above_Below.C$Region<- factor(Above_Below.C$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Park Nyigoti","Ikorongo"))
+
+Above <- Above_Below.C %>%
+  filter(Carbon.pool=="AbovegroundC")
+Below <- Above_Below.C %>%
+  filter(Carbon.pool=="BelowgroundC")
+
+# Plot per MAP per Carbon pool 
+Above.plot<- ggplot(data = Above, aes(x=MAP.mm_yr,y=C.amount,group=landuse,fill=landuse))
+
+Above.plot + 
+  geom_bar(stat="identity", position="dodge",na.rm=T) + 
+  theme_bw() + Lines_gone  + 
+  xlab("MAP (mm/year)") + ylab(expression(paste("Carbon (kg", m^-2,")"))) +
+  scale_fill_manual(breaks = c("Pasture","Wild"),values=c("darkolivegreen","darkgoldenrod")) 
+
+Below<- ggplot(data = Below, aes(x=MAP.mm_yr,y=C.amount,group=landuse,fill=landuse))
+
+Below + 
+  geom_bar(stat="identity", position="dodge",na.rm=T) + 
+  theme_bw() + Lines_gone  + 
+  xlab("MAP (mm/year)") + ylab(expression(paste("Carbon (kg", m^-2,")"))) +
+  scale_fill_manual(breaks = c("Pasture","Wild"),values=c("darkolivegreen","darkgoldenrod")) 
+
+# MAP per total ecosystem carbon rather plotted in power point  
+
+# Add a collumn with number of large trees 
+Above_Below.C$No.Large.trees <- c(3,3,10,10,1,1,8,8,10,10,7,7)
+
+# Plot no.large trees and carbon as a barplot 
+Above_Below.C$No.Large.trees <- as.factor(Above_Below.C$No.Large.trees)
+
+Above_Below.Trees<- ggplot(data = Above_Below.C, aes(x=No.Large.trees,y=C.amount,group=Carbon.pool,fill=Carbon.pool,colour=landuse))
+
+Above_Below.Trees + 
+  facet_wrap(~landuse) +
+  geom_bar(stat="identity", position="stack",na.rm=T) + 
+  theme_bw() + Lines_gone  + 
+  xlab("# Large Trees") + ylab(expression(paste("Carbon (kg", m^-2,")"))) +
+  scale_fill_manual(breaks = c("Pasture","Wild"),values=c("salmon4","burlywood4")) 
+
+
 ### Ploting Ecosystem Carbon  #### 
 
 Region.Eco.C <- read.csv("Ecosystem carbon/Tot.Ecosystem.Carbon.Region.csv", head=T)
@@ -201,7 +327,7 @@ EcosystemC.bar1 +
   theme_bw() + Lines_gone  + xlab("Region") + ylab(expression(paste("Ecosystem Carbon (kg", m^-2,")"))) + 
   scale_fill_manual(breaks = c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) 
 
-# Bar - stacked 
+# Bar - stacked per Region 
 EcosystemC.bar2 <- ggplot(data = Block.Eco.C, aes(x=Region,y=C.amount,ymin=C.amount-SE.C.amount, ymax=C.amount+SE.C.amount, fill=factor(Carbon.pool)))
 
 EcosystemC.bar2 + 
@@ -211,6 +337,33 @@ EcosystemC.bar2 +
   scale_fill_manual(breaks = c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) 
 
 ggsave("Ecosystem carbon/Figures/EcoC.Stacked.png",
+       width= 25, height = 15,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
+
+# Bar - stacked per Landuse 
+EcosystemC.bar3 <- ggplot(data = Block.Eco.C, aes(x=landuse,y=C.amount,ymin=C.amount-SE.C.amount, ymax=C.amount+SE.C.amount, fill=factor(Carbon.pool)))
+
+EcosystemC.bar3 + 
+  geom_bar(stat="identity", position="stack",width = 0.5,na.rm=T) +
+  theme_bw() + Lines_gone  +
+  theme(plot.background = element_blank()
+        ,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank() 
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank() 
+        ,axis.text=element_text(size=16)
+        ,axis.title=element_text(size=18)
+        ,legend.text=element_text(size=16)
+        ,legend.title=element_text(size=18)
+        ,strip.background = element_blank()
+        ,strip.text.x =element_text(size=18)) +
+  theme(axis.line = element_line(color = 'black')) + 
+  scale_y_continuous(labels = function(y) y / 10) +
+  xlab("Land-Use") + ylab(expression(paste("Carbon (kg ", m^-2,")"))) + 
+  scale_fill_manual(legend_titleCarbon,breaks = c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) 
+
+ggsave("Ecosystem carbon/Figures/EcoC.Landuse.png",
        width= 25, height = 15,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
 
@@ -239,7 +392,7 @@ ggsave("Ecosystem carbon/Figures/EcoC.MAP.png",
 
 EcosystemC.Soil.clay<- ggplot(data = Block.Eco.C, aes(x = Clay.pip.per,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool, shape= landuse))
 
-EcosystemC.Soil.clay  + xlab("Clay (%)") + ylab(expression(paste("Ecosystem Carbon (kg", m^-2,")"))) +
+EcosystemC.Soil.clay  + xlab("Clay (%)") + ylab(expression(paste("Carbon pool (kg", m^-2,")"))) +
   facet_wrap(~Carbon.pool,scales = "free") +
   geom_errorbar(stat = "identity",width=3,lwd=1.1,show.legend=F, na.rm=T) +
   geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
@@ -253,22 +406,32 @@ ggsave("Ecosystem carbon/Figures/EcoC.Clay.png",
 
 # 2. Sand
 # Negative relationship 
+
 EcosystemC.Soil.sand<- ggplot(data = Block.Eco.C, aes(x = Sand.pip.per,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool, shape= landuse))
 
-EcosystemC.Soil.sand  + xlab("Sand (%)") + ylab(expression(paste("Ecosystem Carbon (kg", m^-2,")"))) +
-  facet_wrap(~Carbon.pool,scales = "free")+
+EcosystemC.Soil.sand  + xlab("Sand (%)") + ylab(expression(paste("Carbon pool (kg", m^-2,")"))) +
+  facet_wrap(~Carbon.pool,scales = "free") + 
   geom_errorbar(stat = "identity",width=3,lwd=1.1,show.legend=F, na.rm=T) +
   geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
   scale_shape_manual(legend_titleLAND,values=c(16,0)) +
-  scale_color_manual(legend_titleCarbon, breaks = c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) + 
+  scale_color_manual(legend_titleCarbon, breaks = c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) +
   theme_bw() + Lines_gone 
+
+# Experimenting with a line of MAP in the plot.. 
+# Rain <- aggregate(MAP.mm_yr~Region+Block.ID+Sand.pip.per,mean,data=Block.Eco.C)
+# plot(MAP.mm_yr~Sand.pip.per,data=Rain)
+#   scale_x_continuous(expand=c(0,0), limits = c(0, 70)) + 
+#     scale_y_continuous(limits = c(0, 8), expand=c(0,0)) + 
+#     scale_y_continuous(sec.axis = sec_axis(~ . *150, name = "Precipitation (mm)")) + 
+#     geom_line(data= Rain,aes(y=MAP.mm_yr/150, colour= "MAP.mm_yr"))
+#   nap2<-nap2+scale_y_continuous(limits=c(-2.5,8),sec.axis = sec_axis(~ . *70, breaks = c(0,100,200,300,400,500), labels = c(0,100,200,300,400,500), name = "Precipitation (mm)"))
+# nap2<-nap2+geom_line(aes(y = rain.sum/70),colour="dark blue",linetype=1,size=1, alpha=.1)
 
 ggsave("Ecosystem carbon/Figures/EcoC.Sand.png",
        width= 25, height = 15,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
 
 summary(lm(C.amount~Sand.pip.per+ Sand.pip.per:MAP.mm_yr,data=Herbaceous))
-
 
 # Fire and Ecosystem Carbon 
 # year of last fire 
@@ -341,12 +504,16 @@ EcosystemC.treeBM  + xlab("Tree Biomass (g/m2)") + ylab("Aboveground Carbon (g/m
 
 # Creating a table with soil carbon 
 Soil.carbon <- Block.Eco.C %>%
-  filter(Carbon.pool == "SoilCAHor" | Carbon.pool== "SoilCMinHor")
+  filter(Carbon.pool == "Soil A-horizon" | Carbon.pool== "Soil Min-horizon")
 Soil.carbon <- arrange(Soil.carbon,Region)
 Soil.carbon <- droplevels(Soil.carbon)
 
+summary(lm(C.amount~landuse:Clay.pip.per,data=Soil.A.hor))
+
 Soil.min<- Block.Eco.C %>%
   filter(Carbon.pool== "Soil Min-horizon")
+Soil.A.hor<- Block.Eco.C %>%
+  filter(Carbon.pool== "Soil A-horizon")
 
 Tree.size.data <- gather(Soil.carbon, Tree.size,Count, No.small.trees:No.large.trees,factor_key=TRUE)
 
@@ -374,6 +541,18 @@ ggsave("Ecosystem carbon/Figures/SoilC.TreeBM.png",
        dpi = 600, limitsize = TRUE)
 
 # Size of trees 
+Tree.size.block<- Tree.size.data %>%
+  filter(Carbon.pool== "Soil A-horizon")
+
+Small.trees<- Tree.size.block %>%
+  filter(Tree.size== "Small trees")
+Large.trees<- Tree.size.block %>%
+  filter(Tree.size== "Large trees")
+
+large <- aggregate(Count~Region,sum,data=Large.trees)
+small <- aggregate(Count~Region,sum,data=Small.trees)
+plot(Count~Region,data=small)
+
 # Small trees 
 SoilC.Tree.Size <- ggplot(data = Tree.size.data, aes(x=Count,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool, group= Tree.size, shape= landuse))
 
@@ -483,10 +662,6 @@ MyVar<-c("MAP.mm_yr","Clay.pip.per","Sand.pip.per","Last.fire_yr", "Fire_frequen
 
 # Want to get these two in one matrix. 
 pairs(Variables[,MyVar],lower.panel = panel.cor)
-
-ggsave("Ecosystem carbon/Figures/Correlation.matrix.png",
-       width= 25, height = 15,units ="cm",bg ="transparent",
-       dpi = 600, limitsize = TRUE)
 
 # If I want these values in a table:
 Variables2 <- Variables[,c(6:9,11,13,15,16)] # first select the collums I want to use 
@@ -602,4 +777,23 @@ hist(resid(Soil.A.H15)) # normally distriuted - a bit sqewed towards right
 anova(Soil.A.H15, Soil.A.H14) # Due to high F value: Sand is very strong, MAP:Sand is 1.6 
 AIC(Soil.A.H15) # AIC: 30.42954
 
+# Testing second hypothesis H2 where I ask about the effect of land use and woody plant cover. 
+Soil.min.H21<-lmer(C.amount~ landuse + (1|Region), data = Soil.min, REML=F)
+Soil.min.H22<-lmer(C.amount~ No.small.trees + (1|Region), data = Soil.min, REML=F)
+Soil.min.H23<-lmer(C.amount~ landuse + No.small.trees + (1|Region), data = Soil.min, REML=F)
+Soil.min.H24<-lmer(C.amount~ landuse + No.small.trees + landuse:No.small.trees + (1|Region), data = Soil.min, REML=F)
+Soil.min.H25<-lmer(C.amount~ landuse:No.small.trees + (1|Region), data = Soil.min, REML=F)
 
+model.sel(Soil.min.H21,Soil.min.H22,Soil.min.H23,Soil.min.H24,Soil.min.H25) # AIC: H22<H25<H23<H24<H21
+anova(Soil.min.H22) # No.small.trees F: 0.13
+anova(Soil.min.H25) # landuse:No.small.trees F: 0.91
+
+Soil.min.H25<-lmer(C.amount~ landuse:No.small.trees + (1|Region), data = Soil.min, REML=T)
+Soil.min.H22<-lmer(C.amount~ No.small.trees + (1|Region), data = Soil.min, REML=T)
+
+summary(Soil.min.H25)
+summary(Soil.min.H22)
+hist(resid(Soil.min.H25))
+hist(resid(Soil.min.H22))
+AIC(Soil.min.H25) # 73.558
+AIC(Soil.min.H22) # 69.6068
