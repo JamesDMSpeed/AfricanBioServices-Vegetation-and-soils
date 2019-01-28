@@ -232,6 +232,10 @@ Above_Below.C <- droplevels(Above_Below.C)
 
 Above_Below.C$Region<- factor(Above_Below.C$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Park Nyigoti","Ikorongo"))
 
+Above_Below.C <- Above_Below.C[
+  order(Above_Below.C[,2]),
+  ]
+
 Above <- Above_Below.C %>%
   filter(Carbon.pool=="AbovegroundC")
 Below <- Above_Below.C %>%
@@ -272,7 +276,7 @@ Above_Below.Trees +
   scale_fill_manual(breaks = c("Pasture","Wild"),values=c("salmon4","burlywood4")) 
 
 
-### Ploting Ecosystem Carbon  #### 
+ ### Ploting Ecosystem Carbon  #### 
 
 Region.Eco.C <- read.csv("Ecosystem carbon/Tot.Ecosystem.Carbon.Region.csv", head=T)
 Block.Eco.C <- read.csv("Ecosystem carbon/Ecosystem.Carbon.csv", head=T)
@@ -449,6 +453,8 @@ ggsave("Ecosystem carbon/Figures/EcoC.Year.of.last.fire.png",
        width= 25, height = 15,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
 
+summary(lm(C.amount~Clay.pip.per,data=Soil.min))
+
 # Fire freq
 EcosystemC.Fire<- ggplot(data = Block.Eco.C, aes(x = Fire_frequency.2000_2017,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool, shape= landuse))
 
@@ -508,12 +514,12 @@ Soil.carbon <- Block.Eco.C %>%
 Soil.carbon <- arrange(Soil.carbon,Region)
 Soil.carbon <- droplevels(Soil.carbon)
 
-summary(lm(C.amount~landuse:Clay.pip.per,data=Soil.A.hor))
-
 Soil.min<- Block.Eco.C %>%
   filter(Carbon.pool== "Soil Min-horizon")
 Soil.A.hor<- Block.Eco.C %>%
   filter(Carbon.pool== "Soil A-horizon")
+
+summary(lm(C.amount~landuse:Clay.pip.per,data=Soil.A.hor))
 
 Tree.size.data <- gather(Soil.carbon, Tree.size,Count, No.small.trees:No.large.trees,factor_key=TRUE)
 
@@ -553,8 +559,8 @@ large <- aggregate(Count~Region,sum,data=Large.trees)
 small <- aggregate(Count~Region,sum,data=Small.trees)
 plot(Count~Region,data=small)
 
-# Small trees 
-SoilC.Tree.Size <- ggplot(data = Tree.size.data, aes(x=Count,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool, group= Tree.size, shape= landuse))
+# Small trees vs large trees 
+SoiiC.Tree.Size <- ggplot(data = Tree.size.data, aes(x=Count,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool, group= Tree.size, shape= landuse))
 
 SoilC.Tree.Size +
   xlab("# Trees") + ylab(expression(paste("Carbon pool (kg", m^-2,")"))) + 
@@ -571,7 +577,7 @@ ggsave("Ecosystem carbon/Figures/SoilC.TreeSize.png",
 
 # Number of trees and SOIL CARBON
 # Difficult to incorporate this relationship - Really scewed. Mwantimba has highest number of trees... 
-SoilC.No.trees<- ggplot(data = Soil.carbon, aes(x = No.trees_m2,y = C.amount, ymin=C.amount-C.amountSE,ymax=C.amount+C.amountSE, colour= Carbon.pool, shape= Landuse))
+SoilC.No.trees<- ggplot(data = Soil.carbon, aes(x = No.trees_m2,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, colour= Carbon.pool, shape= landuse))
 
 SoilC.No.trees  + xlab("Number of trees (m2)") + ylab("Soil Carbon (g/m2)")  + 
   geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
@@ -742,24 +748,61 @@ Herbaceous<- Block.Eco.C %>%
 Soil.min.H11<-lmer(C.amount~ MAP.mm_yr + (1|Region), data = Soil.min, REML=F)
 Soil.min.H12<-lmer(C.amount~ MAP.mm_yr + MAP.mm_yr:Sand.pip.per + (1|Region), data = Soil.min, REML=F)
 Soil.min.H13<-lmer(C.amount~ MAP.mm_yr*Sand.pip.per + (1|Region), data = Soil.min, REML=F)
+Soil.min.H14<-lmer(C.amount~ Sand.pip.per + (1|Region), data = Soil.min, REML=F)
 
-model.sel(Soil.min.H11,Soil.min.H12,Soil.min.H13)
-# AIC H11: 76.9
-# AIC H12 and H13: 72.8 -> The best models 
+model.sel(Soil.min.H11,Soil.min.H12,Soil.min.H13,Soil.min.H14)
+# Look at delta AIC - the first is 0 (the best model), and the change to the next indicates if I should continue using it or not. If it is between 1 and 2, continue with second model as well. Here delta mod H14 = 0.59 (bring along). 
 
 Soil.min.H12<-lmer(C.amount~ MAP.mm_yr + MAP.mm_yr:Sand.pip.per + (1|Region), data = Soil.min, REML=T)
-Soil.min.H13<-lmer(C.amount~ MAP.mm_yr*Sand.pip.per + (1|Region), data = Soil.min, REML=T)
+Soil.min.H14<-lmer(C.amount~ Sand.pip.per + (1|Region), data = Soil.min, REML=T)
 
 summary(Soil.min.H12)
-summary(Soil.min.H13)
-hist(resid(Soil.min.H12)) # normally distriuted - a bit sqewed towards right 
-hist(resid(Soil.min.H13)) # normally distriuted - a bit sqewed towards right 
-anova(Soil.min.H12) # Due to high F value: MAP:Sand is very strong. MAP almost 1 
-anova(Soil.min.H13) # Sand is strong, and MAP:sand 
-AIC(Soil.min.H12) # 102.052 -> The best model 
-AIC(Soil.min.H13) # 108.1397
+summary(Soil.min.H14)
 
-# Soil A-horizon: The best model is taking MAP and the relationship between MAP:Sand into account
+# Assumption 1: Within group errors are independent, and identically normally distributed, mean= 0. And they are independent of the random effect. 
+
+hist(resid(Soil.min.H12)) # A bit sqewed towards right, more on the positive side - could consider log.transforming the data 
+hist(resid(Soil.min.H14)) # "more normally distributed" 
+plot(Soil.min.H12,factor(Region)~resid(.),abline=0) # Makao is strange Block 4 has a very low carbon amount (0.8 kg). 
+plot(Soil.min.H14,factor(Region)~resid(.),abline=0)
+
+# Another way to show the same. 
+plot(Soil.min.H12,resid(.)~fitted(.)|factor(Region)) # Distribution of residuals within each group. 
+
+#Assumption 2: Among groups, random effects are normally distributed (Regions). 
+# BLUPS (Best Linear Unbiased Predictors)
+ranef(Soil.min.H12, drop=TRUE)
+blup <- c(-0.14196792,-0.03692530,-0.21005201,-0.06268585,0.13150659,0.04134352,0.27878097) 
+hist(blup)
+
+anova(Soil.min.H12) # Due to high F value: MAP:Sand is very strong. MAP almost 2 
+anova(Soil.min.H14) 
+
+# Run a post hoc test 
+drop1(Soil.min.H12,test="Chi") 
+# Single term deletions
+# 
+# Model:
+#   C.amount ~ MAP.mm_yr + MAP.mm_yr:Sand.pip.per + (1 | Region)
+# Df    AIC    LRT  Pr(Chi)   
+# <none>                    53.370                   
+# MAP.mm_yr:Sand.pip.per  1 59.764 8.3941 0.003764 **
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+drop1(Soil.min.H14,test="Chi")
+# Single term deletions
+# 
+# Model:
+#   C.amount ~ Sand.pip.per + (1 | Region)
+# Df    AIC    LRT Pr(Chi)  
+# <none>          54.952                 
+# Sand.pip.per  1 58.045 5.0931 0.02402 *
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# > 
+
+# Soil A-horizon: The best model is taking MAP and the relationship between MAP:Sand into account####
 Soil.A.H11<-lmer(C.amount~ MAP.mm_yr + (1|Region), data = Soil.Ahor, REML=F)
 Soil.A.H12<-lmer(C.amount~ MAP.mm_yr + MAP.mm_yr:Sand.pip.per + (1|Region), data = Soil.Ahor, REML=F)
 Soil.A.H13<-lmer(C.amount~ MAP.mm_yr*Sand.pip.per + (1|Region), data = Soil.Ahor, REML=F)
@@ -797,3 +840,19 @@ hist(resid(Soil.min.H25))
 hist(resid(Soil.min.H22))
 AIC(Soil.min.H25) # 73.558
 AIC(Soil.min.H22) # 69.6068
+
+
+
+
+# Run a full model of all my fixed factors ####
+names(Soil.Ahor)
+Soil.A_horizon<-lmer(C.amount~ MAP.mm_yr + Sand.pip.per + Last.fire_yr + landuse + TreeBM.kg_m2 + No.large.trees + landuse:TreeBM.kg_m2 + landuse:No.large.trees + landuse:Last.fire_yr + landuse:Sand.pip.per + MAP.mm_yr:Sand.pip.per + (1|Region), data = Soil.Ahor, REML=F)
+
+summary(Soil.A_horizon)
+drop1(Soil.A_horizon,test="Chi")
+
+Soil.A_horizon1 <- update(Soil.A_horizon, .~. -landuse:TreeBM.kg_m2)
+anova(Soil.A_horizon,Soil.A_horizon1) # using simpler model because the p-value is larger than 0.05?? (no difference between the two models)
+
+Soil.A_horizon2 <- update(Soil.A_horizon1, .~. -landuse:No.large.trees)
+anova(Soil.A_horizon1,Soil.A_horizon2) #Remove "landuse:No.large.trees"
