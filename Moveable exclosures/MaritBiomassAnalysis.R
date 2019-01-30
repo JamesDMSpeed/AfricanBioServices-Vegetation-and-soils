@@ -19,9 +19,9 @@ library(lme4)
 library(MuMIn) #for mod.sel()
 #-------------------------
 
-Biomass <- read.csv("Biomass.csv")
+Biomass <- read.csv("Moveable exclosures/Biomass.csv", header=T,sep=";")
 tail(Biomass)
-View(Biomass)
+#View(Biomass)
 #-------------------------
 #RUN FIRST
   #Housekeeping
@@ -578,7 +578,16 @@ ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/G
 
 #### NAP+CONS plot with Seronera ####
 #prod6b cons4
+
+# Plot without intermediate and then add intermediate later
+Avgprodcons2I<-droplevels(Avgprodcons2[Avgprodcons2$region=="Intermediate Region",])
+Avgprodcons2excI<-droplevels(Avgprodcons2[Avgprodcons2$region!="Intermediate Region",])
+
+Avgprodcons2$region
+
 Avgprodcons2$landuse <-factor (Avgprodcons2$landuse,levels=c("pasture","wild"))
+Avgprodcons2$region <-factor (Avgprodcons2$region,levels=c("Dry Region","Wet Region","Intermediate Region"))
+
 
 legend_title<-"land-use"
 napcons2<- ggplot(Avgprodcons2, aes(x=YrMonth, y=Productivity, colour=landuse,fill=landuse,shape=Biomass_change,
@@ -619,17 +628,22 @@ napcons2<-napcons2+ theme_bw() +
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
 napcons2<-napcons2+ annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
-napcons2<-napcons2+annotate(geom="text",x=as.Date("2017-10-01"), y=8, label=c("Dry Region","Dry Region","Dry Region","Dry Region", "Wet Region"),color="black", size=5)
+napcons2<-napcons2+annotate(geom="text",x=as.Date("2017-10-01"), y=8, label=c("Dry Region","Dry Region","WetRegion","Dry Region", "Intermediate Region"),color="black", size=5)
 napcons2<-napcons2+guides(shape=F, fill=F,colour = guide_legend(override.aes = list(shape=c(21, 21),
                                                                        size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),nrow=2,byrow=TRUE))
 napcons2<-napcons2+ guides(colour=F, fill=F,shape = guide_legend("Biomass change",override.aes = list(shape=c(21, 22),
                                                                                                     size=5,fill=c("gray50","white"),col="gray50", stroke=2),nrow=2,byrow=TRUE))
+
 napcons2b <-napcons2+geom_point(data =Avgprodcons2, aes(size=landuse, shape = NA), colour = "grey50")
 napcons2b<-napcons2b+ guides(size=guide_legend("Land-use", override.aes=list(shape=c(21, 21), size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),
                                              nrow=2,byrow=TRUE),legend.margin=margin(0,0,0,0))
 napcons2b <- napcons2b+theme(panel.spacing.x=unit(2, "lines"),panel.spacing.y=unit(1, "lines"))
 napcons2b
 #could also use the lemon package with facet_rep_wrap(), but might need to reinstall R for this to work 
+
+
+
+
 
 
 ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSSeronera2d.png",
