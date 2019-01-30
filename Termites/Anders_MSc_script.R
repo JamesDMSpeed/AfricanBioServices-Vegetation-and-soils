@@ -6,7 +6,7 @@ library(ggplot2)
 library(lme4)
 library(glmmTMB)
 
-
+setwd("C:/Users/ansun/Documents/Master data/GitHub__R-stat/AfricanBioServices-Vegetation-and-soils")
 wsdata<- read.csv('Termites/Main & CG experiment/Wetseason.csv', sep=';',dec='.')#Wetseason data
 dsdata <- read.csv("Termites/Main & CG experiment/Dryseason.csv", sep=";",dec=".")#Dryseason data
 head(wsdata)
@@ -130,70 +130,260 @@ colnames(Mainexp)[1]<-"Season"
 colnames(Mainexp)[2]<-"Region"
 names(Mainexp)
 
+####Point plot Main exp####
 Mainp <- ggplot(data=Mainexp, aes(x=flanduse,y=Massloss.per,
-                                  ymin=(Massloss.per-SE),
-                                  ymax=(Massloss.per+SE),
-                                  fill = tea.hole,
-                                  color = flittertype,
-                                  shape=flanduse)
-                )+
-                  
-  geom_errorbar(width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F) + 
-  geom_point(size=5,stroke=1.2,position=position_dodge(width=.35),show.legend=T)+ 
-  facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region"),
-                                                                Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))+
-  scale_color_manual(values=c("green4", "orangered3"))+
-  scale_fill_manual(values=c("green4","orangered3","white","white"))+
-  scale_shape_manual(values=c(21,23,24))+
-  guides(fill = guide_legend(override.aes=list(shape=25, color=c("green4","orangered3","green4","orangered3"))),color=F)+
-  scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))+
-  xlab("Land-use")+
-  ylab("Mass loss (%)"
-       )+
-  
-  theme(rect = element_rect(fill ="transparent")
-        ,panel.background=element_rect(fill="transparent")
-        ,plot.background=element_rect(fill="transparent",colour=NA)
-        ,panel.grid.major = element_blank()
-        ,panel.grid.minor = element_blank()
-        ,panel.border = element_blank()
-        ,panel.grid.major.x = element_blank()
-        ,panel.grid.major.y = element_blank()
-        ,axis.text=element_text(size=12,color="black")
-        ,axis.title.y=element_text(size=14,color="black")
-        ,axis.title.x=element_text(size=14,vjust=-.4,color="black")
-        ,axis.text.x = element_text(size=10,color="black",
-                                    margin=margin(2.5,2.5,2.5,2.5,"mm"))
-        ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
-        ,axis.ticks.length=unit(-1.5, "mm")
-        #,axis.line.y = element_blank()
-        ,axis.line.x = element_blank()
-        ,plot.margin = unit(c(8,50,5,5), "mm")
-        ,strip.background = element_rect(fill="transparent",colour=NA)
-        ,strip.text.x = element_text(size = 14,colour = "black")
-        ,strip.text.y = element_text(size = 14,colour = "black")
-        ,panel.spacing = unit(1, "lines")
-        ,legend.background = element_rect(fill = "transparent")
-        ,legend.title=element_blank()
-        ,legend.position = c(1.3,0.5)
-        ,legend.spacing.y = unit(-0.8, "mm")
-        ,legend.key.height=unit(7.5,"mm")
-        ,legend.key.width=unit(7.5,"mm")
-        ,legend.key = element_rect(colour = NA, fill = NA)
-        ,legend.key.size = unit(7,"mm")
-        ,legend.text=element_text(size=12,color="black")
-        
+                                   ymin=(Massloss.per-SE),
+                                   ymax=(Massloss.per+SE),
+                                   fill = tea.hole,
+                                   color = flittertype,
+                                   shape=flanduse)
+                 )+
+                   
+   geom_errorbar(width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F) + 
+   geom_point(size=5,stroke=1.2,position=position_dodge(width=.35),show.legend=T)+ 
+   facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region"),
+                                                                 Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))+
+   scale_color_manual(values=c("green4", "orangered3"))+
+   scale_fill_manual(values=c("green4","orangered3","white","white"))+
+   scale_shape_manual(values=c(21,23,24))+
+   guides(fill = guide_legend(override.aes=list(shape=25, color=c("green4","orangered3","green4","orangered3"))),color=F)+
+   scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))+
+   xlab("Land-use")+
+   ylab("Mass loss (%)"
         )+
+   
+   theme(rect = element_rect(fill ="transparent")
+         ,panel.background=element_rect(fill="transparent")
+         ,plot.background=element_rect(fill="transparent",colour=NA)
+         ,panel.grid.major = element_blank()
+         ,panel.grid.minor = element_blank()
+         ,panel.border = element_blank()
+         ,panel.grid.major.x = element_blank()
+         ,panel.grid.major.y = element_blank()
+         ,axis.text=element_text(size=12,color="black")
+         ,axis.title.y=element_text(size=14,color="black")
+         ,axis.title.x=element_text(size=14,vjust=-.4,color="black")
+         ,axis.text.x = element_text(size=10,color="black",
+                                     margin=margin(2.5,2.5,2.5,2.5,"mm"))
+         ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+         ,axis.ticks.length=unit(-1.5, "mm")
+         #,axis.line.y = element_blank()
+         ,axis.line.x = element_blank()
+         ,plot.margin = unit(c(8,50,5,5), "mm")
+         ,strip.background = element_rect(fill="transparent",colour=NA)
+         ,strip.text.x = element_text(size = 14,colour = "black")
+         ,strip.text.y = element_text(size = 14,colour = "black")
+        ,panel.spacing = unit(1, "lines")
+         ,legend.background = element_rect(fill = "transparent")
+         ,legend.title=element_blank()
+         ,legend.position = c(1.3,0.5)
+         ,legend.spacing.y = unit(-0.8, "mm")
+         ,legend.key.height=unit(7.5,"mm")
+         ,legend.key.width=unit(7.5,"mm")
+         ,legend.key = element_rect(colour = NA, fill = NA)
+         ,legend.key.size = unit(7,"mm")
+         ,legend.text=element_text(size=12,color="black")
+         
+         )+
+ 
+   annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
+   annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15) +
+   annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
+   annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
+ 
+ Mainp
+#ggsave("Termites//Main & CG experiment/Mainexp.png",
+ #      width= 20, height = 15,units ="cm",bg ="transparent",
+  #     dpi = 600, limitsize = TRUE)
 
-  annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
-  annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15) +
-  annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
-  annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
+#################################
+####Stacked bar plot Main exp####
+#################################
+ 
+#Creating 4 dataframes with each of the treatments and littertype in each.
+Greenop<-FulldataMain[FulldataMain$Littertype=="Green" & FulldataMain$Treatment=="Open",] # Only Green Open data
+Greenex<-FulldataMain[FulldataMain$Littertype=="Green" & FulldataMain$Treatment=="Exclosed",] # Only Green Open data
+Redop<-FulldataMain[FulldataMain$Littertype=="Rooibos" & FulldataMain$Treatment=="Open",] # Only Green Open data
+Redex<-FulldataMain[FulldataMain$Littertype=="Rooibos" & FulldataMain$Treatment=="Exclosed",] # Only Green Open data
+ 
 
-Mainp
-ggsave("Termites//Main & CG experiment/Mainexp.png",
-       width= 20, height = 15,units ="cm",bg ="transparent",
-       dpi = 600, limitsize = TRUE)
+#Creating dataframe with termite and microbe effect variable (Termiteeffect=Open minus exclosed):
+GreendataT <- Greenop
+GreendataM <- Greenop
+
+GreendataM$Massloss.per <- Greenop$Massloss.per
+GreendataT$Massloss.per <- abs(Greenop$Massloss.per-Greenex$Massloss.per)
+
+ReddataT <- Redop
+ReddataM <- Redop
+ReddataM$Massloss.per<-Redop$Massloss.per
+ReddataT$Massloss.per<- abs(Redop$Massloss.per-Redex$Massloss.per)
+
+#Means and error
+se<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+#Redtea
+MeanReddataM<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataM,mean)
+MeanReddataMSE<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataM,se)
+MeanReddataM$SE<-MeanReddataMSE$Massloss.per
+MeanReddataM$Decomposer <- "Microbe"
+
+MeanReddataT<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataT,mean)
+MeanReddataTSE<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataT,se)
+MeanReddataT$SE<-MeanReddataTSE$Massloss.per
+MeanReddataT$Decomposer <- "Termite"
+
+
+#combine decomposition of red tea by termite and microbe:
+ReddataTM <- rbind(MeanReddataM,MeanReddataT)
+ReddataTM$Littertype <- "Recalcitrant"
+#Green tea
+MeanGreendataM<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataM,mean)
+MeanGreendataMSE<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataM,se)
+MeanGreendataM$SE<-MeanGreendataMSE$Massloss.per
+MeanGreendataM$Decomposer <- "Microbe"
+
+MeanGreendataT<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataT,mean)
+MeanGreendataTSE<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataT,se)
+MeanGreendataT$SE<-MeanGreendataTSE$Massloss.per
+MeanGreendataT$Decomposer <- "Termite"
+
+#Combine decomposition of red tea by termite and microbe:
+GreendataTM <- rbind(MeanGreendataM,MeanGreendataT)
+GreendataTM$Littertype <- "Labile"
+
+#Combine both littertypes:
+TMMasslossMain <- rbind(GreendataTM,ReddataTM) 
+TMMasslossMain$Decomposer<-as.factor(TMMasslossMain$Decomposer)
+levels(TMMasslossMain$Decomposer)
+
+####BARPLOTTING#######################################
+####Want to create three own grafs for each Landuse####
+####showing termite and microbe contribution to decomposition in wet season and dry season.#### 
+
+#Creating a fill factor:
+TMMasslossMain$LD<-as.factor(with(TMMasslossMain, paste(Decomposer, Littertype, sep=" ")))
+head(TMMasslossMain)
+#Sort out each landuse into own dataframe
+Agri <- droplevels(TMMasslossMain[TMMasslossMain$flanduse=="Agriculture",])
+Pasture <- droplevels(TMMasslossMain[TMMasslossMain$flanduse=="Pasture",])
+Wild <- droplevels(TMMasslossMain[TMMasslossMain$flanduse=="Wild",])
+###################################
+#Plotting a graph for each landuse#####
+###################################
+#AGRICULTURE#
+
+#Legend title:
+TitleDecomp<-"Decomposer"
+TitleLitter <- c("Litter Quality")
+
+levels(Agri$LD)
+levels(Agri$LD) <- c("Labile Microbe", "Recalcitrant Microbe","Termite Labile","Termite Recalcitrant")
+levels(Agri$LD)
+levels(Agri$fseason)
+levels(Agri$flanduse)
+levels(Agri$Decomposer)
+
+
+AgriP <- ggplot(data=Agri,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE,ymin=Massloss.per))+
+          geom_errorbar(stat="identity", width=NA,lwd=1)+
+          geom_bar(stat="identity",position="identity",width=0.9)+
+          facet_wrap(~fseason+fregion,nrow=1)+
+          scale_fill_manual(TitleLitter,values=c("Green","Red","Green","Red"))+
+          scale_alpha_discrete(TitleDecomp,range=c(0.3,1))+
+          xlab("")+ylab("Massloss (%)")+
+  theme_bw()+
+  theme(
+    rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
+    ,panel.background=element_rect(fill="transparent")
+    ,plot.background=element_rect(fill="transparent",colour=NA)
+    ,panel.grid.minor = element_blank() # Removing all grids and borders
+    ,panel.border = element_blank()
+    ,panel.grid.major.x = element_blank()
+    ,panel.grid.major.y = element_blank()
+    ,axis.text.x = element_blank()
+    ,axis.ticks.x = element_blank()
+    ,legend.background = element_rect(fill="transparent")
+    ,axis.title.y=element_text(size=12,color="black")
+    )
+AgriP <- AgriP+guides(alpha=F, fill=guide_legend(override.aes =list(fill=c("Green","Green","Red","Red"), alpha=c(0.3,1,0.3,1))))
+AgriP
+
+#PASTURE#
+#Legend title:
+TitleDecomp<-"Decomposer"
+TitleLitter <- c("Litter Quality")
+
+levels(Pasture$LD)
+levels(Pasture$LD) <- c("Labile Microbe", "Recalcitrant Microbe","Termite Labile","Termite Recalcitrant")
+levels(Pasture$LD)
+levels(Pasture$fseason)
+levels(Pasture$flanduse)
+levels(Pasture$Decomposer)
+
+
+PastureP <- ggplot(data=Pasture,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE,ymin=Massloss.per))+
+  geom_errorbar(stat="identity", width=NA,lwd=1)+
+  geom_bar(stat="identity",position="identity",width=0.9)+
+  facet_wrap(~fseason+fregion,nrow=1)+
+  scale_fill_manual(TitleLitter,values=c("Green","Red","Green","Red"))+
+  scale_alpha_discrete(TitleDecomp,range=c(0.3,1))+
+  xlab("")+ylab("Massloss (%)")+
+  theme_bw()+
+  theme(
+    rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
+    ,panel.background=element_rect(fill="transparent")
+    ,plot.background=element_rect(fill="transparent",colour=NA)
+    ,panel.grid.minor = element_blank() # Removing all grids and borders
+    ,panel.border = element_blank()
+    ,panel.grid.major.x = element_blank()
+    ,panel.grid.major.y = element_blank()
+    ,axis.text.x = element_blank()
+    ,axis.ticks.x = element_blank()
+    ,legend.background = element_rect(fill="transparent")
+    ,axis.title.y=element_text(size=12,color="black")
+  )
+PastureP <- PastureP+guides(alpha=F, fill=guide_legend(override.aes =list(fill=c("Green","Green","Red","Red"), alpha=c(0.3,1,0.3,1))))
+PastureP
+
+#WILD#
+TitleDecomp<-"Decomposer"
+TitleLitter <- c("Litter Quality")
+
+levels(Wild$LD)
+levels(Wild$LD) <- c("Labile Microbe", "Recalcitrant Microbe","Termite Labile","Termite Recalcitrant")
+levels(Wild$LD)
+levels(Wild$fseason)
+levels(Wild$flanduse)
+levels(Wild$Decomposer)
+
+
+WildP <- ggplot(data=Wild,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE,ymin=Massloss.per))+
+  geom_errorbar(stat="identity", width=NA,lwd=1)+
+  geom_bar(stat="identity",position="identity",width=0.9)+
+  facet_wrap(~fseason+fregion,nrow=1)+
+  scale_fill_manual(TitleLitter,values=c("Green","Red","Green","Red"))+
+  scale_alpha_discrete(TitleDecomp,range=c(0.3,1))+
+  xlab("")+ylab("Massloss (%)")+
+  theme_bw()+
+  theme(
+    rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
+    ,panel.background=element_rect(fill="transparent")
+    ,plot.background=element_rect(fill="transparent",colour=NA)
+    ,panel.grid.minor = element_blank() # Removing all grids and borders
+    ,panel.border = element_blank()
+    ,panel.grid.major.x = element_blank()
+    ,panel.grid.major.y = element_blank()
+    ,axis.text.x = element_blank()
+    ,axis.ticks.x = element_blank()
+    ,legend.background = element_rect(fill="transparent")
+    ,axis.title.y=element_text(size=12,color="black")
+  )
+WildP <- WildP+guides(alpha=F, fill=guide_legend(override.aes =list(fill=c("Green","Green","Red","Red"), alpha=c(0.3,1,0.3,1))))
+WildP
+
+
+
+
 
 #### Graphing: CGvsMain experiment ####
 #But first sorting the commongarden data and main experiemnt for GGplot:
@@ -306,9 +496,130 @@ MainCGplot<-ggplot(MainCG, aes(x=massloss.perMain, y=massloss.perCG, fill=tea.ho
 
 
 MainCGplot
-ggsave("Termites/Main & CG experiment/CommongardenvsMain.png",
-      width= 30, height = 15,units ="cm",bg ="transparent",
-     dpi = 600, limitsize = TRUE)
+#ggsave("Termites/Main & CG experiment/CommongardenvsMain.png",
+ #     width= 30, height = 15,units ="cm",bg ="transparent",
+  #   dpi = 600, limitsize = TRUE)
+
+
+###Analysis####
+###MODELLING####
+####LANDUSE EXPERIMENT####
+###Mixed linear effect model####
+library(lme4)
+library(nlme)
+
+names(FulldataMain)
+FulldataMain$Blockcode
+firstmodel <- lmer(Massloss.per~Littertype+Landuse+Season+Region+Treatment+
+                     Littertype:Landuse+Littertype:Season+Littertype:Region+Littertype:Treatment+
+                     Landuse:Season+Landuse:Region+Landuse:Treatment+
+                     Season:Region+Season:Treatment+
+                     Littertype:Landuse:Treatment+
+                     Littertype:Landuse:Season+
+                     (1|Blockcode), data=FulldataMain, REML=T)
+
+summary(firstmodel)
+anova(firstmodel)
+drop1(firstmodel,test="Chisq")
+
+#Creating two data set for each littertype to be able to do a four-way interaction (UPDATE: NOT POSSIBLE WITH THIS DATA). We know already that Littertype is important so thats why we extract the data into littertype.
+RecalDataMain <- droplevels(FulldataMain[FulldataMain$Littertype =="Rooibos",])
+LabileDataMain <- droplevels(FulldataMain[FulldataMain$Littertype =="Green",])
+
+####MIXED LINEAR MODEL FOR EACH LITTERTYPE####
+
+Recalmodel <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
+                     Landuse:Season+Landuse:Region+Landuse:Treatment+
+                     Season:Region+Season:Treatment+
+                     Treatment:Landuse:Season+
+                     Treatment:Landuse:Region+
+                     Season:Landuse:Region+
+                     (1|Blockcode), data=RecalDataMain, REML=T)
+
+Labilemodel <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
+                      Landuse:Season+Landuse:Region+Landuse:Treatment+
+                      Season:Region+Season:Treatment+
+                      Treatment:Landuse:Season+
+                      Treatment:Landuse:Region+
+                      Season:Landuse:Region+
+                      (1|Blockcode), data=LabileDataMain, REML=T)
+summary(Recalmodel)
+anova(Recalmodel)
+
+summary(Labilemodel)
+anova(Labilemodel)
+drop1(Recalmodel,test="Chisq")
+# Df    AIC     LRT   Pr(Chi)    
+# <none>                      5667.4                      
+# Landuse:Season:Treatment  2 5682.5 19.1388 6.983e-05 ***
+#   Landuse:Region:Treatment  3 5673.6 12.2436  0.006594 ** 
+#   Landuse:Season:Region     2 5667.7  4.2925  0.116923  
+
+drop1(Labilemodel,test="Chisq")
+# Df    AIC    LRT   Pr(Chi)    
+# <none>                      4644.3                     
+# Landuse:Season:Treatment  2 4641.2  0.898    0.6382    
+# Landuse:Region:Treatment  3 4639.5  1.206    0.7516    
+# Landuse:Season:Region     2 4681.8 41.553 9.481e-10 ***
+#   ---
+install.packages("lmerTest")
+install.packages("emmeans")
+library(lsmeans)
+library(emmeans)
+library(lmerTest)
+
+
+#Working with model with Recalcitrant littertype####
+
+emmeans(Recalmodel,"Landuse:Season:Treatment")
+#class(Recalmodel)
+#diffemmeans(Recalmodel,test.effs="Landuse:Season:Treatment")
+
+
+
+summary(Recalmodel)
+anova(Recalmodel)
+AIC(Recalmodel) #11589.62
+
+#CHecking assumptions for the linearity
+
+E1 <- resid(Recalmodel, type ="pearson")  #THIS IS FOR lme4..NOT lme, in lme = "type = "n"
+F1 <- fitted(Recalmodel)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F1, 
+     y = E1,
+     xlab = "Fitted values",
+     ylab = "Residuals")
+abline(v = 0, lwd = 2, col = 2)
+abline(h = 0, lty = 2, col = 1)
+# Fitted values both above and below 0, and it looks OK spread around 0.
+
+#Checking for autocorrelation
+library(itsadug)
+plot(acf_resid(Recalmodel), type="b",alpha=0.05)
+abline(c(0,0), lty = 2, col = 1)
+
+
+
+
+
+####Modelling Landuse main experiment####
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #### Provisional analysis####
