@@ -3,7 +3,7 @@ library(ggplot2)
 #Soil texture exploration-Anders MSc
 
 #Comparing vilde and Anders soil texture data####
-##Anders soil####
+##Anders soil C,N####
 SoiltextA<-read.csv("Termites/Soil data/Soil_texture.csv", sep=';',dec='.')
 SoiltextA$Landuse<-replace(SoiltextA$Landuse, SoiltextA$Landuse=="Common Garden", "Wild")
 
@@ -147,6 +147,124 @@ Sandplot
 ggsave("Termites/Soil data/SandP.png",
        width= 25, height = 15,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
+
+####Anders soil P exploration####
+SoilNutWet <- read.csv("Termites/Soil data/Soil_Nutrient_Wet.csv",sep=';',dec='.')
+SoilNutDry <- read.csv("Termites/Soil data/Soil_Nutrient_Dry.csv",sep=';',dec='.')
+
+SoilNutWet$ID[duplicated(SoilNutWet$ID) | duplicated(SoilNutWet$ID, fromLast=TRUE)]
+#From above, I see that Mwan P3 and Makao P2 have duplicates.
+SoilNutDry$Corrected.ID[duplicated(SoilNutDry$Corrected.ID) | duplicated(SoilNutDry$Corrected.ID, fromLast=TRUE)]
+#From above, I see that Mwan P2 and SNP W2 have duplicates.
+par(mfrow=c(1,2))
+plot(SoilNutWet$X..N.kapsel~SoilNutWet$Landuse)
+plot(SoilNutDry$X..N.kapsel~SoilNutDry$Landuse)
+
+SoilNutWet <- SoilNutWet[SoilNutWet$Landuse!="Agriculture",]
+SoilNutDry <- SoilNutDry[SoilNutDry$Landuse!="Agriculture",]
+SoilNutWet <- SoilNutWet[SoilNutWet$Landuse!="Seronera",]
+SoilNutDry <- SoilNutDry[SoilNutDry$Landuse!="Seronera",]
+
+SoilNutDry<- SoilNutDry[c(6,8,10)]
+colnames(SoilNutDry)<-c("P%_SUA","Block","Region")
+SoilNutWet<- SoilNutWet[c(5,7,9)]
+colnames(SoilNutWet)<-c("P%_SUA","Block","Region")
+
+#Removing site 2 og 4 from Anders soil, since Vilde has only 1 og 3:
+SoilNutWet<- SoilNutWet[SoilNutWet$Block!="2",]
+SoilNutWet<- SoilNutWet[SoilNutWet$Block!="4",]
+SoilNutDry<- SoilNutDry[SoilNutDry$Block!="2",]
+SoilNutDry<- SoilNutDry[SoilNutDry$Block!="4",]
+#Loosing Mwantimba plot in Dry samples when excuding block 2 and 4.
+
+se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Standard Error
+
+DryPhos <- aggregate(`P%_SUA`~Region+Block, SoilNutDry,mean)
+WetPhos <- aggregate(`P%_SUA`~Region+Block,SoilNutWet,mean)
+
+WetPhos$Block <- as.factor(WetPhos$Block)
+levels(WetPhos$Block)
+WetPhos$Region <- droplevels(WetPhos$Region)
+WetPhos$Region <- as.factor(WetPhos$Region)
+levels(WetPhos$Region)
+WetPhos$`P%_SUA` <- as.numeric(WetPhos$`P%_SUA`)
+
+####Vilde Soil P data####
+Vilde.soil <- read.csv("Ecosystem carbon/Soil.data/Soil.Properties.csv", head = TRUE)
+Vilde.soil<-Vilde.soil[Vilde.soil$Region!="Ikorongo",]
+Vilde.soil<-Vilde.soil[Vilde.soil$Region!="Park Nyigoti",]
+Vilde.soil<-Vilde.soil[Vilde.soil$Region!="Seronera",]
+
+Vilde.Psoil<- Vilde.soil[c(2,3,16)]
+colnames(Vilde.Psoil)<-c("Block","Region","P%_NMBU")
+
+Vilde.Psoil$Block <- as.factor(Vilde.Psoil$Block)
+levels(Vilde.Psoil$Block)
+Vilde.Psoil$Region <- droplevels(Vilde.Psoil$Region)
+Vilde.Psoil$Region <- as.factor(Vilde.Psoil$Region)
+levels(Vilde.Psoil$Region)
+Vilde.Psoil$`P%_NMBU` <- as.numeric(Vilde.Psoil$`P%_NMBU`)
+
+names(Vilde.Psoil)
+names(SoilNutWet)
+
+####WetSoilSUA with NMBU P###
+WetPVildeP <- merge(Vilde.Psoil,WetPhos)
+names(WetPVildeP)
+
+levels(WetPVildeP$Block)
+levels(WetPVildeP$Region)
+
+WetPVildeP$`P%_NMBU` <- as.numeric(WetPVildeP$`P%_NMBU`)
+WetPVildeP$`P%_SUA` <- as.numeric(WetPVildeP$`P%_SUA`)
+
+####DrySoilSUA and NMBU Soil
+DryPVildeP <- merge(Vilde.Psoil,DryPhos)
+names(DryPVildeP)
+
+levels(DryPVildeP$Block)
+levels(DryPVildeP$Region)
+
+DryPVildeP$`P%_NMBU` <- as.numeric(DryPVildeP$`P%_NMBU`)
+DryPVildeP$`P%_SUA` <- as.numeric(DryPVildeP$`P%_SUA`)
+
+####Plotting NMBU P against WET SUA P
+library(ggplot2)
+WetPhosplot <- ggplot(WetPVildeP, aes(y=as.numeric(`P%_NMBU`),x=as.numeric(`P%_SUA`),fill=Block, color=Region))+
+  geom_abline(slope=1, intercept=0, size =.95) + 
+  geom_point(size=4.5,stroke=1.5,position=position_dodge(width=.35), show.legend=T) +
+  scale_fill_manual(values=c("Grey","Black")) +
+  scale_color_manual(values=c("green4","orangered3","Blue","Purple")) +
+  #scale_shape_manual(values=c(21,23)) + 
+  #guides(fill = guide_legend(override.aes=list(shape=21, color=c("Grey","Black")))) +
+  scale_x_continuous(limits = c(0,70))+
+  scale_y_continuous(limits = c(0,2))+
+  xlab("Wet P (%) SUA") +  ylab("P (%) NMBU")
+
+WetPhosplot
+####Plotting NMBU P against Dry SUA P
+DryPhosplot <- ggplot(DryPVildeP, aes(y=as.numeric(`P%_NMBU`),x=as.numeric(`P%_SUA`),fill=Block, color=Region))+
+  geom_abline(slope=1, intercept=0, size =.95) + 
+  geom_point(size=4.5,stroke=1.5,position=position_dodge(width=.35), show.legend=T) +
+  scale_fill_manual(values=c("Grey","Black")) +
+  scale_color_manual(values=c("green4","orangered3","Blue","Purple")) +
+  #scale_shape_manual(values=c(21,23)) + 
+  #guides(fill = guide_legend(override.aes=list(shape=21, color=c("Grey","Black")))) +
+  scale_x_continuous(limits = c(0,70))+
+  scale_y_continuous(limits = c(0,2))+
+  xlab("DRy P (%) SUA") +  ylab("P (%) NMBU")
+
+DryPhosplot
+
+
+
+
+
+
+
+
+
+
 
 
 
