@@ -1,0 +1,57 @@
+"","area","block","Block.ID","Size","Count"
+"1","Makao","1",1,"small","8"
+"29","Makao","1",1,"large","1"
+"2","Makao","2",2,"small","5"
+"30","Makao","2",2,"large",NA
+"3","Makao","3",3,"small","3"
+"31","Makao","3",3,"large","1"
+"4","Makao","4",4,"small",NA
+"32","Makao","4",4,"large","1"
+"5","Maswa","1",5,"small",NA
+"33","Maswa","1",5,"large","2"
+"6","Maswa","2",6,"small","2"
+"34","Maswa","2",6,"large","1"
+"7","Maswa","3",7,"small","1"
+"35","Maswa","3",7,"large","2"
+"8","Maswa","4",8,"small","1"
+"36","Maswa","4",8,"large","5"
+"9","Mwantimba","1",9,"small","6"
+"37","Mwantimba","1",9,"large",NA
+"10","Mwantimba","2",10,"small","2"
+"38","Mwantimba","2",10,"large","1"
+"11","Mwantimba","3",11,"small","10"
+"39","Mwantimba","3",11,"large",NA
+"12","Mwantimba","4",12,"small","8"
+"40","Mwantimba","4",12,"large",NA
+"13","Handajega","1",13,"small","13"
+"41","Handajega","1",13,"large","4"
+"14","Handajega","2",14,"small","9"
+"42","Handajega","2",14,"large","1"
+"15","Handajega","3",15,"small","2"
+"43","Handajega","3",15,"large","2"
+"16","Handajega","4",16,"small","3"
+"44","Handajega","4",16,"large","1"
+"17","Seronera","1",17,"small","3"
+"45","Seronera","1",17,"large",NA
+"18","Seronera","2",18,"small","1"
+"46","Seronera","2",18,"large","2"
+"19","Seronera","3",19,"small","2"
+"47","Seronera","3",19,"large",NA
+"20","Seronera","4",20,"small",NA
+"48","Seronera","4",20,"large",NA
+"21","Park Nyigoti","1",21,"small","3"
+"49","Park Nyigoti","1",21,"large","1"
+"22","Park Nyigoti","2",22,"small","3"
+"50","Park Nyigoti","2",22,"large","3"
+"23","Park Nyigoti","3",23,"small","6"
+"51","Park Nyigoti","3",23,"large","5"
+"24","Park Nyigoti","4",24,"small","9"
+"52","Park Nyigoti","4",24,"large","1"
+"25","Ikorongo","1",25,"small","7"
+"53","Ikorongo","1",25,"large","2"
+"26","Ikorongo","2",26,"small","3"
+"54","Ikorongo","2",26,"large","3"
+"27","Ikorongo","3",27,"small","8"
+"55","Ikorongo","3",27,"large","1"
+"28","Ikorongo","4",28,"small","7"
+"56","Ikorongo","4",28,"large","1"

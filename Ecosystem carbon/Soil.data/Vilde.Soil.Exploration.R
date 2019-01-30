@@ -4,10 +4,19 @@
 total.soil.data<- read.csv("Ecosystem Carbon/Soil.data/Total.Soil.Data.csv", head = TRUE)
 names(total.soil.data)
 
-compare <- read.csv("Ecosystem Carbon/Soil.data/TBS.NMBU.csv", head=T)
-
-summary(lm(C.per.TBS~C.per.NMBU, data=compare))
+# Comparing data from NTNU with data from NMBU
+compare1 <- read.csv("Ecosystem Carbon/Soil.data/TBS.NMBU.csv", head=T)
+summary(lm(C.per.TBS~C.per.NMBU, data=compare1))
 cor.test(compare$C.per.TBS,compare$C.per.NMBU, method=c("pearson"))
+
+# Comparing my data with Stuart`s data 
+compare2 <- read.csv("Ecosystem Carbon/Soil.data/C.Stu.Vilde.csv", head=T)
+str(compare2)
+
+compare2$Soil.C.Vilde <- as.numeric(compare2$Soil.C.Vilde)
+
+summary(lm(Soil.C.Vilde~Soil.C.Stu, data=compare2))
+cor.test(compare2$Soil.C.Vilde,compare2$Soil.C.Stu, method=c("pearson"))
 
 # Want to have a table with SOIL TEXTURE (clay, silt and sand) and chemical traits for the analysis I did - now have data from Anders and Stu also - not included here..  
 # First, reorganizing and removing collumns 
@@ -50,7 +59,7 @@ write.csv(Soil.properties,file="Ecosystem carbon/Soil.data/Soil.Properties.csv")
 # Making tables for C and N 
 Soilfull <- read.csv(file="Ecosystem carbon/Soil.data/Total.Soil.Data.csv",header=T)
 names(Soilfull)
-Soilred <- Soilfull[,c(2:7,16:19,36,39)]
+Soilred <- Soilfull[,c(2:7,16:19,32:34,36,39)]
 Soilred$Region<- factor(Soilred$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
 #AHorizon <- Soilred[Soilred$Horizon=="A-hor",]
@@ -96,7 +105,7 @@ SoilBlock$Landuse <- as.factor(c("Pasture","Pasture","Pasture","Pasture","Pastur
 write.csv(SoilBlock,file="Ecosystem carbon/Soil.data/Soil.Carbon.Block.csv")
 
 
-# On region size 
+### On region size #### 
 Soil.Region <- cbind((aggregate(Clay.per~Region+Land_Use,data=Soilred,mean)),
               (aggregate(Clay.per~Region+Land_Use,data=Soilred,SE))[3],
               (aggregate(Silt.per~Region+Land_Use,data=Soilred,mean))[3],
@@ -125,35 +134,33 @@ library(ggplot2)
 library(tidyr)
 
 Soil.carbon.block <- read.csv(file="Ecosystem carbon/Soil.data/Soil.Carbon.Block.csv",head=T)
-soil.carbon.region <- read.csv(file="Ecosystem carbon/Soil.data/Soil.Carbon.Region.csv",head=T)
+#soil.carbon.region <- read.csv(file="Ecosystem carbon/Soil.data/Soil.Carbon.Region.csv",head=T)
 Soil.full <- read.csv(file="Ecosystem carbon/Soil.data/Total.Soil.Data.csv",head=T)
 
 Soil.carbon.block$Region<- factor(Soil.carbon.block$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
-soil.carbon.region$Region<- factor(soil.carbon.region$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
-
-# Add land use and unique Block ID
-#Soil.carbon.block$Landuse <- as.factor(c("Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild"))
-
-#Soil.carbon.block$Block.ID <- as.numeric(c(1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,13,14,14,14,15,15,15,16,16,16,17,17,17,18,18,19,19,19,20,20,21,21,22,22,23,23,24,24,25,25,26,26,27,27,28,28))
-
-#write.csv(Soil.carbon.block,file="Ecosystem carbon/Soil.data/Soil.Carbon.Block.csv")
+#soil.carbon.region$Region<- factor(soil.carbon.region$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
 Soil.carbon.block$Landuse<- factor(Soil.carbon.block$Landuse, levels = c("Pasture","Wild"))
+Soil.full$Land_Use<- factor(Soil.full$Land_Use, levels = c("Pasture","Wild"))
+Soil.full <- droplevels(Soil.full)
 
-par(mfrow=c(1,2))
-plot(C.kg_m2~Landuse, data= Soil.carbon.block)
-plot(N.kg_m2~Landuse, data= Soil.carbon.block)
+par(mfrow=c(1,2)) 
+plot(C.kg_m2~Land_Use, data= Soil.full)
+plot(N.kg_m2~Land_Use, data= Soil.full)
 
 plot(C.kg_m2~Region,data=Soil.carbon.block)
 plot(N.kg_m2~Region,data=Soil.carbon.block)
 
+summary(lm(C.kg_m2/N.kg_m2~Landuse,data=Soil.carbon.block))
+
 # Dotchart C and N (g/m2)
 dotchart(Soil.full$C.kg_m2, groups=Soil.full$Region,main = "Region")
-dotchart(Soil.full$C.kg_m2,groups=Soil.full$Land_Use,main = "landuse")
+dotchart(Soil.full$C.kg_m2, groups=Soil.full$Land_Use,main = "landuse")
 
 dotchart(Soil.full$N.kg_m2, groups=Soil.full$Region,main = "Region")
 dotchart(Soil.full$N.kg_m2,groups=Soil.full$Land_Use,main = "landuse")
+dotchart(Soil.full$C.kg_m2/Soil.full$N.kg_m2,groups=Soil.full$Land_Use,main = "landuse")
 
 # Dotchart per horizon based on total C and N (%)
 dotchart(Soil.full$Tot.C.per, groups=Soil.full$Horizon, main= "Carbon pool")
@@ -161,11 +168,8 @@ dotchart(Soil.full$Tot.N.per, groups=Soil.full$Horizon, main= "Nitrogen pool")
 
 par(mfrow=c(1,1))
 
-p <- ggplot(SoilC,aes(x=C.g_m2))
-p + geom_histogram()+facet_grid(~Region)+theme_bw()
-
 hist(SoilC$C.g_m2[SoilC$Region=="Handejega"])
-hist(SoilC$C.g_m2)
+hist(Soil.carbon.block$C.kg_m2)
 
 # Graphs 
 
@@ -177,15 +181,86 @@ Lines_gone <- theme(panel.grid.major.x = element_blank(),
                     panel.grid.major.y = element_blank(),
                     panel.grid.minor.y = element_blank())
 
-SoilCSand<- ggplot(data = Soil.carbon.block, aes(x = Sand.per,y = C.kg_m2, ymin=C.kg_m2-SE.C.kg_m2,ymax=C.kg_m2+SE.C.kg_m2, colour= Horizon, shape= Landuse))
+SoilCSand<- ggplot(data = Soil.full, aes(x = Sand.per,y = C.kg_m2,colour= Horizon, shape= Land_Use))
 
 SoilCSand + xlab("Sand (%)") + ylab(expression(paste("Soil Carbon (g", m^-2,")")))  + 
-  geom_point(fill="white",size=4,stroke=1.2,show.legend=T)  + 
-  geom_errorbar(stat = "identity",width=0.01,lwd=1.1,show.legend=F, na.rm=T) +
+  geom_point(fill="white",size=4,stroke=1.2,show.legend=T) 
   scale_shape_manual(legend_titleLAND,values=c(16,0)) +
   scale_color_manual(legend_titleCarbon, breaks = c("A-Hor","Min-Hor","O-Hor"),values=c("darkgoldenrod","salmon4","burlywood4")) + 
   theme_bw() + Lines_gone
 
+# Clay, correlation with MAP, fire, land-use?
+
+# Making a simple plot of clay as a function of MAP 
+par(mfrow=c(2,2))
+plot(Clay.per~MAP.mm_yr, data=Soil.full,col=Soil.full$Region)
+plot(Clay.per~factor(Land_Use), data=Soil.full)
+plot(Clay.per~Last_fire.yr, data=Soil.full)
+plot(Clay.per~Fire_frequency.2000_2017, data=Soil.full)
+
+summary(lm(Clay.per~MAP.mm_yr, data=Soil.full))
+
+# Boxplot illustrating difference in clay per site with colors indicating amount of MAP
+par(mfrow=c(1,1))
+plot(Clay.per~factor(Region), 
+     xlab= "Region",
+     ylab= "Clay (%)",
+     data=Soil.full,
+     border=c("darkgoldenrod2","darkgoldenrod2","blueviolet","blueviolet","palegreen3","darkcyan","darkcyan"))
+
+
+# Making a table with BD and clay to see if they are correlated.
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+Clay <- aggregate(Clay.per~Horizon+Region, data=MAP.clay,mean)
+Clay.se <- aggregate(Clay.per~Horizon+Region, data=MAP.clay,SE)
+
+Clay.BD <- cbind(BD.horizon,Clay[3],Clay.se[3])
+colnames(Clay.BD) <- c("Horizon","Region","BD","BD.se","Clay","Clay.se")
+
+# Checking for correlation between Clay and BD to see if I can use BD instead of clay 
+
+par(mfrow=c(2,2))
+Model.clay.BD <- lm(BD~Clay,data=Clay.BD)
+summary(Model.clay.BD) # significant 
+plot(Model.clay.BD)
+
+par(mfrow=c(1,1))
+plot(Clay~BD, data=Clay.BD)
+
+# Creating a dataframe for clay with the fit of the model, and the SE of the fit. 
+xseq <- seq(from=min(Clay.BD$Clay),to=max(Clay.BD$Clay), 1)
+CorrLine<-data.frame(Clay= xseq, predict(Model.clay.BD, data.frame(Clay=xseq), se.fit= TRUE))
+
+# Plot prediction line using ggplot and geom_ribbon 
+
+Clay.BD.plot <- ggplot(data = Clay.BD, aes(x = Clay,y = BD, group_by(Horizon)))
+
+Lines_gone <- theme(panel.grid.major.x = element_blank(),
+                    panel.grid.minor.x = element_blank(),
+                    panel.grid.major.y = element_blank(),
+                    panel.grid.minor.y = element_blank())
+
+Clay.BD.plot +
+  geom_point(aes(shape=factor(Horizon),stroke=3,color=Region)) +
+  geom_line(data=CorrLine, aes(Clay, fit))+
+  geom_ribbon(data=CorrLine, aes(ymin=fit-se.fit, ymax=fit+se.fit, x = Clay), alpha=0.4,inherit.aes = FALSE)+
+  theme_bw() +
+  Lines_gone
+  
+#### Making models####
+
+# Making basic lm to check for correlations
+SandMAP <- lm(C.kg_m2~Sand.per*MAP.mm_yr, data=Soil.full)
+summary(SandMAP)
+
+ClayMAP <- lm(C.kg_m2~Clay.per*MAP.mm_yr, data=Soil.full)
+summary(ClayMAP)
+
+SandLanduse <- lm(C.kg_m2~Sand.per*factor(Land_Use), data=Soil.full)
+summary(SandLanduse)
+
+ClayLanduse <- lm(C.kg_m2~Clay.per*factor(Land_Use), data=Soil.full)
+summary(ClayLanduse)
 
 #### Bulk Density exploration ####
 
@@ -289,99 +364,6 @@ BD.model2 <- lm(BD.average~BD.control, data=BD.region)
 summary(BD.model2)
 par(mfrow=(c(2,2)))
 plot(BD.model2)
-
-#### Clay, correlation with MAP, fire, land-use? ####
-
-total.soil.data<- read.csv("Ecosystem Carbon/Total.soil.data.csv", head = TRUE)
-names(total.soil.data)
-
-MAP.clay.total <- total.soil.data[,c(1:6,14:16,17,30)] #reducing the dataset
-names(MAP.clay.total) 
-tail(MAP.clay.total)
-# Exclude all with NA 
-MAP.clay.fire <- na.omit(MAP.clay.total) # removing NAs
-
-# Making a dataset without fire 
-MAP.clay <- total.soil.data[,c(1:6,14,17,30)]
-MAP.clay <- na.omit(MAP.clay)
-
-levels(MAP.clay$Region)
-MAP.clay$Region <- factor(MAP.clay$Region,levels = c("Makao","Maswa","Mwantimba","Handajega", "Seronera","Park Nyigoti","Ikorongo"))
-
-#write.csv(MAP.clay,file="Ecosystem carbon/MAP.clay.csv" )
-
-# Making a simple plot of clay as a function of MAP 
-par(mfrow=c(2,2))
-plot(Clay.per~MAP.mm_yr, data=MAP.clay,col=MAP.clay$Region)
-plot(Clay.per~factor(Land_Use), data=MAP.clay)
-plot(Clay.per~Last_fire.yr, data=MAP.clay.fire)
-plot(Clay.per~Fire_frequency.2000_2017, data=MAP.clay.fire)
-
-summary(lm(Clay.per~MAP.mm_yr, data=MAP.clay))
-
-# Boxplot illustrating difference in clay per site with colors indicating amount of MAP
-par(mfrow=c(1,1))
-plot(Clay.per~factor(Region), 
-     xlab= "Region",
-     ylab= "Clay (%)",
-     data=MAP.clay,
-     border=c("darkgoldenrod2","darkgoldenrod2","blueviolet","blueviolet","palegreen3","darkcyan","darkcyan"))
-
-
-# Making a table with BD and clay to see if they are correlated.
-SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
-Clay <- aggregate(Clay.per~Horizon+Region, data=MAP.clay,mean)
-Clay.se <- aggregate(Clay.per~Horizon+Region, data=MAP.clay,SE)
-
-Clay.BD <- cbind(BD.horizon,Clay[3],Clay.se[3])
-colnames(Clay.BD) <- c("Horizon","Region","BD","BD.se","Clay","Clay.se")
-
-# Checking for correlation between Clay and BD to see if I can use BD instead of clay 
-
-par(mfrow=c(2,2))
-Model.clay.BD <- lm(BD~Clay,data=Clay.BD)
-summary(Model.clay.BD) # significant 
-plot(Model.clay.BD)
-
-par(mfrow=c(1,1))
-plot(Clay~BD, data=Clay.BD)
-
-# Creating a dataframe for clay with the fit of the model, and the SE of the fit. 
-xseq <- seq(from=min(Clay.BD$Clay),to=max(Clay.BD$Clay), 1)
-CorrLine<-data.frame(Clay= xseq, predict(Model.clay.BD, data.frame(Clay=xseq), se.fit= TRUE))
-
-# Plot prediction line using ggplot and geom_ribbon 
-
-Clay.BD.plot <- ggplot(data = Clay.BD, aes(x = Clay,y = BD, group_by(Horizon)))
-
-Lines_gone <- theme(panel.grid.major.x = element_blank(),
-                    panel.grid.minor.x = element_blank(),
-                    panel.grid.major.y = element_blank(),
-                    panel.grid.minor.y = element_blank())
-
-Clay.BD.plot +
-  geom_point(aes(shape=factor(Horizon),stroke=3,color=Region)) +
-  geom_line(data=CorrLine, aes(Clay, fit))+
-  geom_ribbon(data=CorrLine, aes(ymin=fit-se.fit, ymax=fit+se.fit, x = Clay), alpha=0.4,inherit.aes = FALSE)+
-  theme_bw() +
-  Lines_gone
-  
-
-
-#### Making models####
-
-# Making basic lm to check for correlations
-SandMAP <- lm(C.kg_m2~Sand.per*MAP, data=Soil.carbon.block)
-summary(SandMAP)
-
-ClayMAP <- lm(C.kg_m2~Clay.per*MAP, data=Soil.carbon.block)
-summary(ClayMAP)
-
-SandLanduse <- lm(C.kg_m2~Sand.per*factor(Landuse), data=Soil.carbon.block)
-summary(SandLanduse)
-
-ClayLanduse <- lm(C.kg_m2~Clay.per*factor(Landuse), data=Soil.carbon.block)
-summary(ClayLanduse)
 
 
 

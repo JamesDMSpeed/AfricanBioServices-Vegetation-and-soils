@@ -1,0 +1,15 @@
+"","Region","MAP.mm_yr","landuse","Carbon.pool","C.amount","SE.C.amount"
+"1","Park Nyigoti","1134.81","Pasture","AbovegroundC",0.0206992299778667,0.0153199346452403
+"2","Mwantimba","1287.16","Pasture","AbovegroundC",0.0330716416179167,0.00576378124400267
+"3","Makao","704.07","Pasture","AbovegroundC",0.0154144379337,0.00409583644121088
+"4","Ikorongo","1134.81","Wild","AbovegroundC",0.1182412341822,0.0697506370346127
+"5","Handajega","1287.16","Wild","AbovegroundC",0.345417349653333,0.10945538482524
+"6","Maswa","704.07","Wild","AbovegroundC",0.163042620194567,0.0502800429118838
+"7","Seronera","855.62","Wild","AbovegroundC",0.0958518190238,0.0271142761591489
+"8","Park Nyigoti","1134.81","Pasture","BelowgroundC",5.3925,0.206987318452122
+"9","Mwantimba","1287.16","Pasture","BelowgroundC",3.9275,0.254458166175372
+"10","Makao","704.07","Pasture","BelowgroundC",3.0825,0.403566134604974
+"11","Ikorongo","1134.81","Wild","BelowgroundC",6.076875,0.257636240252932
+"12","Handajega","1287.16","Wild","BelowgroundC",3.64,0.224995370322739
+"13","Maswa","704.07","Wild","BelowgroundC",4.953125,0.162821396909825
+"14","Seronera","855.62","Wild","BelowgroundC",3.585625,0.203785464704919

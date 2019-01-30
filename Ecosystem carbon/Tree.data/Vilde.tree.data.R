@@ -12,6 +12,7 @@ library(plyr)
 #library(xlsx)
 library(ggplot2)
 library(tidyr)
+library(DataCombine)
 
 # Data
 Philtrees<-read.csv(file="Ecosystem carbon/Tree.data/Tree.data.Seregenti.PhilipoBio.csv", sep=",",header=TRUE)
@@ -31,6 +32,16 @@ Philtrees4<-droplevels(Philtrees4)
 levels(Philtrees4$area)
 levels(Philtrees4$date)
 
+# Trying to find a cut of value for basal area at 2 m height (maybe I dont have to do this)
+#names(Philtrees4)
+#str(Philtrees4)
+#Philtrees4$height.cm[Philtrees4$height.cm == 0] <- NA
+
+#Height.BA <- na.omit(Philtrees4 %>%
+#  select(height.cm,total.basal.area.m2))
+
+#plot(total.basal.area.m2~height.cm, data=Height.BA)
+
 TargetMAY <- c("06.05.2017","07.05.2017","11.05.2017","13.05.2017", "14.5.2017", "17.05.2017", "9.5.2017")  
 TargetDEC<- c("10.12.2017", "12.12.2017", "13.12.2017",  "14.12.2017","16.12.2017", "17.12.2017", "18.12.2017") 
 
@@ -45,15 +56,30 @@ table(PhiltreesDEC$area)
 table(PhiltreesMAY$area)
       
 Vildetrees <- PhiltreesDEC[,c(1:4,6,7,9,25,26,28,31:33)]
+str(Vildetrees)
+# Changing SNP handajega to Handajega 
+Vildetrees$area <- as.character(Vildetrees$area)
+Vildetrees$area[Vildetrees$area == "SNP handejega"] <- "Handajega"
 
 # Rearanging my data in the order I visited the sites: 
-Vildetrees$area<- factor(Vildetrees$area, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
+Vildetrees$area<- factor(Vildetrees$area, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera", "Park Nyigoti","Ikorongo"))
 
 levels(Vildetrees$area) # Releveled
 
-# Adding carbon and biomass in g, and median biomass
+Vildetrees <- Vildetrees[
+  order(Vildetrees[,4], Vildetrees[,6] ),
+  ]
+
+# Adding carbon and biomass in g
 Vildetrees$Carbon.g.tree<- Vildetrees$Carbon.kg.per.tree*1000
 Vildetrees$Biomass.g.tree <- Vildetrees$Biomass.kg.per.tree*1000
+
+Vildetrees$Block.ID<-as.factor(with(Vildetrees, paste(area, block, sep="_")))
+
+Vildetrees$Block.ID<- factor(Vildetrees$Block.ID, levels = c("Makao_1","Makao_2","Makao_3","Makao_4","Maswa_1","Maswa_2","Maswa_3","Maswa_4","Mwantimba_1","Mwantimba_2","Mwantimba_3","Mwantimba_4","Handajega_1","Handajega_2","Handajega_3","Handajega_4","Seronera_1","Seronera_2","Seronera_3","Park Nyigoti_1","Park Nyigoti_2","Park Nyigoti_3","Park Nyigoti_4","Ikorongo_1","Ikorongo_2","Ikorongo_3","Ikorongo_4"))
+
+Vildetrees$Block.ID<-as.factor(as.numeric(Vildetrees$Block.ID))
+summary(levels(Vildetrees$Block.ID))
 
 write.csv(Vildetrees,file="Ecosystem carbon/Tree.data/Vildetrees.csv")
 
@@ -61,9 +87,9 @@ write.csv(Vildetrees,file="Ecosystem carbon/Tree.data/Vildetrees.csv")
 # Aggregate carbon per block
 
 Vildetrees <- read.csv(file="Ecosystem carbon/Tree.data/Vildetrees.csv", head=T)
-Vildetrees$area<- factor(Vildetrees$area, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
-
 names(Vildetrees)
+
+Vildetrees$area<- factor(Vildetrees$area, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera", "Park Nyigoti","Ikorongo"))
 
 Tree.carbon <- cbind((aggregate(area.m2~block+area,Vildetrees,mean)),
                      (aggregate(Carbon.g.tree~block+area, Vildetrees,sum))[3],
@@ -90,8 +116,6 @@ names(Tree.carbon)
 levels(Tree.carbon$Region)
 
 # Missing one row for Seronera - want to add this as a NA row. 
-library(DataCombine)
-
 New.row <- c(4,"Seronera",2500,NA,NA,NA,NA,NA,NA,855.6199048,NA,NA,NA,NA,NA)
 Tree.carbon <- InsertRow(Tree.carbon,New.row,20)
 
@@ -119,7 +143,7 @@ Tree.carbon.Vilde <- Tree.carbon.Vilde[
 
 #2. version - easy here. 
 Tree.carbon.Vilde$Block.ID <- as.numeric(c(1:28))
-names(Tree.carbon)
+names(Tree.carbon.Vilde)
 
 write.csv(Tree.carbon.Vilde,file="Ecosystem carbon/Tree.data/Tree.Carbon.Vilde.csv") # for further use 
 
@@ -163,38 +187,13 @@ TreeC.Region$Landuse <- as.factor(c("Pasture","Wild","Pasture","Wild", "Wild", "
 
 write.csv(TreeC.Region, file="Ecosystem carbon/Tree.data/TreeC.Region.csv")
 
-#### 3. Exploring the data #### 
+#### 3. Exploring Tree data #### 
 Tree.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.Carbon.Vilde.csv", head=T)
-TreeC.Region <- read.csv(file="Ecosystem Carbon/Tree.data/TreeC.Region.csv", head=T)
 Vildetrees <- read.csv(file="Ecosystem Carbon/Tree.data/Vildetrees.csv",head=T)
 # Relevel before making plots
-Tree.carbon$Region<- factor(Tree.carbon$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
+Tree.carbon$Region<- factor(Tree.carbon$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera", "Park Nyigoti","Ikorongo"))
 
-TreeC.Region$Region<- factor(TreeC.Region$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
-
-# Make a histogram of the distribution of trees 
-p <- ggplot(Vildetrees,aes(x=Biomass.g.tree))
-p + geom_histogram()+facet_grid(~area)+theme_bw()
-
-hist(Vildetrees$Biomass.g.tree[Vildetrees$area=="SNP handejega"])
-hist(Vildetrees$Biomass.g.tree)
-
-table(Vildetrees$block.id, Vildetrees$area) # Ikorongo,Makao, Maswa, Mwantimba, Park Nyigoti, Seronera, Handajega 
-
-# Simple plots of trees 
-legend_titleLAND <- "Land-use"
-legend_titleCarbon <- "Carbon Pool"
-
-plot(Biomass.g.tree~block.id,
-     xlab = "Block",
-     ylab = "Tree Biomass (g)",
-     col=c(landuse),
-     data=Vildetrees)
-
-par(mfrow=c(1,2))
-dotchart(Vildetrees$Biomass.g.tree,groups=Vildetrees$area,main = "area") # Maswa and Handajega have big trees
-dotchart(Vildetrees$Biomass.g.tree,groups=Vildetrees$landuse,main = "landuse") # wild have bigger trees than pasture. 
-par(mfrow=c(1,1))
+Vildetrees$area<- factor(Vildetrees$area, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera", "Park Nyigoti","Ikorongo"))
 
 # Tree carbon vs LANDUSE
 plot(No.trees_m2~landuse,
@@ -202,228 +201,189 @@ plot(No.trees_m2~landuse,
      ylab = "Number of Trees",
      data=Tree.carbon)
 
-plot(TreeC_m2~landuse,
+plot(TreeC.kg_m2~landuse,
      xlab = "Land Use",
      ylab = "",
      data=Tree.carbon)
 
-title(ylab= expression("Tree Carbon" ~ (g ~ m^{-2})), line=2)
-#cex.lab=1.2, family="Calibri Light"
+# Exploring the distribution of trees
+hist(Tree.carbon$TreeBM.kg_m2)
 
-# Carbon per tree in pasture vs wild  
+dotchart(Vildetrees$Biomass.kg.per.tree,groups=Vildetrees$area,main = "area") # Maswa and Handajega have big trees
+dotchart(Vildetrees$Biomass.kg.per.tree,groups=Vildetrees$landuse,main = "landuse") # wild have bigger trees than pasture. 
 
-plot (TreeC_m2/No.trees_m2~landuse,
-      xlab = "Land Use",
-      ylab = "Carbon per tree",  
-      data=Tree.carbon)
+# Looking for outliars 
+max(Vildetrees$Biomass.kg.per.tree, na.rm=T) # One gigant tree in Handajega... 2813.959 kg 
+max(Vildetrees$total.basal.area.m2, na.rm=T)
+plot(Vildetrees$Biomass.kg.per.tree~Vildetrees$Block.ID)
+identify(Vildetrees$Biomass.kg.per.tree~Vildetrees$Block.ID) # row number 78 
 
-identify(Tree.carbon$TreeC_m2/Tree.carbon$No.trees_m2~Tree.carbon$landuse) # The outliar in Pasture is Park Nyigoti block 1. 
+dim(Vildetrees) #166 trees
+names(Vildetrees)
 
-# Making a plot of total number of trees over median size of trees per Region 
-size.number <- cbind((aggregate(total.basal.area.m2~area+block+landuse + annual.precip.mm2015_2017,data=Vildetrees, median)),(aggregate(X~area+block+landuse,data=Vildetrees,length))[4])
+# Dividing into small and large trees 
 
-colnames(size.number) <- c("Region","block","landuse","MAP","median.basal.area","no.trees")
-size.number <- arrange(size.number,Region)
+AllTrees<- Vildetrees %>%
+  select(Biomass.kg.per.tree,area,block,Block.ID) %>%
+  group_by(area,block,Block.ID) %>%
+  tally()
 
-size.number$Region<- factor(size.number$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
+AllTrees <- as.data.frame(AllTrees)
+ID <- AllTrees[,c(1:3)]
 
-plot(no.trees/median.basal.area~landuse, data=size.number)
-plot(no.trees/median.basal.area~MAP, data=size.number)
+# Select by biomass 
+SmallTreesBM <- Vildetrees %>%
+  filter(Biomass.kg.per.tree<=2) %>%
+  select(Biomass.kg.per.tree,area,block,Block.ID) %>%
+  group_by(area,block,Block.ID) 
 
-# Tree basal area vs landuse 
-plot (Total.basal.area_m2~landuse,
-      xlab = "Land Use",
-      ylab = "Tree basal area per m2",  
-      data=Tree.carbon)
+SmallTreesBM <- as.data.frame(SmallTreesBM)
 
-# Look at the size distribution of trees in Serengeti 
-#----------------------------------------------------
+LargeTreesBM <- Vildetrees %>%
+  filter(Biomass.kg.per.tree>2) %>%
+  select(Biomass.kg.per.tree,area,block,Block.ID) %>%
+  group_by(area,block,Block.ID) 
 
-# Properties of the data
-#mean(Vildetrees$Biomass.g.tree) #51656.06
-#median(Vildetrees$Biomass.g.tree) #1479.607
+LargeTreesBM <- as.data.frame(LargeTreesBM)
 
-#mean(Vildetrees$total.basal.area.m2) # 0.007951697
-#median(Vildetrees$total.basal.area.m2) # 0.00014385
+# Df with number of small and number of large 
+SmallTreesNo <- Vildetrees %>%
+  filter(Biomass.kg.per.tree<=2) %>%
+  select(Biomass.kg.per.tree,area,block,Block.ID) %>%
+  group_by(area,block,Block.ID) %>%
+  tally()
 
-# Sort by median tree BM  
-large.trees.median <- Vildetrees %>%
-  filter(Biomass.g.tree >= 1479.607) %>%
-  select(Biomass.g.tree,area,landuse)
+SmallTreesNo <- as.data.frame(SmallTreesNo)
 
-table(large.trees.median$area)
+LargeTreesNo <- Vildetrees %>%
+  filter(Biomass.kg.per.tree>2) %>%
+  select(Biomass.kg.per.tree,area,block,Block.ID) %>%
+  group_by(area,block,Block.ID) %>%
+  tally()
 
-small.trees.median <- Vildetrees %>%
-  filter(Biomass.g.tree < 1479.607) %>%
-  select(Biomass.g.tree,area,landuse)
+LargeTreesNo <- as.data.frame(LargeTreesNo)
 
-table(small.trees.median$area)
+SmallTreesNo <- full_join(ID,SmallTreesNo)
+LargeTreesNo<- full_join(ID,LargeTreesNo)
 
-# Make a new long data set based on median tree BM size 
-large.trees <- aggregate(Biomass.g.tree~area,data=large.trees.median,length)
-colnames(large.trees) <- c("Region","Large")
-small.trees <- aggregate(Biomass.g.tree~area,data=small.trees.median,length)
-colnames(small.trees) <- c("Region","Small")
-Tree.size <- cbind(large.trees,small.trees[2])
-Tree.BM.dist <- gather(Tree.size,Size, Count, Large:Small,factor_key=TRUE)
-Tree.BM.dist <- arrange(Tree.BM.dist,Region)
-Tree.BM.dist$Region<- factor(Tree.BM.dist$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
-Tree.BM.dist$Landuse <- as.factor(c("Wild","Wild","Pasture","Pasture","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild"))
-#### Sort by mean tree BM ####
-large.trees.mean <- Vildetrees %>%
-  filter(Biomass.g.tree >= 51656.06) %>%
-  select(Biomass.g.tree,area,landuse)
-
-large.trees2 <- as.data.frame(table(large.trees.mean$area))
-
-small.trees.mean <- Vildetrees %>%
-  filter(Biomass.g.tree < 51656.06) %>%
-  select(Biomass.g.tree,area,landuse)
-
-small.trees2 <- as.data.frame(table(small.trees.mean$area))
+Tree.size.no <- cbind(SmallTreesNo,LargeTreesNo[4])
+names(Tree.size.no)
+colnames(Tree.size.no) <- c("area", "block", "Block.ID", "small", "large")  
 
 # Make a new long data set based on mean tree BM size 
-Tree.size2 <- cbind(large.trees2,small.trees2[2]) 
-colnames(Tree.size2) <- c("Region","Large","Small")
-Tree.BM.dist2 <- gather(Tree.size2,Size, Freq, Large:Small,factor_key=TRUE)
-Tree.BM.dist2 <- arrange(Tree.BM.dist2,Region)
-Tree.BM.dist2$Region<- factor(Tree.BM.dist$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
-Tree.BM.dist2$Landuse <- as.factor(c("Wild","Wild","Pasture","Pasture","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild"))
+
+Tree.size.no.long <- gather(Tree.size.no,Size,Count, small:large,factor_key=TRUE)
+
+New.row1 <- c("Seronera",4,NA,"small",NA)
+New.row2 <- c("Seronera",4,NA,"large",NA)
+Tree.size.no.long <- InsertRow(Tree.size.no.long,New.row1,20)
+Tree.size.no.long <- InsertRow(Tree.size.no.long,New.row2,48)
+
+Tree.size.no.long$Block.ID <- as.numeric(c(1:28,1:28))
+
+Tree.size.no.long <- Tree.size.no.long[
+  order(Tree.size.no.long[,1], Tree.size.no.long[,2] ),
+  ]
+
+write.csv(Tree.size.no.long,file="Ecosystem carbon/Tree.data/Tree.size.csv")
+
+# Density distribution tree size from Philipo
+
+#########################################################################
+# Tree biomass historgraph graph
+#########################################################################
+names(Vildetrees)
+
+# Group means
+grp.mean<-aggregate(log(Biomass.kg.per.tree+1)~landuse+area,data=Vildetrees,mean)
+colnames(grp.mean)[3]<-"log.Biomass.kg.per.tree"
+Vildetrees$log.Biomass.kg.per.tree<-log(Vildetrees$Biomass.kg.per.tree+1)
+max(Vildetrees$Biomass.kg.per.tree)
+log(2813.959+1) # ~ 8 
+log(2+1) # 1.098612 = cut of for small trees
+
+# Main graph tree biomass density 
+
+Lines_gone <- theme(panel.grid.major.x = element_blank(),
+                    panel.grid.minor.x = element_blank(),
+                    panel.grid.major.y = element_blank(),
+                    panel.grid.minor.y = element_blank())
+
+Tree.biomass <-ggplot()
+Tree.biomass + geom_density(data=Vildetrees, aes(log.Biomass.kg.per.tree, fill = landuse,colour =landuse),alpha=0.4) +
+  facet_wrap(~area)+
+  scale_fill_manual("Land-use",values=c("darkorange","chartreuse4"))+
+  scale_colour_manual("Land-use",values=c("darkorange","chartreuse4"))+
+  scale_x_continuous(expand=c(0,0), limits = c(0, 8))+
+  scale_y_continuous(labels = c(0,5,10,15,20,25), breaks = c(0,.5,1.0,1.5,2.0,2.5), limits = c(0, 2.5), expand=c(0,0))+
+  geom_vline(data=grp.mean, aes(xintercept=log.Biomass.kg.per.tree,colour = landuse,linetype = landuse),size=.75)+
+  scale_linetype_manual("Land-use",values = c(wild = "solid", pasture = "dashed"))+ 
+  xlab("Log tree biomass (kg)") +  ylab("Density (%)")+ 
+  theme_bw() + 
+  Lines_gone
+
+ggsave("Ecosystem carbon/Figures/Log.treeBM.png",
+       width= 25, height = 15,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
+
+#### 4. Plotting Tree data ####
+
+# Density plot (%)
+# Per Region BM - density plot 
+BM.tree.plot <- ggplot(data= Vildetrees)
+
+BM.tree.plot + geom_density(aes(x=Biomass.kg.per.tree, fill = landuse,colour =landuse),alpha=0.4) +
+  facet_wrap(~area) +
+  scale_fill_manual("Land-use",values=c("darkorange","chartreuse4"))+
+  scale_colour_manual("Land-use",values=c("darkorange","chartreuse4"))+
+  scale_x_continuous(expand=c(0,0), limits = c(0, 4))+
+  scale_y_continuous(labels = c(0,5,10,15,20,25,30), breaks = c(0,.5,1.0,1.5,2.0,2.5,3.0), limits = c(0, 2.5), expand=c(0,0)) + 
+  xlab("Tree biomass (kg)") +  ylab("Density (%)") + 
+  theme_bw() +
+  Lines_gone 
+
+ggsave("Ecosystem carbon/Figures/TreeBM.dist.png",
+       width= 25, height = 15,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
+
+# Per Region Basal area - frequency plot 
+Basal.area.tree.plot <- ggplot(data= Vildetrees)
+
+Basal.area.tree.plot + geom_freqpoly(aes(x=total.basal.area.m2,colour=landuse),bins=30,size=1) +
+  facet_wrap(~area) +
+  scale_fill_manual("Land-use",values=c("darkorange","chartreuse4"))+
+  scale_colour_manual("Land-use",values=c("darkorange", "chartreuse4")) + 
+  xlab(expression(paste("Tree basal area (", m^-2,")"))) +  ylab("Frequency") + 
+  theme_bw() +
+  Lines_gone 
+
+ggsave("Ecosystem carbon/Figures/TreeBasalArea.Freq.png",
+       width= 25, height = 15,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
 
 # PLOTTING
-#-------------------------------------------
-# Plotting the size distribution based on median tree biomass. 
+# Plotting the size distribution with small and large trees 
 
-Lines_gone <- theme(panel.grid.major.x = element_blank(),
-                    panel.grid.minor.x = element_blank(),
-                    panel.grid.major.y = element_blank(),
-                    panel.grid.minor.y = element_blank())
-
-legend_titleLAND <- "Land-use"
-legent_titleSIZE <- "Size"
+legent_titleSIZE <- "Tree size"
 
 # DENSITY PLOT 
-size.plot.density <- ggplot(Tree.BM.dist, aes(x=Count, fill= Size))
-size.plot.density + geom_density() # Smooth histogram, shows the distribution of the small and large trees. So some regions had a lot of small trees, some had really few, but most regions had something in the midle. While small trees where more spread out. 
+size.plot.density <- ggplot(Tree.size.long, aes(x=Count, fill= Size))
+size.plot.density + geom_density() 
 
-# FACET WRAP - Want to look at all regions at the same time MEDIAN
-size.plot.wrap <- ggplot(Tree.BM.dist, aes(x= Size, y= Count, colour=Landuse, shape=Size)) 
+#  Want to look at all regions at the same time
+Tree.size.region <- Tree.size.long %>%
+  select(area,Size,Count) %>%
+  group_by(area,Size) %>%
+  tally(Count)
 
-size.plot.wrap + 
-  geom_point(size = 4,stroke=2, na.rm=T, show.legend = T) +
-  facet_wrap(~Region) + 
-  scale_shape_manual(legent_titleSIZE, values=c(4,1)) + 
-  scale_color_manual(legend_titleLAND,breaks = c("Wild", "Pasture"),values=c("goldenrod3", "forestgreen")) +
+Size.plot <- ggplot(data=Tree.size.region, aes(x=area, y=n, colour= Size))
+
+Size.plot +
+  geom_point(fill="white",size=4,stroke=1.2,show.legend=T)+
+  scale_colour_manual(legent_titleSIZE,breaks= c("large","small"),values=c("darkorange","chartreuse4"))+
+  xlab("Region") +  ylab("Count") + 
   theme_bw() +
-  theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank()) +
   Lines_gone
-
-# FACET WRAP - Want to look at all regions at the same time MEAN
-size.plot.wrap2 <- ggplot(Tree.BM.dist2, aes(x= Size, y= Freq, colour=Landuse, shape=Size)) 
-
-size.plot.wrap2 + 
-  geom_point(size = 4,stroke=2, na.rm=T, show.legend = T) +
-  facet_wrap(~Region) + 
-  scale_shape_manual(legent_titleSIZE, values=c(4,1)) + 
-  scale_color_manual(legend_titleLAND,breaks = c("Wild", "Pasture"),values=c("goldenrod3", "forestgreen")) +
-  theme_bw() +
-  theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank()) +
-  Lines_gone
-
-
-# Barplot of size 
-size.plot.bar <- ggplot(Tree.BM.dist, aes(x=Region,y=Count, fill= Size))
-  
-size.plot.bar+ 
-  geom_bar(stat="identity", position="stack",na.rm=T) + 
-  theme_bw() + Lines_gone + xlab("Region") + ylab("Number of Trees") + ggtitle("Median tree biomass")  + 
-  scale_fill_manual(breaks = c("Large", "Small"),values=c("goldenrod3", "forestgreen")) 
-
-# Plotting the size distribution based on mean tree biomass. 
-#size.plot2 <- ggplot(Tree.size.dist2, aes(x=Region,y=Count, fill= Size))
-#size.plot2 + geom_bar(stat="identity", position="stack",na.rm=T) + xlab("Region") + ylab("Number of Trees")+ ggtitle("Mean tree biomass") + theme_bw()  + scale_fill_manual(breaks = c("Large", "Small"),values=c("goldenrod3", "forestgreen"))
-
-#### Plotting Tree data at Regional Level ####
-
-Lines_gone <- theme(panel.grid.major.x = element_blank(),
-                    panel.grid.minor.x = element_blank(),
-                    panel.grid.major.y = element_blank(),
-                    panel.grid.minor.y = element_blank())
-
-TreeC.Region.plot <- ggplot(data = TreeC.Region, aes(x = Region,y = TreeC_m2, ymin=TreeC_m2-SE.TreeC_m2,ymax=TreeC_m2+SE.TreeC_m2, group = Landuse, colour= Landuse))
-
-TreeC.Region.plot + xlab("Region") + ylab("Woody plant carbon")  + 
-  geom_point(size = 3, shape=20,stroke=2)  +
-  geom_errorbar(stat = "identity",width=.2,lwd=1.1,show.legend=F) + 
-  theme_bw() + Lines_gone +  scale_color_manual(breaks = c("Pasture", "Wild"),values=c("goldenrod3", "forestgreen"))
-
-# No of trees vs BD 
-total.soil.data<- read.csv("Ecosystem Carbon/Soil.data/Total.soil.data.csv", head = TRUE)
-names(total.soil.data)
-
-BD.total <- total.soil.data[,c(1:7,14,23)]
-tail(BD.total)
-BD.total <- na.omit(BD.total)
-# Remove O-hor as I only have this for very few plots. 
-BD.total <- BD.total[BD.total$Horizon!="O-hor",]
-BD.total <- droplevels(BD.total)
-
-BD.total$Region <- factor(BD.total$Region,levels = c("Makao","Maswa","Mwantimba","Handajega", "Seronera","Park Nyigoti","Ikorongo"))
-
-SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
-BD.SE <- aggregate(BD_fine_earth_air_dry~Region,data=BD.total,SE)
-BD <- aggregate(BD_fine_earth_air_dry~Region,data=BD.total,mean)
-
-# Include BD in Tree dataset 
-Trees.BD <- cbind(TreeC.Region,BD[2],BD.SE[2])
-names(Trees.BD)
-colnames(Trees.BD)[15] <-"BD"
-colnames(Trees.BD)[16] <-"SE.BD"
-
-plot(BD~No.trees, data=Trees.BD)
-plot(No.trees~BD, data=Trees.BD)
-plot(No.trees~MAP, data=Trees.BD)
-plot(BD~MAP, data=Trees.BD)
-
-summary(lm(BD~No.trees, data=Trees.BD))
-summary(lm(No.trees~MAP, data=Trees.BD))
-summary(lm(BD~MAP, data=Trees.BD))
-summary(lm(No.trees~MAP+BD, data=Trees.BD))
-
-# Plotting trees against BD 
-
-Plot.trees.BD <- ggplot(data = Trees.BD, aes(x = BD,y = TreeBasalA_m2, ymin=TreeBasalA_m2-SE.TreeBasalA_m2,ymax=TreeBasalA_m2+SE.TreeBasalA_m2, colour= Region))
-
-Plot.trees.BD + 
-  geom_point(aes(shape= factor(Landuse)),stroke=2,size=3)  + 
-  geom_errorbar(stat = "identity",width=.02,lwd=1.1,show.legend=F) + 
-  theme_bw() + Lines_gone 
-
-# Plotting trees against MAP 
-
-# Number of trees 
-Plot.notrees.MAP <- ggplot(data = Trees.BD, aes(x = MAP.mm_yr,y = No.trees_m2, ymin=No.trees_m2-SE.No.trees_m2,ymax=No.trees_m2+ SE.No.trees_m2, colour= Landuse, shape=Landuse))
-
-Plot.notrees.MAP + 
-  geom_point(size=4,fill="white",stroke=1.2,position=position_dodge(width=.5),show.legend=T) + 
-  geom_errorbar(stat = "identity",width=20,lwd=1.1,show.legend=F) + 
-  scale_shape_manual(legend_titleLAND,values=c(4,1))  + 
-  theme_bw() + Lines_gone + 
-  xlab(expression(paste("MAP (mm", yr^-1,")"))) + ylab("Number of trees per m2")
-
-# Tree biomass
-Plot.TreeBM.MAP <- ggplot(data = Trees.BD, aes(x = MAP.mm_yr,y =TreeBM_m2, ymin=TreeBM_m2-SE.TreeBM_m2,ymax=TreeBM_m2+ SE.TreeBM_m2, colour= Landuse, shape=Landuse))
-
-Plot.TreeBM.MAP + 
-  geom_point(size=4,fill="white",stroke=1.2,position=position_dodge(width=.5),show.legend=T) + 
-  geom_errorbar(stat = "identity",width=20,lwd=1.1,show.legend=F) + 
-  scale_shape_manual(legend_titleLAND,values=c(4,1))  + 
-  theme_bw() + Lines_gone + 
-  xlab(expression(paste("MAP (mm", yr^-1,")"))) + ylab(expression(paste("Tree biomass (g", m^-2,")")))
 
 #### Adding dead wood data ####
 Dead.wood <- read.csv("Ecosystem carbon/Tree.data/Dead_wood.csv",head=T)
@@ -476,9 +436,7 @@ Lines_gone <- theme(panel.grid.major.x = element_blank(),
 
 DWC.plot + xlab("Region") + ylab("Dead wood carbon")  + geom_point(size = 3, shape=20,stroke=2)  + theme_bw() + Lines_gone + geom_errorbar(stat = "identity",width=.2,lwd=1.1,show.legend=F) +  scale_color_manual(breaks = c("Pasture", "Wild"),values=c("goldenrod3", "forestgreen"))
 
-# Changing colors to ggplot: 
-# 1. Manually: + scale_color_manual(breaks = c("Pasture", "Wild"),values=c("goldenrod3", "forestgreen")
-# 2. by a predefined palette: + scale_color_brewer(palette="Dark2")
+
 
 
 
