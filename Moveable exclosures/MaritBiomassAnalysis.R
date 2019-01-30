@@ -574,7 +574,61 @@ napconsb
 ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONS.png",
        width= 26, height = 18,units ="cm",
        dpi = 600, limitsize = TRUE)
+########################3
+legend_title<-"land-use"
+napcons<- ggplot(Avgprodcons, aes(x=YrMonth, y=Productivity, colour=landuse,fill=landuse,shape=Biomass_change,
+                                    group=site.id.y))
+napcons<-napcons+geom_hline(yintercept = 0, size =1, linetype="dotted", colour="grey")
+napcons<-napcons+geom_line(aes(y = Consumption), linetype=2,size=1.2,show.legend=F)
+napcons<-napcons+geom_point(aes(y = Consumption), shape =21,size=4,show.legend=F)
+napcons<-napcons+geom_errorbar(aes(ymin=Consumption-SE.x.y, ymax=Consumption+SE.x.x),width=.2,lwd=1.1,show.legend=F)
+napcons<-napcons+scale_fill_manual(values=c(pasture = "tan3",wild = "turquoise3"))
+napcons<-napcons+geom_line(linetype=1,size=1.2, alpha=1, show.legend=F)
+napcons<-napcons+geom_errorbar(aes(ymin=Productivity-SE.x.x, ymax=Productivity+SE.x.x),width=.2,lwd=1.1,show.legend=F)
+napcons<-napcons+geom_point(shape=22,size=4, fill="white", stroke=2,show.legend=F)
+napcons<-napcons+facet_wrap(~landuse+region,ncol=2,scales='fixed')
+napcons<-napcons+scale_y_continuous(limits=c(-1.5,8),sec.axis = sec_axis(~ . *70, breaks = c(0,100,200,300,400,500), labels = c(0,100,200,300,400,500), name = "Precipitation (mm)"))
+napcons<-napcons+geom_line(aes(y = rain.sum/70),colour="dark blue",linetype=1,size=1, alpha=0.5)
+#napcons<-napcons+geom_point(aes(y = rain.sum/70),colour="dark blue",fill="dark blue",size=.9,alpha=.2)
+napcons<-napcons+scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(as.Date("2017-02-10"),max=as.Date("2018-05-31")), expand=c(0,0)) 
+napcons<-napcons+scale_colour_manual(legend_title, values=c(pasture = "tan3", wild = "turquoise3"))
+#napcons<-napcons+scale_linetype_manual(values = c(wild = "solid", pasture = "dashed"))
+napcons<-napcons+xlab("Time (month|year)") + ylab(expression(paste("Productivity and consumption (g ",m^-2," ",day^-1,")")))
+napcons<-napcons+ theme_bw() +
+  theme(plot.background = element_blank()
+        #,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank() 
+        ,axis.text=element_text(size=12)
+        ,axis.text.x=element_text(size=10,angle=35, hjust=1)
+        ,axis.line=element_line( size=.5)
+        ,axis.title=element_text(size=14)
+        ,legend.text=element_text(size=12)
+        ,legend.title=element_text(size=14)
+        #,legend.position = c(0.25, 0.82)
+        ,plot.margin = unit(c(5,5,7,5), "mm")
+        ,strip.background = element_blank()
+        ,strip.text = element_blank()
+        ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
+  theme(axis.line = element_line(color = 'black'))
+napcons<-napcons+ annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
+napcons<-napcons+annotate(geom="text",x=as.Date("2017-10-01"), y=8, label=c("Dry Region","Wet Region","Dry Region","Wet Region"),color="black", size=5)
+napcons<-napcons+guides(shape=F, fill=F,colour = guide_legend(override.aes = list(shape=c(21, 21),
+                                                                                    size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),nrow=2,byrow=TRUE))
+napcons<-napcons+ guides(colour=F, fill=F,shape = guide_legend("Biomass change",override.aes = list(shape=c(21, 22),
+                                                                                                      size=5,fill=c("gray50","white"),col="gray50", stroke=2),nrow=2,byrow=TRUE))
 
+napconsb <-napcons+geom_point(data =Avgprodcons, aes(size=landuse, shape = NA), colour = "grey50")
+napconsb<-napconsb+ guides(size=guide_legend("Land-use", override.aes=list(shape=c(21, 21), size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),
+                                               nrow=2,byrow=TRUE),legend.margin=margin(0,0,0,0))
+napconsb <- napconsb+theme(panel.spacing.x=unit(2, "lines"),panel.spacing.y=unit(1, "lines"))
+napconsb
+
+ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONS2.png",
+       width= 26, height = 18,units ="cm",
+       dpi = 600, limitsize = TRUE)
 
 #### NAP+CONS plot with Seronera ####
 #prod6b cons4
@@ -582,8 +636,6 @@ ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/G
 # Plot without intermediate and then add intermediate later
 Avgprodcons2I<-droplevels(Avgprodcons2[Avgprodcons2$region=="Intermediate Region",])
 Avgprodcons2excI<-droplevels(Avgprodcons2[Avgprodcons2$region!="Intermediate Region",])
-
-Avgprodcons2$region
 
 Avgprodcons2$landuse <-factor (Avgprodcons2$landuse,levels=c("pasture","wild"))
 Avgprodcons2$region <-factor (Avgprodcons2$region,levels=c("Dry Region","Wet Region","Intermediate Region"))
@@ -600,7 +652,7 @@ napcons2<-napcons2+scale_fill_manual(values=c(pasture = "tan3",wild = "turquoise
 napcons2<-napcons2+geom_line(linetype=1,size=1.2, alpha=1, show.legend=F)
 napcons2<-napcons2+geom_errorbar(aes(ymin=Productivity-SE.x.x, ymax=Productivity+SE.x.x),width=.2,lwd=1.1,show.legend=F)
 napcons2<-napcons2+geom_point(shape=22,size=4, fill="white", stroke=2,show.legend=F)
-napcons2<-napcons2+facet_wrap(~region+landuse,ncol=2,scales='fixed')
+napcons2<-napcons2+facet_wrap(~landuse+region,ncol=2,scales='fixed')
 napcons2<-napcons2+scale_y_continuous(limits=c(-1.5,8),sec.axis = sec_axis(~ . *70, breaks = c(0,100,200,300,400,500), labels = c(0,100,200,300,400,500), name = "Precipitation (mm)"))
 napcons2<-napcons2+geom_line(aes(y = rain.sum/70),colour="dark blue",linetype=1,size=1, alpha=0.5)
 #napcons2<-napcons2+geom_point(aes(y = rain.sum/70),colour="dark blue",fill="dark blue",size=.9,alpha=.2)
@@ -628,7 +680,7 @@ napcons2<-napcons2+ theme_bw() +
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
 napcons2<-napcons2+ annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
-napcons2<-napcons2+annotate(geom="text",x=as.Date("2017-10-01"), y=8, label=c("Dry Region","Dry Region","WetRegion","Dry Region", "Intermediate Region"),color="black", size=5)
+napcons2<-napcons2+annotate(geom="text",x=as.Date("2017-10-01"), y=8, label=c("Dry Region","Wet Region","Dry Region","Wet Region", "Intermediate Region"),color="black", size=5)
 napcons2<-napcons2+guides(shape=F, fill=F,colour = guide_legend(override.aes = list(shape=c(21, 21),
                                                                        size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),nrow=2,byrow=TRUE))
 napcons2<-napcons2+ guides(colour=F, fill=F,shape = guide_legend("Biomass change",override.aes = list(shape=c(21, 22),
@@ -641,12 +693,7 @@ napcons2b <- napcons2b+theme(panel.spacing.x=unit(2, "lines"),panel.spacing.y=un
 napcons2b
 #could also use the lemon package with facet_rep_wrap(), but might need to reinstall R for this to work 
 
-
-
-
-
-
-ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSSeronera2d.png",
+ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSSeronera2BEST.png",
        width= 26, height = 18,units ="cm",
        dpi = 600, limitsize = TRUE)
 
