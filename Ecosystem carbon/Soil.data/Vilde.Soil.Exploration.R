@@ -3,6 +3,14 @@
 # Uploading the soil file
 total.soil.data<- read.csv("Ecosystem Carbon/Soil.data/Total.Soil.Data.csv", head = TRUE)
 names(total.soil.data)
+Metabolic.rate <- read.csv("Ecosystem Carbon/CattleMetabolic.csv", head = TRUE)
+
+total.soil.data$Region<- factor(total.soil.data$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+
+ID <- total.soil.data[,c(2,4,5,6,7)]
+Metabolic.rate2 <- full_join(ID,Metabolic.rate)
+
+total.soil.data2 <- cbind(total.soil.data,Metabolic.rate2[47])
 
 # Comparing data from NTNU with data from NMBU
 compare1 <- read.csv("Ecosystem Carbon/Soil.data/TBS.NMBU.csv", head=T)
@@ -57,14 +65,19 @@ colnames(Soil.properties)<-c("Block","Region","Clay","Clay.SE","Sand","Sand.SE",
 write.csv(Soil.properties,file="Ecosystem carbon/Soil.data/Soil.Properties.csv")
 
 # Making tables for C and N 
-Soilfull <- read.csv(file="Ecosystem carbon/Soil.data/Total.Soil.Data.csv",header=T)
-names(Soilfull)
-Soilred <- Soilfull[,c(2:7,16:19,32:34,36,39)]
+Soilred <- total.soil.data2[,c(2:7,16:19,32:34,36,39,47)]
 Soilred$Region<- factor(Soilred$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
-#AHorizon <- Soilred[Soilred$Horizon=="A-hor",]
-#MinHorizon <- Soilred[Soilred$Horizon=="Min-hor",]
-#OrgHorizon <- Soilred[Soilred$Horizon=="O-hor",]
+AHorizon <- Soilred[Soilred$Horizon=="A-hor",]
+MinHorizon <- Soilred[Soilred$Horizon=="Min-hor",]
+Belowground <- cbind(AHorizon,MinHorizon[,c(11:15)])
+colnames(Belowground)[c(14:21)] <- c("AhorC.kg_m2","AhorN.kg_m2","Livestock.bm","Clay.min","Silt.min","Sand.min","MinC.kg_m2","MinN.kg_m2")
+Belowground$tot.C.kg_m2 <- Belowground$AhorC.kg_m2+Belowground$MinC.kg_m2
+Belowground$tot.N.kg_m2 <- Belowground$AhorN.kg_m2+Belowground$MinN.kg_m2
+Belowground$mean.N.kg_m2 <- (Belowground$AhorN.kg_m2+Belowground$MinN.kg_m2)/2
+names(Belowground)
+Belowground <- Belowground[,c(1:5,7:24)]
+
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 library(dplyr)
 
@@ -103,6 +116,7 @@ SoilBlock <- SoilBlock[
 SoilBlock$Landuse <- as.factor(c("Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild"))
 
 write.csv(SoilBlock,file="Ecosystem carbon/Soil.data/Soil.Carbon.Block.csv")
+write.csv(Belowground,file="Ecosystem carbon/Soil.data/Belowground.Carbon.csv")
 
 
 ### On region size #### 
@@ -127,6 +141,11 @@ colnames(Soil.Region) <- c("Region","Landuse","Clay","SE.Clay","Silt","SE.Silt",
 write.csv(Soil.Region,file="Ecosystem carbon/Soil.data/Soil.Carbon.Region.csv")
 
 #### Exploring soil C and N ####
+
+plot(Tot.C.per~Region,data=total.soil.data)
+plot(C.kg_m2~Region,data=total.soil.data)
+
+total.soil.data$Region<- factor(total.soil.data$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
 library(dplyr)
 library(plyr)
@@ -157,7 +176,7 @@ summary(lm(C.kg_m2/N.kg_m2~Landuse,data=Soil.carbon.block))
 # Dotchart C and N (g/m2)
 dotchart(Soil.full$C.kg_m2, groups=Soil.full$Region,main = "Region")
 dotchart(Soil.full$C.kg_m2, groups=Soil.full$Land_Use,main = "landuse")
-
+str(Soil.full)
 dotchart(Soil.full$N.kg_m2, groups=Soil.full$Region,main = "Region")
 dotchart(Soil.full$N.kg_m2,groups=Soil.full$Land_Use,main = "landuse")
 dotchart(Soil.full$C.kg_m2/Soil.full$N.kg_m2,groups=Soil.full$Land_Use,main = "landuse")

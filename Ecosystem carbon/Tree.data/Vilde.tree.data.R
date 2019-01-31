@@ -55,7 +55,7 @@ levels(PhiltreesDEC$area)
 table(PhiltreesDEC$area)
 table(PhiltreesMAY$area)
       
-Vildetrees <- PhiltreesDEC[,c(1:4,6,7,9,25,26,28,31:33)]
+Vildetrees <- PhiltreesDEC[,c(1:4,6,7,9,12,25,26,28,30:33)]
 str(Vildetrees)
 # Changing SNP handajega to Handajega 
 Vildetrees$area <- as.character(Vildetrees$area)
@@ -91,6 +91,13 @@ names(Vildetrees)
 
 Vildetrees$area<- factor(Vildetrees$area, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera", "Park Nyigoti","Ikorongo"))
 
+# adding N and non.N
+Non.N <- Vildetrees %>%
+  filter(N.non=="non")
+N <- Vildetrees %>%
+  filter(N.non=="N")
+Non.Nit <- aggregate(N.non~block+area,Non.N,length)
+Nit <- aggregate(N.non~block+area,N,length)
 Tree.carbon <- cbind((aggregate(area.m2~block+area,Vildetrees,mean)),
                      (aggregate(Carbon.g.tree~block+area, Vildetrees,sum))[3],
                       (aggregate(Carbon.kg.per.tree~block+area, Vildetrees,sum))[3],
@@ -102,8 +109,11 @@ Tree.carbon <- cbind((aggregate(area.m2~block+area,Vildetrees,mean)),
                       (aggregate(Fire.freq~block+area,Vildetrees,mean))[3],
                       (aggregate(Year.of.last.fire~block+area,Vildetrees,mean))[3])
 
+Tree.carbon <- left_join(Tree.carbon,Nit, by=c("block","area"),drop=F)
+Tree.carbon <- left_join(Tree.carbon,Non.Nit, by=c("block","area"),drop=F)
+
 # creating a dataset at block size # WHY STILL WRONG ORDER OF REGIONS?? 
-colnames(Tree.carbon) <- c("Philipo.Block","Region","Block.area_m2","TreeC.g_block","TreeC.kg_block","No.trees","TreeBM.g_block","TreeBM.kg_block","Total.basal.area_m2", "MAP.mm_yr","Fire_frequency.2000_2017", "Last.fire_yr")
+colnames(Tree.carbon) <- c("Philipo.Block","Region","Block.area_m2","TreeC.g_block","TreeC.kg_block","No.trees","TreeBM.g_block","TreeBM.kg_block","Total.basal.area_m2", "MAP.mm_yr","Fire_frequency.2000_2017", "Last.fire_yr","N","Non.N")
 
 # Adding a collumn of carbon per m2, and no of trees per m2 
 Tree.carbon$TreeC.kg_m2 <- Tree.carbon$TreeC.kg_block/Tree.carbon$Block.area_m2
@@ -116,7 +126,7 @@ names(Tree.carbon)
 levels(Tree.carbon$Region)
 
 # Missing one row for Seronera - want to add this as a NA row. 
-New.row <- c(4,"Seronera",2500,NA,NA,NA,NA,NA,NA,855.6199048,NA,NA,NA,NA,NA)
+New.row <- c(4,"Seronera",2500,NA,NA,NA,NA,NA,NA,855.6199048,NA,NA,NA,NA,NA,NA,NA)
 Tree.carbon <- InsertRow(Tree.carbon,New.row,20)
 
 # adding a collumn of landuse
@@ -126,11 +136,11 @@ Tree.carbon$landuse <- as.factor(c("Pasture","Pasture","Pasture","Pasture","Wild
 Tree.carbon$Vilde.block <- as.numeric(c(3,1,2,4,3,4,1,2,1,4,3,2,3,4,1,2,1,2,3,4,1,2,3,4,1,2,3,4))
 names(Tree.carbon)
 
-Tree.carbon.Vilde <- Tree.carbon[,c(2,16,17,3,10:12,4:9,13:15)]
+Tree.carbon.Vilde <- Tree.carbon[,c(2,19,18,3,10:12,4:9,13:17)]
 
 # Order the dataset so my block id is increasing
 Tree.carbon.Vilde <- Tree.carbon.Vilde[
-  order(Tree.carbon.Vilde[,1], Tree.carbon.Vilde[,3] ),
+  order(Tree.carbon.Vilde[,1], Tree.carbon.Vilde[,2] ),
   ]
 
 # Make unique block ID
@@ -206,11 +216,15 @@ plot(TreeC.kg_m2~landuse,
      ylab = "",
      data=Tree.carbon)
 
+plot(N~landuse, data=Tree.carbon)
+plot(Non.N~landuse, data=Tree.carbon)
+
 # Exploring the distribution of trees
 hist(Tree.carbon$TreeBM.kg_m2)
 
 dotchart(Vildetrees$Biomass.kg.per.tree,groups=Vildetrees$area,main = "area") # Maswa and Handajega have big trees
 dotchart(Vildetrees$Biomass.kg.per.tree,groups=Vildetrees$landuse,main = "landuse") # wild have bigger trees than pasture. 
+
 
 # Looking for outliars 
 max(Vildetrees$Biomass.kg.per.tree, na.rm=T) # One gigant tree in Handajega... 2813.959 kg 
@@ -224,41 +238,85 @@ names(Vildetrees)
 # Dividing into small and large trees 
 
 AllTrees<- Vildetrees %>%
-  select(Biomass.kg.per.tree,area,block,Block.ID) %>%
-  group_by(area,block,Block.ID) %>%
+  select(Biomass.kg.per.tree,area,block,Block.ID,N.non) %>%
+  group_by(area,block,Block.ID,N.non) %>%
   tally()
 
 AllTrees <- as.data.frame(AllTrees)
-ID <- AllTrees[,c(1:3)]
+ID <- AllTrees[,c(1:4)]
 
-# Select by biomass 
+# Select by biomass < 2 kg, aggregate N and non N tree biomass per block 
 SmallTreesBM <- Vildetrees %>%
   filter(Biomass.kg.per.tree<=2) %>%
-  select(Biomass.kg.per.tree,area,block,Block.ID) %>%
-  group_by(area,block,Block.ID) 
+  select(Biomass.kg.per.tree,area,block,Block.ID,area.m2,N.non) %>%
+  group_by(area,block,Block.ID,N.non) 
 
 SmallTreesBM <- as.data.frame(SmallTreesBM)
 
 LargeTreesBM <- Vildetrees %>%
   filter(Biomass.kg.per.tree>2) %>%
-  select(Biomass.kg.per.tree,area,block,Block.ID) %>%
-  group_by(area,block,Block.ID) 
+  select(Biomass.kg.per.tree,area,block,Block.ID,area.m2,N.non) %>%
+  group_by(area,block,Block.ID,N.non) 
 
 LargeTreesBM <- as.data.frame(LargeTreesBM)
 
+LargeTrees.N <- LargeTreesBM %>%
+  filter(N.non=="N")
+LargeTrees.N <- aggregate(Biomass.kg.per.tree~area+block+Block.ID+area.m2,sum,data=LargeTrees.N)
+
+LargeTrees.non <- LargeTreesBM %>%
+  filter(N.non=="non")
+LargeTrees.non <- aggregate(Biomass.kg.per.tree~area+block+Block.ID+area.m2,sum,data=LargeTrees.non)
+
+SmallTrees.N <- SmallTreesBM %>%
+  filter(N.non=="N")
+SmallTrees.N <- aggregate(Biomass.kg.per.tree~area+block+Block.ID+area.m2,sum,data=SmallTrees.N)
+
+SmallTrees.non <- SmallTreesBM %>%
+  filter(N.non=="non")
+SmallTrees.non <- aggregate(Biomass.kg.per.tree~area+block+Block.ID+area.m2,sum,data=SmallTrees.non)
+
+ID.block <- Tree.carbon[,c(2,3,4,20)]
+colnames(ID.block) <- c("Region","Block","landuse","Block.ID")
+
+#Joining tables: 
+LargeTrees.N.BM <- left_join(ID.block,LargeTrees.N,by="Block.ID",drop=F)
+colnames(LargeTrees.N.BM)[8] <- c("BM.Large.N")
+LargeTrees.N.BM$BM.Large.N.m2 <- LargeTrees.N.BM$BM.Large.N/LargeTrees.N.BM$area.m2
+
+LargeTrees.non.BM<- left_join(ID.block,LargeTrees.non,by="Block.ID",drop=F)
+colnames(LargeTrees.non.BM)[8] <- c("BM.Large.non")
+LargeTrees.non.BM$BM.Large.non.m2 <- LargeTrees.non.BM$BM.Large.non/LargeTrees.non.BM$area.m2
+
+SmallTrees.N.BM<- left_join(ID.block,SmallTrees.N,by="Block.ID",drop=F)
+colnames(SmallTrees.N.BM)[8] <- c("BM.Small.N")
+SmallTrees.N.BM$BM.Small.N.m2 <- SmallTrees.N.BM$BM.Small.N/SmallTrees.N.BM$area.m2
+
+SmallTrees.non.BM<- left_join(ID.block,SmallTrees.non,by="Block.ID",drop=F)
+colnames(SmallTrees.non.BM)[8] <- c("BM.Small.non")
+SmallTrees.non.BM$BM.Small.non.m2 <- SmallTrees.non.BM$BM.Small.non/SmallTrees.non.BM$area.m2
+
+Tree.BM.N.non <- cbind(LargeTrees.N.BM[c(1:4,9)],LargeTrees.non.BM[9],SmallTrees.N.BM[9],SmallTrees.non.BM[9])
+
+write.csv(Tree.BM.N.non,file="Ecosystem carbon/Tree.data/Tree.BM.N.non.csv")
+
+names(Tree.BM.N.non)
+plot((Tree.BM.N.non$BM.Large.N.m2+Tree.BM.N.non$BM.Small.N.m2)~Tree.BM.N.non$landuse)
+plot(Tree.BM.N.non$BM.Large.N.m2~Tree.BM.N.non$landuse)
+plot(Tree.BM.N.non$BM.Small.N.m2~Tree.BM.N.non$landuse)
 # Df with number of small and number of large 
 SmallTreesNo <- Vildetrees %>%
   filter(Biomass.kg.per.tree<=2) %>%
-  select(Biomass.kg.per.tree,area,block,Block.ID) %>%
-  group_by(area,block,Block.ID) %>%
+  select(Biomass.kg.per.tree,area,block,Block.ID,N.non) %>%
+  group_by(area,block,Block.ID,N.non) %>%
   tally()
 
 SmallTreesNo <- as.data.frame(SmallTreesNo)
 
 LargeTreesNo <- Vildetrees %>%
   filter(Biomass.kg.per.tree>2) %>%
-  select(Biomass.kg.per.tree,area,block,Block.ID) %>%
-  group_by(area,block,Block.ID) %>%
+  select(Biomass.kg.per.tree,area,block,Block.ID,N.non) %>%
+  group_by(area,block,Block.ID,N.non) %>%
   tally()
 
 LargeTreesNo <- as.data.frame(LargeTreesNo)
@@ -266,24 +324,28 @@ LargeTreesNo <- as.data.frame(LargeTreesNo)
 SmallTreesNo <- full_join(ID,SmallTreesNo)
 LargeTreesNo<- full_join(ID,LargeTreesNo)
 
-Tree.size.no <- cbind(SmallTreesNo,LargeTreesNo[4])
+Tree.size.no <- cbind(SmallTreesNo,LargeTreesNo[,c(5)])
 names(Tree.size.no)
-colnames(Tree.size.no) <- c("area", "block", "Block.ID", "small", "large")  
+colnames(Tree.size.no) <- c("area", "block", "Block.ID", "N.non","small","large")  
+
 
 # Make a new long data set based on mean tree BM size 
 
 Tree.size.no.long <- gather(Tree.size.no,Size,Count, small:large,factor_key=TRUE)
 
-New.row1 <- c("Seronera",4,NA,"small",NA)
-New.row2 <- c("Seronera",4,NA,"large",NA)
-Tree.size.no.long <- InsertRow(Tree.size.no.long,New.row1,20)
-Tree.size.no.long <- InsertRow(Tree.size.no.long,New.row2,48)
-
-Tree.size.no.long$Block.ID <- as.numeric(c(1:28,1:28))
-
 Tree.size.no.long <- Tree.size.no.long[
   order(Tree.size.no.long[,1], Tree.size.no.long[,2] ),
   ]
+
+New.row1 <- c("Seronera",4,NA,"N","small",NA)
+New.row2 <- c("Seronera",4,NA,"non","small",NA)
+New.row3 <- c("Seronera",4,NA,"N","large",NA)
+New.row4 <- c("Seronera",4,NA,"non","large",NA)
+
+Tree.size.no.long <- InsertRow(Tree.size.no.long,New.row1,36)
+Tree.size.no.long <- InsertRow(Tree.size.no.long,New.row2,37)
+Tree.size.no.long <- InsertRow(Tree.size.no.long,New.row3,87)
+Tree.size.no.long <- InsertRow(Tree.size.no.long,New.row4,88)
 
 write.csv(Tree.size.no.long,file="Ecosystem carbon/Tree.data/Tree.size.csv")
 
