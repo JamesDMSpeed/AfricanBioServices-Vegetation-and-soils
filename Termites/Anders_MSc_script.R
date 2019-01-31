@@ -199,6 +199,7 @@ Mainp <- ggplot(data=Mainexp, aes(x=flanduse,y=Massloss.per,
 #################################
 ####Stacked bar plot Main exp####
 #################################
+FulldataMain<-fulldata[fulldata$Experiment!="CG",] #Only landuse experiement data
  
 #Creating 4 dataframes with each of the treatments and littertype in each.
 Greenop<-FulldataMain[FulldataMain$Littertype=="Green" & FulldataMain$Treatment=="Open",] # Only Green Open data
@@ -207,16 +208,16 @@ Redop<-FulldataMain[FulldataMain$Littertype=="Rooibos" & FulldataMain$Treatment=
 Redex<-FulldataMain[FulldataMain$Littertype=="Rooibos" & FulldataMain$Treatment=="Exclosed",] # Only Green Open data
  
 
-#Creating dataframe with termite and microbe effect variable (Termiteeffect=Open minus exclosed):
+#Creating dataframe with termite and microbe effect variable=Exlosed and Termite effect=Open minus exclosed):
 GreendataT <- Greenop
 GreendataM <- Greenop
 
-GreendataM$Massloss.per <- Greenop$Massloss.per
+GreendataM$Massloss.per <- Greenex$Massloss.per
 GreendataT$Massloss.per <- abs(Greenop$Massloss.per-Greenex$Massloss.per)
 
 ReddataT <- Redop
 ReddataM <- Redop
-ReddataM$Massloss.per<-Redop$Massloss.per
+ReddataM$Massloss.per<-Redex$Massloss.per
 ReddataT$Massloss.per<- abs(Redop$Massloss.per-Redex$Massloss.per)
 
 #Means and error
@@ -263,6 +264,7 @@ levels(TMMasslossMain$Decomposer)
 #Creating a fill factor:
 TMMasslossMain$LD<-as.factor(with(TMMasslossMain, paste(Decomposer, Littertype, sep=" ")))
 head(TMMasslossMain)
+#Creating error bars for stacked barplot:
 #Sort out each landuse into own dataframe
 Agri <- droplevels(TMMasslossMain[TMMasslossMain$flanduse=="Agriculture",])
 Pasture <- droplevels(TMMasslossMain[TMMasslossMain$flanduse=="Pasture",])
@@ -277,18 +279,34 @@ TitleDecomp<-"Decomposer"
 TitleLitter <- c("Litter Quality")
 
 levels(Agri$LD)
-levels(Agri$LD) <- c("Labile Microbe", "Recalcitrant Microbe","Termite Labile","Termite Recalcitrant")
+levels(Agri$LD) <- c("Labile Microbe", "Recalcitrant Microbe","Labile Termite","Recalcitrant Termite")
 levels(Agri$LD)
 levels(Agri$fseason)
 levels(Agri$flanduse)
 levels(Agri$Decomposer)
+#Adjusting the upper SE for error bars for stacked barplot:
+Agri$SE.up <- Agri$SE
+Agri$SE.up[Agri$LD == "Labile Microbe"] <- with(Agri,SE[LD == "Labile Microbe"]+
+                                                  #SE[LD == "Labile Termite"]+
+                                               Massloss.per[LD=="Labile Termite"])
+
+Agri$SE.up[Agri$LD == "Recalcitrant Microbe"] <- with(Agri,SE[LD == "Recalcitrant Microbe"]+
+                                                  #SE[LD == "Recalcitrant Termite"]
+                                                  +Massloss.per[LD=="Recalcitrant Termite"])
+#Adjusting the lower SE for error bars (I want the lower to be same as the mean value)
+Agri$Mass.stop <- Agri$Massloss.per
+Agri$Mass.stop[Agri$LD == "Labile Microbe"] <- with(Agri,Massloss.per[LD == "Labile Microbe"]+
+                                                  Massloss.per[LD=="Labile Termite"])
+
+Agri$Mass.stop[Agri$LD == "Recalcitrant Microbe"] <- with(Agri,Massloss.per[LD == "Recalcitrant Microbe"]+
+                                                        +Massloss.per[LD=="Recalcitrant Termite"])
 
 
-AgriP <- ggplot(data=Agri,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE,ymin=Massloss.per))+
-          geom_errorbar(stat="identity", width=NA,lwd=1)+
-          geom_bar(stat="identity",position="identity",width=0.9)+
+AgriP <- ggplot(data=Agri,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE.up,ymin=Mass.stop))+
+          geom_errorbar(position="identity",width=NA,lwd=1)+
+          geom_bar(stat="identity",position="stack",width=0.9)+
           facet_wrap(~fseason+fregion,nrow=1)+
-          scale_fill_manual(TitleLitter,values=c("Green","Red","Green","Red"))+
+          scale_fill_manual(TitleLitter,values=c("Green4","Orangered3","Green4","Orangered3"))+
           scale_alpha_discrete(TitleDecomp,range=c(0.3,1))+
           xlab("")+ylab("Massloss (%)")+
   theme_bw()+
@@ -303,10 +321,18 @@ AgriP <- ggplot(data=Agri,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decompos
     ,axis.text.x = element_blank()
     ,axis.ticks.x = element_blank()
     ,legend.background = element_rect(fill="transparent")
-    ,axis.title.y=element_text(size=12,color="black")
+    ,legend.text = element_text(size=12,color="black")
+    ,legend.title = element_text(size=14,color="black")
+    ,axis.title.y=element_text(size=16,color="black", margin = margin(t = 0, r = 10, b = 0, l = 0))
     )
-AgriP <- AgriP+guides(alpha=F, fill=guide_legend(override.aes =list(fill=c("Green","Green","Red","Red"), alpha=c(0.3,1,0.3,1))))
+AgriP <-AgriP + scale_y_continuous(limits=c(0,100), breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80), expand=c(0,0))
+AgriP <- AgriP+guides(alpha=F, fill=guide_legend(override.aes =list(size=6,fill=c("Green4","Orangered3","Green4","Orangered3"), alpha=c(0.3,0.3,1,1))))
+
 AgriP
+
+ggsave("Termites/Main & CG experiment/Agriculture_Main_experiment.png",
+     width= 20, height = 15,units ="cm",bg ="transparent",
+    dpi = 600, limitsize = TRUE)
 
 #PASTURE#
 #Legend title:
@@ -314,18 +340,34 @@ TitleDecomp<-"Decomposer"
 TitleLitter <- c("Litter Quality")
 
 levels(Pasture$LD)
-levels(Pasture$LD) <- c("Labile Microbe", "Recalcitrant Microbe","Termite Labile","Termite Recalcitrant")
+levels(Pasture$LD) <- c("Labile Microbe", "Recalcitrant Microbe","Labile Termite","Recalcitrant Termite")
 levels(Pasture$LD)
 levels(Pasture$fseason)
 levels(Pasture$flanduse)
 levels(Pasture$Decomposer)
+#Adjusting the upper SE for error bars for stacked barplot:
+Pasture$SE.up <- Pasture$SE
+Pasture$SE.up[Pasture$LD == "Labile Microbe"] <- with(Pasture,SE[LD == "Labile Microbe"]+
+                                                  #SE[LD == "Labile Termite"]+
+                                                  Massloss.per[LD=="Labile Termite"])
+
+Pasture$SE.up[Pasture$LD == "Recalcitrant Microbe"] <- with(Pasture,SE[LD == "Recalcitrant Microbe"]+
+                                                        #SE[LD == "Recalcitrant Termite"]
+                                                        +Massloss.per[LD=="Recalcitrant Termite"])
+#Adjusting the lower SE for error bars (I want the lower to be same as the mean value)
+Pasture$Mass.stop <- Pasture$Massloss.per
+Pasture$Mass.stop[Pasture$LD == "Labile Microbe"] <- with(Pasture,Massloss.per[LD == "Labile Microbe"]+
+                                                      Massloss.per[LD=="Labile Termite"])
+
+Pasture$Mass.stop[Pasture$LD == "Recalcitrant Microbe"] <- with(Pasture,Massloss.per[LD == "Recalcitrant Microbe"]+
+                                                            +Massloss.per[LD=="Recalcitrant Termite"])
 
 
-PastureP <- ggplot(data=Pasture,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE,ymin=Massloss.per))+
-  geom_errorbar(stat="identity", width=NA,lwd=1)+
-  geom_bar(stat="identity",position="identity",width=0.9)+
+PastureP <- ggplot(data=Pasture,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE.up,ymin=Mass.stop))+
+  geom_errorbar(position="identity",width=NA,lwd=1)+
+  geom_bar(stat="identity",position="stack",width=0.9)+
   facet_wrap(~fseason+fregion,nrow=1)+
-  scale_fill_manual(TitleLitter,values=c("Green","Red","Green","Red"))+
+  scale_fill_manual(TitleLitter,values=c("Green4","Orangered3","Green4","Orangered3"))+
   scale_alpha_discrete(TitleDecomp,range=c(0.3,1))+
   xlab("")+ylab("Massloss (%)")+
   theme_bw()+
@@ -340,28 +382,54 @@ PastureP <- ggplot(data=Pasture,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=De
     ,axis.text.x = element_blank()
     ,axis.ticks.x = element_blank()
     ,legend.background = element_rect(fill="transparent")
-    ,axis.title.y=element_text(size=12,color="black")
+    ,legend.text = element_text(size=12,color="black")
+    ,legend.title = element_text(size=14,color="black")
+    ,axis.title.y=element_text(size=16,color="black", margin = margin(t = 0, r = 10, b = 0, l = 0))
   )
-PastureP <- PastureP+guides(alpha=F, fill=guide_legend(override.aes =list(fill=c("Green","Green","Red","Red"), alpha=c(0.3,1,0.3,1))))
+PastureP <-PastureP + scale_y_continuous(limits=c(0,100), breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80), expand=c(0,0))
+PastureP <- PastureP+guides(alpha=F, fill=guide_legend(override.aes =list(size=6,fill=c("Green4","Orangered3","Green4","Orangered3"), alpha=c(0.3,0.3,1,1))))
+
 PastureP
 
+ggsave("Termites/Main & CG experiment/Pasture_Main_experiment.png",
+       width= 20, height = 15,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
+
+
 #WILD#
+#Legend title:
 TitleDecomp<-"Decomposer"
 TitleLitter <- c("Litter Quality")
 
 levels(Wild$LD)
-levels(Wild$LD) <- c("Labile Microbe", "Recalcitrant Microbe","Termite Labile","Termite Recalcitrant")
+levels(Wild$LD) <- c("Labile Microbe", "Recalcitrant Microbe","Labile Termite","Recalcitrant Termite")
 levels(Wild$LD)
 levels(Wild$fseason)
 levels(Wild$flanduse)
 levels(Wild$Decomposer)
+#Adjusting the upper SE for error bars for stacked barplot:
+Wild$SE.up <- Wild$SE
+Wild$SE.up[Wild$LD == "Labile Microbe"] <- with(Wild,SE[LD == "Labile Microbe"]+
+                                                        #SE[LD == "Labile Termite"]+
+                                                        Massloss.per[LD=="Labile Termite"])
+
+Wild$SE.up[Wild$LD == "Recalcitrant Microbe"] <- with(Wild,SE[LD == "Recalcitrant Microbe"]+
+                                                              #SE[LD == "Recalcitrant Termite"]
+                                                              +Massloss.per[LD=="Recalcitrant Termite"])
+#Adjusting the lower SE for error bars (I want the lower to be same as the mean value)
+Wild$Mass.stop <- Wild$Massloss.per
+Wild$Mass.stop[Wild$LD == "Labile Microbe"] <- with(Wild,Massloss.per[LD == "Labile Microbe"]+
+                                                            Massloss.per[LD=="Labile Termite"])
+
+Wild$Mass.stop[Wild$LD == "Recalcitrant Microbe"] <- with(Wild,Massloss.per[LD == "Recalcitrant Microbe"]+
+                                                                  +Massloss.per[LD=="Recalcitrant Termite"])
 
 
-WildP <- ggplot(data=Wild,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE,ymin=Massloss.per))+
-  geom_errorbar(stat="identity", width=NA,lwd=1)+
-  geom_bar(stat="identity",position="identity",width=0.9)+
+WildP <- ggplot(data=Wild,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE.up,ymin=Mass.stop))+
+  geom_errorbar(position="identity",width=NA,lwd=1)+
+  geom_bar(stat="identity",position="stack",width=0.9)+
   facet_wrap(~fseason+fregion,nrow=1)+
-  scale_fill_manual(TitleLitter,values=c("Green","Red","Green","Red"))+
+  scale_fill_manual(TitleLitter,values=c("Green4","Orangered3","Green4","Orangered3"))+
   scale_alpha_discrete(TitleDecomp,range=c(0.3,1))+
   xlab("")+ylab("Massloss (%)")+
   theme_bw()+
@@ -376,13 +444,22 @@ WildP <- ggplot(data=Wild,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decompos
     ,axis.text.x = element_blank()
     ,axis.ticks.x = element_blank()
     ,legend.background = element_rect(fill="transparent")
-    ,axis.title.y=element_text(size=12,color="black")
+    ,legend.text = element_text(size=12,color="black")
+    ,legend.title = element_text(size=14,color="black")
+    ,axis.title.y=element_text(size=16,color="black", margin = margin(t = 0, r = 10, b = 0, l = 0))
   )
-WildP <- WildP+guides(alpha=F, fill=guide_legend(override.aes =list(fill=c("Green","Green","Red","Red"), alpha=c(0.3,1,0.3,1))))
+WildP <-WildP + scale_y_continuous(limits=c(0,100), breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80), expand=c(0,0))
+WildP <- WildP+guides(alpha=F, fill=guide_legend(override.aes =list(size=6,fill=c("Green4","Orangered3","Green4","Orangered3"), alpha=c(0.3,0.3,1,1))))
+
 WildP
 
+ggsave("Termites/Main & CG experiment/Wild_Main_experiment.png",
+       width= 20, height = 15,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
 
-
+##########################
+#### END OF BARPLOTTING ########################################################
+##########################
 
 
 #### Graphing: CGvsMain experiment ####
