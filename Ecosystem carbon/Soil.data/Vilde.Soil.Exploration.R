@@ -12,6 +12,8 @@ Metabolic.rate2 <- full_join(ID,Metabolic.rate)
 
 total.soil.data2 <- cbind(total.soil.data,Metabolic.rate2[47])
 
+plot(layer~Land_Use, data=total.soil.data2)
+
 # Comparing data from NTNU with data from NMBU
 compare1 <- read.csv("Ecosystem Carbon/Soil.data/TBS.NMBU.csv", head=T)
 summary(lm(C.per.TBS~C.per.NMBU, data=compare1))
@@ -157,13 +159,9 @@ Soil.carbon.block <- read.csv(file="Ecosystem carbon/Soil.data/Soil.Carbon.Block
 Soil.full <- read.csv(file="Ecosystem carbon/Soil.data/Total.Soil.Data.csv",head=T)
 
 Soil.carbon.block$Region<- factor(Soil.carbon.block$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+Soil.full$Region<- factor(Soil.full$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
 #soil.carbon.region$Region<- factor(soil.carbon.region$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
-
-Soil.carbon.block$Landuse<- factor(Soil.carbon.block$Landuse, levels = c("Pasture","Wild"))
-Soil.full$Land_Use<- factor(Soil.full$Land_Use, levels = c("Pasture","Wild"))
-Soil.full <- droplevels(Soil.full)
-
 par(mfrow=c(1,2)) 
 plot(C.kg_m2~Land_Use, data= Soil.full)
 plot(N.kg_m2~Land_Use, data= Soil.full)
@@ -174,11 +172,12 @@ plot(N.kg_m2~Region,data=Soil.carbon.block)
 summary(lm(C.kg_m2/N.kg_m2~Landuse,data=Soil.carbon.block))
 
 # Dotchart C and N (g/m2)
-dotchart(Soil.full$C.kg_m2, groups=Soil.full$Region,main = "Region")
-dotchart(Soil.full$C.kg_m2, groups=Soil.full$Land_Use,main = "landuse")
+par(mfrow=c(2,2))
+dotchart(Soil.full$C.kg_m2,groups = Soil.full$Region, main= "C Region")
+dotchart(Soil.full$C.kg_m2, groups=Soil.full$Land_Use,main = "C landuse")
 str(Soil.full)
-dotchart(Soil.full$N.kg_m2, groups=Soil.full$Region,main = "Region")
-dotchart(Soil.full$N.kg_m2,groups=Soil.full$Land_Use,main = "landuse")
+dotchart(Soil.full$N.kg_m2, groups=Soil.full$Region,main = "N Region")
+dotchart(Soil.full$N.kg_m2,groups=Soil.full$Land_Use,main = "N landuse")
 dotchart(Soil.full$C.kg_m2/Soil.full$N.kg_m2,groups=Soil.full$Land_Use,main = "landuse")
 
 # Dotchart per horizon based on total C and N (%)
@@ -191,6 +190,10 @@ hist(SoilC$C.g_m2[SoilC$Region=="Handejega"])
 hist(Soil.carbon.block$C.kg_m2)
 
 # Graphs 
+
+Soil.carbon.block$Landuse<- factor(Soil.carbon.block$Landuse, levels = c("Pasture","Wild"))
+Soil.full$Land_Use<- factor(Soil.full$Land_Use, levels = c("Pasture","Wild"))
+Soil.full <- droplevels(Soil.full)
 
 legend_titleLAND <- "Land-use"
 legend_titleCarbon <- "Carbon Pool"
@@ -265,21 +268,6 @@ Clay.BD.plot +
   geom_ribbon(data=CorrLine, aes(ymin=fit-se.fit, ymax=fit+se.fit, x = Clay), alpha=0.4,inherit.aes = FALSE)+
   theme_bw() +
   Lines_gone
-  
-#### Making models####
-
-# Making basic lm to check for correlations
-SandMAP <- lm(C.kg_m2~Sand.per*MAP.mm_yr, data=Soil.full)
-summary(SandMAP)
-
-ClayMAP <- lm(C.kg_m2~Clay.per*MAP.mm_yr, data=Soil.full)
-summary(ClayMAP)
-
-SandLanduse <- lm(C.kg_m2~Sand.per*factor(Land_Use), data=Soil.full)
-summary(SandLanduse)
-
-ClayLanduse <- lm(C.kg_m2~Clay.per*factor(Land_Use), data=Soil.full)
-summary(ClayLanduse)
 
 #### Bulk Density exploration ####
 
