@@ -214,11 +214,16 @@ GreendataM <- Greenop
 
 GreendataM$Massloss.per <- Greenex$Massloss.per
 GreendataT$Massloss.per <- abs(Greenop$Massloss.per-Greenex$Massloss.per)
+GreendataT$Massloss.per <- (Greenop$Massloss.per-Greenex$Massloss.per)
+plot(GreendataT$Massloss.per)
+GreendataT$Massloss.per[GreendataT$Massloss.per<0] <- 0
 
 ReddataT <- Redop
 ReddataM <- Redop
 ReddataM$Massloss.per<-Redex$Massloss.per
-ReddataT$Massloss.per<- abs(Redop$Massloss.per-Redex$Massloss.per)
+ReddataT$Massloss.per<- (Redop$Massloss.per-Redex$Massloss.per)
+plot(ReddataT$Massloss.per)
+ReddataT$Massloss.per[ReddataT$Massloss.per<0] <- 0
 
 #Means and error
 se<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
