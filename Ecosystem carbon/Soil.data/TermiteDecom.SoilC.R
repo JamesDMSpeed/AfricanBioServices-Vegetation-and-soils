@@ -1,3 +1,12 @@
+#########################################################################################################################
+#Soil C and Tea decomposition rates
+#Stuart Smith
+#4/2/2019 
+#########################################################################################################################
+#clear system & add package libraries
+rm(list=ls())
+#########################################################################################################################
+
 
 # Uploading the soil file
 wsdata<- read.csv('Termites/Main & CG experiment/Wetseason.csv', sep=';',dec='.')#Wetseason data
@@ -36,6 +45,17 @@ LocalCG<-CGTeaBags[CGTeaBags$Blockcode=="Local1" | CGTeaBags$Blockcode=="Local2"
 # Put Seronera back into dataset - LOCAL ONLY
 TeaBags2<-rbind(TeaBags,LocalCG)
 
+# Subset Teabags dataset by roobios
+# Subset teabags dataset so Roobios ONly
+TeaBags2OP<-droplevels(TeaBags2[TeaBags2$Littertype=="Rooibos" & TeaBags2$Treatment=="Open",])
+TeaBags2EX<-droplevels(TeaBags2[TeaBags2$Littertype=="Rooibos" & TeaBags2$Treatment=="Exclosed",])
+
+# Teabag
+TeaBags2R<-merge(TeaBags2OP,TeaBags2EX,by=c("Lat","Long","blockcode", "Region","Block","Season"))
+TeaBags2R$Massloss.per<-TeaBags2R$Massloss.per.x-TeaBags2R$Massloss.per.y
+dim(TeaBags2R)
+plot(TeaBags2R$Massloss.per)
+
 # Block code for each dataset
 TotSoil$blockcode<- as.factor(with(TotSoil, paste(Region,Block, sep="_")))
 TeaBags2$blockcode<- as.factor(with(TeaBags2, paste(Region,Block, sep="_")))
@@ -57,7 +77,7 @@ TeaCRooibosOP<-droplevels(TeaC[TeaC$Littertype=="Rooibos" & TeaC$Treatment=="Ope
 TeaCRooibosEX<-droplevels(TeaC[TeaC$Littertype=="Rooibos" & TeaC$Treatment=="Exclosed",])
 
 # Teabag
-TeaCRooibos<-merge(TeaCRooibosOP,TeaCRooibosEX,by=c("Lat","Long","blockcode", "Region","Block","AhorC.kg_m2","Season","rain.sum..mm."))
+TeaCRooibos<-merge(TeaCRooibosOP,TeaCRooibosEX,by=c("Lat","Long","blockcode", "Region","Block","AhorC.kg_m2","MinC.kg_m2","Season","rain.sum..mm."))
 TeaCRooibos$Massloss.per<-TeaCRooibos$Massloss.per.x-TeaCRooibos$Massloss.per.y
 
 # Turn negative to zero...
@@ -66,8 +86,8 @@ DRY2Roo<-TeaCRooibos[TeaCRooibos$blockcode=="Dry_2",]
 plot(TeaCRooibos$Massloss.per)
 TeaCRooibos$Massloss.per[TeaCRooibos$Massloss.per<0]<-0 # Replace negative values with ZERO
 plot(TeaCRooibos$Massloss.per)
-
-# Aggregate soil carbon by blockcode and roobios tea
+dim(TeaCRooibos)
+# A horizon: Aggregate soil carbon by blockcode and roobios tea
 names(TeaCRooibos) #MinC.kg_m2 or AhorC.kg_m2
 se<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 BlockC<-aggregate(AhorC.kg_m2~Region+Block+blockcode+Season,na.action=na.omit,TeaCRooibos,mean)
@@ -122,18 +142,178 @@ plot(BlockC$AhorC.kg_m2~RoobiosMass$Massloss.per,col=c(RoobiosMass$Region),cex=c
 abline(lm(BlockC$AhorC.kg_m2~RoobiosMass$Massloss.per))
 summary(lm(BlockC$AhorC.kg_m2~RoobiosMass$Massloss.per))  
 
+# A horizon: Aggregate soil carbon by blockcode and roobios tea
+names(TeaCRooibos) #MinC.kg_m2 or AhorC.kg_m2
+se<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+BlockM<-aggregate(MinC.kg_m2~Region+Block+blockcode+Season,na.action=na.omit,TeaCRooibos,mean)
+BlockMSE<-aggregate(MinC.kg_m2~Region+Block+blockcode+Season,TeaCRooibos,se)
+
+RoobiosMass<-aggregate(Massloss.per~Region+Block+blockcode+Season,na.action=na.omit,TeaCRooibos,mean)
+RoobiosMassSE<-aggregate(Massloss.per~Region+Block+blockcode+Season,TeaCRooibos,se)
+RainSUM<-aggregate(rain.sum..mm.~Region+Block+blockcode+Season,TeaCRooibos,mean)
+
+BlockM$C.se<-BlockMSE$MinC.kg_m2
+BlockM$Massloss.per<-RoobiosMass$Massloss.per
+BlockM$Massloss.se<-RoobiosMassSE$Massloss.per
+BlockM$rain.sum..mm.<-RainSUM$rain.sum..mm.
+
+RooM<-ggplot(data=BlockM, aes(x=Massloss.per, y=MinC.kg_m2,size=rain.sum..mm.))
+RooM<-RooM+geom_errorbarh(data=BlockM,aes(xmin = Massloss.per-Massloss.se,xmax = Massloss.per+Massloss.se),colour="grey20",width=.1,lwd=1,show.legend=F) 
+RooM<-RooM+geom_errorbar(aes(ymin = MinC.kg_m2-C.se,ymax = MinC.kg_m2+C.se),colour="grey20",width=.1,lwd=1,show.legend=F)
+RooM<-RooM+geom_point(colour="grey20",fill="grey90")
+RooM<-RooM+facet_wrap(~Season, ncol=1)
+RooM<-RooM+xlab("Termite only: Rooibos mass loss (%)")+ylab("Mineral horizon C kg m-2")
+RooM<-RooM+theme_classic()
+RooM
+
+plot(BlockM$MinC.kg_m2~RoobiosMass$Massloss.per,col=c(RoobiosMass$Region),cex=c(RainSUM$rain.sum..mm./100))
+abline(lm(BlockM$MinC.kg_m2~RoobiosMass$Massloss.per))
+summary(lm(MinC.kg_m2~Massloss.per+Massloss.per:Season:rain.sum..mm.,data=BlockM))  
+anova(lm(MinC.kg_m2~Massloss.per,data=BlockM)) #NS
+
+# Dry season
+TeaCRooibos2D<-TeaCRooibos[TeaCRooibos$Season=="Dry",]
+se<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+BlockM<-aggregate(MinC.kg_m2~Region+Block+blockcode,na.action=na.omit,TeaCRooibos2D,mean)
+BlockMSE<-aggregate(MinC.kg_m2~Region+Block+blockcode,TeaCRooibos2D,se)
+
+RoobiosMass<-aggregate(Massloss.per~Region+Block+blockcode,na.action=na.omit,TeaCRooibos2D,mean)
+RoobiosMassSE<-aggregate(Massloss.per~Region+Block+blockcode,TeaCRooibos2D,se)
+RainSUM<-aggregate(rain.sum..mm.~Region+Block+blockcode,TeaCRooibos2D,mean)
+
+BlockM$C.se<-BlockMSE$MinC.kg_m2
+BlockM$Massloss.per<-RoobiosMass$Massloss.per
+BlockM$Massloss.se<-RoobiosMassSE$Massloss.per
+BlockM$rain.sum..mm.<-RainSUM$rain.sum..mm.
+
+summary(lm(MinC.kg_m2~Massloss.per+Massloss.per:rain.sum..mm.,data=BlockM))  
+anova(lm(MinC.kg_m2~Massloss.per,data=BlockM)) #NS
+
 ########################################################################################
 # Spatial join - soil C with nearest point of Roobios tea decomposition
+library(mapview)
+library(sp)
+library(rgdal)
+library(rgeos)
+library(rgdal)
+
+
 # Parameters
 utmproj<-"+proj=utm +south +zone=36 +init=EPSG:21036" #spatial coordinate reference system in Serengeti
 latlongproj<-("+proj=longlat +datum=WGS84")
 
-wp222loc<- cbind(TotSoil$X,nsreharvest3loc$Y)# get geographical location
-Biosp<-SpatialPointsDataFrame(wp222loc,nsreharvest3loc, proj4string=CRS(utmproj),match.ID = TRUE)
+names(TotSoil)
 
-Herbloc<-cbind(nsherb3$Xcent,nsherb3$Ycent)# get geographical location
-Herbsp<-SpatialPointsDataFrame(Herbloc,nsherb3, proj4string=CRS(utmproj),match.ID = TRUE)
+TotSoil$Latitude <- gsub(" ", "", TotSoil$Latitude)
+TotSoil$Longitude  <- gsub(" ", "", TotSoil$Longitude )
 
-# Nearest number code
-nsreharvest3loc$nearest_in_set2 <- apply(gDistance(Herbsp,Biosp, byid=TRUE), 1, which.min)
-nsherb3$nearest_in_set2<-seq(1:17)
+TotSoil$Latitude <- as.numeric(as.character(TotSoil$Latitude))
+TotSoil$Longitude <- as.numeric(as.character(TotSoil$Longitude))
+
+TotSoil<-TotSoil[!is.na(TotSoil$Longitude),]
+
+VilSpat<- cbind(TotSoil$Longitude,TotSoil$Latitude)# get geographical location
+Vilsp<-SpatialPointsDataFrame(VilSpat,TotSoil, proj4string=CRS(latlongproj),match.ID = TRUE)
+dim(Vilsp) # 66
+VilspUTM<-spTransform(Vilsp,utmproj)
+extent(VilspUTM)
+
+names(TeaBags2R) #Roobios only
+TeaLoc<-cbind(TeaBags2R$Long,TeaBags2R$Lat)# get geographical location
+TeaSp<-SpatialPointsDataFrame(TeaLoc,TeaBags2R, proj4string=CRS(latlongproj),match.ID = TRUE)
+TeaSpUTM<-spTransform(TeaSp,utmproj)
+extent(TeaSpUTM)
+
+#### Nearest distance ####
+d <- gDistance(TeaSpUTM,VilspUTM, byid=T)
+min.d <- apply(d, 1, function(x) order(x, decreasing=F)[2])
+min.d<-as.data.frame(min.d)
+dim(min.d) # 4 bags!!! 60 somthing points...
+min.d$min.d
+
+newdata <- cbind(Vilsp, TeaSp[min.d,], apply(d, 1, function(x) sort(x, decreasing=F)[2]))
+
+Vilsp$nearest_in_set2 <- apply(gDistance(TeaSpUTM,VilspUTM, byid=T), 1, which.min)
+dim(TeaSp)
+TeaSp$nearest_in_set2<-seq(1:390)
+
+Vilsp2<-merge(Vilsp,TeaSp, by=c("nearest_in_set2"),drop=F)
+
+Vilsp2$Massloss.per
+library(ggplot2)
+RooC<-ggplot(data=Vilsp2, aes(x=Massloss.per, y=AhorC.kg_m2,size=rain.sum..mm.))
+#RooC<-RooC+geom_errorbarh(data=BlockC,aes(xmin = Massloss.per-Massloss.se,xmax = Massloss.per+Massloss.se),colour="grey20",width=.1,lwd=1,show.legend=F) 
+#RooC<-RooC+geom_errorbar(aes(ymin = AhorC.kg_m2-C.se,ymax = AhorC.kg_m2+C.se),colour="grey20",width=.1,lwd=1,show.legend=F)
+RooC<-RooC+geom_point(colour="grey20",fill="grey90")
+RooC<-RooC+facet_wrap(~Season, ncol=1)
+RooC<-RooC+xlab("Termite only: Rooibos mass loss (%)")+ylab("A-horizon C kg m-2")
+RooC<-RooC+theme_classic()
+RooC       
+
+###
+?over
+over(VilspUTM,TeaSpUTM)
+
+### compute the complete distance matrix between the two sets of points
+dist_mat <- pointDistance(Vilsp,TeaSp, lonlat = T, allpairs = F)
+dmat <- spDists(Vilsp,TeaSp,longlat = T)
+min.dist <- 1
+dmat[dmat <= min.dist] <- NA
+nearest <- apply(dmat, 1, which.min)
+
+### bind together the data from the dataset B (in your case the "red points")
+### at the closest point to dataset A ("black points")
+Vilsp@data<- cbind(Vilsp@data, TeaSp@data[nearest,])
+
+Vilsp2<-as.data.frame(Vilsp)
+plot(AhorC.kg_m2~Massloss.per,Vilsp2)
+
+
+Vilsp$nearest_in_set2 <- apply(gDistance(TeaSp,Vilsp, byid=T), 1, which.min)
+dim(TeaSp)
+TeaSp$nearest_in_set2<-seq(1:390)
+
+Vilsp2<-merge(Vilsp,TeaSp, by=c("nearest_in_set2"),drop=F)
+
+
+# Using a buffer...
+buff <- gBuffer(VilspUTM,width=100,byid=TRUE) # Buffer cannot be small - this does not work!
+plot(buff)
+Vilsp_buff <- TeaSpUTM[buff,]
+plot(Vilsp_buff)
+
+mapview(buff) + mapview(TeaSpUTM,color="red") + mapview(Vilsp_buff,color="green")
+
+o<-over(Vilsp_buff,buff)
+Vilsp_buff@data<-cbind(Vilsp_buff@data,o)
+Vilsp_buff@data
+
+Vilsp2<-as.data.frame(Vilsp_buff)
+names(Vilsp2)
+Vilsp2$Massloss.per.2 # ALL THE SAME in WGS84!!!
+
+plot(TeaLoc)
+plot(VilSpat,add=T)
+
+
+library(dplyr)
+library(sf)
+library(RANN)
+
+# fast nearest neighbour search
+?nn2
+closest <- nn2(VilSpat, TeaLoc, k = 1, searchtype = "radius", radius = 0.0001)
+closest <- sapply(closest, cbind) %>% as_tibble
+head(closest)
+names(closest)
+closest$nn.dists #ALL THE SAME!
+
+library(ggplot2)
+RooC<-ggplot(data=Vilsp2, aes(x=Massloss.per, y=AhorC.kg_m2,size=rain.sum..mm.))
+#RooC<-RooC+geom_errorbarh(data=BlockC,aes(xmin = Massloss.per-Massloss.se,xmax = Massloss.per+Massloss.se),colour="grey20",width=.1,lwd=1,show.legend=F) 
+#RooC<-RooC+geom_errorbar(aes(ymin = AhorC.kg_m2-C.se,ymax = AhorC.kg_m2+C.se),colour="grey20",width=.1,lwd=1,show.legend=F)
+RooC<-RooC+geom_point(colour="grey20",fill="grey90")
+RooC<-RooC+facet_wrap(~Season, ncol=1)
+RooC<-RooC+xlab("Termite only: Rooibos mass loss (%)")+ylab("A-horizon C kg m-2")
+RooC<-RooC+theme_classic()
+RooC       
