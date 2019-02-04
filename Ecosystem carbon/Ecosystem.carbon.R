@@ -304,19 +304,21 @@ Lines_gone <- theme(panel.grid.major.x = element_blank(),
                     panel.grid.minor.y = element_blank())
 
 # Plotting C and N 
-
+Belowground.full$fMAP<-as.factor(Belowground.full$fMAP)
 levels(Belowground.full$fMAP)
 TitleRain<-"Rainfall (mm/year)"
 
 Belowground.full$fMAP<- factor(Belowground.full$fMAP, levels = c("1295.06", "1279.26",  "1134.81", "855.62",  "754.84",  "717.36" ,"672.04"))
-Belowground.block$fMAP<- factor(Belowground.block$fMAP, levels = c("1295.06", "1279.26",  "1134.81", "855.62",  "754.84",  "717.36" ,"672.04"))
+levels(Belowground.full$fMAP) <- c("1295", "1279",  "1135", "856",  "755",  "717" ,"672")
+levels(Belowground.full$landuse) <- c("Pasture","Wild")
 
-CN.plot <- ggplot(data = Belowground.full, aes(x = tot.N.kg_m2,y = tot.C.kg_m2,group = fMAP, colour= fMAP))
+CN.plot <- ggplot(data = Belowground.full, aes(x = tot.N.kg_m2,y = tot.C.kg_m2,group = fMAP, colour= fMAP,shape= landuse))
 
 CN.plot + xlab(expression(paste("Soil Nitrogen (kg", m^-2,")"))) +  ylab(expression(paste("Soil Carbon (kg", m^-2,")"))) +
-  geom_point(size = 3, shape=20,stroke=2, na.rm=T)+
-  scale_color_manual(TitleRain,breaks = c("1295.06", "1279.26",  "1134.81", "855.62",  "754.84",  "717.36" ,"672.04"),values=c("#6460D9","#8495E9","#74DEDA", "#9EF5C1", "#F9EE5E","#F9EE5E","#E9F882")) + 
-  theme_bw()+
+  geom_point(size = 3,stroke=2, na.rm=T)+
+  scale_color_manual(TitleRain,breaks = c("1295", "1279",  "1135", "856",  "755",  "717" ,"672"),values=c("#6460D9","#8495E9","#74DEDA", "#9EF5C1", "#F9EE5E","#F9EE5E","#E9F882")) + 
+  scale_shape_manual(legend_titleLAND,values=c(16,0)) +
+  theme_bw() +
   theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="white")
         ,plot.background=element_rect(fill="transparent",colour=NA)
@@ -333,7 +335,7 @@ CN.plot + xlab(expression(paste("Soil Nitrogen (kg", m^-2,")"))) +  ylab(express
         ,axis.title.x=element_text(size=20,color="black")
         ,legend.text=element_text(size=15)
         ,legend.title=element_text(size=15)
-        ,legend.position = c(0.15,0.7)
+        ,legend.position = c(0.15,0.6)
         ,strip.text.x = element_text(size = 0.5, hjust=0.1,colour = "black")
         ,strip.background = element_rect(fill="transparent",colour=NA))
 
@@ -350,7 +352,7 @@ plot(tot.C.kg_m2~Sand.pip.per,data=Belowground.full)
 plot(tot.N.kg_m2~log(BM.Large.N.m2),data=Belowground.full)
 plot(tot.C.kg_m2~log(BM.Large.N.m2),data=Belowground.full)
 names(Belowground.full)
-names(Belowground.block)
+#names(Belowground.block)
 
 summary(lm(tot.C.kg_m2~Sand.pip.per,data=Belowground.full))
 
