@@ -197,7 +197,6 @@ library(rgdal)
 library(rgeos)
 library(rgdal)
 
-
 # Parameters
 utmproj<-"+proj=utm +south +zone=36 +init=EPSG:21036" #spatial coordinate reference system in Serengeti
 latlongproj<-("+proj=longlat +datum=WGS84")
@@ -213,16 +212,36 @@ TotSoil$Longitude <- as.numeric(as.character(TotSoil$Longitude))
 TotSoil<-TotSoil[!is.na(TotSoil$Longitude),]
 
 VilSpat<- cbind(TotSoil$Longitude,TotSoil$Latitude)# get geographical location
+latlongproj<-("+proj=longlat +datum=WGS84")
+VildeSP_proj <-TotSoil
+coordinates(VildeSP_proj)<- ~Longitude + Latitude
+proj4string(VildeSP_proj)<-latlongproj
 Vilsp<-SpatialPointsDataFrame(VilSpat,TotSoil, proj4string=CRS(latlongproj),match.ID = TRUE)
 dim(Vilsp) # 66
 VilspUTM<-spTransform(Vilsp,utmproj)
 extent(VilspUTM)
 
 names(TeaBags2R) #Roobios only
-TeaLoc<-cbind(TeaBags2R$Long,TeaBags2R$Lat)# get geographical location
+colnames(TeaBags2R)[1:2]<-c("Latitude","Longitude")
+TeaLoc<-cbind(TeaBags2R$Longitude,TeaBags2R$Latitude)# get geographical location
 TeaSp<-SpatialPointsDataFrame(TeaLoc,TeaBags2R, proj4string=CRS(latlongproj),match.ID = TRUE)
 TeaSpUTM<-spTransform(TeaSp,utmproj)
 extent(TeaSpUTM)
+
+# Stu data
+setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Exclosures Serengeti/Biomass excl")
+
+StuExcl<- read.csv("Sero.seasonal.bio_enviroFULL.csv", head = TRUE)
+names(StuExcl)
+colnames(StuExcl)[11:12]<-c("Latitude","Longitude")
+
+library(ggplot2)
+RooC<-ggplot(data=TotSoil, aes(x=Longitude, y=Latitude))
+RooC<-RooC+geom_point(size =2)
+RooC<-RooC+geom_point(data=TeaBags2R,colour = "red")
+RooC<-RooC+geom_point(data=StuExcl,colour = "blue")
+RooC<-RooC+theme_bw()
+RooC # Distances are off - hence issues binding data
 
 #### Nearest distance ####
 d <- gDistance(TeaSpUTM,VilspUTM, byid=T)
@@ -230,7 +249,6 @@ min.d <- apply(d, 1, function(x) order(x, decreasing=F)[2])
 min.d<-as.data.frame(min.d)
 dim(min.d) # 4 bags!!! 60 somthing points...
 min.d$min.d
-
 newdata <- cbind(Vilsp, TeaSp[min.d,], apply(d, 1, function(x) sort(x, decreasing=F)[2]))
 
 Vilsp$nearest_in_set2 <- apply(gDistance(TeaSpUTM,VilspUTM, byid=T), 1, which.min)
@@ -238,20 +256,20 @@ dim(TeaSp)
 TeaSp$nearest_in_set2<-seq(1:390)
 
 Vilsp2<-merge(Vilsp,TeaSp, by=c("nearest_in_set2"),drop=F)
+# This is not working - really poor connection
 
-Vilsp2$Massloss.per
-library(ggplot2)
-RooC<-ggplot(data=Vilsp2, aes(x=Massloss.per, y=AhorC.kg_m2,size=rain.sum..mm.))
-#RooC<-RooC+geom_errorbarh(data=BlockC,aes(xmin = Massloss.per-Massloss.se,xmax = Massloss.per+Massloss.se),colour="grey20",width=.1,lwd=1,show.legend=F) 
-#RooC<-RooC+geom_errorbar(aes(ymin = AhorC.kg_m2-C.se,ymax = AhorC.kg_m2+C.se),colour="grey20",width=.1,lwd=1,show.legend=F)
-RooC<-RooC+geom_point(colour="grey20",fill="grey90")
-RooC<-RooC+facet_wrap(~Season, ncol=1)
-RooC<-RooC+xlab("Termite only: Rooibos mass loss (%)")+ylab("A-horizon C kg m-2")
-RooC<-RooC+theme_classic()
-RooC       
+#### Rasterize TeaBag and then intercept Vilde's points ####
+r<-raster(ncols=100, nrows=90,xmn=32.49097, xmx=37.08969, ymn=-4.997215, ymx=7.63e-06, resolution=c(0.05, 0.05))
+r1<-rasterize(TeaSp, r, field=TeaSp$Massloss.per, fun=mean)#Or fun = mean?
+plot(r1)
+plot(VildeSP_proj)
+names(VildeSP_proj)
 
-###
-?over
+TeaRast<- extract(r1,VildeSP_proj,sp=T, method='simple')
+#TeaRast<- as.data.frame(TeaRast)
+names(TeaRast)
+
+#### Other binding options
 over(VilspUTM,TeaSpUTM)
 
 ### compute the complete distance matrix between the two sets of points
@@ -301,19 +319,8 @@ library(sf)
 library(RANN)
 
 # fast nearest neighbour search
-?nn2
 closest <- nn2(VilSpat, TeaLoc, k = 1, searchtype = "radius", radius = 0.0001)
 closest <- sapply(closest, cbind) %>% as_tibble
 head(closest)
 names(closest)
 closest$nn.dists #ALL THE SAME!
-
-library(ggplot2)
-RooC<-ggplot(data=Vilsp2, aes(x=Massloss.per, y=AhorC.kg_m2,size=rain.sum..mm.))
-#RooC<-RooC+geom_errorbarh(data=BlockC,aes(xmin = Massloss.per-Massloss.se,xmax = Massloss.per+Massloss.se),colour="grey20",width=.1,lwd=1,show.legend=F) 
-#RooC<-RooC+geom_errorbar(aes(ymin = AhorC.kg_m2-C.se,ymax = AhorC.kg_m2+C.se),colour="grey20",width=.1,lwd=1,show.legend=F)
-RooC<-RooC+geom_point(colour="grey20",fill="grey90")
-RooC<-RooC+facet_wrap(~Season, ncol=1)
-RooC<-RooC+xlab("Termite only: Rooibos mass loss (%)")+ylab("A-horizon C kg m-2")
-RooC<-RooC+theme_classic()
-RooC       
