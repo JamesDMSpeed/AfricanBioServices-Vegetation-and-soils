@@ -52,8 +52,8 @@ fulldata[1611,] #0,229 is too low for initial weight! Have to check for speling 
 dotchart(fulldata$Massloss..g. ) #
 plot(fulldata$Massloss..g.)
 #identify(fulldata$Massloss..g.)
-fulldata[289,] # Minus massloss check this code: R414
-fulldata[1614,] # Minus mass loss check this code: R275
+fulldata[289,] # Minus massloss check this code: R414: -5.558675
+fulldata[1614,] # Minus mass loss check this code: R275: - 9100
 #Removing these for now: 289 and 1614 rows:
 fulldata <- fulldata[-c(289, 1614), ]
 #Checkig outliers in temperature and moisture:
@@ -306,7 +306,7 @@ Agri$Mass.stop[Agri$LD == "Labile Microbe"] <- with(Agri,Massloss.per[LD == "Lab
 Agri$Mass.stop[Agri$LD == "Recalcitrant Microbe"] <- with(Agri,Massloss.per[LD == "Recalcitrant Microbe"]+
                                                         +Massloss.per[LD=="Recalcitrant Termite"])
 
-
+#Plotting
 AgriP <- ggplot(data=Agri,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE.up,ymin=Mass.stop))+
           geom_errorbar(position="identity",width=NA,lwd=1)+
           geom_bar(stat="identity",position="stack",width=0.9)+
@@ -335,9 +335,9 @@ AgriP <- AgriP+guides(alpha=F, fill=guide_legend(override.aes =list(size=6,fill=
 
 AgriP
 
-ggsave("Termites/Main & CG experiment/Agriculture_Main_experiment.png",
-     width= 20, height = 15,units ="cm",bg ="transparent",
-    dpi = 600, limitsize = TRUE)
+# ggsave("Termites/Main & CG experiment/Agriculture_Main_experiment.png",
+#      width= 20, height = 15,units ="cm",bg ="transparent",
+#     dpi = 600, limitsize = TRUE)
 
 #PASTURE#
 #Legend title:
@@ -396,9 +396,9 @@ PastureP <- PastureP+guides(alpha=F, fill=guide_legend(override.aes =list(size=6
 
 PastureP
 
-ggsave("Termites/Main & CG experiment/Pasture_Main_experiment.png",
-       width= 20, height = 15,units ="cm",bg ="transparent",
-       dpi = 600, limitsize = TRUE)
+# ggsave("Termites/Main & CG experiment/Pasture_Main_experiment.png",
+#        width= 20, height = 15,units ="cm",bg ="transparent",
+#        dpi = 600, limitsize = TRUE)
 
 
 #WILD#
@@ -458,9 +458,9 @@ WildP <- WildP+guides(alpha=F, fill=guide_legend(override.aes =list(size=6,fill=
 
 WildP
 
-ggsave("Termites/Main & CG experiment/Wild_Main_experiment.png",
-       width= 20, height = 15,units ="cm",bg ="transparent",
-       dpi = 600, limitsize = TRUE)
+# ggsave("Termites/Main & CG experiment/Wild_Main_experiment.png",
+#        width= 20, height = 15,units ="cm",bg ="transparent",
+#        dpi = 600, limitsize = TRUE)
 
 ##########################
 #### END OF BARPLOTTING ########################################################
@@ -582,11 +582,11 @@ MainCGplot
  #     width= 30, height = 15,units ="cm",bg ="transparent",
   #   dpi = 600, limitsize = TRUE)
 
-
-###Analysis####
-###MODELLING####
-####LANDUSE EXPERIMENT####
-###Mixed linear effect model####
+###############################################
+###Analysis####################################
+###MODELLING###################################
+####LANDUSE EXPERIMENT########################
+###Mixed linear effect model#################
 library(lme4)
 library(nlme)
 
@@ -646,25 +646,52 @@ drop1(Labilemodel,test="Chisq")
 #   ---
 install.packages("lmerTest")
 install.packages("emmeans")
-library(lsmeans)
+#library(lsmeans)
 library(emmeans)
 library(lmerTest)
 
 
 #Working with model with Recalcitrant littertype####
+#Testing the threeway interaction Landuse:Season:Treatment
 
-emmeans(Recalmodel,"Landuse:Season:Treatment")
-#class(Recalmodel)
-#diffemmeans(Recalmodel,test.effs="Landuse:Season:Treatment")
+#Getting Estimated Marginal means of these three factors in all combinations
+ref_grid(Recalmodel) #@ grid
+emm.s.recalmod<- emmeans(Recalmodel,~Landuse:Season:Treatment)
+        #Geting message: A nesting structure was detected in the fitted model:
+        #Region %in% Landuse, Treatment %in% Landuse.
+
+test(emm.s.recalmod)
+
+#Testing the contrast among the factors by season. 
+contrast(emm.s.recalmod,by="Season")
+          #THis is testing if the different factors are different from 0 or not...or?
+          #in wet season: Exclosed,Agriculture effect:P=0,1325.
+          #In dry season: Open-wild effect: P=0,4896 
+          #This means that this two are not different from 0...I think.
+pairs(emm.s.recalmod,by="Season")
+        #THis is testing if one factor is different from an other factor.
+        #Testig all combinations within each season, since I've set by="Season"....I think
+        #If thats true, then the output says:
+            #DRY SEASON:
+            #Exclosed,Agriculture and Exclosed,Pasture is not different:P=0.9979
+            #Exclosed,Agriculture - Exclosed,Wild       P= 1.0000
+            #Exclosed,Agriculture - Open,Wild          P= 0.9165
+            #Etc....See output
+
+
+#Plotting the emmeans for each comparison with its SE
+plot(emm.s.recalmod, comparisons = TRUE)
 
 
 
-summary(Recalmodel)
-anova(Recalmodel)
-AIC(Recalmodel) #11589.62
 
-#CHecking assumptions for the linearity
 
+
+#######################################
+##STUART SCRIPT########################
+########################################
+#CHecking assumptions for the linearity#
+########################################
 E1 <- resid(Recalmodel, type ="pearson")  #THIS IS FOR lme4..NOT lme, in lme = "type = "n"
 F1 <- fitted(Recalmodel)
 
