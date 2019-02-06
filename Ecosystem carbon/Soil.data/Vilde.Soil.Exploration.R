@@ -69,18 +69,19 @@ colnames(Soil.properties)<-c("Block","Region","Clay","Clay.SE","Sand","Sand.SE",
 write.csv(Soil.properties,file="Ecosystem carbon/Soil.data/Soil.Properties.csv")
 
 # Making tables for C and N 
-Soilred <- total.soil.data2[,c(2:7,13,14,16:19,32:34,36,39,47)]
+names(total.soil.data2)
+Soilred <- total.soil.data2[,c(2:7,13:17,19:21,35:37,39,42,49)]
 Soilred$Region<- factor(Soilred$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
 AHorizon <- Soilred[Soilred$Horizon=="A-hor",]
 MinHorizon <- Soilred[Soilred$Horizon=="Min-hor",]
-Belowground <- cbind(AHorizon,MinHorizon[,c(13:17)])
-colnames(Belowground)[c(16:23)] <- c("AhorC.kg_m2","AhorN.kg_m2","Livestock.bm","Clay.min","Silt.min","Sand.min","MinC.kg_m2","MinN.kg_m2")
+Belowground <- cbind(AHorizon,MinHorizon[,c(15:19)])
+colnames(Belowground)[c(18:25)] <- c("AhorC.kg_m2","AhorN.kg_m2","Livestock.bm","Clay.min","Silt.min","Sand.min","MinC.kg_m2","MinN.kg_m2")
 Belowground$tot.C.kg_m2 <- Belowground$AhorC.kg_m2+Belowground$MinC.kg_m2
 Belowground$tot.N.kg_m2 <- Belowground$AhorN.kg_m2+Belowground$MinN.kg_m2
 Belowground$mean.N.kg_m2 <- (Belowground$AhorN.kg_m2+Belowground$MinN.kg_m2)/2
 names(Belowground)
-Belowground <- Belowground[,c(1:5,7:26)]
+Belowground <- Belowground[,c(1:5,7:28)]
 
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 
