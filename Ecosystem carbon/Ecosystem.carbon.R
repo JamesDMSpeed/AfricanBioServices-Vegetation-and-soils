@@ -786,8 +786,9 @@ aggregate(TreeBM.kg_m2 ~landuse, mean,data=TreeBM.kg_m2)
 library(nlme)
 library(lme4)
 library(glmmADMB) 
-library(piecewiseSEM)
+library(piecewiseSEM) # SEM
 library(MuMIn) # to make "model.sel()" of different models 
+library(emmeans) # estimated marginal means --> look at this for three ways interactions.. 
 
 # About mixed effect models (nlme package)
 # REML = restricted maximum likelihood estimation 
@@ -958,9 +959,10 @@ with(Belowground.full, {interaction.plot(tot.N.kg_m2,MAP.mm_yr.x,tot.C.kg_m2,
                                          ylab = " Carbon",
                                          fun=mean)})
 
-Belowground.full$fMAP <- as.factor(Belowground.full$MAP.mm_yr.x)
+Belowground.full$fMAP <- as.factor(Belowground.full$MAP.mm_yr)
 library(lattice)
 xyplot(tot.C.kg_m2~tot.N.kg_m2|fMAP,data=Belowground.full)
+
 # Testing my first hypothesis 1 where I think MAP has an effect on C, however, this relationship can be mediated by soil texture. 
 
 # Soil mineral horizon 
@@ -988,39 +990,6 @@ plot(Soil.min.H14,factor(Region)~resid(.),abline=0)
 # Another way to show the same. 
 plot(Soil.min.H12,resid(.)~fitted(.)|factor(Region)) # Distribution of residuals within each group. 
 
-#Assumption 2: Among groups, random effects are normally distributed (Regions). 
-# BLUPS (Best Linear Unbiased Predictors)
-ranef(Soil.min.H12, drop=TRUE)
-blup <- c(-0.14196792,-0.03692530,-0.21005201,-0.06268585,0.13150659,0.04134352,0.27878097) 
-hist(blup)
-
-anova(Soil.min.H12) # Due to high F value: MAP:Sand is very strong. MAP almost 2 
-anova(Soil.min.H14) 
-
-# Run a post hoc test 
-drop1(Soil.min.H12,test="Chi") 
-# Single term deletions
-# 
-# Model:
-#   C.amount ~ MAP.mm_yr + MAP.mm_yr:Sand.pip.per + (1 | Region)
-# Df    AIC    LRT  Pr(Chi)   
-# <none>                    53.370                   
-# MAP.mm_yr:Sand.pip.per  1 59.764 8.3941 0.003764 **
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-
-drop1(Soil.min.H14,test="Chi")
-# Single term deletions
-# 
-# Model:
-#   C.amount ~ Sand.pip.per + (1 | Region)
-# Df    AIC    LRT Pr(Chi)  
-# <none>          54.952                 
-# Sand.pip.per  1 58.045 5.0931 0.02402 *
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# > 
-
 # Soil A-horizon: The best model is taking MAP and the relationship between MAP:Sand into account####
 Soil.A.H11<-lmer(C.amount~ MAP.mm_yr + (1|Region), data = Soil.Ahor, REML=F)
 Soil.A.H12<-lmer(C.amount~ MAP.mm_yr + MAP.mm_yr:Sand.pip.per + (1|Region), data = Soil.Ahor, REML=F)
@@ -1040,7 +1009,15 @@ anova(Soil.A.H15, Soil.A.H14) # Due to high F value: Sand is very strong, MAP:Sa
 AIC(Soil.A.H15) # AIC: 30.42954
 
 # Testing second hypothesis H2 where I ask about the effect of land use and woody plant cover. 
-par(mfrow=c(1,1))
+
+# Fist just look at the relationship between landuse and my belowground C variable 
+
+plot(tot.C.kg_m2~Region,data = Belowground.full)
+Landuse.C<-lmer(tot.C.kg_m2~ landuse + fMAP + landuse:fMAP + (1|Region/Block), data = Belowground.full, REML=T)
+summary(Landuse.C)
+drop1(Landuse.C)
+anova(Landuse.C)
+
 Soil.min$BM.N.trees.m2 <- Soil.min$BM.Large.N.m2+Soil.min$BM.Small.N.m2
 plot(C.amount~log(BM.N.trees.m2),data=Soil.min)
 

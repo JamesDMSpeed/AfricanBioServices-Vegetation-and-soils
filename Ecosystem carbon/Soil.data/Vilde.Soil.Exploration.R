@@ -8,11 +8,14 @@ names(total.soil.data)
 Metabolic.rate <- read.csv("Ecosystem Carbon/CattleMetabolic.csv", head = TRUE)
 
 total.soil.data$Region<- factor(total.soil.data$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+Metabolic.rate2$Region<- factor(Metabolic.rate2$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
+names(Metabolic.rate)
+names(total.soil.data)
 ID <- total.soil.data[,c(2,4,5,6,7)]
 Metabolic.rate2 <- full_join(ID,Metabolic.rate)
-
-total.soil.data2 <- cbind(total.soil.data,Metabolic.rate2[47])
+names(Metabolic.rate2)
+total.soil.data2 <- cbind(total.soil.data,Metabolic.rate2[c(30:32)])
 
 plot(layer~Land_Use, data=total.soil.data2)
 
@@ -70,18 +73,18 @@ write.csv(Soil.properties,file="Ecosystem carbon/Soil.data/Soil.Properties.csv")
 
 # Making tables for C and N 
 names(total.soil.data2)
-Soilred <- total.soil.data2[,c(2:7,13:17,19:21,35:37,39,42,49)]
+Soilred <- total.soil.data2[,c(2:7,49,50,19:22,35:37,39,42,51)]
 Soilred$Region<- factor(Soilred$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
 AHorizon <- Soilred[Soilred$Horizon=="A-hor",]
 MinHorizon <- Soilred[Soilred$Horizon=="Min-hor",]
-Belowground <- cbind(AHorizon,MinHorizon[,c(15:19)])
-colnames(Belowground)[c(18:25)] <- c("AhorC.kg_m2","AhorN.kg_m2","Livestock.bm","Clay.min","Silt.min","Sand.min","MinC.kg_m2","MinN.kg_m2")
+Belowground <- cbind(AHorizon,MinHorizon[,c(13:17)])
+colnames(Belowground)[c(9,16:23)] <- c("landuse","AhorC.kg_m2","AhorN.kg_m2","Livestock.bm","Clay.min","Silt.min","Sand.min","MinC.kg_m2","MinN.kg_m2")
 Belowground$tot.C.kg_m2 <- Belowground$AhorC.kg_m2+Belowground$MinC.kg_m2
 Belowground$tot.N.kg_m2 <- Belowground$AhorN.kg_m2+Belowground$MinN.kg_m2
 Belowground$mean.N.kg_m2 <- (Belowground$AhorN.kg_m2+Belowground$MinN.kg_m2)/2
 names(Belowground)
-Belowground <- Belowground[,c(1:5,7:28)]
+Belowground <- Belowground[,c(1:5,7:26)]
 
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 
