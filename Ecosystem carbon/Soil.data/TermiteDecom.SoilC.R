@@ -200,33 +200,43 @@ library(rgdal)
 # Parameters
 utmproj<-"+proj=utm +south +zone=36 +init=EPSG:21036" #spatial coordinate reference system in Serengeti
 latlongproj<-("+proj=longlat +datum=WGS84")
+#TotSoil$Latitude <- gsub(" ", "", TotSoil$Latitude)
+#TotSoil$Longitude  <- gsub(" ", "", TotSoil$Longitude )
 
-names(TotSoil)
-
-TotSoil$Latitude <- gsub(" ", "", TotSoil$Latitude)
-TotSoil$Longitude  <- gsub(" ", "", TotSoil$Longitude )
-
-TotSoil$Latitude <- as.numeric(as.character(TotSoil$Latitude))
-TotSoil$Longitude <- as.numeric(as.character(TotSoil$Longitude))
+TotSoil$Latitude <- as.numeric(as.character(TotSoil$UTM.North))
+TotSoil$Longitude <- as.numeric(as.character(TotSoil$UTM.East))
 
 TotSoil<-TotSoil[!is.na(TotSoil$Longitude),]
 
 VilSpat<- cbind(TotSoil$Longitude,TotSoil$Latitude)# get geographical location
 latlongproj<-("+proj=longlat +datum=WGS84")
+Vilsp<-SpatialPointsDataFrame(VilSpat,TotSoil, proj4string=CRS(utmproj),match.ID = TRUE)
+dim(Vilsp) # 66
+VilspWGS84<-spTransform(Vilsp,latlongproj)
+extent(VilspWGS84)
+TotSoil$Longitude<-VilspWGS84$coords.x1
+TotSoil$Latitude<-VilspWGS84$coords.x2
+
+write.csv(TotSoil, "/Users/anotherswsmith/Documents/Teaching/R_workshop/TotSoil.csv",row.names=F) #,sep = ",",dec = ".",col.names = TRUE, row.names=F)
+
+
+# Projected layer with WGS84
 VildeSP_proj <-TotSoil
 coordinates(VildeSP_proj)<- ~Longitude + Latitude
 proj4string(VildeSP_proj)<-latlongproj
-Vilsp<-SpatialPointsDataFrame(VilSpat,TotSoil, proj4string=CRS(latlongproj),match.ID = TRUE)
-dim(Vilsp) # 66
-VilspUTM<-spTransform(Vilsp,utmproj)
-extent(VilspUTM)
 
+# Anders teabags
 names(TeaBags2R) #Roobios only
 colnames(TeaBags2R)[1:2]<-c("Latitude","Longitude")
 TeaLoc<-cbind(TeaBags2R$Longitude,TeaBags2R$Latitude)# get geographical location
 TeaSp<-SpatialPointsDataFrame(TeaLoc,TeaBags2R, proj4string=CRS(latlongproj),match.ID = TRUE)
 TeaSpUTM<-spTransform(TeaSp,utmproj)
 extent(TeaSpUTM)
+
+# Projected layer with WGS84
+TeaBags2R_proj <-TeaBags2R
+coordinates(TeaBags2R_proj)<- ~Longitude + Latitude
+proj4string(TeaBags2R_proj)<-latlongproj
 
 # Stu data
 setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Exclosures Serengeti/Biomass excl")
@@ -244,34 +254,41 @@ RooC<-RooC+theme_bw()
 RooC # Distances are off - hence issues binding data
 
 #### Nearest distance ####
-d <- gDistance(TeaSpUTM,VilspUTM, byid=T)
+d <- gDistance(TeaSpUTM,Vilsp, byid=T)
 min.d <- apply(d, 1, function(x) order(x, decreasing=F)[2])
 min.d<-as.data.frame(min.d)
 dim(min.d) # 4 bags!!! 60 somthing points...
 min.d$min.d
 newdata <- cbind(Vilsp, TeaSp[min.d,], apply(d, 1, function(x) sort(x, decreasing=F)[2]))
 
-Vilsp$nearest_in_set2 <- apply(gDistance(TeaSpUTM,VilspUTM, byid=T), 1, which.min)
+Vilsp$nearest_in_set2 <- apply(gDistance(TeaSpUTM,Vilsp, byid=T), 1, which.min)
 dim(TeaSp)
+Vilsp$min.d<-min.d$min.d
 TeaSp$nearest_in_set2<-seq(1:390)
+TeaSp$min.d<-seq(1:390)
+plot(Vilsp$nearest_in_set2~TeaSp$nearest_in_set2)
 
-Vilsp2<-merge(Vilsp,TeaSp, by=c("nearest_in_set2"),drop=F)
-# This is not working - really poor connection
+Vilsp<-as.data.frame(Vilsp)
+TeaSp<-as.data.frame(TeaSp)
+
+# Use nearest points to combine Vilde and Anders
+Vilsp2<-left_join(Vilsp,TeaSp, by=c("nearest_in_set2"),drop=F)
+Vilsp2<-as.data.frame(Vilsp2)
+plot(Vilsp2$AhorC.kg_m2~Vilsp2$Massloss.per)
+abline(lm(Vilsp2$AhorC.kg_m2~Vilsp2$Massloss.per))
+summary(lm(Vilsp2$AhorC.kg_m2~Vilsp2$Massloss.per))
 
 #### Rasterize TeaBag and then intercept Vilde's points ####
-r<-raster(ncols=100, nrows=90,xmn=32.49097, xmx=37.08969, ymn=-4.997215, ymx=7.63e-06, resolution=c(0.05, 0.05))
-r1<-rasterize(TeaSp, r, field=TeaSp$Massloss.per, fun=mean)#Or fun = mean?
+r<-raster(ncols=100, nrows=90,xmn=32.49097, xmx=37.08969, ymn=-4.997215, ymx=7.63e-06, resolution=c(0.025, 0.025))
+r1<-rasterize(TeaBags2R_proj, r, field=TeaSp$Massloss.per, fun=mean)#Or fun = mean?
 plot(r1)
-plot(VildeSP_proj)
-names(VildeSP_proj)
 
 TeaRast<- extract(r1,VildeSP_proj,sp=T, method='simple')
 #TeaRast<- as.data.frame(TeaRast)
 names(TeaRast)
+TeaRast$layer
 
-#### Other binding options
-over(VilspUTM,TeaSpUTM)
-
+#### OLD SCRIPT IGNORE ####
 ### compute the complete distance matrix between the two sets of points
 dist_mat <- pointDistance(Vilsp,TeaSp, lonlat = T, allpairs = F)
 dmat <- spDists(Vilsp,TeaSp,longlat = T)
@@ -295,7 +312,7 @@ Vilsp2<-merge(Vilsp,TeaSp, by=c("nearest_in_set2"),drop=F)
 
 
 # Using a buffer...
-buff <- gBuffer(VilspUTM,width=100,byid=TRUE) # Buffer cannot be small - this does not work!
+buff <- gBuffer(Vilsp,width=1,byid=TRUE) # Buffer cannot be small - this does not work!
 plot(buff)
 Vilsp_buff <- TeaSpUTM[buff,]
 plot(Vilsp_buff)
@@ -319,7 +336,7 @@ library(sf)
 library(RANN)
 
 # fast nearest neighbour search
-closest <- nn2(VilSpat, TeaLoc, k = 1, searchtype = "radius", radius = 0.0001)
+closest <- nn2(TeaSpUTM,Vilsp, k = 1, searchtype = "radius", radius = 0.0001)
 closest <- sapply(closest, cbind) %>% as_tibble
 head(closest)
 names(closest)
