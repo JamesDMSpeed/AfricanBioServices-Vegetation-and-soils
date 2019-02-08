@@ -10,6 +10,7 @@ library(gcookbook)
 library(readr)
 library(tidyr)
 library(lemon)
+library(Hmisc)
 
 library(grid)
 library(gridExtra)
@@ -19,7 +20,7 @@ library(lme4)
 library(MuMIn) #for mod.sel()
 #-------------------------
 
-Biomass <- read.csv("Moveable exclosures/Biomass.csv", header=T,sep=";")
+Biomass <- read.csv("Biomass.csv", header=T,sep=",")
 tail(Biomass)
 #View(Biomass)
 #-------------------------
@@ -34,7 +35,7 @@ tail(Biomass)
 # Removing Ex2 - separate analysis
 Databiom <- Biomass[Biomass$treatment!="EX2",] #Removing Mesh exclosures
 Databiom <- Databiom[Databiom$harvest!="H0",] #removing H0
-Databiom <- Databiom[-281,]
+#Databiom <- Databiom[-281,]
 Databiom <- droplevels(Databiom)
 
 #attach(Databiom)
@@ -62,7 +63,7 @@ levels(Databiom$treatment)<-c("exclosed","open")
 
 #### Date variable ####
 # Rdate create month column. default was (="%d.%m.%Y")
-Rdate<-strptime(as.character(Databiom$harvest.date),format="%d.%m.%Y",tz="Africa/Nairobi" )# East African time #USE
+Rdate<-strptime(as.character(Databiom$harvest.date),format="%m/%d/%Y",tz="Africa/Nairobi" )# East African time #USE
 class(Rdate) # [1] "POSIXlt" "POSIXt" # This format needs a lot of memory - but good
 Databiom$Rdate<-Rdate# Add to the dataframe #
 # Create a Yr-Month time value as experiment runs over 15 months - > 2 years
@@ -83,7 +84,7 @@ levels(Databiom$plot.code) #40 levels
 # 6:relations between variables(X&Y) 7:interactions 8:independence(Y)
 
 #### Spread of data ####
-hist(prodtot) # right-skewed + some values up to 8!
+hist(Databiom$prodtot) # right-skewed + some values up to 8!
 hist(constot) # as much neg.values as pos! Mean cons. ~0... 
 hist(prodtarg) # most around +/-1
 hist(constarg)
@@ -96,7 +97,7 @@ par(mfrow = c(1, 1), mar = c(4, 3, 3, 2)) #mfrow several graphs on the same page
 dotchart(Databiom$prodtarg,groups=as.factor(Databiom$plot.id)) # Outlier -4.29
 dotchart(Databiom$prodtarg,groups=Databiom$landuse,main = "landuse") # Outlier -4.29 #Separating between landuses --> Both outliers in pasture
 #To identify the outliers. plot(), then identify(). Click on outliers to define, then esc. 
-plot(prodtot) # 25  37 243 247
+plot(Databiom$prodtot) # 25  37 243 247
 plot(prodtarg) # 253 254
 plot(constot) # 25 273
 plot(constarg) #45
@@ -112,74 +113,26 @@ Databiom[c(25,273),]
   #Both ex, Dry_p_1 and se_1, H1/H7 4.59 and -2.79
 Databiom[c(45),"constarg"]
   #Handajega Ex H2  3.35
----------------------------------------------------------------
+########################################################
 
 #### GRAPHING ####
-#### Trying to plot rain.sum with date on the x-axis ####
-plot(as.Date(harvest.date, format ="%m/%d/%Y"),rain.sum)
-plot(as.factor(harvest.date), rain.sum)
-
-plot((rain.sum)~as.Date(Rdate), Databiom,na.rm=T)
-#abline(lm((consTotal)~rain.sum, DataEx5))
-#summary(lm((consTotal)~rain.sum, DataEx5))
-plot(Rdate,rain.sum,x_breaks, xlab =month.abb)
-?plot
-#ggplot
-rain <- ggplot(Databiom, aes(x=YrMonth, y=rain.sum, colour="dark blue"))
-rain <- rain + geom_line(aes(y=rain.sum, colour="dark blue",linetype=1,size=1, alpha=.1))
-
-rain <-rain + scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(as.Date("2017-02-10"),max=as.Date("2018-05-31")), expand=c(0,0)) #NOT working
-
-dp<-dp+scale_y_continuous(limits=c(-2.5,8),sec.axis = sec_axis(~ . *70, breaks = c(0,100,200,300,400,500), labels = c(0,100,200,300,400,500), name = "Precipitation (mm)"))
-rain <-rain + scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(min(Databiom$YrMonth),max=max(Databiom$YrMonth))) 
-
-#### Aggregating rainfall per region #### 
-# Averaging rainfall data and getting SE by region # To be included in the NAP aggregated dataframes per site
-#per rainfall region (WET, SE , DRY)
-SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
-Rainregion<-aggregate(rain.sum~region+YrMonth,Databiom,mean)
-RainregionSE<-aggregate(rain.sum~region+YrMonth,Databiom,SE)
-
-RainregionX<-cbind(Rainregion,RainregionSE[,3])
-colnames(RainregionX)[4]<-"SE"
-
-# Defining upper and lower limits
-RainregionX$SeUp<-RainregionX$rain.sum+RainregionX$SE
-RainregionX$SeLo<-RainregionX$rain.sum-RainregionX$SE
-
-# Convert to date
-RainregionX$YrMonth<-as.Date(paste(RainregionX$YrMonth,"-01",sep=""))
-
-#### Adding NAP AND rainfall to aggregated dataframes ####
-# using left join.
-Avgprod3<-left_join(Avgprod,RainregionX, by=c("region","YrMonth"),drop=F)
-names(Avgprod3)
-
-## Set values <0 to zero
-#AvgProd3$Productivity[AvgProd3$Productivity<0.01]<-0
-
-# Calculate error bars
-#AvgProd3$SeUp<-AvgProd3$Productivity+AvgProd3$SE.x
-#AvgProd3$SeLo<-AvgProd3$Productivity-AvgProd3$SE.x
-#AvgProd3$SeUp[AvgProd3$SeUp<0.01]<-0
-#AvgProd3$SeLo[AvgProd3$SeLo<0.01]<-0
-
-#----------------------------------------------------------------------
-#Stu averaged rainfall per region (aggregate(rain.sum~region+YrMonth,DataEx,mean))
-  #avgRain <- aggregate(rain.sum~region+YrMonth,na.rm=T,Databiom,mean)
-  #rain <- ggplot( data = avgRain, aes( x=YrMonth, y=rain.sum,colour="dark blue" )) + geom_line() 
-  #rain
-
-#### Precipitation line plot ####
-plot(Databiom$rain.sum,Databiom$prodtot)
-plot(Databiom$rain.sum,Databiom$constot)
-summary(lm(prodtot~rain.sum,data=Databiom))
-
-
-plot((constot)~rain.sum, Databiom)
-abline(lm((constot)~rain.sum, Databiom))
-summary(lm((constot)~rain.sum, Databiom))
-#-----------------------------------------------------
+# #### Trying to plot rain.sum with date on the x-axis ####
+# #plot(as.Date(harvest.date, format ="%m/%d/%Y"),rain.sum)
+# #plot(as.factor(harvest.date), rain.sum)
+# 
+# plot((rain.sum)~as.Date(Rdate), Databiom,na.rm=T)
+# #abline(lm((consTotal)~rain.sum, DataEx5))
+# #summary(lm((consTotal)~rain.sum, DataEx5))
+# plot(Rdate,rain.sum,x_breaks, xlab =month.abb,Databiom)
+# ?plot
+# #ggplot
+# rain <- ggplot(Databiom, aes(x=YrMonth, y=rain.sum, colour="dark blue"))
+# rain <- rain + geom_line(aes(y=rain.sum, colour="dark blue",linetype=1,size=1, alpha=.1))
+# 
+# rain <-rain + scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(as.Date("2017-02-10"),max=as.Date("2018-05-31")), expand=c(0,0)) #NOT working
+# 
+# dp<-dp+scale_y_continuous(limits=c(-2.5,8),sec.axis = sec_axis(~ . *70, breaks = c(0,100,200,300,400,500), labels = c(0,100,200,300,400,500), name = "Precipitation (mm)"))
+# rain <-rain + scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(min(Databiom$YrMonth),max=max(Databiom$YrMonth))) 
 
 #### Average NAP ####
 # Average of each site per harvest
@@ -253,13 +206,49 @@ Avgcons$YrMonth<-as.Date(paste(Avgcons$YrMonth,"-01",sep=""))
 # Redo code to include differences in pool - linetype
 Avgcons$site.id<-as.factor(with(Avgcons, paste(region,landuse,pool, sep="_")))
 
-####Dataset overview ####
+#### Aggregating rainfall per region #### 
+# Averaging rainfall data and getting SE by region # To be included in the NAP aggregated dataframes per site
+#per rainfall region (WET, SE , DRY)
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+Rainregion<-aggregate(rain.sum~region+YrMonth,Databiom,mean)
+RainregionSE<-aggregate(rain.sum~region+YrMonth,Databiom,SE)
+
+RainregionX<-cbind(Rainregion,RainregionSE[,3])
+colnames(RainregionX)[4]<-"SE"
+
+# Defining upper and lower limits
+RainregionX$SeUp<-RainregionX$rain.sum+RainregionX$SE
+RainregionX$SeLo<-RainregionX$rain.sum-RainregionX$SE
+
+# Convert to date
+RainregionX$YrMonth<-as.Date(paste(RainregionX$YrMonth,"-01",sep=""))
+
+#### Adding NAP AND rainfall to aggregated dataframes ####
+# using left join.
+Avgprod3<-left_join(Avgprod,RainregionX, by=c("region","YrMonth"),drop=F)
+names(Avgprod3)
+
+## Set values <0 to zero
+#AvgProd3$Productivity[AvgProd3$Productivity<0.01]<-0
+
+# Calculate error bars
+#AvgProd3$SeUp<-AvgProd3$Productivity+AvgProd3$SE.x
+#AvgProd3$SeLo<-AvgProd3$Productivity-AvgProd3$SE.x
+#AvgProd3$SeUp[AvgProd3$SeUp<0.01]<-0
+#AvgProd3$SeLo[AvgProd3$SeLo<0.01]<-0
+
+#----------------------------------------------------------------------
+#Stu averaged rainfall per region (aggregate(rain.sum~region+YrMonth,DataEx,mean))
+#avgRain <- aggregate(rain.sum~region+YrMonth,na.rm=T,Databiom,mean)
+#rain <- ggplot( data = avgRain, aes( x=YrMonth, y=rain.sum,colour="dark blue" )) + geom_line()
+
+####OVERVIEW dataframes ####
   #Avgprod - 138 obs, 8 var
-  #Avgprod2 - without Seronera
+  #Avgprod2 - 
   #Avgprod3 - From Avgprod, joined with RainregionX
   #Avgprod4 - From Avgprod3, without target
   #Avgprod5 - From Avgprod4 without Seronera
-  #Avgprod6 - From Avgprod5, without open
+  #Avgprod6 - From Avgprod5, without Seronera and open
   #Avgprod6b - From Avgprod4, with Seronera, without open
 
   #Avgcons - 70 obs, 7 var
@@ -267,6 +256,9 @@ Avgcons$site.id<-as.factor(with(Avgcons, paste(region,landuse,pool, sep="_")))
   #Avgcons3 - From Avgcons, joined with RainregionX
   #Avgcons4 - From Avgcons3, without target
   #Avgcons5 - From Avgcons4, without Seronera
+
+  #Avgprodcons  - From Avgprod6,Avgcons5    Without Seronera
+  #Avgprodcons2 - Avgprod6b,Avgcons4        With Seronera 
 
 #### NAP target+total ####
 legend_title<-"land-use"
@@ -305,7 +297,7 @@ nap<-nap+ theme_bw() +
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
 nap
-ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPtarg.png",
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPtarg.png",
        width= 26, height = 18,units ="cm",
        dpi = 600, limitsize = TRUE)
 
@@ -360,7 +352,7 @@ nap2<-nap2+ theme_bw() +
 #nap2<-nap2+  annotate(geom="text", x=as.Date("2017-02-28"), y=8, label=c("(a)",""),color="black",fontface="bold", size=6)
 nap2
 
-ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPwithSeronera.png",
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPwithSeronera.png",
        width= 26, height = 18,units ="cm",
        dpi = 600, limitsize = TRUE)
 
@@ -414,7 +406,7 @@ nap3<-nap3+ theme_bw() +
 #nap3<-nap3+  annotate(geom="text", x=as.Date("2017-02-28"), y=8, label=c("(a)",""),color="black",fontface="bold", size=6)
 nap3
 
-ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAP.png",
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAP.png",
        width= 26, height = 18,units ="cm",
        dpi = 600, limitsize = TRUE)
 #### CONS plot without Seronera ####
@@ -571,10 +563,10 @@ napconsb<-napconsb+ guides(size=guide_legend("Land-use", override.aes=list(shape
 napconsb
 
 
-ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONS.png",
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONS.png",
        width= 26, height = 18,units ="cm",
        dpi = 600, limitsize = TRUE)
-########################3
+########################
 legend_title<-"land-use"
 napcons<- ggplot(Avgprodcons, aes(x=YrMonth, y=Productivity, colour=landuse,fill=landuse,shape=Biomass_change,
                                     group=site.id.y))
@@ -626,7 +618,7 @@ napconsb<-napconsb+ guides(size=guide_legend("Land-use", override.aes=list(shape
 napconsb <- napconsb+theme(panel.spacing.x=unit(2, "lines"),panel.spacing.y=unit(1, "lines"))
 napconsb
 
-ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONS2.png",
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONS2.png",
        width= 26, height = 18,units ="cm",
        dpi = 600, limitsize = TRUE)
 
@@ -693,12 +685,23 @@ napcons2b <- napcons2b+theme(panel.spacing.x=unit(2, "lines"),panel.spacing.y=un
 napcons2b
 #could also use the lemon package with facet_rep_wrap(), but might need to reinstall R for this to work 
 
-ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSSeronera2BEST.png",
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSSeronera2BEST.png",
        width= 26, height = 18,units ="cm",
        dpi = 600, limitsize = TRUE)
 
 ####|####
 #### ANALYSIS ####
+#### Precipitation line plot ####
+#Producivity
+plot(Databiom$rain.sum,Databiom$prodtot, ylab="productivity", xlab = "Rainfall", main="Rainfall and productivity",col=Databiom$landuse)
+abline(lm((prodtot)~rain.sum, Databiom))
+summary(lm(prodtot~rain.sum,data=Databiom)) #lm: y= 0.19+0.0032x, r^2=0.068
+
+#Consumption
+plot(Databiom$rain.sum,Databiom$constot, ylab="Consumption", xlab = "Rainfall", main="Rainfall and consumption",col=Databiom$landuse)
+abline(lm((constot)~rain.sum, Databiom))
+summary(lm((constot)~rain.sum, Databiom)) #lm: y=0.46+0.00081, r^2=0.004 
+
 #### Pearsons correlation ####
 #If 100% correlation - points on a scatter plot lie on a straight line
 #positive: slope=+1, negative: slope=-1
@@ -736,7 +739,54 @@ pairs(~region+landuse+treatment+harvest+harvest.date+rain.sum+pasture.disc.harve
 MyVar <- c("landuse", "treatment", "harvest", "rain.sum","region") 
 
 #Test correlations between explanatory variables with boxplots
-boxplot(landuse~region,data=Databiom)
+
+
+# Correlation between rainfall and productivity
+rainprod <- Databiom %>%
+  select("rain.sum", "prodtot")
+
+mycor <- rcorr(rainprod$rain.sum, rainprod$prodtot,type="pearson")
+mycor$r
+mycor$P
+
+# Different landuse  
+rainprod_pasture <- Databiom %>%
+  select("rain.sum", "prodtot")%>%
+  subset(Databiom$landuse =="pasture")
+mycor_pasture <- rcorr(rainprod_pasture$rain.sum, rainprod_pasture$prodtot,type="pearson")
+mycor_pasture$r
+mycor_pasture$P
+
+rainprod_wild <- Databiom %>%
+  select("rain.sum", "prodtot")%>%
+  subset(Databiom$landuse =="wild")
+mycor_wild <- rcorr(rainprod_wild$rain.sum, rainprod_wild$prodtot,type="pearson")
+mycor_wild$r
+mycor_wild$P
+
+#Correlation between rainfall and consumption
+raincons <- Databiom %>%
+  select("rain.sum", "constot")
+mycor2 <- rcorr(raincons$rain.sum, raincons$constot,type="pearson")
+mycor2$r
+mycor2$P
+
+# Different landuse  
+raincons_pasture <- Databiom %>%
+  select("rain.sum", "constot")%>%
+  subset(Databiom$landuse =="pasture")
+mycor2_pasture <- rcorr(raincons_pasture$rain.sum, raincons_pasture$constot,type="pearson")
+mycor2_pasture$r
+mycor2_pasture$P
+
+raincons_wild <- Databiom %>%
+  select("rain.sum", "constot")%>%
+  subset(Databiom$landuse =="wild")
+mycor2_wild <- rcorr(raincons_wild$rain.sum, raincons_wild$constot,type="pearson")
+mycor2_wild$r
+mycor2_wild$P
+
+
 
 #-------------------
   #From Impatiens script.. 
@@ -819,6 +869,7 @@ napmodmixed1 <- lmer(prodtot~landuse+treatment +landuse*rain.sum + treatment*rai
 napmodmixed2 <- lmer(prodtot~landuse+treatment+rain.sum+landuse:treatment+landuse:rain.sum+ (1|site.name/harvest),REML=F,data=Databiom)
 napmodmixed3 <- lmer(prodtot~landuse+treatment+rain.sum+landuse:treatment+ (1|site.name/harvest),REML=F,data=Databiom)
 napmodmixed4 <- lmer(prodtot~landuse+treatment+rain.sum+ (1|site.name/harvest),REML=F,data=Databiom)
+summary(napmodmixed4)
 
 #Then selecting the best model
 library(MuMIn)
@@ -864,12 +915,12 @@ consmodmixed <- lmer(constot~landuse*treatment +landuse*rain.sum + treatment*rai
 summary(consmodmixed)
 hist(resid(consmodmixed))
 
----------------------------------
+########################################################
 #### NAP and CONS annual ####
 # Need to have annual rainfall values per site (Feb-Feb?)
       # Need mean per site per harvest (mean.site.harvest)
       # Add all together (mean.site.annual)
----------------------------------
+########################################################
 
 #### LME from QA ####
 #Finding the right structure for the random effect----
@@ -955,7 +1006,7 @@ B1<-lme(rain.sum.mm~moist,
 summary(B1)
 anova(B1) # Highly signficant
 AIC(B1) #7923.711
------------------------------------
+########################################################
   # Trying out...
   napmod <- lm(prodtot~landuse*region*treatment*rain.sum,data=Databiom)
 
@@ -982,9 +1033,9 @@ B1<-lme(rain.sum.mm~moist,
 summary(B1)
 anova(B1)
 AIC(B1)
------------------------------------------
+########################################################
   
------------------------------------------------------
+########################################################
 #### USEFUL STUFF ####
 #### Combined graphs ####
 library(grid)
