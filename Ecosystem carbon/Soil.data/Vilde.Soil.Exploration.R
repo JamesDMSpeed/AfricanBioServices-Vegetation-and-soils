@@ -1,90 +1,83 @@
 ####Making tables####
+# Packages 
 library(tidyr)
 library(plyr)
 library(dplyr)
+library(ggplot2)
+
 # Uploading the soil file
 total.soil.data<- read.csv("Ecosystem Carbon/Soil.data/Total.Soil.Data.csv", head = TRUE)
 names(total.soil.data)
 Metabolic.rate <- read.csv("Ecosystem Carbon/CattleMetabolic.csv", head = TRUE)
+Dung.counts1 <- read.csv("Permanent exclosures/Herbivore dung/Sero.prod.dungFULL.csv", head=TRUE)
 
 total.soil.data$Region<- factor(total.soil.data$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
-Metabolic.rate2$Region<- factor(Metabolic.rate2$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+Metabolic.rate$Region<- factor(Metabolic.rate$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
+# Looking at dung counts 
+levels(Dung.counts1$area)
+levels(Dung.counts1$landuse)
+Dung.counts2<-Dung.counts1[Dung.counts1$area!="MakaoWMA",]
+Dung.counts3<-Dung.counts2[Dung.counts2$landuse!="illegal",]
+Dung.counts4<-Dung.counts3[Dung.counts3$landuse!="pasture common",]
+Dung.counts <- droplevels(Dung.counts4)
+colnames(Dung.counts)
+Dung.block <- cbind(aggregate(wild_broswer~area+landuse+block,Dung.counts,mean),
+                    aggregate(wild_grazer~area+landuse+block,Dung.counts,mean)[4],
+                    aggregate(live_broswer~area+landuse+block,Dung.counts,mean)[4],
+                    aggregate(live_grazer~area+landuse+block,Dung.counts,mean)[4])
+Dung.block$livestock <- Dung.block$live_broswer + Dung.block$live_grazer
+Dung.block$wild <- Dung.block$wild_broswer + Dung.block$wild_grazer
+Dung.block$total.dung <- Dung.block$livestock + Dung.block$wild
+Dung.block$area <- as.character(Dung.block$area)
+Dung.block$area[Dung.block$area == "SNP"] <- "Handajega"
+Dung.block$vilde.block <- c(3,1,2,4,3,4,1,2,1,4,3,2,3,4,1,2)
+Dung.block <- Dung.block[
+  order(Dung.block[,1], Dung.block[,11] ),
+  ]
+Dung.block <- Dung.block[,c(1,2,11,8:10)]
+Dung.block$area <-  factor(Dung.block$area, levels = c("Makao","Maswa","Mwantimba","Handajega"))
+colnames(Dung.block) <- c("Region","landuse","Block", "livestock","wild","total.dung" )
+ID1 <- total.soil.data[,c(2,4)]
+Dung <- full_join(ID1,Dung.block)
+
+# Metabolic rate -  not a good variable. 
 names(Metabolic.rate)
 names(total.soil.data)
 ID <- total.soil.data[,c(2,4,5,6,7)]
 Metabolic.rate2 <- full_join(ID,Metabolic.rate)
 names(Metabolic.rate2)
-total.soil.data2 <- cbind(total.soil.data,Metabolic.rate2[c(30:32)])
 
-plot(layer~Land_Use, data=total.soil.data2)
+# Add metabolic rate and dung counts 
+total.soil.data1 <- cbind(total.soil.data,Dung[c(4:6)])
+total.soil.data2 <- cbind(total.soil.data1,Metabolic.rate2[c(30:32)])
 
-# Comparing data from NTNU with data from NMBU
-compare1 <- read.csv("Ecosystem Carbon/Soil.data/TBS.NMBU.csv", head=T)
-summary(lm(C.per.TBS~C.per.NMBU, data=compare1))
-cor.test(compare$C.per.TBS,compare$C.per.NMBU, method=c("pearson"))
+# # Comparing data from NTNU with data from NMBU
+# compare1 <- read.csv("Ecosystem Carbon/Soil.data/TBS.NMBU.csv", head=T)
+# summary(lm(C.per.TBS~C.per.NMBU, data=compare1))
+# cor.test(compare$C.per.TBS,compare$C.per.NMBU, method=c("pearson"))
+# 
+# # Comparing my data with Stuart`s data 
+# compare2 <- read.csv("Ecosystem Carbon/Soil.data/C.Stu.Vilde.csv", head=T)
+# str(compare2)
+# compare2$Soil.C.Vilde <- as.numeric(compare2$Soil.C.Vilde)
+# summary(lm(Soil.C.Vilde~Soil.C.Stu, data=compare2))
+# cor.test(compare2$Soil.C.Vilde,compare2$Soil.C.Stu, method=c("pearson"))
 
-# Comparing my data with Stuart`s data 
-compare2 <- read.csv("Ecosystem Carbon/Soil.data/C.Stu.Vilde.csv", head=T)
-str(compare2)
-
-compare2$Soil.C.Vilde <- as.numeric(compare2$Soil.C.Vilde)
-
-summary(lm(Soil.C.Vilde~Soil.C.Stu, data=compare2))
-cor.test(compare2$Soil.C.Vilde,compare2$Soil.C.Stu, method=c("pearson"))
-
-# Want to have a table with SOIL TEXTURE (clay, silt and sand) and chemical traits for the analysis I did - now have data from Anders and Stu also - not included here..  
-# First, reorganizing and removing collumns 
-soil.properties.full <- total.soil.data[,c(1:7,16,26:34,41:45)]
-names(soil.properties.full)
-tail(soil.properties.full)
-
-soil.properties.full$Region<- factor(soil.properties.full$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
-
-soil.properties.full$Land_Use<- factor(soil.properties.full$Land_Use, levels = c("Pasture","Wild"))
-
-soil.properties.full <- na.omit(soil.properties.full)
-
-
-#Making a table, by using the aggregata function - taking the mean values of texture by region 
-SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
-
-Soil.properties <- cbind((aggregate(Clay.per~Block+Region,soil.properties.full,mean)),
-                         (aggregate(Clay.per~Block+Region,soil.properties.full,SE))[3], 
-                         (aggregate(Sand.per~Block+Region,soil.properties.full,mean))[3],
-                         (aggregate(Sand.per~Block+Region,soil.properties.full,SE))[3],
-                         (aggregate(Silt.per~Block+Region,soil.properties.full,mean))[3],
-                         (aggregate(Silt.per~Block+Region,soil.properties.full,SE))[3],
-                        (aggregate(CEC.cmol_kg~Block+Region,soil.properties.full,mean))[3],
-                        (aggregate(CEC.cmol_kg~Block+Region,soil.properties.full,SE))[3],
-                         (aggregate(Al.g_kg~Block+Region,soil.properties.full,mean))[3],
-                         (aggregate(Al.g_kg~Block+Region,soil.properties.full,SE))[3],
-                         (aggregate(Fe.g_kg~Block+Region,soil.properties.full,mean))[3],
-                         (aggregate(Fe.g_kg~Block+Region,soil.properties.full,SE))[3],
-                         (aggregate(P.g_kg~Block+Region,soil.properties.full,mean))[3],
-                         (aggregate(P.g_kg~Block+Region,soil.properties.full,SE))[3])
-
-colnames(Soil.properties)<-c("Block","Region","Clay","Clay.SE","Sand","Sand.SE","Silt","Silt.SE","CEC","CEC.SE","Al","Al.SE","Fe","Fe.SE","P","P.SE")
-
-#pH<-aggregate(pH~Block+Region,soil.properties,mean)
-#SE.pH<-aggregate(pH~Block+Region,soil.properties,SE)
-
-write.csv(Soil.properties,file="Ecosystem carbon/Soil.data/Soil.Properties.csv")
-
-# Making tables for C and N 
+# Making tables for C and N - Belowground 
 names(total.soil.data2)
-Soilred <- total.soil.data2[,c(2:7,49,50,19:22,35:37,39,42,51)]
+Soilred <- total.soil.data2[,c(2:7,52,53,19:22,35:37,39,42,49:51,54)]
 Soilred$Region<- factor(Soilred$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
 AHorizon <- Soilred[Soilred$Horizon=="A-hor",]
 MinHorizon <- Soilred[Soilred$Horizon=="Min-hor",]
 Belowground <- cbind(AHorizon,MinHorizon[,c(13:17)])
-colnames(Belowground)[c(9,16:23)] <- c("landuse","AhorC.kg_m2","AhorN.kg_m2","Livestock.bm","Clay.min","Silt.min","Sand.min","MinC.kg_m2","MinN.kg_m2")
+colnames(Belowground)[c(9,16,17,21:26)] <- c("landuse","AhorC.kg_m2","AhorN.kg_m2","Livestock.bm","Clay.min","Silt.min","Sand.min","MinC.kg_m2","MinN.kg_m2")
 Belowground$tot.C.kg_m2 <- Belowground$AhorC.kg_m2+Belowground$MinC.kg_m2
 Belowground$tot.N.kg_m2 <- Belowground$AhorN.kg_m2+Belowground$MinN.kg_m2
 Belowground$mean.N.kg_m2 <- (Belowground$AhorN.kg_m2+Belowground$MinN.kg_m2)/2
 names(Belowground)
-Belowground <- Belowground[,c(1:5,7:26)]
+Belowground <- Belowground[,c(1:5,7:29)]
 
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 
@@ -122,30 +115,48 @@ SoilBlock <- SoilBlock[
 
 SoilBlock$Landuse <- as.factor(c("Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild"))
 
+# CSV files for furhter use 
 write.csv(SoilBlock,file="Ecosystem carbon/Soil.data/Soil.Carbon.Block.csv")
 write.csv(Belowground,file="Ecosystem carbon/Soil.data/Belowground.Carbon.csv")
 
+### Soil properties ####
+# Want to have a table with SOIL TEXTURE (clay, silt and sand) and chemical traits for the analysis I did - now have data from Anders and Stu also - not included here..  
+# First, reorganizing and removing collumns 
+soil.properties.full <- total.soil.data[,c(1:7,16,26:34,41:45)]
+names(soil.properties.full)
+tail(soil.properties.full)
 
-### On region size #### 
-Soil.Region <- cbind((aggregate(Clay.per~Region+Land_Use,data=Soilred,mean)),
-              (aggregate(Clay.per~Region+Land_Use,data=Soilred,SE))[3],
-              (aggregate(Silt.per~Region+Land_Use,data=Soilred,mean))[3],
-              (aggregate(Silt.per~Region+Land_Use,data=Soilred,SE))[3],
-              (aggregate(Sand.per~Region+Land_Use,data=Soilred,mean))[3],
-              (aggregate(Sand.per~Region+Land_Use,data=Soilred,SE))[3],
-              #(aggregate(C.g_m2~Region+Land_Use,data=OrgHorizon,mean))[3],
-              #(aggregate(C.g_m2~Region+Land_Use,data=OrgHorizon,SE))[3],
-              (aggregate(C.kg_m2~Region+Land_Use,data=AHorizon,mean))[3],
-              (aggregate(C.kg_m2~Region+Land_Use,data=AHorizon,SE))[3],
-              (aggregate(C.kg_m2~Region+Land_Use,data=MinHorizon,mean))[3],
-              (aggregate(C.kg_m2~Region+Land_Use,data=MinHorizon,SE))[3],
-              (aggregate(N.kg_m2~Region+Land_Use,data=AHorizon,mean))[3],
-              (aggregate(N.kg_m2~Region+Land_Use,data=AHorizon,SE))[3],
-              (aggregate(N.kg_m2~Region+Land_Use,data=MinHorizon,mean))[3],
-              (aggregate(N.kg_m2~Region+Land_Use,data=MinHorizon,SE))[3])
+soil.properties.full$Region<- factor(soil.properties.full$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
-colnames(Soil.Region) <- c("Region","Landuse","Clay","SE.Clay","Silt","SE.Silt","Sand","SE.Sand","CAHor","SE.CAHor","CMinHor","SE.CMinHor","NAHor","SE.NAHor","NMinHor","SE.NMinHor")
-write.csv(Soil.Region,file="Ecosystem carbon/Soil.data/Soil.Carbon.Region.csv")
+soil.properties.full$Land_Use<- factor(soil.properties.full$Land_Use, levels = c("Pasture","Wild"))
+
+soil.properties.full <- na.omit(soil.properties.full)
+
+
+#Making a table, by using the aggregata function - taking the mean values of texture by region 
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+
+Soil.properties <- cbind((aggregate(Clay.per~Block+Region,soil.properties.full,mean)),
+                         (aggregate(Clay.per~Block+Region,soil.properties.full,SE))[3], 
+                         (aggregate(Sand.per~Block+Region,soil.properties.full,mean))[3],
+                         (aggregate(Sand.per~Block+Region,soil.properties.full,SE))[3],
+                         (aggregate(Silt.per~Block+Region,soil.properties.full,mean))[3],
+                         (aggregate(Silt.per~Block+Region,soil.properties.full,SE))[3],
+                         (aggregate(CEC.cmol_kg~Block+Region,soil.properties.full,mean))[3],
+                         (aggregate(CEC.cmol_kg~Block+Region,soil.properties.full,SE))[3],
+                         (aggregate(Al.g_kg~Block+Region,soil.properties.full,mean))[3],
+                         (aggregate(Al.g_kg~Block+Region,soil.properties.full,SE))[3],
+                         (aggregate(Fe.g_kg~Block+Region,soil.properties.full,mean))[3],
+                         (aggregate(Fe.g_kg~Block+Region,soil.properties.full,SE))[3],
+                         (aggregate(P.g_kg~Block+Region,soil.properties.full,mean))[3],
+                         (aggregate(P.g_kg~Block+Region,soil.properties.full,SE))[3])
+
+colnames(Soil.properties)<-c("Block","Region","Clay","Clay.SE","Sand","Sand.SE","Silt","Silt.SE","CEC","CEC.SE","Al","Al.SE","Fe","Fe.SE","P","P.SE")
+
+#pH<-aggregate(pH~Block+Region,soil.properties,mean)
+#SE.pH<-aggregate(pH~Block+Region,soil.properties,SE)
+
+write.csv(Soil.properties,file="Ecosystem carbon/Soil.data/Soil.Properties.csv")
 
 #### Exploring soil C and N ####
 
@@ -235,7 +246,7 @@ plot(Clay.per~factor(Region),
      data=Soil.full,
      border=c("darkgoldenrod2","darkgoldenrod2","blueviolet","blueviolet","palegreen3","darkcyan","darkcyan"))
 
-
+#### Bulk Density exploration ####
 # Making a table with BD and clay to see if they are correlated.
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 Clay <- aggregate(Clay.per~Horizon+Region, data=MAP.clay,mean)
@@ -274,8 +285,6 @@ Clay.BD.plot +
   theme_bw() +
   Lines_gone
 
-#### Bulk Density exploration ####
-
 total.soil.data<- read.csv("Ecosystem Carbon/Total.soil.data.csv", head = TRUE)
 names(total.soil.data)
 
@@ -297,9 +306,6 @@ levels(BD.total$Region)
 BD.total$Region <- factor(BD.total$Region,levels = c("Makao","Maswa","Mwantimba","Handajega", "Seronera","Park Nyigoti","Ikorongo"))
 
 # Look at BD per region for the different horizons 
-library(ggplot2)
-library(dplyr)
-
 # SE function to use in R 
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 BD.SE <- aggregate(BD_fine_earth_air_dry~Horizon+Region,data=BD.total,SE)
