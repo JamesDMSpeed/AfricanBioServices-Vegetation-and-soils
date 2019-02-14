@@ -46,7 +46,7 @@ levels(SoiltextA.Summary$Block)
 
 
 #Vilde soil####
-SoiltextV<-read.csv("Ecosystem carbon/Soil.data/Soil.texture.csv", head = TRUE)
+SoiltextV<-read.csv("Ecosystem carbon/Soil.data/Soil.texture.all.csv", head = TRUE)
 head(SoiltextV)
 SoiltextV<-SoiltextV[SoiltextV$Horizon=="A-hor",]
 SoiltextV<-SoiltextV[c(2,4,8:11)]
