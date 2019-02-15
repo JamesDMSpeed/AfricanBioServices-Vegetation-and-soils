@@ -70,23 +70,81 @@ TotSoil<- droplevels(TotSoil[TotSoil$blockcode!="Intermediate_2" & TotSoil$block
 #TeaBags2<- droplevels(TeaBags2[TeaBags2$blockcode!="Intermediate_2" & TeaBags2$blockcode!="Intermediate_3" & TeaBags2$blockcode!="Intermediate_4",])
 
 # Merge datasets
-TeaC<-merge(TotSoil,TeaBags2, by =c("blockcode","Region","Block"))
+library(dplyr)
+colnames(TotSoil)[9]<-"Landuse"
+TotSoil$landuse
+levels(TeaBags2$Landuse)<-c("Agriculture","Pasture","Wild","Wild" )
+TeaC<-left_join(TeaBags2,TotSoil, by =c("blockcode","Region","Landuse","Block"))
 
-# Subset teabags dataset so Roobios ONly
+# Subset teabags dataset so Roobios ONLY
 TeaCRooibosOP<-droplevels(TeaC[TeaC$Littertype=="Rooibos" & TeaC$Treatment=="Open",])
 TeaCRooibosEX<-droplevels(TeaC[TeaC$Littertype=="Rooibos" & TeaC$Treatment=="Exclosed",])
+TeaCGreenOP<-droplevels(TeaC[TeaC$Littertype=="Green" & TeaC$Treatment=="Open",])
+TeaCGreenEX<-droplevels(TeaC[TeaC$Littertype=="Green" & TeaC$Treatment=="Exclosed",])
 
 # Teabag
 TeaCRooibos<-merge(TeaCRooibosOP,TeaCRooibosEX,by=c("Lat","Long","blockcode", "Region","Block","AhorC.kg_m2","MinC.kg_m2","Season","rain.sum..mm."))
+TeaCGreen<-merge(TeaCGreenOP,TeaCGreenEX,by=c("Lat","Long","blockcode", "Region","Block","AhorC.kg_m2","MinC.kg_m2","Season","rain.sum..mm."))
 TeaCRooibos$Massloss.per<-TeaCRooibos$Massloss.per.x-TeaCRooibos$Massloss.per.y
 
 # Turn negative to zero...
-
 DRY2Roo<-TeaCRooibos[TeaCRooibos$blockcode=="Dry_2",]
 plot(TeaCRooibos$Massloss.per)
 TeaCRooibos$Massloss.per[TeaCRooibos$Massloss.per<0]<-0 # Replace negative values with ZERO
 plot(TeaCRooibos$Massloss.per)
 dim(TeaCRooibos)
+
+
+TeaCGreenRoo<-merge(TeaCRooibos,TeaCGreen,by=c("Lat","Long","blockcode", "Region","Block","AhorC.kg_m2","MinC.kg_m2","Season","rain.sum..mm."))
+names(TeaCGreenRoo)
+ggplot(TeaCGreenRoo, aes(y=S.x.y,x=Massloss.per, colour=Season, size=rain.sum..mm.))+geom_point()+facet_wrap(~Landuse.x.x)+
+geom_point(data=TeaCGreenRoo, aes(y=S.y.y,x=Massloss.per, colour=Season))+
+  xlab("Termite only: Rooibos mass loss (%)")+  ylab("Stability factor (Green tea)")
+
+
+ggplot(TeaCGreenRoo, aes(y=Massloss.per.x.y,x=Massloss.per, colour=Season,fill=Season, size=rain.sum..mm.))+geom_point()+facet_wrap(~Landuse.x.x)+
+  geom_point(data=TeaCGreenRoo, aes(y=Massloss.per.y.y,x=Massloss.per, colour=Season, fill=Season), shape=22)+
+  xlab("Termite only: Rooibos mass loss (%)")+  ylab("Green tea mass loss (%)")
+
+TeaCGreenRoo2<- droplevels(TeaCGreenRoo[!is.na(TeaCGreenRoo$S.y.y) &! is.na(TeaCGreenRoo$Massloss.per),])
+
+fit  <- lm(S.y.y~poly(Massloss.per,2),TeaCGreenRoo2)
+xx <- seq(0,100, length=50)
+plot(S.y.y~Massloss.per,TeaCGreenRoo2,pch=19)
+lines(xx, predict(fit, data.frame(Massloss.per=xx)), col="red")
+
+HypO<-lmer(S.y.y~poly(Massloss.per,2)+(1|Region/Block),TeaCGreenRoo2)
+anova(HypO)
+drop1(HypO, test="Chisq")
+
+# S estimate and C storage
+se<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+BlockC<-aggregate(AhorC.kg_m2~Region+Block+blockcode+Season+Treatment+Landuse,na.rm=TRUE, na.action=NULL,TeaC,mean)
+BlockCSE<-aggregate(AhorC.kg_m2~Region+Block+blockcode+Season+Treatment+Landuse, na.action=NULL,TeaC,se)
+
+SMass<-aggregate(S~Region+Block+blockcode+Season+Treatment+Landuse,na.rm=TRUE, na.action=NULL,TeaC,mean) #na.rm=TRUE, na.action=NULL,
+SSE<-aggregate(S~Region+Block+blockcode+Season+Treatment+Landuse,TeaC, na.action=NULL,se)
+RainSUMs<-aggregate(rain.sum..mm.~Region+Block+blockcode+Season+Treatment.x+Landuse.x,TeaCRooibos,na.rm=TRUE, mean)
+
+BlockC$C.se<-BlockCSE$AhorC.kg_m2
+BlockC$S<-SMass$S
+BlockC$S.se<-SSE$S
+BlockC$rain.sum..mm.<-RainSUMs$rain.sum..mm.
+
+library(ggplot2)
+RooC<-ggplot(data=BlockC, aes(x=S, y=AhorC.kg_m2,size=rain.sum..mm., colour=Treatment,shape=Landuse))
+RooC<-RooC+geom_errorbarh(data=BlockC,aes(xmin = S-S.se,xmax = S+S.se),lwd=1,show.legend=F) 
+RooC<-RooC+geom_errorbar(aes(ymin = AhorC.kg_m2-C.se,ymax = AhorC.kg_m2+C.se),lwd=1,show.legend=F)
+RooC<-RooC+geom_point()
+RooC<-RooC+facet_wrap(~Season+Region,1)
+RooC<-RooC+xlab("Stablisation Factor")+ylab("A-horizon C kg m-2")
+RooC<-RooC+theme_classic()
+RooC     
+
+names(TeaCRooibos)
+summary(lm(AhorC.kg_m2~S*Season*Landuse,BlockC))
+
+
 # A horizon: Aggregate soil carbon by blockcode and roobios tea
 names(TeaCRooibos) #MinC.kg_m2 or AhorC.kg_m2
 se<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
@@ -203,6 +261,7 @@ latlongproj<-("+proj=longlat +datum=WGS84")
 #TotSoil$Latitude <- gsub(" ", "", TotSoil$Latitude)
 #TotSoil$Longitude  <- gsub(" ", "", TotSoil$Longitude )
 
+TotSoil<-total.soil.data
 TotSoil$Latitude <- as.numeric(as.character(TotSoil$UTM.North))
 TotSoil$Longitude <- as.numeric(as.character(TotSoil$UTM.East))
 
@@ -218,7 +277,6 @@ TotSoil$Longitude<-VilspWGS84$coords.x1
 TotSoil$Latitude<-VilspWGS84$coords.x2
 
 write.csv(TotSoil, "/Users/anotherswsmith/Documents/Teaching/R_workshop/TotSoil.csv",row.names=F) #,sep = ",",dec = ".",col.names = TRUE, row.names=F)
-
 
 # Projected layer with WGS84
 VildeSP_proj <-TotSoil
