@@ -136,7 +136,7 @@ RooC<-ggplot(data=BlockC, aes(x=S, y=AhorC.kg_m2,size=rain.sum..mm., colour=Trea
 RooC<-RooC+geom_errorbarh(data=BlockC,aes(xmin = S-S.se,xmax = S+S.se),lwd=1,show.legend=F) 
 RooC<-RooC+geom_errorbar(aes(ymin = AhorC.kg_m2-C.se,ymax = AhorC.kg_m2+C.se),lwd=1,show.legend=F)
 RooC<-RooC+geom_point()
-RooC<-RooC+facet_wrap(~Season+Region,1)
+RooC<-RooC+facet_wrap(~Season,ncol=1)
 RooC<-RooC+xlab("Stablisation Factor")+ylab("A-horizon C kg m-2")
 RooC<-RooC+theme_classic()
 RooC     
