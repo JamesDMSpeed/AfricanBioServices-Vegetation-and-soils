@@ -102,7 +102,7 @@ geom_point(data=TeaCGreenRoo, aes(y=S.y.y,x=Massloss.per, colour=Season))+
   xlab("Termite only: Rooibos mass loss (%)")+  ylab("Stability factor (Green tea)")
 
 
-ggplot(TeaCGreenRoo, aes(y=Massloss.per.x.y,x=Massloss.per, colour=Season,fill=Season, size=rain.sum..mm.))+geom_point()+facet_wrap(~Landuse.x.x)+
+ggplot(TeaCGreenRoo, aes(y=Massloss.per.x.y,x=Massloss.per, colour=Season,fill=Season, size=rain.sum..mm.))+geom_point()+facet_wrap(~Season+Landuse.x.x)+
   geom_point(data=TeaCGreenRoo, aes(y=Massloss.per.y.y,x=Massloss.per, colour=Season, fill=Season), shape=22)+
   xlab("Termite only: Rooibos mass loss (%)")+  ylab("Green tea mass loss (%)")
 
@@ -148,11 +148,11 @@ summary(lm(AhorC.kg_m2~S*Season*Landuse,BlockC))
 # A horizon: Aggregate soil carbon by blockcode and roobios tea
 names(TeaCRooibos) #MinC.kg_m2 or AhorC.kg_m2
 se<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
-BlockC<-aggregate(AhorC.kg_m2~Region+Block+blockcode+Season,na.action=na.omit,TeaCRooibos,mean)
-BlockCSE<-aggregate(AhorC.kg_m2~Region+Block+blockcode+Season,TeaCRooibos,se)
+BlockC<-aggregate(AhorC.kg_m2~Region+Block+blockcode+Season,na.rm=TRUE, na.action=NULL,TeaCRooibos,mean)
+BlockCSE<-aggregate(AhorC.kg_m2~Region+Block+blockcode+Season,na.action=NULL,TeaCRooibos,se)
 
-RoobiosMass<-aggregate(Massloss.per~Region+Block+blockcode+Season,na.action=na.omit,TeaCRooibos,mean)
-RoobiosMassSE<-aggregate(Massloss.per~Region+Block+blockcode+Season,TeaCRooibos,se)
+RoobiosMass<-aggregate(Massloss.per~Region+Block+blockcode+Season,na.rm=TRUE, na.action=NULL,TeaCRooibos,mean)
+RoobiosMassSE<-aggregate(Massloss.per~Region+Block+blockcode+Season,na.action=NULL,TeaCRooibos,se)
 RainSUM<-aggregate(rain.sum..mm.~Region+Block+blockcode+Season,TeaCRooibos,mean)
 
 BlockC$C.se<-BlockCSE$AhorC.kg_m2
