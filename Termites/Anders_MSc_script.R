@@ -612,7 +612,7 @@ LabileDataMain <- droplevels(FulldataMain[FulldataMain$Littertype =="Green",])
 
 Recalmodel <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
                      Landuse:Season+Landuse:Region+Landuse:Treatment+
-                     Season:Region+Season:Treatment+
+                     Season:Region+Season:Treatment+Region:Treatment+
                      Treatment:Landuse:Season+
                      Treatment:Landuse:Region+
                      Season:Landuse:Region+
@@ -620,7 +620,7 @@ Recalmodel <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
 
 Labilemodel <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
                       Landuse:Season+Landuse:Region+Landuse:Treatment+
-                      Season:Region+Season:Treatment+
+                      Season:Region+Season:Treatment+Region:Treatment+
                       Treatment:Landuse:Season+
                       Treatment:Landuse:Region+
                       Season:Landuse:Region+
@@ -630,6 +630,133 @@ anova(Recalmodel)
 
 summary(Labilemodel)
 anova(Labilemodel)
+
+###########MODEL SELECTION########
+####Labile litter####
+summary(Labilemodel) # Fullmodel with Season,Region, landuse and treatment and all interactions 
+anova(Labilemodel) #Landuse,Season,Region
+AIC(Labilemodel)#4578.255
+drop1(Labilemodel,test="Chisq") # See what terms are important: Landuse:Season:Region is significant
+#                           Sum Sq Mean Sq NumDF  DenDF F value    Pr(>F)    
+# Landuse:Season:Treatment   62.11   31.05     2 604.09  0.4386    0.6451    
+# Landuse:Region:Treatment   22.31   11.15     2 604.11  0.1575    0.8543    
+# Landuse:Season:Region    2969.34 1484.67     2 604.27 20.9712 1.565e-09 ***
+
+#New trimmed model:
+Labilemodel2 <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
+                                      Landuse:Season+Landuse:Region+Landuse:Treatment+
+                                      Season:Region+Season:Treatment+Region:Treatment+
+                                      #Treatment:Landuse:Season+
+                                      #Treatment:Landuse:Region+
+                                      Season:Landuse:Region+
+                                      (1|Blockcode), data=LabileDataMain, REML=T)
+drop1(Labilemodel2,test="Chisq")
+
+AIC(Labilemodel2)#Original 4578.255 - new 4587.699
+
+#Model without three-way
+Labilemodel3 <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
+                       Landuse:Season+Landuse:Region+Region:Treatment+
+                       Landuse:Treatment+
+                       Season:Region+Season:Treatment+
+                       #Treatment:Landuse:Season+
+                       #Treatment:Landuse:Region+
+                       #Season:Landuse:Region+
+                       (1|Blockcode), data=LabileDataMain, REML=T)
+drop1(Labilemodel3,test="Chisq")
+#                  Sum Sq Mean Sq NumDF  DenDF   F value    Pr(>F)    
+# Landuse:Season      2132    1066     2 610.27   14.1944  9.43e-07 ***
+# Landuse:Region       589     295     2  18.06    3.9242   0.03844 *  
+# Region:Treatment      60      60     1 610.12    0.7951   0.37291    #NOT SIGN
+# Landuse:Treatment     51      26     2 610.11    0.3401   0.71180   #NOT SIGN 
+# Season:Region      77224   77224     1 610.29 1028.1645 < 2.2e-16 ***
+# Season:Treatment      29      29     1 610.10    0.3857   0.53480   #NOT SIGN 
+
+#New trimmed model with threeway
+Labilemodel4 <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
+                       Landuse:Season+Landuse:Region+#Landuse:Treatment+
+                       Season:Region+#Region:Treatment+#Season:Treatment+
+                       #Treatment:Landuse:Season+
+                       #Treatment:Landuse:Region+
+                       Season:Landuse:Region+
+                       (1|Blockcode), data=LabileDataMain, REML=T)
+AIC(Labilemodel4)#Original 4578.255 - new 4591.957
+drop1(Labilemodel4,test="Chisq")
+#                         Sum Sq Mean Sq NumDF  DenDF F value    Pr(>F)    
+# Treatment               55.64   55.64     1 612.11   0.792    0.3738    
+# Landuse:Season:Region 2962.96 1481.48     2 612.27  21.088 1.391e-09 ***
+
+#Testing significance between two-way interactions (with threeway):
+Labilemodel4a <- update(Labilemodel4, .~. -Landuse:Season)
+Labilemodel4b <- update(Labilemodel4, .~. -Landuse:Region)
+Labilemodel4c <- update(Labilemodel4, .~. -Season:Region)
+
+
+anova(Labilemodel4,Labilemodel4a) #Landuse:Season NOT sign
+anova(Labilemodel4,Labilemodel4b) #Landuse:Region NOT sign
+anova(Labilemodel4,Labilemodel4c)#Season:Region NOT sign
+
+
+#New trimmed model without threeway
+Labilemodel5 <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
+                       #Landuse:Season+Landuse:Region+#Landuse:Treatment+
+                       #Season:Region+#Region:Treatment+#Season:Treatment+
+                       #Treatment:Landuse:Season+
+                       #Treatment:Landuse:Region+
+                       #Season:Landuse:Region+
+                       (1|Blockcode), data=LabileDataMain, REML=T)
+AIC(Labilemodel5) #5270.009
+drop1(Labilemodel5,test="Chisq")
+Massloss.per ~ Landuse + Season + Region + Treatment + (1 | Blockcode)
+#             Df    AIC    LRT   Pr(Chi)
+#   <none>       5287.5                     
+#   Landuse    2 5289.7   6.19   0.04527 *  
+#   Season     1 5833.7 548.12 < 2.2e-16 ***
+#   Region     1 5331.2  45.62 1.436e-11 ***
+#   Treatment  1 5286.0   0.45   0.50041    #Treatment not significant (makes sense as this is the labile litter)
+
+
+
+
+#Trimming model with threeway
+Labilemodel6<- lmer(Massloss.per~Landuse+Season+Region+Treatment+
+                      #Landuse:Season+Landuse:Region+#Landuse:Treatment+
+                      #Season:Region+#Region:Treatment+#Season:Treatment+
+                      #Treatment:Landuse:Season+
+                      #Treatment:Landuse:Region+
+                      Season:Landuse:Region+
+                      (1|Blockcode), data=LabileDataMain, REML=T)
+
+
+AIC(Labilemodel6) #Original 4578.255 - New: 4591.957
+drop1(Labilemodel6,test="Chisq")
+
+
+
+
+
+
+
+                  
+AndersTea2b <- update(AndersTea2, .~. -flittertype:ftreatment)
+AndersTea2c <- update(AndersTea2, .~. -sand.per)
+AndersTea2d <- update(AndersTea2a, .~. -fregion)
+AndersTea2e <- update(AndersTea2a, .~. -flanduse)
+AndersTea2f <- update(AndersTea2b, .~. -flittertype)
+AndersTea2g <- update(AndersTea2b, .~. -ftreatment)
+
+# Interaction results - when removed from model
+anova(AndersTea2,AndersTea2a) # flanduse:fregion signficiant
+anova(AndersTea2,AndersTea2b) # flittertype:ftreatment significant
+anova(AndersTea2,AndersTea2c) # Sand signficiant
+anova(AndersTea2a,AndersTea2d) # Rainfall region NS
+anova(AndersTea2a,AndersTea2e) # Landuse singificant
+anova(AndersTea2b,AndersTea2f) # Litter type significant
+anova(AndersTea2b,AndersTea2g) # Treatment significant
+
+
+
+
 drop1(Recalmodel,test="Chisq")
 # Df    AIC     LRT   Pr(Chi)    
 # <none>                      5667.4                      
@@ -637,17 +764,12 @@ drop1(Recalmodel,test="Chisq")
 #   Landuse:Region:Treatment  3 5673.6 12.2436  0.006594 ** 
 #   Landuse:Season:Region     2 5667.7  4.2925  0.116923  
 
-drop1(Labilemodel,test="Chisq")
-# Df    AIC    LRT   Pr(Chi)    
-# <none>                      4644.3                     
-# Landuse:Season:Treatment  2 4641.2  0.898    0.6382    
-# Landuse:Region:Treatment  3 4639.5  1.206    0.7516    
-# Landuse:Season:Region     2 4681.8 41.553 9.481e-10 ***
+
 #   ---
-install.packages("lmerTest")
-install.packages("emmeans")
+#install.packages("lmerTest")
+#install.packages("emmeans")
 #library(lsmeans)
-library(emmeans)
+library(emmeans) 
 library(lmerTest)
 
 
@@ -659,7 +781,6 @@ ref_grid(Recalmodel) #@ grid
 emm.s.recalmod<- emmeans(Recalmodel,~Landuse:Season:Treatment)
         #Geting message: A nesting structure was detected in the fitted model:
         #Region %in% Landuse, Treatment %in% Landuse.
-
 test(emm.s.recalmod)
 
 #Testing the contrast among the factors by season. 
@@ -677,7 +798,6 @@ pairs(emm.s.recalmod,by="Season")
             #Exclosed,Agriculture - Exclosed,Wild       P= 1.0000
             #Exclosed,Agriculture - Open,Wild          P= 0.9165
             #Etc....See output
-
 
 #Plotting the emmeans for each comparison with its SE
 plot(emm.s.recalmod, comparisons = TRUE)

@@ -1,0 +1,51 @@
+﻿Region;Landuse;Site;Type (M, O, G);Height (m);Base diameter (m);Comment
+Seronera;Prot.Area;CG;O;0.2;3;
+Seronera;Prot.Area;CG;O;0.1;5.6;
+Seronera;Prot.Area;CG;O;0.2;2.5;
+SNP;Prot.Area;W1;M;1.4;4.8;No mound in 50x50 square. This was the closest one to the border
+SNP;Prot.Area;W2;O;2.2;0.2;WP 782
+SNP;Prot.Area;W2;O;2.55;0.1;WP 782
+SNP;Prot.Area;W2;O;1.8;0.1;WP 782
+SNP;Prot.Area;W2;O;1.55;0.15;WP 782
+SNP;Prot.Area;W2;O;2.25;0.2;WP 782
+SNP;Prot.Area;W3;O;0.2;5.2;
+SNP;Prot.Area;W4;O;0.4;10.95;
+Mwantimba;Pasture;P1;O;0.07;2.22;
+Mwantimba;Pasture;P1;O;0;4.4;
+Mwantimba;Pasture;P1;G;0.3;4.1;
+Mwantimba;Pasture;P1;O;0.08;0.38;
+Mwantimba;Pasture;P2;G;0.31;4.3;
+Mwantimba;Pasture;P3;O;1.35;0.2;
+Mwantimba;Pasture;P3;M;6.6;0.9;
+Mwantimba;Pasture;P3;O;4.35;0.2;
+Mwantimba;Pasture;P4;O;2.4;0.05;
+Mwantimba;Pasture;P4;O;2.45;0.15;
+Mwantimba;Pasture;P4;O;4.7;0.4;
+Mwantimba;Pasture;P4;O;3.3;0.4;
+Mwantimba;Pasture;P4;M;9.6;0.55;
+Mwantimba;Agriculture;A1;G;6.35;0.45;
+Mwantimba;Agriculture;A1;G;7.2;0.95;
+Mwantimba;Agriculture;A2;M;6.65;0.85;
+Mwantimba;Agriculture;A3;;;;No mound in square, and no mound seen in nearest vicinity
+Mwantimba;Agriculture;A4;;;;No mound in square, and no mound seen in nearest vicinity
+Maswa;Prot.Area;W1;O;0.15;1.4;
+Maswa;Prot.Area;W1;O;0;3.1;
+Maswa;Prot.Area;W2;O;0.1;1.4;
+Maswa;Prot.Area;W2;O;0.15;1.6;
+Maswa;Prot.Area;W2;O;0.15;1.9;
+Maswa;Prot.Area;W3;M;0.14;1.1;
+Maswa;Prot.Area;W4;O;0.23;2.6;
+Maswa;Prot.Area;W4;O;0.2;3.2;
+Makao;Pasture;P1;O;0.17;1.9;
+Makao;Pasture;P1;G;1.8;8.4;
+Makao;Pasture;P1;O;0.32;5.9;
+Makao;Pasture;P1;O;0.1;1.65;
+Makao;Pasture;P2;G;0.57;3.2;
+Makao;Pasture;P2;G;0.78;3.95;
+Makao;Pasture;P2;O;0.2;2.05;
+Makao;Pasture;P2;O;0.15;4.7;
+Makao;Pasture;P3;O;0.08;0.3;
+Makao;Pasture;P3;O;0.05;0.45;
+Makao;Pasture;P4;M;0.36;1.6;No mound in square, this one i 2,50m from border
+Makao;Agriculture;A1+A2;M;2.3;4.2;Is marked with WP 1155
+Makao;Agriculture;A3+A4;;;;No mound in square, and no mound seen in nearest vicinity

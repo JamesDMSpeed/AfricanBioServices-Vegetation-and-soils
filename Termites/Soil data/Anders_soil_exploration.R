@@ -46,11 +46,11 @@ levels(SoiltextA.Summary$Block)
 
 
 #Vilde soil####
-SoiltextV<-read.csv("Ecosystem carbon/Soil.data/Soil.texture.csv", head = TRUE)
+SoiltextV<-read.csv("Ecosystem carbon/Soil.data/Soil.texture.all.csv", head = TRUE)
 head(SoiltextV)
-SoiltextV<-SoiltextV[SoiltextV$Horizon=="A-hor",]
-SoiltextV<-SoiltextV[c(2,4,8:11)]
-colnames(SoiltextV)<-c("Region","Block","Landuse","Clay.per","Silt.per","Sand.per")
+#SoiltextV<-SoiltextV[SoiltextV$Horizon=="A-hor",]
+SoiltextV<-SoiltextV[c(1:3,6:8)]
+colnames(SoiltextV)<-c("Region","Landuse","Block","Clay.per","Silt.per","Sand.per")
 head(SoiltextV)
 se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Standard Error
 
@@ -273,21 +273,21 @@ DryPhosplot
 ###Corrigating original soil data####
 SoiltextA.orig<-read.csv("Termites/Soil data/Soil_texture.csv", sep=';',dec='.')
 
-####Estimating prediction lines####
+####Estimating prediction lines and adding the the corrected value into a dataset####
 Claymod <- lm(SoiltextAV$VClay~SoiltextAV$AClay)
 summary(Claymod)
-#CLAY: Y= 1.4111X - 13.5147, R^2 = 0.7584
-SoiltextA.orig$ClaySlope <- 1.4111
-SoiltextA.orig$ClayIntercept <- -13.5147
+#CLAY: Y= 1.3392X -10.4221, R^2 = 0.7338
+SoiltextA.orig$ClaySlope <- 1.3392
+SoiltextA.orig$ClayIntercept <- -10.4221
 SoiltextA.orig$Claycorr <- SoiltextA.orig$ClaySlope*SoiltextA.orig$CLAY..+SoiltextA.orig$ClayIntercept
 SoiltextA.orig$ClaySlope <- NULL
 SoiltextA.orig$ClayIntercept <- NULL
 
 Siltmod <- lm(SoiltextAV$VSilt~SoiltextAV$ASilt)
 summary(Siltmod)
-#SILT: Y=  0.8145X + 12.8013, R^2 = 0.804
-SoiltextA.orig$SiltSlope <- 0.8145
-SoiltextA.orig$SiltIntercept <- 12.8013
+#SILT: Y=  0.8139X + 12.6331, R^2 = 0.8072
+SoiltextA.orig$SiltSlope <- 0.8139
+SoiltextA.orig$SiltIntercept <- 12.6331
 SoiltextA.orig$Siltcorr <- SoiltextA.orig$SiltSlope*SoiltextA.orig$SILT..+SoiltextA.orig$SiltIntercept
 
 SoiltextA.orig$SiltSlope <- NULL
@@ -295,9 +295,9 @@ SoiltextA.orig$SiltIntercept <- NULL
 
 Sandmod <- lm(SoiltextAV$VSand~SoiltextAV$ASand)
 summary(Sandmod)
-#SAND: Y= 1.1681X-19.4235, R^2 = 0.944 
-SoiltextA.orig$SandSlope <- 1.1681
-SoiltextA.orig$SandIntercept <- -19.4235
+#SAND: Y= 1.1281X-17.9957, R^2 = 0.9093
+SoiltextA.orig$SandSlope <- 1.1281
+SoiltextA.orig$SandIntercept <- -17.9957
 SoiltextA.orig$ASandcorr <- SoiltextA.orig$SandSlope*SoiltextA.orig$SAND..+SoiltextA.orig$SandIntercept
 SoiltextA.orig$SandSlope <- NULL
 SoiltextA.orig$SandIntercept <- NULL
