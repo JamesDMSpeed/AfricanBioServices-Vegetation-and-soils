@@ -10,9 +10,18 @@ total.soil.data<- read.csv("Ecosystem Carbon/Soil.data/Total.Soil.Data.csv", hea
 names(total.soil.data)
 Metabolic.rate <- read.csv("Ecosystem Carbon/CattleMetabolic.csv", head = TRUE)
 Dung.counts1 <- read.csv("Permanent exclosures/Herbivore dung/Sero.prod.dungFULL.csv", head=TRUE)
+Soil.texture <- read.csv(file="Ecosystem Carbon/Soil.data/Soil.texture.Tot_Hor.csv",head=T)
 
 total.soil.data$Region<- factor(total.soil.data$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 Metabolic.rate$Region<- factor(Metabolic.rate$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+
+levels(Soil.texture$Region)
+Soil.texture$Region<- factor(Soil.texture$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+Soil.texture <-Soil.texture[,c(1:3,5:8)]
+Soil.texture <- na.omit(Soil.texture)
+Soil.texture <- droplevels(Soil.texture)
+
+Soil.texture$Class <- c("SaClLo","SaLo","SaClLo","SaClLo","Cl","Cl","Cl","ClLo","SaCl","SaCl","ClLo","SaClLo","SaClLo","SaClLo","SaClLo","SaClLo","SaClLo","SaLo","SaLo","SaLo","ClLo","Cl","ClLo","Cl", "Cl","ClLo","ClLo","Cl") 
 
 # Looking at dung counts 
 levels(Dung.counts1$area)
@@ -76,8 +85,40 @@ colnames(Belowground)[c(9,16,17,21:26)] <- c("landuse","AhorC.kg_m2","AhorN.kg_m
 Belowground$tot.C.kg_m2 <- Belowground$AhorC.kg_m2+Belowground$MinC.kg_m2
 Belowground$tot.N.kg_m2 <- Belowground$AhorN.kg_m2+Belowground$MinN.kg_m2
 Belowground$mean.N.kg_m2 <- (Belowground$AhorN.kg_m2+Belowground$MinN.kg_m2)/2
+Belowground2 <- full_join(Belowground,Soil.texture)
+names(Belowground2)
 names(Belowground)
-Belowground <- Belowground[,c(1:5,7:29)]
+Belowground <- Belowground2[,c(1:5,7:21,25:29,31:34)]
+
+Block.Eco.C <- read.csv("Ecosystem carbon/Ecosystem.Carbon.csv", head=T)
+
+levels(Block.Eco.C$Carbon.pool)
+levels(Block.Eco.C$Class)
+
+# Rename the Carbon pool names 
+Block.Eco.C$Carbon.pool<- factor(Block.Eco.C$Carbon.pool, levels = c("TreeC.kg_m2","HerbC.kg_m2", "DWC.kg_m2","SoilAC.kg_m2","SoilMC.kg_m2"))
+Block.Eco.C$Region<- factor(Block.Eco.C$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+
+levels(Block.Eco.C$Carbon.pool) <- c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon")
+
+# Fixing my belowground variable remember to updata this if I change the belowground data!!! 
+Soil.min <- Block.Eco.C %>%
+  filter(Carbon.pool=="Soil Min-horizon")
+Soil.A <- Block.Eco.C %>%
+  filter(Carbon.pool=="Soil A-horizon")
+Belowground.block <- cbind(Soil.min,Soil.A[26])
+colnames(Belowground.block)[29] <- "C.Ahor"
+Belowground.block$tot.C.kg_m2 <- Belowground.block$C.amount + Belowground.block$C.Ahor
+
+Belowground.full2 <- left_join(Belowground,Soil.min,by="Block.ID",drop=F)
+names(Belowground.full2)
+Belowground.full <- Belowground.full2[,c(1:11,15:29,41:52)]
+Belowground.full$N.trees <- rowSums(Belowground.full[,c("Small.N", "Large.N")], na.rm=TRUE)
+Belowground.full$BM.N.trees.m2 <- rowSums(Belowground.full[,c("BM.Small.N.m2", "BM.Large.N.m2")], na.rm=TRUE)
+Belowground.full$non.N.trees <- rowSums(Belowground.full[,c("Small.N.non", "Large.N.non")], na.rm=TRUE)
+Belowground.full$BM.non.N.trees.m2 <- rowSums(Belowground.full[,c("BM.Small.non.m2", "BM.Large.non.m2")], na.rm=TRUE)
+
+colnames(Belowground.full)[c(1,8,11,23:25)] <- c("Region","landuse","MAP.mm_yr","Clay","Silt","Sand")
 
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 
@@ -117,20 +158,20 @@ SoilBlock$Landuse <- as.factor(c("Pasture","Pasture","Pasture","Pasture","Pastur
 
 # CSV files for furhter use 
 write.csv(SoilBlock,file="Ecosystem carbon/Soil.data/Soil.Carbon.Block.csv")
-write.csv(Belowground,file="Ecosystem carbon/Soil.data/Belowground.Carbon.csv")
+write.csv(Belowground.full,file="Ecosystem carbon/Soil.data/Belowground.Carbon.csv")
 
 ### Soil properties ####
 # Want to have a table with SOIL TEXTURE (clay, silt and sand) and chemical traits for the analysis I did - now have data from Anders and Stu also - not included here..  
 # First, reorganizing and removing collumns 
-soil.properties.full <- total.soil.data[,c(1:7,16,26:34,41:45)]
+names(total.soil.data)
+soil.properties.full <- total.soil.data[,c(1:7,19,28,31:34,41:48)]
 names(soil.properties.full)
-tail(soil.properties.full)
 
 soil.properties.full$Region<- factor(soil.properties.full$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
 soil.properties.full$Land_Use<- factor(soil.properties.full$Land_Use, levels = c("Pasture","Wild"))
 
-soil.properties.full <- na.omit(soil.properties.full)
+soil.properties.full2 <- na.omit(soil.properties.full)
 
 
 #Making a table, by using the aggregata function - taking the mean values of texture by region 
