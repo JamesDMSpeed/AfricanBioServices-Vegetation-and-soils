@@ -104,16 +104,17 @@ Tree.carbon <- cbind((aggregate(area.m2~block+area,Vildetrees,mean)),
                       (aggregate(number~block+area, Vildetrees,length))[3],
                       (aggregate(Biomass.g.tree~block+area, Vildetrees,sum))[3],
                       (aggregate(Biomass.kg.per.tree~block+area, Vildetrees,sum))[3],
+                     (aggregate(Biomass.kg.per.tree~block+area, Vildetrees,median))[3],
                       (aggregate(total.basal.area.m2~block+area, Vildetrees,sum))[3],
                       (aggregate(annual.precip.mm2015_2017~block+area,Vildetrees,mean))[3],
                       (aggregate(Fire.freq~block+area,Vildetrees,mean))[3],
                       (aggregate(Year.of.last.fire~block+area,Vildetrees,mean))[3])
-
+colnames(Tree.carbon)[9] <- "Median.Biomass.kg.per.tree"
 Tree.carbon <- left_join(Tree.carbon,Nit, by=c("block","area"),drop=F)
 Tree.carbon <- left_join(Tree.carbon,Non.Nit, by=c("block","area"),drop=F)
 
 # creating a dataset at block size # WHY STILL WRONG ORDER OF REGIONS?? 
-colnames(Tree.carbon) <- c("Philipo.Block","Region","Block.area_m2","TreeC.g_block","TreeC.kg_block","No.trees","TreeBM.g_block","TreeBM.kg_block","Total.basal.area_m2", "MAP.mm_yr","Fire_frequency.2000_2017", "Last.fire_yr","N","Non.N")
+colnames(Tree.carbon) <- c("Philipo.Block","Region","Block.area_m2","TreeC.g_block","TreeC.kg_block","No.trees","TreeBM.g_block","TreeBM.kg_block","Median.TreeBM.kg_block","Total.basal.area_m2", "MAP.mm_yr","Fire_frequency.2000_2017", "Last.fire_yr","N","Non.N")
 
 # Adding a collumn of carbon per m2, and no of trees per m2 
 Tree.carbon$TreeC.kg_m2 <- Tree.carbon$TreeC.kg_block/Tree.carbon$Block.area_m2
@@ -122,11 +123,12 @@ Tree.carbon$TreeBM.kg_m2 <- Tree.carbon$TreeBM.kg_block/Tree.carbon$Block.area_m
 Tree.carbon$No.trees_m2 <- Tree.carbon$No.trees/Tree.carbon$Block.area_m2
 #Tree.carbon$Woody.cover <- Tree.carbon$No_trees * Tree.carbon$Median.Tree.BM_g
 #Tree.carbon$Woody.cover_m2 <- Tree.carbon$Woody.cover/Tree.carbon$Block_area.m2
-names(Tree.carbon)
+Tree.carbon$Shrubbiness <- as.numeric(Tree.carbon$No.trees)/as.numeric(Tree.carbon$Median.TreeBM.kg_block)
+str(Tree.carbon)
 levels(Tree.carbon$Region)
 
 # Missing one row for Seronera - want to add this as a NA row. 
-New.row <- c(4,"Seronera",2500,NA,NA,NA,NA,NA,NA,855.6199048,NA,NA,NA,NA,NA,NA,NA)
+New.row <- c(4,"Seronera",2500,NA,NA,NA,NA,NA,NA,NA,855.6199,NA,NA,NA,NA,NA,NA,NA,NA)
 Tree.carbon <- InsertRow(Tree.carbon,New.row,20)
 
 # adding a collumn of landuse
@@ -136,8 +138,8 @@ Tree.carbon$landuse <- as.factor(c("Pasture","Pasture","Pasture","Pasture","Wild
 Tree.carbon$Vilde.block <- as.numeric(c(3,1,2,4,3,4,1,2,1,4,3,2,3,4,1,2,1,2,3,4,1,2,3,4,1,2,3,4))
 names(Tree.carbon)
 
-Tree.carbon.Vilde <- Tree.carbon[,c(2,19,18,3,10:12,4:9,13:17)]
-
+Tree.carbon.Vilde <- Tree.carbon[,c(2,21,20,3,11:13,4:10,14:19)]
+names(Tree.carbon.Vilde)
 # Order the dataset so my block id is increasing
 Tree.carbon.Vilde <- Tree.carbon.Vilde[
   order(Tree.carbon.Vilde[,1], Tree.carbon.Vilde[,2] ),
