@@ -51,7 +51,7 @@ Fulldata <- left_join(Fulldata,precip,by=c("Season","Site"))
 
 write.csv(Fulldata,file="Termites/Fulldata.csv")
 
-
+Fulldata <- read.csv("Termites/Fulldata.csv")
 
 ####Data exploration####
 # A Missing values?
