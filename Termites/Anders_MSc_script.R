@@ -5,14 +5,52 @@ library(MASS)
 library(ggplot2)
 library(lme4)
 library(glmmTMB)
+library(dplyr)
+library(plyr)
 
 setwd("C:/Users/ansun/Documents/Master data/GitHub__R-stat/AfricanBioServices-Vegetation-and-soils")
-wsdata<- read.csv('Termites/Main & CG experiment/Wetseason.csv', sep=';',dec='.')#Wetseason data
-dsdata <- read.csv("Termites/Main & CG experiment/Dryseason.csv", sep=";",dec=".")#Dryseason data
-head(wsdata)
-head(dsdata)
-fulldata<-rbind(wsdata,dsdata)
+#Loading masslossdata
+fulldata<-read.csv('Termites/Main & CG experiment/Massloss_data_CGMain.csv', sep=';',dec='.')
+#Loading rainfalldata
+precip <- read.csv('Termites/Precipitation data/Rainfalldata.csv', sep=';',dec='.')
+#Loading soil texture data
+soiltext <- read.csv('Termites/Soil data/Soil_texture_corrected.csv', sep=',',dec='.')
+#Loading Soil Nutrient data
+soilnut <- read.csv('Termites/Soil data/Soil_Nutrient.csv', sep=';',dec='.')
+
 fulldata$Massloss.per <- (1-fulldata$Ashed.final.corrected.weight..tea.only..g./fulldata$Ashed.initial.corrected.weight..tea.only..g.)*100
+
+#Merging data
+levels(soilnut$Landuse)[levels(soilnut$Landuse)=="Seronera"] <- "Common Garden"
+soilnut$Landuse <- factor(soilnut$Landuse,levels=c("Agriculture","Common Garden","Pasture","Wild"))
+levels(soilnut$Landuse)
+levels(soiltext$Landuse)
+
+levels(soiltext$Region)[levels(soiltext$Region)=="Dry-Wet"] <- "Intermediate"
+levels(soilnut$Region)
+levels(soiltext$Region)
+
+soilnut$Block <- as.factor(soilnut$Block)
+soiltext$Block <- as.factor(soiltext$Block)
+
+Soildata <- left_join(soilnut,soiltext, by=c("Site","Region","Landuse","Block"))
+
+levels(fulldata$Site)[levels(fulldata$Site)=="Mwantimba\n"] <- "Mwantimba"
+levels(fulldata$Site)
+levels(Soildata$Site)
+
+levels(fulldata$Landuse)[levels(fulldata$Landuse)=="Seronera"] <- "Common Garden"
+fulldata$Landuse <- factor(fulldata$Landuse,levels=c("Agriculture","Common Garden","Pasture","Wild"))
+levels(fulldata$Landuse)
+levels(Soildata$Landuse)
+
+fulldata$Block <- as.factor(fulldata$Block)
+
+Fulldata <- left_join(fulldata,Soildata,by=c("Season","Site","Region","Landuse","Block"))
+Fulldata <- left_join(Fulldata,precip,by=c("Season","Site"))
+
+write.csv(Fulldata,file="Termites/Fulldata.csv")
+
 
 
 ####Data exploration####
@@ -673,29 +711,30 @@ drop1(Labilemodel3,test="Chisq")
 # Season:Treatment      29      29     1 610.10    0.3857   0.53480   #NOT SIGN 
 
 #New trimmed model with threeway
-Labilemodel4 <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
+Labilemodel4 <- lmer(Massloss.per~Landuse+Season+Region+#Treatment+
                        Landuse:Season+Landuse:Region+#Landuse:Treatment+
                        Season:Region+#Region:Treatment+#Season:Treatment+
                        #Treatment:Landuse:Season+
                        #Treatment:Landuse:Region+
                        Season:Landuse:Region+
                        (1|Blockcode), data=LabileDataMain, REML=T)
-AIC(Labilemodel4)#Original 4578.255 - new 4591.957
+AIC(Labilemodel4)#Original 4578.255 - new 4591.76
 drop1(Labilemodel4,test="Chisq")
+
 #                         Sum Sq Mean Sq NumDF  DenDF F value    Pr(>F)    
 # Treatment               55.64   55.64     1 612.11   0.792    0.3738    
 # Landuse:Season:Region 2962.96 1481.48     2 612.27  21.088 1.391e-09 ***
 
 #Testing significance between two-way interactions (with threeway):
-Labilemodel4a <- update(Labilemodel4, .~. -Landuse:Season)
-Labilemodel4b <- update(Labilemodel4, .~. -Landuse:Region)
-Labilemodel4c <- update(Labilemodel4, .~. -Season:Region)
+Labilemodel4a <- update(Labilemodel4, .~. -Season:Landuse:Region)
+Labilemodel4b <- update(Labilemodel4a, .~. -Landuse:Region)
+Labilemodel4c <- update(Labilemodel4a, .~. -Season:Region)
+Labilemodel4d <- update(Labilemodel4a, .~. -Season:Landuse)
 
-
-anova(Labilemodel4,Labilemodel4a) #Landuse:Season NOT sign
-anova(Labilemodel4,Labilemodel4b) #Landuse:Region NOT sign
-anova(Labilemodel4,Labilemodel4c)#Season:Region NOT sign
-
+anova(Labilemodel4,Labilemodel4a) #Season:Landuse:Region sign
+anova(Labilemodel4a,Labilemodel4b) #Landuse:Region sign
+anova(Labilemodel4a,Labilemodel4c)#Season:Region sign
+anova(Labilemodel4a,Labilemodel4d) #Season:Landuse sign
 
 #New trimmed model without threeway
 Labilemodel5 <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
@@ -731,7 +770,7 @@ Labilemodel6<- lmer(Massloss.per~Landuse+Season+Region+Treatment+
 AIC(Labilemodel6) #Original 4578.255 - New: 4591.957
 drop1(Labilemodel6,test="Chisq")
 
-
+boxplot(FulldataMain$rain.sum..mm.~FulldataMain$Season)
 
 
 
