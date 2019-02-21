@@ -7,6 +7,7 @@ library(lme4)
 library(glmmTMB)
 library(dplyr)
 library(plyr)
+library(Hmisc)
 
 setwd("C:/Users/ansun/Documents/Master data/GitHub__R-stat/AfricanBioServices-Vegetation-and-soils")
 #Loading masslossdata
@@ -35,7 +36,9 @@ soiltext$Block <- as.factor(soiltext$Block)
 
 Soildata <- left_join(soilnut,soiltext, by=c("Site","Region","Landuse","Block"))
 
-levels(fulldata$Site)[levels(fulldata$Site)=="Mwantimba\n"] <- "Mwantimba"
+#levels(fulldata$Site)[levels(fulldata$Site)=="Mwantimba\n"] <- "Mwantimba"
+fulldata$Site <- as.factor(fulldata$Site)
+Soildata$Site <- as.factor(Soildata$Site)
 levels(fulldata$Site)
 levels(Soildata$Site)
 
@@ -54,16 +57,15 @@ write.csv(Fulldata,file="Termites/Fulldata.csv")
 Fulldata <- read.csv("Termites/Fulldata.csv")
 
 ####Data exploration####
-# A Missing values?
-# B Outliers in Y / Outliers in X
-# C Collinearity X
-# D Relationships Y vs X
-# E Spatial/temporal aspects of sampling design (not relevant here)
-# F Interactions (is the quality of the data good enough to include them?)
-# G Zero inflation Y
-# H Are categorical covariates balanced?
 
-#### Outliers####
+##Checking for missing values##
+colSums(is.na(Fulldata))
+sum(is.na(Fulldata$Massloss.per))
+#Removing rows which consist of NAs in "Massloss.per" column
+Fulldata <- Fulldata[complete.cases(Fulldata[,40]),]
+summary(Fulldata)
+
+## Outliers##
 #Ashed final weight
 
 dotchart(fulldata$Ashed.final.corrected.weight..tea.only..g.)
@@ -101,11 +103,15 @@ plot(fulldata$Temperature..C.)
 dotchart(fulldata$Moisture..) #Looks ok
 plot(fulldata$Moisture..)
 
+###Correlation###
+Signdata <- rcorr(as.matrix(Fulldata))
+                  
 #####B Collinearity X####
 MyVar<-c("Massloss..g.","rain.sum..mm.","CLAY..","SILT..",
          "SAND..","OC..","Moisture..","Temperature..C.")
-pairs(fulldata[,MyVar]) #Not sure whats up here...
-plot(fulldata$Moisture..,fulldata$Temperature..C.)
+pairs(Fulldata[,MyVar]) #Not sure whats up here...
+
+plot(Fulldata$Moisture..,Fulldata$Temperature..C.)
 
 
 ####Housekeeping # Ensuring factors are factors####
