@@ -1,8 +1,8 @@
 #### Biomass exploration ####
-#-------------------------
+
 #clear system & add package libraries
 rm(list=ls())
-library(lattice)
+library(lattice) #model validation
 library(MASS)
 library(ggplot2)
 library(dplyr)
@@ -12,30 +12,27 @@ library(tidyr)
 library(lemon)
 library(Hmisc)
 
-library(grid)
+library(gridBase)
 library(gridExtra)
 library(ggpubr)
 library(nlme)
 library(lme4)
 library(MuMIn) #for mod.sel()
-#-------------------------
 
 Biomass <- read.csv("Biomass.csv", header=T,sep=",")
 tail(Biomass)
-#View(Biomass)
-#-------------------------
-#RUN FIRST
+
+#### RUN FIRST ####
   #Housekeeping
   #Date variable
-  #Aggregating rainfall per region
   #Average NAP
   #Average CONS 
-#-------------------------
+  #Aggregating rainfall per region
+
 #### Housekeeping ####
 # Removing Ex2 - separate analysis
-Databiom <- Biomass[Biomass$treatment!="EX2",] #Removing Mesh exclosures
-Databiom <- Databiom[Databiom$harvest!="H0",] #removing H0
-#Databiom <- Databiom[-281,]
+Databiom <- Biomass[Biomass$treatment!="EX2",] #Removing Mesh exclosures  #300 obs
+Databiom <- Databiom[Databiom$harvest!="H0",] #removing H0                #280 obs
 Databiom <- droplevels(Databiom)
 
 #attach(Databiom)
@@ -55,11 +52,16 @@ colnames(Databiom)[colnames(Databiom)=="productivity.target.g.m2.day"] <- "prodt
 colnames(Databiom)[colnames(Databiom)=="consumption.target.g.m2.day"] <- "constarg"
 colnames(Databiom)[colnames(Databiom)=="productivity.total.g.m2.day"] <- "prodtot"
 colnames(Databiom)[colnames(Databiom)=="consumption.total.g.m2.day"] <- "constot"
+colnames(Databiom)[colnames(Databiom)=="productivity.other.g.m2.day"] <- "prodoth"
+colnames(Databiom)[colnames(Databiom)=="consumption.other.g.m2.day"] <- "consoth"
 
 #Renaming levels in region, landuse and treatment columns
 levels(Databiom$region)<-c("Dry Region","Intermediate Region","Wet Region")
 levels(Databiom$landuse)<-c("pasture","wild")
 levels(Databiom$treatment)<-c("exclosed","open")
+
+# Removing NAs from productivity
+Databiom <- Databiom[complete.cases(Databiom[c("prodtot")]),]   #271 obs
 
 #### Date variable ####
 # Rdate create month column. default was (="%d.%m.%Y")
@@ -74,20 +76,33 @@ Databiom$month<-Databiom$Rdate$mon+1
 Databiom$month<-as.factor(Databiom$month)
 Databiom$month <- month.abb[Databiom$month] #Changing to month name abbrevitations
 
+# Running numeric value for months
+# turn a date into a 'monthnumber' relative to an origin
+monnb <- function(d) { lt <- as.POSIXlt(as.Date(d, origin="1900-01-01"));  lt$year*12 + lt$mon } 
+# compute a month difference as a difference between two monnb's
+mondf <- function(d1, d2) { monnb(d2) - monnb(d1) }
+Databiom$YrMonthNumber<-mondf(c(as.POSIXlt(as.Date(Databiom$harvest.date,format="%m/%d/%Y",tz="Africa/Nairobi" ))), "2017-02-01")*-1 # Need to remove lag - 1
+
 #### Plot.code to follow through time ####
 Databiom$plot.code <- as.factor(with(Databiom,paste(region,landuse,block,treatment,sep="_")))
 levels(Databiom$plot.code) #40 levels
-#----------------------------------------------------
+
+#### Adding new columns NAP-cons #### 
+Databiom$difftarget <- Databiom$prodtarg-Databiom$constarg
+Databiom$difftotal <- Databiom$prodtot-Databiom$constot
+
+
+####|####
 #### DATA EXPLORATION ####
-# Zuur: 
+# Zuur 2010: 
 # 1:outliers (Y&X) 2:heterogeneity (Y) 3:normality (Y) 4:zero's (Y) 5:collinearity(X)
 # 6:relations between variables(X&Y) 7:interactions 8:independence(Y)
 
 #### Spread of data ####
 hist(Databiom$prodtot) # right-skewed + some values up to 8!
-hist(constot) # as much neg.values as pos! Mean cons. ~0... 
-hist(prodtarg) # most around +/-1
-hist(constarg)
+hist(Databiom$constot) # as much neg.values as pos! Mean cons. ~0... 
+hist(Databiom$prodtarg) # most around +/-1, one outlier -4
+hist(Databiom$constarg) #one value above 3
 
 #### Outliers ####
 # Using boxplot to visualize mean and spread of data (lower and upper end of box is 25% and 75% quantile)
@@ -97,11 +112,15 @@ par(mfrow = c(1, 1), mar = c(4, 3, 3, 2)) #mfrow several graphs on the same page
 dotchart(Databiom$prodtarg,groups=as.factor(Databiom$plot.id)) # Outlier -4.29
 dotchart(Databiom$prodtarg,groups=Databiom$landuse,main = "landuse") # Outlier -4.29 #Separating between landuses --> Both outliers in pasture
 #To identify the outliers. plot(), then identify(). Click on outliers to define, then esc. 
-plot(Databiom$prodtot) # 25  37 243 247
-plot(prodtarg) # 253 254
-plot(constot) # 25 273
-plot(constarg) #45
-identify(constarg)
+plot(Databiom$prodtot) 
+  #identify(Databiom$prodtot) # 25  37 243 247
+plot(Databiom$prodtarg) 
+  #identify(Databiom$prodtarg) # 253 254
+plot(Databiom$constot) 
+  #identify(Databiom$constot) # 25 273
+plot(Databiom$constarg) 
+  #identify(Databiom$constarg) #45 273
+
   # 25 is outlier in both prodtot and constot   #Large biomass! ~109g, due to underneath tree?
 
 #Looking at specific rows with the outliers
@@ -113,8 +132,12 @@ Databiom[c(25,273),]
   #Both ex, Dry_p_1 and se_1, H1/H7 4.59 and -2.79
 Databiom[c(45),"constarg"]
   #Handajega Ex H2  3.35
-########################################################
 
+#Plotting difftarget and difftotal
+plot(Databiom$difftarget~Databiom$rain.sum)
+  #identify(Databiom$difftarget~Databiom$rain.sum) #213 253
+
+####|####
 #### GRAPHING ####
 # #### Trying to plot rain.sum with date on the x-axis ####
 # #plot(as.Date(harvest.date, format ="%m/%d/%Y"),rain.sum)
@@ -237,7 +260,7 @@ names(Avgprod3)
 #AvgProd3$SeUp[AvgProd3$SeUp<0.01]<-0
 #AvgProd3$SeLo[AvgProd3$SeLo<0.01]<-0
 
-#----------------------------------------------------------------------
+
 #Stu averaged rainfall per region (aggregate(rain.sum~region+YrMonth,DataEx,mean))
 #avgRain <- aggregate(rain.sum~region+YrMonth,na.rm=T,Databiom,mean)
 #rain <- ggplot( data = avgRain, aes( x=YrMonth, y=rain.sum,colour="dark blue" )) + geom_line()
@@ -473,7 +496,7 @@ cons2<-cons2+  annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Da
 
 cons2
 
-#### NAP+CONS in one dataframe ####
+#### Avg NAP+CONS in one dataframe ####
 Avgcons5 <- Avgcons4[Avgcons4$region!="Intermediate Region",]
 Avgprod6 <- Avgprod5[Avgprod5$treatment!="open",]
 Avgprod6b <- Avgprod4[Avgprod4$treatment!="open",]
@@ -566,7 +589,7 @@ napconsb
 #ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONS.png",
        width= 26, height = 18,units ="cm",
        dpi = 600, limitsize = TRUE)
-########################
+
 legend_title<-"land-use"
 napcons<- ggplot(Avgprodcons, aes(x=YrMonth, y=Productivity, colour=landuse,fill=landuse,shape=Biomass_change,
                                     group=site.id.y))
@@ -619,8 +642,8 @@ napconsb <- napconsb+theme(panel.spacing.x=unit(2, "lines"),panel.spacing.y=unit
 napconsb
 
 #ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONS2.png",
-       width= 26, height = 18,units ="cm",
-       dpi = 600, limitsize = TRUE)
+     #  width= 26, height = 18,units ="cm",
+      # dpi = 600, limitsize = TRUE)
 
 #### NAP+CONS plot with Seronera ####
 #prod6b cons4
@@ -686,8 +709,9 @@ napcons2b
 #could also use the lemon package with facet_rep_wrap(), but might need to reinstall R for this to work 
 
 #ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSSeronera2BEST.png",
-       width= 26, height = 18,units ="cm",
-       dpi = 600, limitsize = TRUE)
+     #  width= 26, height = 18,units ="cm",
+    # dpi = 600, limitsize = TRUE)
+
 
 ####|####
 #### ANALYSIS ####
@@ -731,7 +755,6 @@ pairs(Databiom[,NumericVar],lower.panel = panel.cor)
 #pasture.disc.setup and height.setup 0.5
 #rain.sum and height.harvest 0.6
 
-#-------------------
 #Correlations between categorical variables
 # aov (continuous vs categorical)
 #otherwise a chisq.test? (categorical vs categorical)
@@ -739,7 +762,6 @@ pairs(~region+landuse+treatment+harvest+harvest.date+rain.sum+pasture.disc.harve
 MyVar <- c("landuse", "treatment", "harvest", "rain.sum","region") 
 
 #Test correlations between explanatory variables with boxplots
-
 
 # Correlation between rainfall and productivity
 rainprod <- Databiom %>%
@@ -787,15 +809,6 @@ mycor2_wild$r
 mycor2_wild$P
 
 
-
-#-------------------
-  #From Impatiens script.. 
-  ## Lager korrelasjonstester med p-verdier til alle variabler 
- # install.packages("Hmisc")
-#library(Hmisc)
-#mycor1 <- rcorr(as.matrix(Databiom["rain.sum","pasture.disc.setup","height. setup", "total.veg.cover.setup","pasture.disc.harvest","height.harvest"]), type="pearson")
-#round(mycor1$P, digits=3)
-#---------------------
 #### Exploring variables with lm ####
 # NAP and Landuse
 napmodlanduse <- lm(prodtot~landuse,data=Databiom)
@@ -806,25 +819,6 @@ plot(napmodlanduse)
 par(mfrow=c(1,1))
 boxplot(prodtot~landuse,data=Databiom) #no difference
 boxplot(prodtot~landuse+region,data=Databiom) #no difference
-#-------------------------
-plot(lengt, SM)
-abline(model.cond1) # line for arithmetic model
-range(lengt)
-xx<-seq(35,52,0.1) #defining range of x-axis
-yy<-exp(-11.87896)*xx^2.96885 #Equation, to make a curve. intercept * stigningstallet
-mean(yy)
-lines(xx,yy, lty=2) #Plotting a line based on points of two vectors. Here yy vector is based on the exponential function. lty= stipling av linje
-
-#ANOVA
-plot(factor(fertil[subset=-c(6,19,29)]), yield[subset=-c(6,19,29)])
-hist(residuals(model.2))
-
-plot(model.2)
-library(sciplot)
-par(mfrow=c(1,2))
-lineplot.CI(fertil, yield)
-lineplot.CI(factor(fertil[subset=-c(6,19,29)]), yield[subset=-c(6,19,29)], xlab = "Fertilization level", ylab = "Yield (tons)")
-#--------------------------
 
 
 #Rainfall 
@@ -849,168 +843,49 @@ plot(napmod) #rows 25 37 outliers
 #Removing these rows
 Databiomtest <- Databiom[-c(25,37),]
 
+#### Example from QA ####
+plot(lengt, SM)
+abline(model.cond1) # line for arithmetic model
+range(lengt)
+xx<-seq(35,52,0.1) #defining range of x-axis
+yy<-exp(-11.87896)*xx^2.96885 #Equation, to make a curve. intercept * slope
+mean(yy)
+lines(xx,yy, lty=2) #Plotting a line based on points of two vectors. Here yy vector is based on the exponential function. lty= stipling av linje
 
-#### NAP mixed model ####
+#ANOVA
+plot(factor(fertil[subset=-c(6,19,29)]), yield[subset=-c(6,19,29)])
+hist(residuals(model.2))
 
-#First testing random effects. NB: REML=T
-napmodmixed <- lmer(prodtot~landuse*treatment +landuse*rain.sum + treatment*rain.sum + (landuse|site.name/harvest),REML=T,data=Databiom) # Random change in slope and intercept
+plot(model.2)
+library(sciplot)
+par(mfrow=c(1,2))
+lineplot.CI(fertil, yield)
+lineplot.CI(factor(fertil[subset=-c(6,19,29)]), yield[subset=-c(6,19,29)], xlab = "Fertilization level", ylab = "Yield (tons)")
 
-napmodmixed1 <- lmer(prodtot~landuse*treatment +landuse*rain.sum + treatment*rain.sum + (1|site.name/harvest),REML=T,data=Databiom) #random variation in intercept only 
+####Mixed models with auto-correlation ####
+#AUTOCORRELATION - adding as a random component
+#a.Extracting residuals from a linear model
+#b.Look at residuals in acf - is there a pattern? 
+#c.Making autocorrelation matrix
+#d.Including autocorr in the mixed model
 
-AIC(napmodmixed)
-AIC(napmodmixed1)
+#Total productivity
+napmod <- lm(prodtot~landuse+treatment+rain.sum+
+               landuse:rain.sum,data=Databiom)
+summary(napmod)
+plot(resid(napmod)~Databiom$landuse,xlab="landuse",ylab="residuals")
+par(mfrow=c(1,1))
+#Plotting residuals against time (YrMonthNumber)
+# Running numeric value for months
+# turn a date into a 'monthnumber' relative to an origin
+monnb <- function(d) { lt <- as.POSIXlt(as.Date(d, origin="1900-01-01"));  lt$year*12 + lt$mon } 
+# compute a month difference as a difference between two monnb's
+mondf <- function(d1, d2) { monnb(d2) - monnb(d1) }
+Databiom$YrMonthNumber<-mondf(c(as.POSIXlt(as.Date(Databiom$harvest.date,format="%m/%d/%Y",tz="Africa/Nairobi" ))), "2017-02-01")*-1 # Need to remove lag - 1
 
+plot(resid(napmod)~Databiom$YrMonthNumber,xlab="YrMonth",ylab="residuals") #not evenly distributed, so there is a pattern
 
-#Testing fixed effects. NB: REML=F
-napmodmixed <- lmer(prodtot~landuse*treatment +landuse*rain.sum + treatment*rain.sum + (1|site.name/harvest),REML=F,data=Databiom)
-  summary(napmodmixed)
-  hist(resid(napmodmixed))
-napmodmixed1 <- lmer(prodtot~landuse+treatment +landuse*rain.sum + treatment*rain.sum + (1|site.name/harvest),REML=F,data=Databiom)
-napmodmixed2 <- lmer(prodtot~landuse+treatment+rain.sum+landuse:treatment+landuse:rain.sum+ (1|site.name/harvest),REML=F,data=Databiom)
-napmodmixed3 <- lmer(prodtot~landuse+treatment+rain.sum+landuse:treatment+ (1|site.name/harvest),REML=F,data=Databiom)
-napmodmixed4 <- lmer(prodtot~landuse+treatment+rain.sum+ (1|site.name/harvest),REML=F,data=Databiom)
-summary(napmodmixed4)
-
-#Then selecting the best model
-library(MuMIn)
-model.sel(napmodmixed, napmodmixed1, napmodmixed2, napmodmixed3, napmodmixed4) #4 is best, then 3
-
-aictab(cand.set=cm, modnames=Modenames)
-
-#Parameter estimates for the best model
-napmodmixed4<-lmer(prodtot~landuse+treatment+rain.sum+ (1|site.name/harvest),REML=T,data=Databiom) #Fit the model again with REML
-summary(napmodmixed4)
-#writing the model to obtain directly the estimates
-napmodmixed4b<-lmer(prodtot~-1+landuse+treatment+rain.sum+ (1|site.name/harvest),REML=T,data=Databiom) #Fit the model again with REML
-summary(napmodmixed4b)
-
-#Fixed effects:
- # Estimate Std. Error t value
-#landusepasture  0.434519   0.558163   0.778
-#landusewild     0.655716   0.503728   1.302
-#treatmentopen  -0.648243   0.123923  -5.231
-#rain.sum        0.002991   0.001693   1.766
-
-#Testing some of the assumptions
-library(lattice)
-
-plot(napmodmixed4,prodtot~resid(.),abline=0,data=Databiom)
-#------------------------
-#Testing some of the assumptions
-library(lattice)
-plot(model.daphnia, factor(pop)~resid(.), abline=0)
-plot(model.daphnia, resid(.)~fitted(.)|factor(pop))
-ranef(model.daphnia)                   
-
-cm1<-lmer(spinlght~bodylght+pred+bodylght:pred +(bodylght|pop), REML=T)#Model selection should be done with ML
-summary(cm1)
-hist(ranef(cm1)$pop[,2])
-cm2<-lmer(spinlght~bodylght+pred+bodylght:pred +(1|pop), REML=T)#Model selection should be done with ML
-summary(cm2)
-ranef(cm2)
-
-
-#### CONS mixed model #####
-consmodmixed <- lmer(constot~landuse*treatment +landuse*rain.sum + treatment*rain.sum + (1|site.name/harvest),REML=F,data=Databiom) # not working
-summary(consmodmixed)
-hist(resid(consmodmixed))
-
-########################################################
-#### NAP and CONS annual ####
-# Need to have annual rainfall values per site (Feb-Feb?)
-      # Need mean per site per harvest (mean.site.harvest)
-      # Add all together (mean.site.annual)
-########################################################
-
-#### LME from QA ####
-#Finding the right structure for the random effect----
-#we test two different structures
-model1<-lmer(spinlght~bodylght*pred +(bodylght|pop), REML=T) #random change in slope and intercept
-
-model2<-lmer(spinlght~bodylght*pred +(1|pop), REML=T)#random variation in intercept only 
-
-AIC(model1)
-AIC(model2)
-
-#finding the best model for the fixed effects----
-#Model selection
-library(MuMIn)
-
-
-cm1<-lmer(spinlght~bodylght+pred+bodylght:pred +(bodylght|pop), REML=F)#Model selection should be done with ML
-cm2<-lmer(spinlght~bodylght+pred+(bodylght|pop), REML=F)
-cm3<-lmer(spinlght~bodylght+(bodylght|pop), REML=F)
-cm4<-lmer(spinlght~pred+(bodylght|pop), REML=F)
-cm5<-lmer(spinlght~1+(bodylght|pop), REML=F)
-
-model.sel(cm1, cm2, cm3, cm4, cm5)
-
-aictab(cand.set=cm, modnames=Modenames)
-
-#Parameter estimates for the best model
-cm1<-lmer(spinlght~bodylght+pred+bodylght:pred +(bodylght|pop), REML=T) #Fit the model again with REML
-summary(cm1)
-#writing the model to obtain directly the estimates
-cm1b<-lmer(spinlght~-1+pred+bodylght:pred +(bodylght|pop), REML=T) #Fit the model again with REML
-summary(cm1b)
-
-
-#Fitting the model with nlme----
-
-model.daphnia<-lme(spinlght~bodylght+pred+bodylght:pred, random=~bodylght|pop)
-summary(model.daphnia)
-
-#Testing some of the assumptions
-library(lattice)
-plot(model.daphnia, factor(pop)~resid(.), abline=0)
-plot(model.daphnia, resid(.)~fitted(.)|factor(pop))
-ranef(model.daphnia)                   
-
-cm1<-lmer(spinlght~bodylght+pred+bodylght:pred +(bodylght|pop), REML=T)#Model selection should be done with ML
-summary(cm1)
-hist(ranef(cm1)$pop[,2])
-cm2<-lmer(spinlght~bodylght+pred+bodylght:pred +(1|pop), REML=T)#Model selection should be done with ML
-summary(cm2)
-ranef(cm2)
-#---------------------------
-
-#### Temporal autocorrelation #####
-# From Stu: 
-#First you run a linear model, extract the residuals and look at these in acf – see if there is an temporal patterns in the residuals. You can see an example of what to look for in an ACF plot in the attached paper.
-#Then the second is a model using lme with a temporal autocorrelation structure tern. corAR1. For this you need to have your plot (the unit of repeat measure) as the smallest thing in the mixed model structure i.e. site nested in block and then nested in plot.ID. Each plot needs a unique number that is then repeated through time. Then in the main model ~Time|random structure.
-
-# Exploring
-lmT<-lm(temp~  Disc_kg.m2  + HerbPRC +  total_dung + rain.sum.mm +NMDS2,SerEbio5climT )
-summary(lmT)
-
-# Extract residuals
-E<-residuals(lmT,type="pearson")
-I1<-!is.na(SerEbio5climT$temp)
-I1
-Efull<-vector(length=length(SerEbio5climT$tem))
-Efull<-NA
-Efull[I1]<-E
-Efull
-
-# Time auto-correlated
-acf(Efull, na.action=na.pass,main="Auto-correlation plot for residuals")
-
-names(SerEbio5NA)
-cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|farea/fblock/fpair/ fplot.ID) # AR matrix needs to be unique
-cs1AR1. <- Initialize(cs1AR1, data = SerEbio5NA)
-corMatrix(cs1AR1.)
-
-B1<-lme(rain.sum.mm~moist,
-        random= ~ 1|farea/fblock/fplot, na.action=na.pass, method="REML",
-        correlation=corAR1(0.2, form=~YrMonthNumber|farea/fblock/fpair/fplot.ID),data=SerEbio5NA)
-summary(B1)
-anova(B1) # Highly signficant
-AIC(B1) #7923.711
-########################################################
-  # Trying out...
-  napmod <- lm(prodtot~landuse*region*treatment*rain.sum,data=Databiom)
-
-#Extracting residuals
+#a.Extracting residuals from lm
 E <- residuals(napmod,type="pearson")
 I1 <- !is.na(Databiom$prodtot)
 Efull <- vector(length=length(Databiom$prodtot))
@@ -1018,24 +893,176 @@ Efull <- NA
 Efull[I1]<- E
 Efull
 
-# Time auto-correlated
-acf(Efull, na.action=na.pass,main="Auto-correlation plot for residuals")
+#b.time auto-correlated
+acf(Efull, na.action=na.pass,main="Auto-correlation plot for residuals") #again, there is a pattern
+xyplot(Efull~YrMonthNumber|site.name/block.id, col=1,ylab="Residuals",data=Databiom) #Not working. #something to do with xlim?
 
-names(Databiom)
-cs1AR1 <- corAR1(0.2, form = ~YrMonth|region/landuse/site.name/block/plot.ID) # AR matrix needs to be unique
+#Implementing the AR-1 autocorrelation
+cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|site.name/block.id/plot.code) # AR matrix needs to be unique
 cs1AR1. <- Initialize(cs1AR1, data = Databiom)
-corMatrix(cs1AR1.)
+corMatrix(cs1AR1.) #What does this give? 
 
-#Running a mixed model with the autocorrelation
-B1<-lme(rain.sum.mm~moist,
-        random= ~ 1|farea/fblock/fplot, na.action=na.pass, method="REML",
-        correlation=corAR1(0.2, form=~YrMonth|region/landuse/site.name/block/plot.ID),data=Databiom)
-summary(B1)
-anova(B1)
-AIC(B1)
-########################################################
-  
-########################################################
+#LME with temporal auto-correlation (using lme4 package)
+NAP.lme <- lmer(prodtot~landuse+treatment+rain.sum+
+                   landuse:treatment+
+                   landuse:rain.sum+
+                   treatment:rain.sum+
+                   landuse:treatment:rain.sum+(1|site.name/block.id),REML=TRUE,correlation=cs1AR1, data=Databiom) #Warnings: correlation disregarded, and failed to converge. Should I do something with the random structure?
+warnings(NAP.lme)
+summary(NAP.lme) #don't use the p-values from here....
+anova(NAP.lme) # rain and treatment seem significant (high F-values), others not so important
+AIC(NAP.lme) # 1147.579
+
+#LME with temporal auto-correlation (using nlme package)
+NAP2.lme <- lme(prodtot~landuse+treatment+rain.sum+
+                  landuse:treatment+
+                  landuse:rain.sum+
+                  treatment:rain.sum+
+                  landuse:treatment:rain.sum, random=~1|site.name/block.id, method="REML",correlation=cs1AR1,data=Databiom)
+summary(NAP2.lme)#don't use the p-values from here
+anova(NAP2.lme) #rain and treatment seem significant, others not so important
+AIC(NAP2.lme) #1149.579 (NOT the same as wih lme4 package)
+
+# Checking the temporal autocorrelation (cont. with the nlme model)
+# Extracting residuals from mixed model
+E2 <- resid(NAP2.lme, type ="n")  # nlme: type = "n" , lme4: type= "pearson"
+F2 <- fitted(NAP2.lme)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F2, 
+     y = E2,
+     xlab = "Fitted values",
+     ylab = "Residuals",main="Residuals NAP.lme")
+abline(v = 0, lwd = 2, col = 2) # Some fitted values below zero. Bad? 
+abline(h = 0, lty = 2, col = 1)  # Quite equally spread above/below zero
+
+# Time auto-correlated
+acf(E2, na.action=na.pass,main="Auto-correlation plot for residuals") # Temproal correlation
+
+#Selecting fixed structure using ML. Simplifying with drop1
+NAP2.lme <- lme(prodtot~landuse+treatment+rain.sum+
+                  #landuse:treatment+
+                  landuse:rain.sum, #not highly significant.. at the 0.1 level
+                  #treatment:rain.sum,
+                  #landuse:treatment:rain.sum,
+                 random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Databiom)
+drop1(NAP2.lme,test="Chisq") #dropping if not significant term
+AIC(NAP2.lme) #1094.439
+P1 <- NAP2.lme
+
+# Updating the model - generating p-values for each term (Should this be done from REML instead? So after the "aftermath"?)
+P1b <- update(P1, .~. -landuse:rain.sum)
+P1c <- update(P1b, .~. -landuse)
+P1d <- update(P1b, .~. -rain.sum)
+P1e <- update(P1b, .~. -treatment)
+
+anova(P1,P1b) 
+anova(P1b,P1c) 
+anova(P1b,P1d) 
+anova(P1b,P1e) 
+
+# Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+# P1      1  9 1094.439 1126.858 -538.2194                        
+# P1b     2  8 1095.147 1123.964 -539.5734 1 vs 2 2.707891  0.0999 #landuse:rain.sum
+# P1c     2  7 1094.322 1119.537 -540.1609 1 vs 2 1.175116  0.2784 #landuse
+# P1d     2  7 1114.188 1139.403 -550.0939 1 vs 2 21.04108  <.0001 #rain.sum
+# P1e     2  7 1101.910 1127.125 -543.9551 1 vs 2 8.763495  0.0031 #treatment
+
+#Step 9 and 10 - Zuur. The aftermath
+# Refitting with REML and validating the model
+P1final <- lme(prodtot~landuse+treatment+rain.sum+
+                 landuse:rain.sum,
+               random=~1|site.name/block.id,method="REML",na.action=na.pass, correlation=cs1AR1, data=Databiom)
+
+#Graphical model validation checking for homogeneity by plotting standardized residuals vs fitted values
+E.final <- resid(P1final,type="normalized")
+Fit <- fitted(P1final)
+plot(x=Fit,y=E.final,xlab="Fitted values",ylab="Residuals") #looks homogenous
+boxplot(E.final~landuse,data=Databiom,main="Landuse",ylab="Residuals") #good
+boxplot(E.final~treatment,data=Databiom,main="Treatment",ylab="Residuals") #slightly less var. in open
+plot(x=Databiom$rain.sum,y=E.final,ylab="Residuals",xlab="Rainfall",main="Rainfall")
+
+par(mfrow=c(2,2))
+plot(predict(P1final)~landuse+treatment+rain.sum+
+       landuse:rain.sum,data=Databiom)
+    #Shows less variation in pasture than wild, and highest values in Ex compared to Op
+    #Linear increase in NAP with rainfall (no threshold on intermediate rainfall as data suggest?)
+
+#### Sketch fitted values, following Stu's script ####
+#A. Specify covariate values for predictions
+#B. Create X matrix with expand.grid
+#C. Calculate predicted values
+#D. Calculate standard errors (SE) for predicted values
+#E. Plot predicted values
+#F. Plot predicted values +/- 	1.96 * SE
+
+#A:Specify covariate values for predictions
+MyData <- expand.grid(landuse=levels(Databiom$landuse),treatment=levels(Databiom$treatment),
+                       rain.sum = seq(min(Databiom$rain.sum), max(Databiom$rain.sum), length = 25)) #Not sure what the specific length of rain.sum does here... 
+
+#B. Create X matrix with expand.grid
+X <- model.matrix(~ landuse+treatment+rain.sum+landuse:rain.sum, data = MyData)
+head(X)
+
+#C. Calculate predicted values
+#NewData$Pred <- predict(M4, NewData, level = 0)
+#The level = 0 ensure that we fit the fixed effects
+#Or:
+MyData$Pred <- X %*% fixef(P1final)  # = X * beta
+
+#D. Calculate standard errors (SE) for predicted values
+#   SE of fitted values are given by the square root of
+#   the diagonal elements of: X * cov(betas) * t(X)  
+#   Take this for granted!
+
+MyData$SE <- sqrt(  diag(X %*% vcov(P1final) %*% t(X))  )
+
+#And using the Pred and SE values, we can calculate
+#a 95% confidence interval
+MyData$SeUp <- MyData$Pred + 1.96 * MyData$SE
+MyData$SeLo <- MyData$Pred - 1.96 * MyData$SE
+
+#E. Plot predicted values
+names(MyData)
+colnames(MyData)[4]<-"prodtot"
+
+#Trying to do this plotting - even though I don't understand the matrix and the rain.values from above...
+#### Plotting observed data versus prediction #####
+
+# Scatter plot with community NAP and rainfall
+NAPpred<-ggplot(data=Databiom,aes(x=rain.sum, y=prodtot)) #observed
+NAPpred<-NAPpred+geom_ribbon(data=MyData,aes(ymin=SeUp, ymax=SeLo),fill="red",colour="red",alpha=.65,lwd=NA,show.legend=F)
+NAPpred<-NAPpred+geom_line(data=MyData,aes(ymin=SeUp, ymax=SeLo),colour="red",alpha=.9,lwd=2,show.legend=F)
+
+NAPpred<-NAPpred+geom_point(stats="identity",colour="grey50",fill="grey50",size=2.5) #observed? 
+NAPpred<-NAPpred+facet_wrap(~landuse, scale="fixed")
+NAPpred<-NAPpred+scale_x_continuous(limits=c(0,530), breaks = c(0,200,400), labels = c(0,200,400), expand=c(0,0))
+NAPpred<-NAPpred+scale_y_continuous(expand=c(0,0))
+NAPpred<-NAPpred+ylab(expression(paste("Productivity (g ",m^-2," ",day^-1,")")))+xlab("Rainfall (mm)") # Adding x and ylabs to plot
+NAPpred<-NAPpred+theme_bw()+
+  theme(
+    rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
+    ,panel.background=element_rect(fill="transparent")
+    ,plot.background=element_rect(fill="transparent",colour=NA)
+    ,panel.grid.minor = element_blank() # Removing all grids and borders
+    ,panel.border = element_blank()
+    ,panel.grid.major.x = element_blank()
+    ,panel.grid.major.y = element_blank()
+    ,axis.line.y = element_line(color="black", size = .5) # Adding back the axis lines
+    ,axis.line.x = element_line(color="black", size = .5)
+    ,axis.title=element_text(size=12,color="black")
+    ,axis.text.x=element_text(size=11,color="black",
+                              margin=margin(2.5,2.5,2.5,2.5,"mm"))
+    ,axis.ticks.length=unit(-1.5, "mm")
+    ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+    ,plot.margin = unit(c(5,5,5,5), "mm")
+    ,strip.text.x = element_text(size = 12, hjust=0.1,colour = "black") # The text size of the strip (facet panel) titles
+    ,strip.background = element_rect(fill="transparent",colour=NA))
+NAPpred<-NAPpred+annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = 0, xend = 0, size = 1) 
+NAPpred<-NAPpred+annotate(geom = 'segment', y = 0, yend = 0, color = 'black', x = -Inf, xend = Inf, size = 0.5) 
+NAPpred
+
+####|####
 #### USEFUL STUFF ####
 #### Combined graphs ####
 library(grid)
@@ -1052,4 +1079,8 @@ my.df$V2[my.df$V2 == "-sh2"] <- -100
 # - ...: Names of source columns that contain values
 # - factor_key: Treat the new key column as a factor (instead of character vector)
 data_long <- gather(olddata_wide, condition, measurement, control:cond2, factor_key=TRUE)
+#### Citation from R #### 
+#citate() 
+#### Extracting random effects from a model ####
+ranef(model) #using REML
 
