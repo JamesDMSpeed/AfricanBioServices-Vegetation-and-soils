@@ -1,107 +1,158 @@
-####Loading data Anders Sundsdal MSc####
+#Loading data Anders Sundsdal MSc####
 rm(list=ls())
 library(lattice)
 library(MASS)
 library(ggplot2)
 library(lme4)
 library(glmmTMB)
+library(dplyr)
+library(plyr)
+library(Hmisc)
 
 setwd("C:/Users/ansun/Documents/Master data/GitHub__R-stat/AfricanBioServices-Vegetation-and-soils")
-wsdata<- read.csv('Termites/Main & CG experiment/Wetseason.csv', sep=';',dec='.')#Wetseason data
-dsdata <- read.csv("Termites/Main & CG experiment/Dryseason.csv", sep=";",dec=".")#Dryseason data
-head(wsdata)
-head(dsdata)
-fulldata<-rbind(wsdata,dsdata)
-fulldata$Massloss.per <- (1-fulldata$Ashed.final.corrected.weight..tea.only..g./fulldata$Ashed.initial.corrected.weight..tea.only..g.)*100
+#Loading masslossdata
+Massloss <-read.csv('Termites/Main & CG experiment/Massloss_data_CGMain.csv', sep=';',dec='.')
+#Loading rainfalldata
+precip <- read.csv('Termites/Precipitation data/Rainfalldata.csv', sep=';',dec='.')
+#Loading soil texture data
+soiltext <- read.csv('Termites/Soil data/Soil_texture_corrected.csv', sep=',',dec='.')
+#Loading Soil Nutrient data
+soilnut <- read.csv('Termites/Soil data/Soil_Nutrient.csv', sep=';',dec='.')
 
+Massloss$Massloss.per <- (1-Massloss$Ashed.final.corrected.weight..tea.only..g./Massloss$Ashed.initial.corrected.weight..tea.only..g.)*100
 
-####Data exploration####
-# A Missing values?
-# B Outliers in Y / Outliers in X
-# C Collinearity X
-# D Relationships Y vs X
-# E Spatial/temporal aspects of sampling design (not relevant here)
-# F Interactions (is the quality of the data good enough to include them?)
-# G Zero inflation Y
-# H Are categorical covariates balanced?
+#Merging data
+levels(soilnut$Landuse)[levels(soilnut$Landuse)=="Seronera"] <- "Common Garden"
+soilnut$Landuse <- factor(soilnut$Landuse,levels=c("Agriculture","Common Garden","Pasture","Wild"))
+levels(soilnut$Landuse)
+levels(soiltext$Landuse)
 
-#### Outliers####
+levels(soiltext$Region)[levels(soiltext$Region)=="Dry-Wet"] <- "Intermediate"
+levels(soilnut$Region)
+levels(soiltext$Region)
+
+soilnut$Block <- as.factor(soilnut$Block)
+soiltext$Block <- as.factor(soiltext$Block)
+
+Soildata <- left_join(soilnut,soiltext, by=c("Site","Region","Landuse","Block"))
+
+#levels(Massloss$Site)[levels(Massloss$Site)=="Mwantimba\n"] <- "Mwantimba"
+Massloss$Site <- as.factor(Massloss$Site)
+Soildata$Site <- as.factor(Soildata$Site)
+levels(Massloss$Site)
+levels(Soildata$Site)
+
+levels(Massloss$Landuse)[levels(Massloss$Landuse)=="Seronera"] <- "Common Garden"
+Massloss$Landuse <- factor(Massloss$Landuse,levels=c("Agriculture","Common Garden","Pasture","Wild"))
+levels(Massloss$Landuse)
+levels(Soildata$Landuse)
+
+Massloss$Block <- as.factor(Massloss$Block)
+
+Fulldata <- left_join(Massloss,Soildata,by=c("Season","Site","Region","Landuse","Block"))
+Fulldata <- left_join(Fulldata,precip,by=c("Season","Site"))
+
+#write.csv(Fulldata,file="Termites/Fulldata.csv")
+
+Fulldata <- read.csv("Termites/Fulldata.csv")
+
+#Data exploration####
+
+##Checking for missing values##
+colSums(is.na(Fulldata))
+sum(is.na(Fulldata$Massloss.per))
+#Removing rows which consist of NAs in "Massloss.per" column
+Fulldata <- Fulldata[complete.cases(Fulldata[,40]),]
+#summary(Fulldata)
+
+## Outliers##
 #Ashed final weight
 
-dotchart(fulldata$Ashed.final.corrected.weight..tea.only..g.)
-plot(fulldata$Ashed.final.corrected.weight..tea.only..g.)
-#identify(fulldata$Ashed.final.corrected.weight..tea.only..g)
+dotchart(Fulldata$Ashed.final.corrected.weight..tea.only..g.)
+plot(Fulldata$Ashed.final.corrected.weight..tea.only..g.)
+#identify(Fulldata$Ashed.final.corrected.weight..tea.only..g)
 
 #Outlier in ashed data % (should be between 0-100):
 
-dotchart(fulldata$Ashed.final.subsample.percentage.....) # One very large outlier for the final weight subsample percantage
-plot(fulldata$Ashed.final.subsample.percentage.....)
-#identify(fulldata$Ashed.final.subsample.percentage.....) #[1] 516
+dotchart(Fulldata$Ashed.final.subsample.percentage.....) # One very large outlier for the final weight subsample percantage
+plot(Fulldata$Ashed.final.subsample.percentage.....)
+#identify(Fulldata$Ashed.final.subsample.percentage.....) #[1] 516
 
 #Checking outliers in initial and final weights:
 #Inital weight:
-dotchart(fulldata$Initial.weight.including.bag..cord.and.label..g.)
-plot(fulldata$Initial.weight.including.bag..cord.and.label..g.)
-#identify(fulldata$Initial.weight.tea.only..g.)
+dotchart(Fulldata$Initial.weight.including.bag..cord.and.label..g.)
+plot(Fulldata$Initial.weight.including.bag..cord.and.label..g.)
+#identify(Fulldata$Initial.weight.tea.only..g.)
 #106 and 1611 looks wierd
-fulldata[106,] # 1,191 may be too low for initial weight! Have to check for speling mistake
-fulldata[1611,] #0,229 is too low for initial weight! Have to check for speling mistake
+Fulldata[106,] # 1,191 may be too low for initial weight! Have to check for speling mistake
+Fulldata[1611,] #0,229 is too low for initial weight! Have to check for speling mistake
 #No need to remove these as long as the difference in mass loss make sense.
 
 #Checking for massloss outlier
-dotchart(fulldata$Massloss..g. ) #
-plot(fulldata$Massloss..g.)
-#identify(fulldata$Massloss..g.)
-fulldata[289,] # Minus massloss check this code: R414: -5.558675
-fulldata[1614,] # Minus mass loss check this code: R275: - 9100
+dotchart(Fulldata$Massloss..g. ) #
+plot(Fulldata$Massloss..g.)
+#identify(Fulldata$Massloss..g.)
+Fulldata[289,] # Minus massloss check this code: R414: -5.558675
+Fulldata[1614,] # Minus mass loss check this code: R275: - 9100
 #Removing these for now: 289 and 1614 rows:
-fulldata <- fulldata[-c(289, 1614), ]
+Fulldata <- Fulldata[-c(289, 1614), ]
 #Checkig outliers in temperature and moisture:
-dotchart(fulldata$Temperature..C.) #Looks ok
-plot(fulldata$Temperature..C.)
-#identify(fulldata$Temperature..C.)
-dotchart(fulldata$Moisture..) #Looks ok
-plot(fulldata$Moisture..)
+dotchart(Fulldata$Temperature..C.) #Looks ok
+plot(Fulldata$Temperature..C.)
+#identify(Fulldata$Temperature..C.)
+dotchart(Fulldata$Moisture..) #Looks ok
+plot(Fulldata$Moisture..)
 
-#####B Collinearity X####
-MyVar<-c("Massloss..g.","rain.sum..mm.","CLAY..","SILT..",
-         "SAND..","OC..","Moisture..","Temperature..C.")
-pairs(fulldata[,MyVar]) #Not sure whats up here...
-plot(fulldata$Moisture..,fulldata$Temperature..C.)
+###Correlation###
+Signdata <- rcorr(as.matrix(Fulldata))
+           
+###Checking Collinearity among variables###
+names(Fulldata)
+MyVar<-c("Massloss.per","C.N","N.per","C.per","Claycorr","Siltcorr","ASandcorr",
+         "Rain.sum","Moisture..","Temperature..C.")
+#pairs(Fulldata[,MyVar]) #Not sure whats up here...
+#Silt is correlating with both Sand and Clay.
+#Sand and Clay are negatively correlated.
+#C and N percentage are correlated
 
+#Housekeeping # Ensuring factors are factors####
+names(Fulldata)
+Fulldata$fsite<-as.factor(Fulldata$Site)
+Fulldata$fregion<-as.factor(Fulldata$Region)
+Fulldata$fseason<-as.factor(Fulldata$Season)
+Fulldata$flanduse<-as.factor(Fulldata$Landuse)
+Fulldata$ftreatment<-as.factor(Fulldata$Treatment)
+Fulldata$flittertype<-as.factor(Fulldata$Littertype) 
+Fulldata$fplot.id<-as.factor(Fulldata$Plot) # 220 plots # correct
+Fulldata$fteabag_code<-as.factor(Fulldata$Teabag.code) # 879 teabags - missing 1 teabag (Maybe one is a duplicate?)
+Fulldata$fsoil.class<-as.factor(Fulldata$Soil.Class)
+Fulldata$fmound_type<-as.factor(Fulldata$Mound.type)
+Fulldata$ftree_ants<-as.factor(Fulldata$Tree.with.ants)
+Fulldata$fblock<-as.factor(Fulldata$Block)
+Fulldata$fblockcode<-as.factor(Fulldata$Blockcode)
+Fulldata$fholes<-as.factor(Fulldata$Sign.of.hole.s.)
+Fulldata$fcheeting<-as.factor(Fulldata$Sign.of.termite.cheeting)
+Fulldata$froots<-as.factor(Fulldata$Sign.of.roots)
 
-####Housekeeping # Ensuring factors are factors####
-names(fulldata)
-fulldata$fsite<-as.factor(fulldata$Site)
-fulldata$fregion<-as.factor(fulldata$Region)
-fulldata$fseason<-as.factor(fulldata$Season)
-fulldata$flanduse<-as.factor(fulldata$Landuse)
-fulldata$ftreatment<-as.factor(fulldata$Treatment)
-fulldata$flittertype<-as.factor(fulldata$Littertype) 
-fulldata$fplot.id<-as.factor(fulldata$Plot) # 220 plots # correct
-fulldata$fteabag_code<-as.factor(fulldata$Teabag.code) # 879 teabags - missing 1 teabag (Maybe one is a duplicate?)
-fulldata$fsoil.class<-as.factor(fulldata$Soil.Class)
-fulldata$fmound_type<-as.factor(fulldata$Mound.type)
-fulldata$ftree_ants<-as.factor(fulldata$Tree.with.ants)
-fulldata$fblock<-as.factor(fulldata$Block)
-fulldata$fblockcode<-as.factor(fulldata$Blockcode)
-fulldata$fholes<-as.factor(fulldata$Sign.of.hole.s.)
-fulldata$fcheeting<-as.factor(fulldata$Sign.of.termite.cheeting)
-fulldata$froots<-as.factor(fulldata$Sign.of.roots)
+names(Fulldata)
 
-names(fulldata)
-
-#### Seperate the experiments ####
-FulldataCG<-fulldata[fulldata$Experiment=="CG",] # Only commongarden data
+#Seperate the experiments ####
+FulldataCG<-Fulldata[Fulldata$Experiment=="CG",] # Only commongarden data
 FulldataCG<-droplevels(FulldataCG) # Ensure factor level "Main" is removed.
+write.csv(write.csv(FulldataCG,file="Termites/CGdata.csv"))
 
-FulldataMain<-fulldata[fulldata$Experiment!="CG",] #Only landuse experiement data
+#Subset of local soil from CG
+LocalCGsoil <- FulldataCG[FulldataCG$Landuse=="Common Garden",]
+
+FulldataMain<-Fulldata[Fulldata$Experiment=="Main",] #Only landuse experiement data
 FulldataMain<-droplevels(FulldataMain)# Ensure factor level common garden dropped
+write.csv(write.csv(FulldataMain,file="Termites/Maindata.csv"))
 
-levels(fulldata$Landuse) # All levels incl. common garden
-levels(FulldataMain$Landuse)
-levels(FulldataCG$Landuse)
+levels(Fulldata$Landuse) # All levels incl. common garden
+levels(FulldataMain$Landuse)#Common Garden removed
+levels(FulldataCG$Landuse)#All landuses included, but only for CG experiment
 
+#Creating summaries (aggregate dataset)####
 se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Standard Error
 # Main experiment means and standard error (exclude blocks) # From Stu: Need to seperate out Agricutlure in Makao and Mwantimba(WHY?)
 names(FulldataMain)
@@ -112,7 +163,7 @@ FulldataMainse1 <-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+
 FulldataMainmean1$SE <- FulldataMainse1$Massloss.per 
 
 
-#### Graphing: Main experiment - decomposition across landuse #### 
+#Graphing: Main experiment - decomposition across landuse #### 
 # Fill by termite * landuse = empty = absence, filled = prescence 
 FulldataMainmean1$tea.hole<-as.factor(with(FulldataMainmean1, paste(flittertype, ftreatment, sep=" ")))
 levels(FulldataMainmean1$tea.hole)
@@ -130,7 +181,7 @@ colnames(Mainexp)[1]<-"Season"
 colnames(Mainexp)[2]<-"Region"
 names(Mainexp)
 
-####Point plot Main exp####
+#Point plot Main exp####
 Mainp <- ggplot(data=Mainexp, aes(x=flanduse,y=Massloss.per,
                                    ymin=(Massloss.per-SE),
                                    ymax=(Massloss.per+SE),
@@ -196,12 +247,7 @@ Mainp <- ggplot(data=Mainexp, aes(x=flanduse,y=Massloss.per,
  #      width= 20, height = 15,units ="cm",bg ="transparent",
   #     dpi = 600, limitsize = TRUE)
 
-#################################
-####Stacked bar plot Main exp####
-#################################
-FulldataMain<-fulldata[fulldata$Experiment!="CG",] #Only landuse experiement data
- 
-#Creating 4 dataframes with each of the treatments and littertype in each.
+#Termite effect and microbe effect variable####
 Greenop<-FulldataMain[FulldataMain$Littertype=="Green" & FulldataMain$Treatment=="Open",] # Only Green Open data
 Greenex<-FulldataMain[FulldataMain$Littertype=="Green" & FulldataMain$Treatment=="Exclosed",] # Only Green Open data
 Redop<-FulldataMain[FulldataMain$Littertype=="Rooibos" & FulldataMain$Treatment=="Open",] # Only Green Open data
@@ -262,10 +308,7 @@ TMMasslossMain <- rbind(GreendataTM,ReddataTM)
 TMMasslossMain$Decomposer<-as.factor(TMMasslossMain$Decomposer)
 levels(TMMasslossMain$Decomposer)
 
-####BARPLOTTING#######################################
-####Want to create three own grafs for each Landuse####
-####showing termite and microbe contribution to decomposition in wet season and dry season.#### 
-
+#BARPLOTTING - three own grafs for each Landuse####
 #Creating a fill factor:
 TMMasslossMain$LD<-as.factor(with(TMMasslossMain, paste(Decomposer, Littertype, sep=" ")))
 head(TMMasslossMain)
@@ -274,9 +317,7 @@ head(TMMasslossMain)
 Agri <- droplevels(TMMasslossMain[TMMasslossMain$flanduse=="Agriculture",])
 Pasture <- droplevels(TMMasslossMain[TMMasslossMain$flanduse=="Pasture",])
 Wild <- droplevels(TMMasslossMain[TMMasslossMain$flanduse=="Wild",])
-###################################
-#Plotting a graph for each landuse#####
-###################################
+
 #AGRICULTURE#
 
 #Legend title:
@@ -462,12 +503,7 @@ WildP
 #        width= 20, height = 15,units ="cm",bg ="transparent",
 #        dpi = 600, limitsize = TRUE)
 
-##########################
-#### END OF BARPLOTTING ########################################################
-##########################
-
-
-#### Graphing: CGvsMain experiment ####
+#Graphing: CGvsMain experiment ####
 #But first sorting the commongarden data and main experiemnt for GGplot:
 
 se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Standard Error
@@ -582,11 +618,9 @@ MainCGplot
  #     width= 30, height = 15,units ="cm",bg ="transparent",
   #   dpi = 600, limitsize = TRUE)
 
-###############################################
-###Analysis####################################
-###MODELLING###################################
-####LANDUSE EXPERIMENT########################
-###Mixed linear effect model#################
+
+#ANALYSIS####
+#LANDUSE EXPERIMENT####
 library(lme4)
 library(nlme)
 
@@ -604,12 +638,13 @@ summary(firstmodel)
 anova(firstmodel)
 drop1(firstmodel,test="Chisq")
 
-#Creating two data set for each littertype to be able to do a four-way interaction (UPDATE: NOT POSSIBLE WITH THIS DATA). We know already that Littertype is important so thats why we extract the data into littertype.
+#Creating two data set for each littertype to be able to do a four-way interaction
+#(UPDATE: NOT POSSIBLE WITH THIS DATA). We know already that Littertype is important
+#so thats why we extract the data into littertype.
 RecalDataMain <- droplevels(FulldataMain[FulldataMain$Littertype =="Rooibos",])
 LabileDataMain <- droplevels(FulldataMain[FulldataMain$Littertype =="Green",])
 
-####MIXED LINEAR MODEL FOR EACH LITTERTYPE####
-
+#LMM Recalcitrant litter####
 Recalmodel <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
                      Landuse:Season+Landuse:Region+Landuse:Treatment+
                      Season:Region+Season:Treatment+Region:Treatment+
@@ -617,7 +652,7 @@ Recalmodel <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
                      Treatment:Landuse:Region+
                      Season:Landuse:Region+
                      (1|Blockcode), data=RecalDataMain, REML=T)
-
+#LMM Labile litter####
 Labilemodel <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
                       Landuse:Season+Landuse:Region+Landuse:Treatment+
                       Season:Region+Season:Treatment+Region:Treatment+
@@ -631,8 +666,7 @@ anova(Recalmodel)
 summary(Labilemodel)
 anova(Labilemodel)
 
-###########MODEL SELECTION########
-####Labile litter####
+#MODEL SELECTION - LABILE####
 summary(Labilemodel) # Fullmodel with Season,Region, landuse and treatment and all interactions 
 anova(Labilemodel) #Landuse,Season,Region
 AIC(Labilemodel)#4578.255
@@ -673,29 +707,30 @@ drop1(Labilemodel3,test="Chisq")
 # Season:Treatment      29      29     1 610.10    0.3857   0.53480   #NOT SIGN 
 
 #New trimmed model with threeway
-Labilemodel4 <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
+Labilemodel4 <- lmer(Massloss.per~Landuse+Season+Region+#Treatment+
                        Landuse:Season+Landuse:Region+#Landuse:Treatment+
                        Season:Region+#Region:Treatment+#Season:Treatment+
                        #Treatment:Landuse:Season+
                        #Treatment:Landuse:Region+
                        Season:Landuse:Region+
                        (1|Blockcode), data=LabileDataMain, REML=T)
-AIC(Labilemodel4)#Original 4578.255 - new 4591.957
+AIC(Labilemodel4)#Original 4578.255 - new 4591.76
 drop1(Labilemodel4,test="Chisq")
+
 #                         Sum Sq Mean Sq NumDF  DenDF F value    Pr(>F)    
 # Treatment               55.64   55.64     1 612.11   0.792    0.3738    
 # Landuse:Season:Region 2962.96 1481.48     2 612.27  21.088 1.391e-09 ***
 
 #Testing significance between two-way interactions (with threeway):
-Labilemodel4a <- update(Labilemodel4, .~. -Landuse:Season)
-Labilemodel4b <- update(Labilemodel4, .~. -Landuse:Region)
-Labilemodel4c <- update(Labilemodel4, .~. -Season:Region)
+Labilemodel4a <- update(Labilemodel4, .~. -Season:Landuse:Region)
+Labilemodel4b <- update(Labilemodel4a, .~. -Landuse:Region)
+Labilemodel4c <- update(Labilemodel4a, .~. -Season:Region)
+Labilemodel4d <- update(Labilemodel4a, .~. -Season:Landuse)
 
-
-anova(Labilemodel4,Labilemodel4a) #Landuse:Season NOT sign
-anova(Labilemodel4,Labilemodel4b) #Landuse:Region NOT sign
-anova(Labilemodel4,Labilemodel4c)#Season:Region NOT sign
-
+anova(Labilemodel4,Labilemodel4a) #Season:Landuse:Region sign
+anova(Labilemodel4a,Labilemodel4b) #Landuse:Region sign
+anova(Labilemodel4a,Labilemodel4c)#Season:Region sign
+anova(Labilemodel4a,Labilemodel4d) #Season:Landuse sign
 
 #New trimmed model without threeway
 Labilemodel5 <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
@@ -731,12 +766,12 @@ Labilemodel6<- lmer(Massloss.per~Landuse+Season+Region+Treatment+
 AIC(Labilemodel6) #Original 4578.255 - New: 4591.957
 drop1(Labilemodel6,test="Chisq")
 
+boxplot(FulldataMain$rain.sum..mm.~FulldataMain$Season)
 
 
 
 
-
-
+#STUFF NOT SORTED####
                   
 AndersTea2b <- update(AndersTea2, .~. -flittertype:ftreatment)
 AndersTea2c <- update(AndersTea2, .~. -sand.per)
@@ -773,7 +808,7 @@ library(emmeans)
 library(lmerTest)
 
 
-#Working with model with Recalcitrant littertype####
+#Working with model with Recalcitrant littertype#
 #Testing the threeway interaction Landuse:Season:Treatment
 
 #Getting Estimated Marginal means of these three factors in all combinations
