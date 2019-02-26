@@ -15,6 +15,7 @@ library("Hmisc") # For the correlation plot
 library(ggplot2)
 library(lattice) # xy.plot
 
+
 # Fixing the data for further processing 
 # Soil texture 
 levels(Soil.texture$Region)
@@ -222,7 +223,7 @@ Above_Below.C <- read.csv("Ecosystem carbon/Above_Below.C.csv",head=T)
 Block.Eco.C$Carbon.pool<- factor(Block.Eco.C$Carbon.pool, levels = c("TreeC.kg_m2","HerbC.kg_m2", "DWC.kg_m2","SoilAC.kg_m2","SoilMC.kg_m2"))
 levels(Block.Eco.C$Carbon.pool) <- c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon")
 Block.Eco.C$Region<- factor(Block.Eco.C$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
-Belowground.full$Region.x.x<- factor(Belowground.full$Region.x.x, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+Belowground.full$Region<- factor(Belowground.full$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
 # Climate variable 
 # Belowground full 
@@ -242,11 +243,20 @@ levels(Block.Eco.C$climate) <- c("Dry", "Dry" ,"Dry","IntDry", "IntWet", "Wet", 
 # Adding shrubbyness to my belowground data set 
 Soil.min<- Block.Eco.C %>%
   filter(Carbon.pool== "Soil Min-horizon")
-Shrubbiness <- Soil.min[,c(2,17)]
+Shrubbiness <- Soil.min[,c(2:4,17)]
+colnames(Shrubbiness)[3] <- "Block"
+colnames(Shrubbiness)[2] <- "Region"
 Belowground.full <- full_join(Belowground.full,Shrubbiness)
 Belowground.full$fShrubbiness <- as.factor(round(Belowground.full$Shrubbiness, digits = 0))
-
-plot(Belowground.full$tot.C.kg_m2~log(Belowground.full$Shrubbiness))
+names(Belowground.full)
+plot(Belowground.full$tot.C.kg_m2~Belowground.full$Shrubbiness)
+plot(Shrubbiness~mean.N.kg_m2.y,data=Belowground.full)
+plot(TreeBM.kg_m2~Sand,data=Belowground.full)
+# Look at shrubbiness and Phosphorous
+Soil.properties <- read.csv("Ecosystem carbon/Soil.data/Soil.Properties.csv", head=T)
+Soil.properties <- full_join(Soil.properties,Shrubbiness)
+names(Soil.properties)
+summary(lm(Shrubbiness~P,data=Soil.properties))
 
 #### Plotting for poster ####
 legend_titleLAND <- "Land-use"
@@ -643,7 +653,7 @@ panel.cor <- function(x, y, digits=1, prefix="", cex.cor = 6)
 # Then select the variables to use in the pair function with panel.cor
 names(Belowground.full)
 str(Belowground.full)
-MyVar1<-c("MAP.mm_yr","Sand","livestock","wild", "Fire_frequency.2000_2017.x","Shrubbiness","mean.N.kg_m2.x")
+MyVar1<-c("MAP.mm_yr","Sand","livestock","wild", "Fire_frequency.2000_2017.x","Shrubbiness","TreeBM.kg_m2","mean.N.kg_m2.x")
 
 MyVar2<-c("BM.non.N.trees.m2","BM.N.trees.m2","mean.N.kg_m2.x","Shrubbiness")
 
@@ -774,118 +784,84 @@ Woody<- Block.Eco.C %>%
   filter(Carbon.pool== "Woody")
 Herbaceous<- Block.Eco.C %>%
   filter(Carbon.pool== "Herbaceous")
+ 
+names(Belowground.full)
+# scaling some of the variables 
+Belowground.full$CMAP.mm_yr <- as.numeric(scale(Belowground.full$MAP.mm_yr))
+Belowground.full$CSand <- as.numeric(scale(Belowground.full$Sand))
+Belowground.full$CFire_frequency.2000_2017.x <- as.numeric(scale(Belowground.full$Fire_frequency.2000_2017.x))
 
 # Look at belowground C first (A + Min)
 # Run a full model of all my fixed factors interactions with the carbon pools #
-# Need Belowground full created earlier. 
-names(Belowground.full)
-BelowgroundNA <- droplevels(na.omit(Belowground.full))
+# Need Belowground full created earlier.
 
-Belowground.tot<-lmer(tot.C.kg_m2~ MAP.mm_yr + landuse + Fire_frequency.2000_2017.x + tot.N.kg_m2 + TreeBM.kg_m2 + BM.N.trees.m2 + Sand +
-                        landuse:MAP.mm_yr + landuse:Fire_frequency.2000_2017.x  + tot.N.kg_m2:landuse + landuse:Sand + landuse:BM.N.trees.m2 + 
-                        MAP.mm_yr:Sand +  TreeBM.kg_m2:Sand + landuse:Sand + tot.N.kg_m2:Sand + Fire_frequency.2000_2017.x:Sand + BM.N.trees.m2:Sand + 
-                         TreeBM.kg_m2:MAP.mm_yr +  tot.N.kg_m2:MAP.mm_yr + Fire_frequency.2000_2017.x:MAP.mm_yr + BM.N.trees.m2:MAP.mm_yr + 
-                        TreeBM.kg_m2:tot.N.kg_m2 +  Fire_frequency.2000_2017.x:tot.N.kg_m2 + TreeBM.kg_m2:Fire_frequency.2000_2017.x +BM.N.trees.m2: tot.N.kg_m2 + 
+Belowground.tot<-lmer(tot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017.x + tot.N.kg_m2 + TreeBM.kg_m2 + BM.N.trees.m2 + CSand + Shrubbiness +
+                        landuse:CMAP.mm_yr + landuse:CFire_frequency.2000_2017.x  + tot.N.kg_m2:landuse + landuse:CSand + landuse:BM.N.trees.m2 + landuse:Shrubbiness +
+                        CMAP.mm_yr:CSand +  TreeBM.kg_m2:CSand + landuse:CSand + tot.N.kg_m2:CSand + CFire_frequency.2000_2017.x:CSand + BM.N.trees.m2:CSand + Shrubbiness:CSand +
+                         TreeBM.kg_m2:CMAP.mm_yr +  tot.N.kg_m2:CMAP.mm_yr + CFire_frequency.2000_2017.x:CMAP.mm_yr + BM.N.trees.m2:CMAP.mm_yr + Shrubbiness:CMAP.mm_yr +
+                        TreeBM.kg_m2:tot.N.kg_m2 +  CFire_frequency.2000_2017.x:tot.N.kg_m2 + TreeBM.kg_m2:CFire_frequency.2000_2017.x +BM.N.trees.m2: tot.N.kg_m2 + Shrubbiness:CFire_frequency.2000_2017.x + Shrubbiness:tot.N.kg_m2 + 
                         (1|Region/Block), data = Belowground.full, REML=T)
 
 summary(Belowground.tot)
 drop1(Belowground.tot,test="Chisq")
 anova(Belowground.tot)
-AIC(Belowground.tot) #261.4747
+AIC(Belowground.tot) #152.5925
 
 # Reduce the model to what was significant in drop1 
-Belowground.tot.red<-lmer(tot.C.kg_m2~ MAP.mm_yr + landuse + Fire_frequency.2000_2017.x + tot.N.kg_m2 + TreeBM.kg_m2 + BM.N.trees.m2 + Sand +
-                        # landuse:MAP.mm_yr + landuse:Fire_frequency.2000_2017.x  + tot.N.kg_m2:landuse + landuse:Sand 
-                        + landuse:BM.N.trees.m2 + 
-                        MAP.mm_yr:Sand +  TreeBM.kg_m2:Sand + #landuse:Sand + tot.N.kg_m2:Sand +
-                        Fire_frequency.2000_2017.x:Sand + BM.N.trees.m2:Sand + 
-                        TreeBM.kg_m2:MAP.mm_yr +  tot.N.kg_m2:MAP.mm_yr + #Fire_frequency.2000_2017.x:MAP.mm_yr + 
-                        BM.N.trees.m2:MAP.mm_yr + 
+Belowground.tot.red<-lmer(tot.C.kg_m2~ CMAP.mm_yr + #landuse + 
+                            CFire_frequency.2000_2017.x + tot.N.kg_m2 + TreeBM.kg_m2 + #BM.N.trees.m2 + 
+                            CSand + Shrubbiness +
+                        # landuse:MAP.mm_yr + landuse:Fire_frequency.2000_2017.x  + tot.N.kg_m2:landuse + landuse:Sand + landuse:BM.N.trees.m2 + 
+                        CMAP.mm_yr:CSand +  #TreeBM.kg_m2:Sand + landuse:Sand + tot.N.kg_m2:Sand + Fire_frequency.2000_2017.x:Sand + BM.N.trees.m2:Sand +  TreeBM.kg_m2:MAP.mm_yr + 
+                          tot.N.kg_m2:CMAP.mm_yr + #Fire_frequency.2000_2017.x:MAP.mm_yr + BM.N.trees.m2:MAP.mm_yr + 
+                          CMAP.mm_yr:Shrubbiness +
                         #TreeBM.kg_m2:tot.N.kg_m2 +  
-                        Fire_frequency.2000_2017.x:tot.N.kg_m2 + TreeBM.kg_m2:Fire_frequency.2000_2017.x + #BM.N.trees.m2: tot.N.kg_m2 + 
+                        CFire_frequency.2000_2017.x:tot.N.kg_m2 + TreeBM.kg_m2:CFire_frequency.2000_2017.x + #BM.N.trees.m2: tot.N.kg_m2 + 
                         (1|Region/Block), data = Belowground.full, REML=T)
 
 summary(Belowground.tot.red)
-drop1(Belowground.tot.red,test="Chisq") #everything significant..? 
+drop1(Belowground.tot.red,test="Chisq") 
 anova(Belowground.tot.red) # Nitrogen really high - something going on here.. 
-AIC(Belowground.tot.red) # 220.6837
+AIC(Belowground.tot.red) # 144.4792 - better
+
+# Reduce the model further.. 
+Belowground.tot.red2<-lmer(tot.C.kg_m2~ CMAP.mm_yr +
+                            CFire_frequency.2000_2017.x + tot.N.kg_m2 + TreeBM.kg_m2 + 
+                            #CSand + 
+                             Shrubbiness + 
+                            #CMAP.mm_yr:CSand + 
+                            tot.N.kg_m2:CMAP.mm_yr + 
+                            CMAP.mm_yr:Shrubbiness +
+                            #CFire_frequency.2000_2017.x:tot.N.kg_m2 
+                             + TreeBM.kg_m2:CFire_frequency.2000_2017.x + 
+                            (1|Region/Block), data = Belowground.full, REML=T)
+
+summary(Belowground.tot.red2)
+drop1(Belowground.tot.red2,test="Chisq") 
+anova(Belowground.tot.red2) 
+AIC(Belowground.tot.red2) # 144.4798 - not better.. Remove MAP:Sand, and the model AIC: 139.2077
 
 Belowground.full$fMAP <- as.factor(Belowground.full$MAP.mm_yr)
-xyplot(tot.C.kg_m2~BM.N.trees.m2|landuse,data=Belowground.full)
-xyplot(tot.C.kg_m2~TreeBM.kg_m2|fMAP,data=Belowground.full)
-xyplot(tot.C.kg_m2~log(BM.N.trees.m2 )|fMAP,data=Belowground.full)
-xyplot(tot.N.kg_m2~log(BM.N.trees.m2 )|fMAP,data=Belowground.full)
+xyplot(tot.C.kg_m2~tot.N.kg_m2|fMAP,data=Belowground.full)
+xyplot(tot.C.kg_m2~Shrubbiness|fMAP,data=Belowground.full)
 xyplot(tot.C.kg_m2~Sand|fMAP,data=Belowground.full)
 xyplot(tot.C.kg_m2~Shrubbiness|climate,data=Belowground.full)
-xyplot(tot.C.kg_m2~Shrubbiness|landuse,data=Belowground.full)
+xyplot(tot.C.kg_m2~TreeBM.kg_m2|as.factor(Fire_frequency.2000_2017.x),data=Belowground.full)
+plot(tot.C.kg_m2~Sand, data=Belowground.full)
+plot(tot.C.kg_m2~Fire_frequency.2000_2017.x,data=Belowground.full)
+plot(tot.C.kg_m2~TreeBM.kg_m2,data=Belowground.full)
 
-Test1<-lmer(tot.C.kg_m2~ BM.N.trees.m2+ MAP.mm_yr +BM.N.trees.m2:MAP.mm_yr + (1|Region.x.x/Block), data = Belowground.full, REML=T)
+Test1<-lmer(tot.C.kg_m2~ Shrubbiness + MAP.mm_yr +Shrubbiness:MAP.mm_yr + (1|Region/Block), data = Belowground.full, REML=T)
 drop1(Test1,test="Chisq") 
-Test1<-lmer(tot.C.kg_m2~ BM.N.trees.m2+ MAP.mm_yr +BM.N.trees.m2:MAP.mm_yr + (1|Region.x.x/Block), data = Belowground.full, REML=T)
+Test1<-lmer(tot.C.kg_m2~ Fire_frequency.2000_2017.x + TreeBM.kg_m2 + Fire_frequency.2000_2017.x:TreeBM.kg_m2 + (1|Region/Block), data = Belowground.full, REML=T)
 drop1(Test1,test="Chisq") 
-Test1<-lmer(tot.N.kg_m2~ BM.N.trees.m2+ MAP.mm_yr +BM.N.trees.m2:MAP.mm_yr + (1|Region.x.x/Block), data = Belowground.full, REML=T)
+Test1<-lmer(tot.C.kg_m2~ MAP.mm_yr + tot.N.kg_m2 + MAP.mm_yr:tot.N.kg_m2 + (1|Region/Block), data = Belowground.full, REML=T)
 drop1(Test1,test="Chisq") 
 anova(Test1)
 
-# Remove landuse in the total model 
-
-Belowground1<-lmer(tot.C.kg_m2~ MAP.mm_yr + Fire_frequency.2000_2017.x + tot.N.kg_m2 + TreeBM.kg_m2 + BM.N.trees.m2 + Sand +
-                        MAP.mm_yr:Sand +  TreeBM.kg_m2:Sand + tot.N.kg_m2:Sand + Fire_frequency.2000_2017.x:Sand + BM.N.trees.m2:Sand + 
-                        TreeBM.kg_m2:MAP.mm_yr +  tot.N.kg_m2:MAP.mm_yr + Fire_frequency.2000_2017.x:MAP.mm_yr + BM.N.trees.m2:MAP.mm_yr + 
-                        TreeBM.kg_m2:tot.N.kg_m2 +  Fire_frequency.2000_2017.x:tot.N.kg_m2 + TreeBM.kg_m2:Fire_frequency.2000_2017.x +BM.N.trees.m2: tot.N.kg_m2 + 
-                        (1|Region/Block), data = Belowground.full, REML=T)
-summary(Belowground1)
-drop1(Belowground1,test="Chisq") 
-anova(Belowground1) 
-AIC(Belowground1) # 241.0014
-
-# Reducing the model
-Belowground1.red<-lmer(tot.C.kg_m2~ MAP.mm_yr + Fire_frequency.2000_2017.x + tot.N.kg_m2 + TreeBM.kg_m2 + BM.N.trees.m2 + #Sand +
-                     #MAP.mm_yr:Sand + TreeBM.kg_m2:Sand + #tot.N.kg_m2:Sand + Fire_frequency.2000_2017.x:Sand + BM.N.trees.m2:Sand + 
-                     #TreeBM.kg_m2:MAP.mm_yr +  
-                       tot.N.kg_m2:MAP.mm_yr + #Fire_frequency.2000_2017.x:MAP.mm_yr + 
-                       BM.N.trees.m2:MAP.mm_yr + 
-                     #TreeBM.kg_m2:tot.N.kg_m2 +  
-                       Fire_frequency.2000_2017.x:tot.N.kg_m2 + TreeBM.kg_m2:Fire_frequency.2000_2017.x + #BM.N.trees.m2: tot.N.kg_m2 + 
-                     (1|Region/Block), data = Belowground.full, REML=T)
-
-summary(Belowground1.red)
-drop1(Belowground1.red,test="Chisq") 
-anova(Belowground1.red) 
-AIC(Belowground1.red) #tot.238.23 #new 186.9412 #Reducing further, new: 167.9328
-# All left is significant. 
-plot(tot.C.kg_m2~log(TreeBM.kg_m2), data=Belowground.full)
-plot(tot.C.kg_m2~Fire_frequency.2000_2017.x, data=Belowground.full) # significant - the higher fire freq - the more C. 
-cor.test(Belowground.full$tot.C.kg_m2,Belowground.full$Fire_frequency.2000_2017.x)
-
-# model without sand and landuse
-Belowground2<-lmer(tot.C.kg_m2~ MAP.mm_yr  + Fire_frequency.2000_2017.x + tot.N.kg_m2 + TreeBM.kg_m2 + BM.N.trees.m2  +
-                        TreeBM.kg_m2:MAP.mm_yr +  tot.N.kg_m2:MAP.mm_yr + Fire_frequency.2000_2017.x:MAP.mm_yr + BM.N.trees.m2:MAP.mm_yr + 
-                        TreeBM.kg_m2:tot.N.kg_m2 +  Fire_frequency.2000_2017.x:tot.N.kg_m2 + TreeBM.kg_m2:Fire_frequency.2000_2017.x +BM.N.trees.m2: tot.N.kg_m2 + 
-                        (1|Region/Block), data = Belowground.full, REML=T)
-
-summary(Belowground2)
-drop1(Belowground2,test="Chisq") # significant: MAP.mm_yr.x:tot.N.kg_m2,Fire_frequency.2000_2017.x:tot.N.kg_m2
-anova(Belowground2)
-AIC(Belowground2) #188.0543
-
-Belowground2.red<-lmer(tot.C.kg_m2~ MAP.mm_yr  + Fire_frequency.2000_2017.x + tot.N.kg_m2 + #TreeBM.kg_m2 + #BM.N.trees.m2  +
-                     #TreeBM.kg_m2:MAP.mm_yr +  
-                       tot.N.kg_m2:MAP.mm_yr + 
-                       #Fire_frequency.2000_2017.x:MAP.mm_yr + BM.N.trees.m2:MAP.mm_yr + 
-                     #TreeBM.kg_m2:tot.N.kg_m2 +  
-                       Fire_frequency.2000_2017.x:tot.N.kg_m2 + 
-                       #TreeBM.kg_m2:Fire_frequency.2000_2017.x +BM.N.trees.m2: tot.N.kg_m2 + 
-                     (1|Region/Block), data = Belowground.full, REML=T)
-
-summary(Belowground2.red)
-drop1(Belowground2.red,test="Chisq") # significant: MAP.mm_yr.x:tot.N.kg_m2,Fire_frequency.2000_2017.x:tot.N.kg_m2
-anova(Belowground2.red)
-AIC(Belowground2.red) #154.4829
-
 # distribution of residuals 
-E2 <- resid(Belowground2.red, type ="pearson") 
-F2 <- fitted(Belowground2.red)
+E2 <- resid(Belowground.tot.red2, type ="pearson") 
+F2 <- fitted(Belowground.tot.red2)
 
 par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
 plot(x = F2, 
@@ -897,20 +873,33 @@ abline(h = 0, lty = 2, col = 1)  # Good
 
 # reduce the model further? 
 # Updating the model - generating p-values for each term
-Belowground2red3a<- update(Belowground2red3, .~. -tot.N.kg_m2:MAP.mm_yr.x)
-Belowground2red3b<- update(Belowground2red3a, .~. -tot.N.kg_m2)
-Belowground2red3c<- update(Belowground2red3a, .~. -MAP.mm_yr.x)
 
-anova(Belowground2red3,Belowground2red3a)
-anova(Belowground2red3a,Belowground2red3b)
-anova(Belowground2red3a,Belowground2red3c)
+N.MAP<-lmer(tot.C.kg_m2~ MAP.mm_yr + tot.N.kg_m2 + MAP.mm_yr:tot.N.kg_m2 + (1|Region/Block), data = Belowground.full, REML=T)
+
+N.MAPa<- update(N.MAP, .~. -tot.N.kg_m2:MAP.mm_yr)
+N.MAPb<- update(N.MAPa, .~. -tot.N.kg_m2)
+N.MAPc<- update(N.MAPa, .~. -MAP.mm_yr)
+
+anova(N.MAP,N.MAPa)
+anova(N.MAPa,N.MAPb)
+anova(N.MAPa,N.MAPc)
 #                  Df    AIC    BIC  logLik deviance  Chisq Chi Df Pr(>Chisq)    
 #Belowground2red3   7 122.34 141.37 -54.169   108.34 26.892      1  2.152e-07 *** # the interaction is significant 
 #Belowground2red3a  6 147.23 163.54  -67.615   135.23 158.64      1  < 2.2e-16 *** # Nitrogen is significant
 #Belowground2red3a  6 147.23 163.54 -67.615   135.23 5.1323      1    0.02348 * # MAP is significant (but nitrogen more significant)
 
+Fire.BM<-lmer(tot.C.kg_m2~ Fire_frequency.2000_2017.x + TreeBM.kg_m2 + Fire_frequency.2000_2017.x:TreeBM.kg_m2 + (1|Region/Block), data = Belowground.full, REML=T)
+
+Fire.BMa<- update(Fire.BM, .~. -Fire_frequency.2000_2017.x:TreeBM.kg_m2)
+Fire.BMb<- update(Fire.BMa, .~. -Fire_frequency.2000_2017.x)
+Fire.BMc<- update(Fire.BMa, .~. -TreeBM.kg_m2)
+
+anova(Fire.BM,Fire.BMa)
+anova(Fire.BMa,Fire.BMb)
+anova(Fire.BMa,Fire.BMc)
+
 #interaction plot
-with(Belowground.full, {interaction.plot(tot.N.kg_m2,MAP.mm_yr.x,tot.C.kg_m2,
+with(Belowground.full, {interaction.plot(tot.N.kg_m2,MAP.mm_yr,tot.C.kg_m2,
                                          xlab = "Nitrogen",
                                          ylab = " Carbon",
                                          fun=mean)})
@@ -924,8 +913,11 @@ plot(tot.C.kg_m2~climate,data = Belowground.full)
 
 # 1. landuse climate belowground, A-hor, Min-hor
 # Belowground
-Climate.C <- lmer(tot.C.kg_m2~ landuse:climate + (1|Region/Block), data = Belowground.full, REML=T)
-xyplot(tot.C.kg_m2~ log(TreeBM.kg_m2)|climate,data=Belowground.full)
+Climate.C <- lmer(tot.C.kg_m2~ landuse + climate + landuse:climate + (1|Region/Block), data = Belowground.full, REML=T)
+drop1(Climate.C,test="Chisq")
+AIC(Climate.C) # 294.0345
+
+xyplot(tot.C.kg_m2~ Shrubbiness|climate,data=Belowground.full)
 
 ref_grid(Climate.C)
 test <- emmeans(Climate.C,~landuse:climate)
@@ -960,7 +952,6 @@ pairs(test2)
 plot(test2)
 
 # With shrubbiness 
-
 Climate.shrubbiness <- lmer(tot.C.kg_m2~fShrubbiness:climate + (1|Region), data = Belowground.full, REML=T)
 
 xyplot(tot.C.kg_m2~fShrubbiness|climate,data=Belowground.full)
@@ -974,7 +965,6 @@ plot(test2)
 
 summary(lm(tot.C.kg_m2~Shrubbiness,data=Belowground.full))
 plot(tot.C.kg_m2~Fire_frequency.2000_2017.x,data=Belowground.full)
-
 
 #### Hypothesis 1 ####
 # Testing my first hypothesis 1 where I think MAP has an effect on C, however, this relationship can be mediated by soil texture. 
@@ -1077,78 +1067,33 @@ anova(Soil.A_horizon1,Soil.A_horizon2) #Remove "landuse:No.large.trees"
 
 #### SEM model #### 
 
-# From Stu 
-library(sem)
 library(MuMIn)
+library(piecewiseSEM)
+vignette('piecewiseSEM') # too look at the package 
 
 # Variation for each model component
-names(Belowground.full)
-Modlist = list(
-  B3dex <- lme(tot.C.kg_m2~MAP.mm_yr,random= ~ 1|Region/Block,na.action=na.pass, method="REML",
-               correlation=corAR1(0.2, form=~month|area/block/plot/plot.ID),data=Belowground.full),
-  
-  B3nonN <-lme(tot.C.kg_m2~Fire_frequency.2000_2017.x,random= ~ 1|Region/Block,na.action=na.pass, method="REML",
-               correlation=corAR1(0.2, form=~month|area/block/plot/plot.ID),data=Belowground.full),
-  
-  B3dcmd <- lme(tot.C.kg_m2~Sand,random= ~ 1|Region/Block,na.action=na.pass, method="REML",
-                correlation=corAR1(0.2, form=~month|area/block/plot/plot.ID),data=Belowground.full),
-  
-  B3drain <-lme(tot.C.kg_m2~mean.N.kg_m2.x,random= ~ 1|Region/Block,na.action=na.pass, method="REML",
-                correlation=corAR1(0.2, form=~month|area/block/plot/plot.ID),data=Belowground.full),
-  
-  B3Cumrain <-lme(tot.C.kg_m2~Shrubbiness,random= ~ 1|Region/Block,na.action=na.pass, method="REML",
-                  correlation=corAR1(0.2, form=~month|area/block/plot/plot.ID),data=Belowground.full),
-  
-  B3dNDMS<- lme(tot.C.kg_m2~landuse,random= ~ 1|Region/Block,na.action=na.pass, method="REML",
-                correlation=corAR1(0.2, form=~month|area/block/plot/plot.ID),data=Belowground.full)
+# Testing different models 
+#psem
+# na.omit? 
+Modlist <-  psem(
+  lme(tot.C.kg_m2~CMAP.mm_yr + CFire_frequency.2000_2017.x + tot.N.kg_m2 +CSand ,random= ~ 1|Region/Block,na.action=na.omit, method="REML", data=Belowground.full),
+  lme(Shrubbiness~CFire_frequency.2000_2017.x + tot.N.kg_m2 + CMAP.mm_yr,random= ~ 1|Region/Block,na.action=na.omit, method="REML", data=Belowground.full),
+  lme(tot.N.kg_m2~tot.C.kg_m2 + Shrubbiness,random= ~ 1|Region/Block,na.action=na.omit, method="REML", data=Belowground.full),
+  CSand %~~% CMAP.mm_yr
 )
+# %~~% between correlated error - telling R to not care about the correlation between these variables. 
+# MySummary <- summary(modell)
+# save(MySummary, file="")
+sem.fit(Modlist,Belowground.full) # Error: no 'nobs' method is available
 
-  
-#  B3dNnonCmd<-lme(tot.C.kg_m2~n.non.N:Cmd_1,random= ~ 1|Region/Block,na.action=na.pass, method="REML",
-#                  correlation=corAR1(0.2, form=~month|area/block/plot/plot.ID),data=Belowground.full),
-  
-#  B3dCmdsum <- lme(tot.C.kg_m2~ Cmd_1:rain.sum.mm,random= ~ 1|Region/Block,na.action=na.pass, method="REML", correlation=corAR1(0.2, form=~month|area/block/plot/plot.ID),data=Belowground.full),
-  
-#  B3dExCum  <- lme(tot.C.kg_m2~ fexcl_open:rain.cumsum.mm,random= ~ 1|Region/Block,na.action=na.pass, method="REML", correlation=corAR1(0.2, form=~month|area/block/plot/plot.ID),data=Belowground.full)
-  
-#)
+rsquared(Modlist) # new version of sem.model.fits
+# Marginal R2= proportion of variance explained by the fixed factor
+# Conditional R2= Proportion of variance explained by the fixed factor and the random factor 
 
-
-
-sem.model.fits(Modlist)
-
-#  Class   Family     Link    n    Marginal Conditional       AIC     dAIC
-
-#1   lme gaussian identity 1512 0.098324415   0.2505575 -4303.239 242.7657
-
-#2   lme gaussian identity 1512 0.062604217   0.1354529 -4272.271 273.7334
-
-#3   lme gaussian identity 1512 0.003371297   0.1312388 -4258.521 287.4835
-
-#4   lme gaussian identity 1512 0.006518168   0.1352135 -4262.480 283.5241
-
-#5   lme gaussian identity 1512 0.069912662   0.2780917 -4345.115 200.8897
-
-#6   lme gaussian identity 1512 0.145098053   0.3167806 -4283.335 262.6688
-
-#7   lme gaussian identity 1512 0.011064162   0.1390799 -4281.143 264.8614
-
-#8   lme gaussian identity 1512 0.007254155   0.1413266 -4267.832 278.1721
-
-#9   lme gaussian identity 1512 0.228858807   0.4740496 -4546.004   0.0000
-
-
-
-# NDMS2 14%
-
-# Excl x rain sum 23%
-
-# NMDS 6%
-
-# Non-N 6%
-
-# Cmd <0.01%
-
-# Rain <0.01%
-
-#n.non.N:Cmd_1 # 2%
+# Response   family     link method     Marginal Conditional
+# 1 tot.C.kg_m2 gaussian identity   none 2.022436e-02   0.7121275
+# 2 tot.C.kg_m2 gaussian identity   none 2.290810e-01   0.9346487
+# 3 tot.C.kg_m2 gaussian identity   none 1.299114e-01   0.6023577
+# 4 tot.C.kg_m2 gaussian identity   none 5.934348e-01   0.9173345
+# 5 tot.C.kg_m2 gaussian identity   none 8.788994e-05   0.7287494
+# 6 tot.C.kg_m2 gaussian identity   none 2.193277e-02   0.7160153
