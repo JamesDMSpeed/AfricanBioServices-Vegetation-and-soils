@@ -147,7 +147,6 @@ plot(Databiom$difftarget~Databiom$rain.sum)
 # #### Trying to plot rain.sum with date on the x-axis ####
 # #plot(as.Date(harvest.date, format ="%m/%d/%Y"),rain.sum)
 # #plot(as.factor(harvest.date), rain.sum)
-# 
 # plot((rain.sum)~as.Date(Rdate), Databiom,na.rm=T)
 # #abline(lm((consTotal)~rain.sum, DataEx5))
 # #summary(lm((consTotal)~rain.sum, DataEx5))
@@ -958,18 +957,21 @@ AIC(NAP2.lme) #1014.414
 P1 <- NAP2.lme
 
 # Updating the model - generating p-values for each term (Should this be done from REML instead? So after the "aftermath"?)
-P1b <- update(P1, .~. -landuse:rain.sum)
+P1a <- update(P1,  .~. -landuse:rain.sum:poly(rain.sum,2))
+P1b <- update(P1a, .~. -landuse:rain.sum)
 P1c <- update(P1b, .~. -landuse)
 P1d <- update(P1b, .~. -rain.sum)
 P1e <- update(P1b, .~. -treatment)
 
-anova(P1,P1b) 
+anova(P1,P1a)
+anova(P1a,P1b) 
 anova(P1b,P1c) 
 anova(P1b,P1d) 
 anova(P1b,P1e) 
 
 # Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-# P1      1  9 1094.439 1126.858 -538.2194                        
+# P1      1  9 1094.439 1126.858 -538.2194   
+# P1a     2  9 1094.439 1126.858 -538.2194 1 vs 2 88.02485  <.0001 #landuse:rain.sum:polyrain
 # P1b     2  8 1095.147 1123.964 -539.5734 1 vs 2 2.707891  0.0999 #landuse:rain.sum
 # P1c     2  7 1094.322 1119.537 -540.1609 1 vs 2 1.175116  0.2784 #landuse
 # P1d     2  7 1114.188 1139.403 -550.0939 1 vs 2 21.04108  <.0001 #rain.sum
@@ -1006,10 +1008,9 @@ plot(predict(P1final)~landuse+treatment+rain.sum+
 
 #A:Specify covariate values for predictions
 MyData <- expand.grid(landuse=levels(Dataprod$landuse),treatment=levels(Dataprod$treatment),
-                       rain.sum = seq(min(Dataprod$rain.sum), max(Dataprod$rain.sum), length = 25)) #Not sure what the specific length of rain.sum does here... 
-
+                       rain.sum = seq(min(Dataprod$rain.sum), max(Dataprod$rain.sum), length = 25), poly.rain.sum=seq(min(poly(Dataprod$rain.sum,2)), max(poly(Dataprod$rain.sum,2)), length = 25)) #Length of rain.sum estimates 25 random numbers between the min and max for every other category (if just landuse in the model, then it would estimate 50 random points  - 25 for pasture/ 25 for wild)
 #B. Create X matrix with expand.grid
-X <- model.matrix(~ landuse+treatment+rain.sum+landuse:rain.sum, data = MyData)
+X <- model.matrix(~ landuse+treatment+rain.sum+landuse:rain.sum+landuse:rain.sum:poly(rain.sum,2), data = MyData)
 head(X)
 
 #C. Calculate predicted values
@@ -1035,7 +1036,7 @@ names(MyData)
 colnames(MyData)[4]<-"prodtot"
 
 #Trying to do this plotting - even though I don't understand the matrix and the rain.values from above...
-
+library(tidybayes)
 #### Plotting observed data versus prediction #####
 # Scatter plot with community NAP and rainfall
 NAPpred<-ggplot(data=Dataprod,aes(x=rain.sum, y=prodtot)) #observed
