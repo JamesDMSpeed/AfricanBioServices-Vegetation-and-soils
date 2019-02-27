@@ -943,17 +943,17 @@ abline(h = 0, lty = 2, col = 1)  # Quite equally spread above/below zero
 acf(E2, na.action=na.pass,main="Auto-correlation plot for residuals") # Temproal correlation
 
 #Selecting fixed structure using ML. Simplifying with drop1
-NAP2.lme <- lme(prodtot~landuse+treatment+rain.sum+
+NAP2.lme <- lme(prodtot~landuse+treatment+poly(rain.sum,2)+
                   #landuse:treatment+
-                  landuse:rain.sum+
+                  #landuse:rain.sum+
                   #treatment:rain.sum+
                   #landuse:sand+
                   #rain.sum:sand+
                   #landuse:treatment:rain.sum+
-                  rain.sum:poly(rain.sum,2):landuse, 
+                  poly(rain.sum,2):landuse, 
                  random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Dataprod)
 drop1(NAP2.lme,test="Chisq") #dropping if not significant term
-AIC(NAP2.lme) #1014.414
+AIC(NAP2.lme) #1053.722
 P1 <- NAP2.lme
 
 # Updating the model - generating p-values for each term (Should this be done from REML instead? So after the "aftermath"?)
@@ -979,9 +979,8 @@ anova(P1b,P1e)
 
 #Step 9 and 10 - Zuur. The aftermath
 # Refitting with REML and validating the model
-P1final <- lme(prodtot~landuse+treatment+rain.sum+
-                 landuse:rain.sum+
-                 rain.sum:poly(rain.sum,2):landuse,
+P1final <- lme(prodtot~landuse+treatment+poly(rain.sum,2)+
+                 poly(rain.sum,2):landuse,
                random=~1|site.name/block.id,method="REML",na.action=na.pass, correlation=cs1AR1, data=Dataprod)
 
 #Graphical model validation checking for homogeneity by plotting standardized residuals vs fitted values
@@ -1008,9 +1007,10 @@ plot(predict(P1final)~landuse+treatment+rain.sum+
 
 #A:Specify covariate values for predictions
 MyData <- expand.grid(landuse=levels(Dataprod$landuse),treatment=levels(Dataprod$treatment),
-                       rain.sum = seq(min(Dataprod$rain.sum), max(Dataprod$rain.sum), length = 25), poly.rain.sum=seq(min(poly(Dataprod$rain.sum,2)), max(poly(Dataprod$rain.sum,2)), length = 25)) #Length of rain.sum estimates 25 random numbers between the min and max for every other category (if just landuse in the model, then it would estimate 50 random points  - 25 for pasture/ 25 for wild)
+            #  rain.sum = seq(min(Dataprod$rain.sum), max(Dataprod$rain.sum), length = 25),
+            poly.rain.sum=seq(min(poly(Dataprod$rain.sum,2)), max(poly(Dataprod$rain.sum,2)), length = 25)) #Length of rain.sum estimates 25 random numbers between the min and max for every other category (if just landuse in the model, then it would estimate 50 random points  - 25 for pasture/ 25 for wild)
 #B. Create X matrix with expand.grid
-X <- model.matrix(~ landuse+treatment+rain.sum+landuse:rain.sum+landuse:rain.sum:poly(rain.sum,2), data = MyData)
+X <- model.matrix(~landuse+treatment+poly.rain.sum+landuse:poly.rain.sum,data=MyData)
 head(X)
 
 #C. Calculate predicted values
@@ -1106,8 +1106,8 @@ CONS.lme <- lme(constot~landuse+sand+rain.sum+
                   rain.sum:poly(rain.sum,2):landuse, 
               random=~1|site.name/block.id, method="REML",correlation=cs1AR1,data=Datacons)
 summary(CONS.lme)#don't use the p-values from here
-anova(CONS.lme) #rain and treatment seem significant, others not so important
-AIC(CONS.lme) #1149.579 (NOT the same as wih lme4 package)
+anova(CONS.lme) #nothing significant
+AIC(CONS.lme) #541.2802
 
 # Checking the temporal autocorrelation (cont. with the nlme model)
 # Extracting residuals from mixed model
@@ -1123,10 +1123,10 @@ abline(v = 0, lwd = 2, col = 2) # No fitted values below zero!
 abline(h = 0, lty = 2, col = 1)  # Quite equally spread above/below zero
 
 # Time auto-correlated
-acf(EC2, na.action=na.pass,main="Auto-correlation plot for residuals") # Temproal correlation
+acf(EC2, na.action=na.pass,main="Auto-correlation plot for residuals") # Temproal correlation 
 
 #Selecting fixed structure using ML. Simplifying with drop1
-CONS.lme <- lme(constot~landuse+rain.sum+
+CONS.lme <- lme(constot~landuse+sand+rain.sum+poly(rain.sum,2)
                   landuse:rain.sum, #not highly significant.. at the 0.1 level
                 random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Datacons)
 drop1(CONS.lme,test="Chisq") #dropping if not significant term
