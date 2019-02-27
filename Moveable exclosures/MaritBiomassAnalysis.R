@@ -55,13 +55,16 @@ colnames(Databiom)[colnames(Databiom)=="consumption.total.g.m2.day"] <- "constot
 colnames(Databiom)[colnames(Databiom)=="productivity.other.g.m2.day"] <- "prodoth"
 colnames(Databiom)[colnames(Databiom)=="consumption.other.g.m2.day"] <- "consoth"
 
+colnames(Databiom)[colnames(Databiom)=="sand.per"] <- "sand"
+
 #Renaming levels in region, landuse and treatment columns
 levels(Databiom$region)<-c("Dry Region","Intermediate Region","Wet Region")
 levels(Databiom$landuse)<-c("pasture","wild")
 levels(Databiom$treatment)<-c("exclosed","open")
 
-# Removing NAs from productivity
+# Removing NAs from productivity and other explanatory variables
 Databiom <- Databiom[complete.cases(Databiom[c("prodtot")]),]   #271 obs
+Databiom <- Databiom[complete.cases(Databiom[c("")]),]   #
 
 #### Date variable ####
 # Rdate create month column. default was (="%d.%m.%Y")
@@ -321,8 +324,8 @@ nap<-nap+ theme_bw() +
   theme(axis.line = element_line(color = 'black'))
 nap
 #ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPtarg.png",
-       width= 26, height = 18,units ="cm",
-       dpi = 600, limitsize = TRUE)
+     #  width= 26, height = 18,units ="cm",
+    # dpi = 600, limitsize = TRUE)
 
 #### NAP with Seronera ####
 # Remove target species
@@ -376,8 +379,8 @@ nap2<-nap2+ theme_bw() +
 nap2
 
 #ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPwithSeronera.png",
-       width= 26, height = 18,units ="cm",
-       dpi = 600, limitsize = TRUE)
+    #   width= 26, height = 18,units ="cm",
+    #  dpi = 600, limitsize = TRUE)
 
 #### NAP without Seronera ####
 Avgprod5 <- Avgprod4[Avgprod4$region!="Intermediate Region",]
@@ -430,8 +433,8 @@ nap3<-nap3+ theme_bw() +
 nap3
 
 #ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAP.png",
-       width= 26, height = 18,units ="cm",
-       dpi = 600, limitsize = TRUE)
+    #   width= 26, height = 18,units ="cm",
+    #   dpi = 600, limitsize = TRUE)
 #### CONS plot without Seronera ####
 Avgcons2 <- Avgcons[Avgcons$region!="Intermediate Region",]
 legend_title<-"land-use"
@@ -587,8 +590,8 @@ napconsb
 
 
 #ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONS.png",
-       width= 26, height = 18,units ="cm",
-       dpi = 600, limitsize = TRUE)
+    #   width= 26, height = 18,units ="cm",
+    #   dpi = 600, limitsize = TRUE)
 
 legend_title<-"land-use"
 napcons<- ggplot(Avgprodcons, aes(x=YrMonth, y=Productivity, colour=landuse,fill=landuse,shape=Biomass_change,
@@ -717,6 +720,7 @@ napcons2b
 #### ANALYSIS ####
 #### Precipitation line plot ####
 #Producivity
+par(mfrow=c(1,1))
 plot(Databiom$rain.sum,Databiom$prodtot, ylab="productivity", xlab = "Rainfall", main="Rainfall and productivity",col=Databiom$landuse)
 abline(lm((prodtot)~rain.sum, Databiom))
 summary(lm(prodtot~rain.sum,data=Databiom)) #lm: y= 0.19+0.0032x, r^2=0.068
@@ -869,12 +873,13 @@ lineplot.CI(factor(fertil[subset=-c(6,19,29)]), yield[subset=-c(6,19,29)], xlab 
 #c.Making autocorrelation matrix
 #d.Including autocorr in the mixed model
 
-#Total productivity
-napmod <- lm(prodtot~landuse+treatment+rain.sum+
+#### Total NAP lme #### 
+napmod <- lm(prodtot~landuse+treatment+rain.sum+sand+
                landuse:rain.sum,data=Databiom)
 summary(napmod)
 plot(resid(napmod)~Databiom$landuse,xlab="landuse",ylab="residuals")
 par(mfrow=c(1,1))
+
 #Plotting residuals against time (YrMonthNumber)
 # Running numeric value for months
 # turn a date into a 'monthnumber' relative to an origin
@@ -914,11 +919,15 @@ anova(NAP.lme) # rain and treatment seem significant (high F-values), others not
 AIC(NAP.lme) # 1147.579
 
 #LME with temporal auto-correlation (using nlme package)
-NAP2.lme <- lme(prodtot~landuse+treatment+rain.sum+
+NAP2.lme <- lme(prodtot~landuse+treatment+sand+rain.sum+
                   landuse:treatment+
                   landuse:rain.sum+
                   treatment:rain.sum+
-                  landuse:treatment:rain.sum, random=~1|site.name/block.id, method="REML",correlation=cs1AR1,data=Databiom)
+                  landuse:sand+
+                  rain.sum:sand+
+                  landuse:treatment:rain.sum+
+                 rain.sum:poly(rain.sum,2):landuse, 
+              random=~1|site.name/block.id, method="REML",correlation=cs1AR1,data=Databiom)
 summary(NAP2.lme)#don't use the p-values from here
 anova(NAP2.lme) #rain and treatment seem significant, others not so important
 AIC(NAP2.lme) #1149.579 (NOT the same as wih lme4 package)
@@ -1033,9 +1042,8 @@ colnames(MyData)[4]<-"prodtot"
 NAPpred<-ggplot(data=Databiom,aes(x=rain.sum, y=prodtot)) #observed
 NAPpred<-NAPpred+geom_ribbon(data=MyData,aes(ymin=SeUp, ymax=SeLo),fill="red",colour="red",alpha=.65,lwd=NA,show.legend=F)
 NAPpred<-NAPpred+geom_line(data=MyData,aes(ymin=SeUp, ymax=SeLo),colour="red",alpha=.9,lwd=2,show.legend=F)
-
-NAPpred<-NAPpred+geom_point(stats="identity",colour="grey50",fill="grey50",size=2.5) #observed? 
-NAPpred<-NAPpred+facet_wrap(~landuse, scale="fixed")
+NAPpred<-NAPpred+geom_point(stats="identity",colour="grey50",fill="grey50",size=2.5) #observed values
+NAPpred<-NAPpred+facet_wrap(~landuse+treatment, scale="fixed")
 NAPpred<-NAPpred+scale_x_continuous(limits=c(0,530), breaks = c(0,200,400), labels = c(0,200,400), expand=c(0,0))
 NAPpred<-NAPpred+scale_y_continuous(expand=c(0,0))
 NAPpred<-NAPpred+ylab(expression(paste("Productivity (g ",m^-2," ",day^-1,")")))+xlab("Rainfall (mm)") # Adding x and ylabs to plot
@@ -1061,6 +1069,9 @@ NAPpred<-NAPpred+theme_bw()+
 NAPpred<-NAPpred+annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = 0, xend = 0, size = 1) 
 NAPpred<-NAPpred+annotate(geom = 'segment', y = 0, yend = 0, color = 'black', x = -Inf, xend = Inf, size = 0.5) 
 NAPpred
+
+#### Total consumption lme ####
+
 
 ####|####
 #### USEFUL STUFF ####
