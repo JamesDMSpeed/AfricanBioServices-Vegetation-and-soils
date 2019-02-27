@@ -1008,9 +1008,10 @@ plot(predict(P1final)~landuse+treatment+rain.sum+
 #A:Specify covariate values for predictions
 MyData <- expand.grid(landuse=levels(Dataprod$landuse),treatment=levels(Dataprod$treatment),
             #  rain.sum = seq(min(Dataprod$rain.sum), max(Dataprod$rain.sum), length = 25),
-            poly.rain.sum=seq(min(poly(Dataprod$rain.sum,2)), max(poly(Dataprod$rain.sum,2)), length = 25)) #Length of rain.sum estimates 25 random numbers between the min and max for every other category (if just landuse in the model, then it would estimate 50 random points  - 25 for pasture/ 25 for wild)
+            rain.sum=seq(min(Dataprod$rain.sum), max(Dataprod$rain.sum), length = 25)) #Length of rain.sum estimates 25 random numbers between the min and max for every other category (if just landuse in the model, then it would estimate 50 random points  - 25 for pasture/ 25 for wild)
 #B. Create X matrix with expand.grid
-X <- model.matrix(~landuse+treatment+poly.rain.sum+landuse:poly.rain.sum,data=MyData)
+X <- model.matrix(~landuse+treatment+poly(rain.sum,2)+
+                    poly(rain.sum,2):landuse,data=MyData)
 head(X)
 
 #C. Calculate predicted values
