@@ -901,8 +901,7 @@ Woody<- Block.Eco.C %>%
   filter(Carbon.pool== "Woody")
 Herbaceous<- Block.Eco.C %>%
   filter(Carbon.pool== "Herbaceous")
-str(Belowground.C)
-names(Belowground.C)
+
 Belowground.C <- cbind(Soil.min[c(3:25,27,29,30)],Soil.Ahor[c(27)])
 colnames(Belowground.C)[24] <- "Soil.MinHor" 
 colnames(Belowground.C)[27] <- "Soil.AHor"
@@ -984,6 +983,25 @@ B1f <- update(B1, .~. + CTreeBM.kg_m2:CFire_frequency.2000_2017) # ns
 anova(B1f,B1)
 AIC(B1f) #51.66514
 
+# Global model for Belowground C 
+Belowground.block<-lmer(tot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + Ctot.N.kg_m2 + CTreeBM.kg_m2 + CSand + CShrubbiness +
+                          landuse:CMAP.mm_yr + landuse:CFire_frequency.2000_2017  + landuse:Ctot.N.kg_m2: + landuse:CSand  + landuse:CShrubbiness +
+                          CMAP.mm_yr:CSand +  CTreeBM.kg_m2:CSand +  Ctot.N.kg_m2:CSand + CFire_frequency.2000_2017:CSand +  CShrubbiness:CSand +
+                          CTreeBM.kg_m2:CMAP.mm_yr +  Ctot.N.kg_m2:CMAP.mm_yr + CFire_frequency.2000_2017:CMAP.mm_yr +  CShrubbiness:CMAP.mm_yr +
+                          CTreeBM.kg_m2:Ctot.N.kg_m2 +  CFire_frequency.2000_2017:Ctot.N.kg_m2 + CTreeBM.kg_m2:CFire_frequency.2000_2017 + CShrubbiness:CFire_frequency.2000_2017 + CShrubbiness:Ctot.N.kg_m2 + (1|Region.x),data = Belowground.C, REML=T)
+
+summary(Belowground.block)
+drop1(Belowground.block,test="Chisq") # a lot of warninings.. 
+anova(Belowground.block)
+AIC(Belowground.block) #85.71602
+
+# Model averaging: All possible models between null and global
+modset<-dredge(Belowground.block,trace = TRUE, rank = "AICc", REML = FALSE)
+modsel<-model.sel(modset) #Model selection table giving AIC, deltaAIC and weighting
+modavg<-model.avg(modsel)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgglm)#Importance of each variable
+summary(modavgglm)#Estimated coefficients given weighting
+
 # Global model for Aboveground C 
 Aboveground.block<-lmer(tot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + Ctot.N.kg_m2 + CTreeBM.kg_m2 + CSand + CShrubbiness +
                           landuse:CMAP.mm_yr + landuse:CFire_frequency.2000_2017  + landuse:Ctot.N.kg_m2: + landuse:CSand  + landuse:CShrubbiness +
@@ -1008,13 +1026,6 @@ summary(Aboveground.block.red)
 drop1(Aboveground.block.red,test="Chisq") # nothing significant 
 anova(Aboveground.block.red)
 AIC(Aboveground.block.red) #10.57838
-
-# Model averaging: All possible models between null and global
-modset<-dredge(Belowground.block,trace = TRUE, rank = "AICc", REML = FALSE)
-modsel<-model.sel(modset) #Model selection table giving AIC, deltaAIC and weighting
-modavg<-model.avg(modsel)#Averages coefficient estimates across multiple models according to the weigthing from above
-importance(modavgglm)#Importance of each variable
-summary(modavgglm)#Estimated coefficients given weighting
 
 
 # 2. From belowground.full fine scale ####
