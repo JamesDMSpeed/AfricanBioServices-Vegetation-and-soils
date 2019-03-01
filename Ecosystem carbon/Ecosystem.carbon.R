@@ -984,11 +984,17 @@ anova(B1f,B1)
 AIC(B1f) #51.66514
 
 # Global model for Belowground C 
+
+summary(Belowground.C)#NA in fire variables
+#Remove row with NA
+Belowground.CnoNA<-Belowground.C[!is.na(Belowground.C$Fire_frequency.2000_2017),]
+
 Belowground.block<-lmer(tot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + Ctot.N.kg_m2 + CTreeBM.kg_m2 + CSand + CShrubbiness +
                           landuse:CMAP.mm_yr + landuse:CFire_frequency.2000_2017  + landuse:Ctot.N.kg_m2: + landuse:CSand  + landuse:CShrubbiness +
                           CMAP.mm_yr:CSand +  CTreeBM.kg_m2:CSand +  Ctot.N.kg_m2:CSand + CFire_frequency.2000_2017:CSand +  CShrubbiness:CSand +
                           CTreeBM.kg_m2:CMAP.mm_yr +  Ctot.N.kg_m2:CMAP.mm_yr + CFire_frequency.2000_2017:CMAP.mm_yr +  CShrubbiness:CMAP.mm_yr +
-                          CTreeBM.kg_m2:Ctot.N.kg_m2 +  CFire_frequency.2000_2017:Ctot.N.kg_m2 + CTreeBM.kg_m2:CFire_frequency.2000_2017 + CShrubbiness:CFire_frequency.2000_2017 + CShrubbiness:Ctot.N.kg_m2 + (1|Region.x),data = Belowground.C, REML=T)
+                          CTreeBM.kg_m2:Ctot.N.kg_m2 +  CFire_frequency.2000_2017:Ctot.N.kg_m2 + CTreeBM.kg_m2:CFire_frequency.2000_2017 + CShrubbiness:CFire_frequency.2000_2017 + CShrubbiness:Ctot.N.kg_m2 + (1|Region.x),data = Belowground.CnoNA, REML=T,
+                        na.action=na.fail)
 
 summary(Belowground.block)
 drop1(Belowground.block,test="Chisq") # a lot of warninings.. 
