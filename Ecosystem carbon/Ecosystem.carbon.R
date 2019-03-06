@@ -787,9 +787,10 @@ panel.cor <- function(x, y, digits=1, prefix="", cex.cor = 6)
 names(Belowground.full)
 str(Belowground.full)
 names(Belowground.C)
+Belowground.C$CN <- Belowground.C$tot.C.kg_m2 / Belowground.C$tot.N.kg_m2
 MyVar1<-c("MAP.mm_yr","Sand","Fire_frequency.2000_2017","Shrubbiness","tot.N.kg_m2","CN")
 
-MyVar2<-c("MAP.mm_yr","Sand.pip.per","Fire_frequency.2000_2017","Shrubbiness","tot.N.kg_m2","TreeBM.N","TreeBM.kg_m2")
+MyVar2<-c("MAP.mm_yr","Sand.pip.per","Fire_frequency.2000_2017","Shrubbiness","tot.N.kg_m2","TreeBM.N","TreeBM.kg_m2","CN")
 
 MyVar3<-c("BM.non.N.trees.m2","BM.N.trees.m2","mean.N.kg_m2.x","Shrubbiness")
 
@@ -797,7 +798,8 @@ MyVar3<-c("BM.non.N.trees.m2","BM.N.trees.m2","mean.N.kg_m2.x","Shrubbiness")
 pairs(Belowground.full[,MyVar1],lower.panel = panel.cor)
 pairs(Belowground.C[,MyVar2],lower.panel = panel.cor)
 # If I want these values in a table:
-Variables2 <- Belowground.full[,c(10:12,15,16,22,24,26,41,43,46)] # first select the collums I want to use 
+Variables2 <- Belowground.C[,c(5,7,10,13,15,27,36,40)]
+Variables1 <- Belowground.full[,c(10:12,15,16,22,24,26,41,43,46)] # first select the collums I want to use 
 Mycor <- rcorr(as.matrix(Variables2), type="pearson") # Use the pearson correlation (r-value)
 MycorR <- as.data.frame(round(Mycor$r, digits=3))
 MycorP <- as.data.frame(round(Mycor$P, digits=3))
@@ -887,8 +889,8 @@ Belowground.full$Region<- factor(Belowground.full$Region, levels = c("Makao","Ma
 # About mixed effect models (nlme package)
 # REML = restricted maximum likelihood estimation 
 # Fixed effects influence the mean of y, while Random effects influence the variance of y 
-# Use REML= F when looking at the fixed effects 
-# Use REML = T when looking at the random effects, and the parameter estimates
+# Use REML= F when looking at the fixed effects, maximum likelihood  - use this first when I want to figure out which model to use - when comparing models, then
+# Use REML = T when looking at the random effects, and the parameter estimates - when I have found the model I want to use! 
 # I have region and block.ID as random effects 
 # Choose the model with the smallest AIC value 
 
@@ -937,6 +939,10 @@ Soil.min <- cbind(Soil.min,tot.N.kg_m2[3])
 Soil.Ahor <- cbind(Soil.Ahor,tot.N.kg_m2[3])
 
 names(Belowground.full)
+summary(Belowground.full)
+Belowground.full$CN <- Belowground.full$tot.C.kg_m2/Belowground.full$tot.N.kg_m2
+max(Belowground.full$CN)
+plot(CN~Region,data=Belowground.full)
 # scaling tot.C to be able to compare estimates.. 
 Belowground.C$Ctot.C.kg_m2 <- as.numeric(scale(Belowground.C$tot.C.kg_m2)) 
 Aboveground.C$Ctot.C.kg_m2 <- as.numeric(scale(Aboveground.C$DW)) + as.numeric(scale(Aboveground.C$Herbaceous)) + as.numeric(scale(Aboveground.C$Woody))
@@ -946,6 +952,7 @@ Aboveground.C$Ctot.N.kg_m2 <- as.numeric(scale(Aboveground.C$tot.N.kg_m2))
 Belowground.C$Ctot.N.kg_m2 <- as.numeric(scale(Belowground.C$tot.N.kg_m2))
 Soil.min$Ctot.N.kg_m2 <- as.numeric(scale(Soil.min$tot.N.kg_m2))
 Soil.Ahor$Ctot.N.kg_m2 <- as.numeric(scale(Soil.Ahor$tot.N.kg_m2))
+Aboveground.C$CLast.fire_yr <- as.numeric(scale(Aboveground.C$Last.fire_yr))
 # scaling some of the variables in belowground.full
 Belowground.full$CMAP.mm_yr <- as.numeric(scale(Belowground.full$MAP.mm_yr))
 Belowground.full$CSand <- as.numeric(scale(Belowground.full$Sand))
@@ -953,7 +960,7 @@ Belowground.full$CFire_frequency.2000_2017 <- as.numeric(scale(Belowground.full$
 Belowground.full$Ctot.N.kg_m2 <- as.numeric(scale(Belowground.full$tot.N.kg_m2))
 Belowground.full$CShrubbiness <- as.numeric(scale(Belowground.full$Shrubbiness))
 Belowground.full$CTreeBM.kg_m2 <- as.numeric(scale(Belowground.full$TreeBM.kg_m2))
-
+Belowground.full$Ctot.C.kg_m2 <- as.numeric(scale(Belowground.full$tot.C.kg_m2)) 
 #### BELOWGROUND CARBON #### 
 # Look at belowground C first (A + Min)
 # Run a full model of all my fixed factors interactions with belowground C 
@@ -964,62 +971,96 @@ summary(Belowground.C)#NA in fire variables
 #Remove row with NA
 Belowground.CnoNA<-Belowground.C[!is.na(Belowground.C$CFire_frequency.2000_2017),]
 # 1. Global model for Belowground C univariate variables 
-Belowground.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 +  Ctot.N.kg_m2 + CTreeBM.kg_m2 + CSand + CShrubbiness + CTreeBM.N +
-                          (1|Region.x),data = Belowground.CnoNA, REML=T,
+Belowground.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 +  Ctot.N.kg_m2 + CTreeBM.kg_m2 + CSand + CShrubbiness + CTreeBM.N + 
+                          (1|Region.x), data = Belowground.CnoNA, REML=F,
                         na.action=na.fail)
-
-
 summary(Belowground.block)
 drop1(Belowground.block,test="Chisq")
 anova(Belowground.block)
-AIC(Belowground.block) #54.65519
-?dredge
-?subsetting
+AIC(Belowground.block) #22.29482
+# With interactions
+Belowground.block.update<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + #landuse + 
+                                 CFire_frequency.2000_2017 +  Ctot.N.kg_m2 + CTreeBM.kg_m2 + #CSand + CShrubbiness + CTreeBM.N + 
+                                 CTreeBM.kg_m2:CFire_frequency.2000_2017 + 
+                                 Ctot.N.kg_m2:CMAP.mm_yr +
+                          (1|Region.x), data = Belowground.CnoNA, REML=F,
+                        na.action=na.fail)
+summary(Belowground.block.update)
+drop1(Belowground.block.update,test="Chisq")
+anova(Belowground.block.update)
+AIC(Belowground.block.update) #17.86313
+
 # Model averaging: All possible models between null and global
-modsetbelow<-dredge(Belowground.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse) & !(CSand & Ctot.N.kg_m2 ))
-modselbelow<-model.sel(modsetbelow) #Model selection table giving AIC, deltaAIC and weighting
-modavgbelow<-model.avg(modselbelow)#Averages coefficient estimates across multiple models according to the weigthing from above
-importance(modavgbelow)#Importance of each variable
-summary(modavgbelow)#Estimated coefficients given weighting
+modsetbelowB<-dredge(Belowground.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse) & !(CSand & Ctot.N.kg_m2 ))
 
-# Test significanse of different variables 
-B1<-lmer(Ctot.C.kg_m2~CMAP.mm_yr + #landuse + 
-           CFire_frequency.2000_2017 + Ctot.N.kg_m2 + CTreeBM.kg_m2 + CSand + #CShrubbiness + 
-           (1|Region.x), data = Belowground.CnoNA, REML=T)
+modselbelowB<-model.sel(modsetbelowB) #Model selection table giving AIC, deltaAIC and weighting
+modavgbelowB<-model.avg(modselbelowB)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgbelowB)#Importance of each variable
+summary(modavgbelowB)#Estimated coefficients given weighting
+
+# Add interactions + remove ns univariate variables + get estimates REML=T
+B1<-lmer(Ctot.C.kg_m2~CMAP.mm_yr + CFire_frequency.2000_2017 + Ctot.N.kg_m2 + CTreeBM.kg_m2 + 
+           Ctot.N.kg_m2:CMAP.mm_yr + 
+           #CTreeBM.kg_m2:CMAP.mm_yr + CTreeBM.kg_m2:Ctot.N.kg_m2 + CFire_frequency.2000_2017:Ctot.N.kg_m2 + 
+           CTreeBM.kg_m2:CFire_frequency.2000_2017 + 
+           (1|Region.x), data = Belowground.CnoNA, REML=F)
 summary(B1)
-drop1(B1,test="Chisq") # signifiant: MAP,Fire,N,treeBM,Sand
-AIC(B1) # 54.38128, drop ns, AIC: 46.67971
+drop1(B1,test="Chisq") # MAP:N is significant, Fire:TreeBM: 0.07, drop ns, now Fire:TreeBM also significant. 
+AIC(B1) # 22.56718, drop ns interactions, AIC: 17.86313! 
 
-# Add interactions - no interactions seems to be significant here. 
-B1a <- update(B1, .~. +CMAP.mm_yr:CSand) # ns 
-anova(B1a,B1)
-AIC(B1a) #50.82971
-B1b <- update(B1, .~. +CTreeBM.kg_m2:CSand ) # ns 
-anova(B1b,B1)
-AIC(B1b) #50.75608
-B1c <- update(B1, .~. + CTreeBM.kg_m2:CMAP.mm_yr) # ns 
-anova(B1c,B1)
-AIC(B1c) #50.79712
-B1d <- update(B1, .~. + CTreeBM.kg_m2:Ctot.N.kg_m2) # ns 
-anova(B1d,B1)
-AIC(B1d) #50.3881
-B1e <- update(B1, .~. + CFire_frequency.2000_2017:Ctot.N.kg_m2) # ns 
-anova(B1e,B1)
-AIC(B1e) #50.70199
-B1f <- update(B1, .~. + CTreeBM.kg_m2:CFire_frequency.2000_2017) # ns 
-anova(B1f,B1)
-AIC(B1f) #51.66514
+# Alternative model 
+B2 <-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + Ctot.N.kg_m2 + Ctot.N.kg_m2:CMAP.mm_yr + 
+              (1|Region.x), data = Belowground.CnoNA, REML=F)
+drop1(B2,test="Chisq")
+AIC(B2) #23.7962 - not better.. 
+
+# Remove interactions one by one  
+B1a <- update(B1, .~. - CTreeBM.kg_m2:CFire_frequency.2000_2017 )  
+B1b <- update(B1, .~. - Ctot.N.kg_m2:CMAP.mm_yr) 
+B1c <- update(B1a, .~. - Ctot.N.kg_m2:CMAP.mm_yr)
+anova(B1,B1a) # significant TreeBM:Fire 0.03152 *
+anova(B1,B1b) # significant N:MAP 0.02296 *
+anova(B1a,B1c)
+
+# Removing N from model to look at sand! 
+Belowground.block.red<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 +  #Ctot.N.kg_m2 + 
+                          CTreeBM.kg_m2 + CSand + CShrubbiness + CTreeBM.N +
+                          (1|Region.x), data = Belowground.CnoNA, REML=F,
+                        na.action=na.fail)
+summary(Belowground.block.red)
+drop1(Belowground.block.red,test="Chisq")
+anova(Belowground.block.red)
+AIC(Belowground.block.red) #55.41308
+
+# Model averaging: All possible models between null and global
+modsetbelowB.red<-dredge(Belowground.block.red,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse))
+modselbelowB.red<-model.sel(modsetbelowB.red) #Model selection table giving AIC, deltaAIC and weighting
+modavgbelowB.red<-model.avg(modselbelowB.red)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgbelowB.red)#Importance of each variable
+summary(modavgbelowB.red)#Estimated coefficients given weighting
+
+# Updated model with interactions - no significant.. 
+B1.red<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + CFire_frequency.2000_2017 +
+                              CTreeBM.kg_m2 + CSand + 
+               CMAP.mm_yr:CFire_frequency.2000_2017 + #CMAP.mm_yr:CTreeBM.kg_m2 + CMAP.mm_yr:CSand +
+              # CFire_frequency.2000_2017:CTreeBM.kg_m2 + CFire_frequency.2000_2017:CTreeBM.kg_m2 + CTreeBM.kg_m2:CSand +
+                              (1|Region.x), data = Belowground.CnoNA, REML=F,
+                            na.action=na.fail)
+summary(B1.red)
+drop1(B1.red,test="Chisq")
+anova(B1.red)
+AIC(B1.red) #50.99106, removing TreeBM: 52.52395
 
 # 2. Global model for A-hor C univariate variables 
 Soil.Ahor.CnoNA<-Soil.Ahor[!is.na(Soil.Ahor$CFire_frequency.2000_2017),]
-Ahor.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 +  Ctot.N.kg_m2 + CTreeBM.kg_m2 + CSand + CShrubbiness + CTreeBM.N + CMAP.mm_yr:CSand + Ctot.N.kg_m2:CMAP.mm_yr +
-                          (1|Region.x),data = Soil.Ahor.CnoNA, REML=T,
+Ahor.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 +  Ctot.N.kg_m2 + CTreeBM.kg_m2 + CSand + CShrubbiness + CTreeBM.N + #CMAP.mm_yr:CSand + Ctot.N.kg_m2:CMAP.mm_yr +
+                          (1|Region.x),data = Soil.Ahor.CnoNA, REML=F,
                         na.action=na.fail)
 
 summary(Ahor.block)
 drop1(Ahor.block,test="Chisq")  
 anova(Ahor.block)
-AIC(Ahor.block) #78.12686
+AIC(Ahor.block) #65.20516
 
 # Model averaging: All possible models between null and global
 modsetbelowA<-dredge(Ahor.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse) & !(CSand & Ctot.N.kg_m2))
@@ -1029,35 +1070,51 @@ importance(modavgbelowA)#Importance of each variable
 summary(modavgbelowA)#Estimated coefficients given weighting
 
 # Add interactions/ look at model without covariates.. 
-BA1<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + #landuse + 
-           # CFire_frequency.2000_2017 + 
-            Ctot.N.kg_m2 + #CTreeBM.kg_m2 + 
-           # CSand + CShrubbiness + CTreeBM.N +
+BA1<-lmer(Ctot.C.kg_m2~ -1 + CMAP.mm_yr + Ctot.N.kg_m2 + #CMAP.mm_yr:Ctot.N.kg_m2 + 
                    (1|Region.x),data = Soil.Ahor.CnoNA, REML=T,
                  na.action=na.fail)
 summary(BA1)
 drop1(BA1,test="Chisq")  
 anova(BA1)
-AIC(BA1) #78.12686 #without N and treeBM: 73.56863, without Sand and landuse: 74.4222, with N and MAP: 58.31239
+AIC(BA1) #55.28348, add interactions: 57.08486, not better with interaction. 
+r.squaredGLMM(BA1) # can I use this for R2 
 
-# Add interactions - no interactions seems to be significant here. 
-BA1a <- update(BA1, .~. +CMAP.mm_yr:Ctot.N.kg_m2) # ns 
-anova(BA1a,BA1)
-AIC(BA1a) #62.19871
-BA1b <- update(BA1, .~. +CMAP.mm_yr:CSand) # ns 
-anova(BA1b,BA1)
-AIC(BA1b) #59.62374
+# remove interactions - no interactions seems to be significant here. 
+BA1a <- update(BA1, .~. -CMAP.mm_yr:Ctot.N.kg_m2) 
+BA1b <- update(BA1a, .~. -CMAP.mm_yr) 
+BA1c <- update(BA1a, .~. -Ctot.N.kg_m2) 
+anova(BA1a,BA1) # ns 
+anova(BA1a,BA1b) # ns
+anova(BA1a,BA1c) # N is the only significant. 
+
+# Without N  
+Ahor.red <-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand + CShrubbiness + CTreeBM.N + 
+                  #CMAP.mm_yr:CSand + CFire_frequency.2000_2017:CTreeBM.kg_m2 + 
+                   (1|Region.x),data = Soil.Ahor.CnoNA, REML=F,
+                 na.action=na.fail)
+
+summary(Ahor.red)
+drop1(Ahor.red,test="Chisq") # nothing significant. 
+anova(Ahor.red)
+AIC(Ahor.red) #65.59262
+
+# Model averaging: All possible models between null and global
+modsetbelowAhor.red<-dredge(Ahor.red,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse))
+modselbelowA.red<-model.sel(modsetbelowAhor.red) #Model selection table giving AIC, deltaAIC and weighting
+modavgbelowA.red<-model.avg(modsetbelowAhor.red)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgbelowA.red)#Importance of each variable
+summary(modavgbelowA.red)#Estimated coefficients given weighting
 
 # 3. Global model for Mineral hor C univariate variables 
 Soil.min.CnoNA<-Soil.min[!is.na(Soil.min$CFire_frequency.2000_2017),]
 Min.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 +  Ctot.N.kg_m2 + CTreeBM.kg_m2 + CSand + CShrubbiness + CTreeBM.N +
-                          (1|Region.x),data = Soil.min.CnoNA, REML=T,
+                          (1|Region.x),data = Soil.min.CnoNA, REML=F,
                         na.action=na.fail)
 
 summary(Min.block)
 drop1(Min.block,test="Chisq") # MAP,Fire,N,TreeBM
 anova(Min.block)
-AIC(Min.block) #52.58604
+AIC(Min.block) #18.5612
 
 # Model averaging: All possible models between null and global
 modsetbelowM<-dredge(Min.block,trace = TRUE, rank = "AICc", REML = FALSE,
@@ -1067,54 +1124,112 @@ modavgbelowM<-model.avg(modselbelowM)#Averages coefficient estimates across mult
 importance(modavgbelowM)#Importance of each variable
 summary(modavgbelowM)#Estimated coefficients given weighting
 
-# With N 
+# Look at the best model: 
 BM1<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + #landuse + 
             CFire_frequency.2000_2017 +  Ctot.N.kg_m2 + CTreeBM.kg_m2 + 
             #CSand + CShrubbiness + CTreeBM.N +
-            CMAP.mm_yr:Ctot.N.kg_m2 +
-                  (1|Region.x),data = Soil.min.CnoNA, REML=T,
+            #CMAP.mm_yr:Ctot.N.kg_m2 +
+            #CMAP.mm_yr:CFire_frequency.2000_2017 + 
+                  (1|Region.x),data = Soil.min.CnoNA, REML=F,
                 na.action=na.fail)
 summary(BM1)
 drop1(BM1,test="Chisq") # MAP,Fire,N,TreeBM
 anova(BM1)
-AIC(BM1) #33.00912, with interaction MAP:N AIC: 33.96
+AIC(BM1) #18.5612, drop ns. new AIC:11.86153 
 
-# Add interactions 
-BM1a <- update(BM1, .~. +CMAP.mm_yr:Ctot.N.kg_m2) # ns 
-anova(BA1a,BA1)
-AIC(BM1a) #33.96059 - not delta = 2, so this interaction is important. 
-BM1b <- update(BM1, .~. +CMAP.mm_yr:CFire_frequency.2000_2017) # ns 
-anova(BM1b,BA1)
-AIC(BM1b) #37.38585
+# With interactions 
+#test with interactions MAP:N and MAP:Fire AIC: 7.627446 - what to keep?? remove fire:MAP, AIC: 7.84803
 
-# Without N 
 BM2<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + #landuse + 
-            CFire_frequency.2000_2017 + 
-            CTreeBM.kg_m2 + 
-            CSand + #CShrubbiness + CTreeBM.N +
+            CFire_frequency.2000_2017 +  Ctot.N.kg_m2 + CTreeBM.kg_m2 + 
+            #CSand + CShrubbiness + CTreeBM.N +
+            CMAP.mm_yr:Ctot.N.kg_m2 + #CMAP.mm_yr:CFire_frequency.2000_2017 + #CMAP.mm_yr:CTreeBM.kg_m2 + 
+            #CFire_frequency.2000_2017:Ctot.N.kg_m2 + CFire_frequency.2000_2017:CTreeBM.kg_m2 + 
+            #Ctot.N.kg_m2:CTreeBM.kg_m2 + 
+            (1|Region.x),data = Soil.min.CnoNA, REML=F,
+          na.action=na.fail)
+summary(BM2)
+drop1(BM2,test="Chisq") # MAP:N, MAP:Fire 
+anova(BM2)
+AIC(BM2) #18.5612, drop ns. new AIC:11.86153, with interactions: 12.80339, remove ns interactions, new AIC: 7.627446, drop MAP:Fire, AIC: 7.84803
+
+# remove interactions 
+BM2a <- update(BM2, .~. -CMAP.mm_yr:Ctot.N.kg_m2) 
+anova(BM2,BM2a) # Significant:  0.005059 **
+AIC(BM2a) #13.48563 
+BM2b <- update(BM2, .~. -CMAP.mm_yr:CFire_frequency.2000_2017)  
+anova(BM2,BM2b) # ns: 0.1362
+AIC(BM2b) #7.84803 - better without MAP:Fire
+BM2c <- update(BM2b, .~. -CMAP.mm_yr:Ctot.N.kg_m2) 
+anova(BM2b,BM2c) # significant: 0.0142 *
+AIC(BM2c) #11.86153
+
+# Estimates
+BM3<-lmer(Ctot.C.kg_m2~  -1 +CMAP.mm_yr + 
+            CFire_frequency.2000_2017 +  Ctot.N.kg_m2 + CTreeBM.kg_m2 +
+            CMAP.mm_yr:Ctot.N.kg_m2 +
             (1|Region.x),data = Soil.min.CnoNA, REML=T,
           na.action=na.fail)
+summary(BM3)
+drop1(BM3,test="Chisq")
+anova(BM3)
+AIC(BM3) #18.5612, drop ns. new AIC:11.86153, with interactions: 12.80339, remove ns interactions, new AIC: 7.627446, drop MAP:Fire, AIC: 7.84803
 
-summary(BM2)
-drop1(BM2,test="Chisq") # MAP,Fire,TreeBM,Sand
-anova(BM2)
-AIC(BM2) # 77.94728, remove ns, AIC: 68.14543 
+# Without N 
+BM.red<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + 
+            CFire_frequency.2000_2017 + 
+            CTreeBM.kg_m2 + 
+            CSand + CShrubbiness + CTreeBM.N +
+            (1|Region.x),data = Soil.min.CnoNA, REML=F,
+          na.action=na.fail)
 
-# Add interactions 
-BM2a <- update(BM2, .~. +CMAP.mm_yr:CSand) # ns 
-anova(BM2a,BM2)
-AIC(BM2a) #71.2501
-BM2b <- update(BM2, .~. +CMAP.mm_yr:CFire_frequency.2000_2017) # ns 
-anova(BM2b,BM2)
-AIC(BM2b) #70.78538
+summary(BM.red)
+drop1(BM.red,test="Chisq") # MAP,Fire,TreeBM,Sand
+anova(BM.red)
+AIC(BM.red) # 59.88811, remove ns: 55.03274
 
 #Test this model with model averaging
 # Model averaging: All possible models between null and global
-modsetbelowMred<-dredge(BM2,trace = TRUE, rank = "AICc", REML = FALSE)
+modsetbelowMred<-dredge(BM.red,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse))
 modselbelowMred<-model.sel(modsetbelowMred) #Model selection table giving AIC, deltaAIC and weighting
 modavgbelowMred<-model.avg(modselbelowMred)#Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modavgbelowMred)#Importance of each variable
 summary(modavgbelowMred)#Estimated coefficients given weighting
+
+# Add interactions 
+BM.red1<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand + 
+               CMAP.mm_yr:CFire_frequency.2000_2017 + #CMAP.mm_yr:CTreeBM.kg_m2 + 
+                CMAP.mm_yr:CSand +
+               #CFire_frequency.2000_2017:CTreeBM.kg_m2 + 
+                #CFire_frequency.2000_2017:CSand + 
+               #CTreeBM.kg_m2:CSand +
+               (1|Region.x),data = Soil.min.CnoNA, REML=F,
+             na.action=na.fail)
+
+summary(BM.red1)
+drop1(BM.red1,test="Chisq") #no significant interactions. 
+anova(BM.red1)
+AIC(BM.red1) # remove ns: 55.03274, add interactions: 62.34117, remove least significant: 
+
+BM.red1a <- update(BM.red1, .~. -CMAP.mm_yr:CSand) 
+anova(BM.red1,BM.red1a) # ns 
+AIC(BM.red1a) #56.60738
+BM.red1b <- update(BM.red1, .~. -CMAP.mm_yr:CFire_frequency.2000_2017) # ns 
+anova(BM.red1,BM.red1b) # ns 
+AIC(BM.red1b) #56.65852
+BM.red1c <- update(BM.red1b, .~. -CMAP.mm_yr:CSand) # ns 
+anova(BM.red1b,BM.red1c) # ns 
+AIC(BM.red1c) #55.03274
+
+# Best model, estimates 
+BM.red1<-lmer(Ctot.C.kg_m2~ -1 + CMAP.mm_yr + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand +
+                (1|Region.x),data = Soil.min.CnoNA, REML=T,
+              na.action=na.fail)
+
+summary(BM.red1)
+drop1(BM.red1,test="Chisq") 
+anova(BM.red1)
+AIC(BM.red1)
 
 # simple comparison of A and min 
 par(mfrow=c(1,2))
@@ -1135,143 +1250,162 @@ Aboveground.CnoNA<-Aboveground.C[!is.na(Aboveground.C$CFire_frequency.2000_2017)
 Aboveground.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + 
                           landuse + CFire_frequency.2000_2017 + Ctot.N.kg_m2 + 
                           CTreeBM.kg_m2 + CSand + CShrubbiness + 
-                          CTreeBM.N +
-                           (1|Region.x),data = Aboveground.CnoNA, REML=T,na.action=na.fail)
+                          CTreeBM.N + (1|Region.x),data = Aboveground.CnoNA, REML=F, na.action=na.fail)
 
 summary(Aboveground.block)
 drop1(Aboveground.block,test="Chisq") # TreeBM, TreeBM.N, landuse, sand.. 
 anova(Aboveground.block)
-AIC(Aboveground.block) #99.36539, new: 56.45635
+AIC(Aboveground.block) #88.76742
 
 # Model averaging: All possible models between null and global
-modsetabove<-dredge(Aboveground.block,trace = TRUE, rank = "AICc", REML = FALSE)
+modsetabove<-dredge(Aboveground.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse) & !(CSand & Ctot.N.kg_m2))
 modselabove<-model.sel(modsetabove) #Model selection table giving AIC, deltaAIC and weighting
 modavgabove<-model.avg(modselabove)#Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modavgabove)#Importance of each variable
 summary(modavgabove)#Estimated coefficients given weighting
 
-# Test significanse of different variables + add interactions
-A1<-lmer(Ctot.C.kg_m2~ #CMAP.mm_yr + 
-                          +landuse + #CFire_frequency.2000_2017 + Ctot.N.kg_m2 + 
-                          CTreeBM.kg_m2 + CSand + #CShrubbiness + 
-                          CTreeBM.N + #landuse:CTreeBM.N +
-                          (1|Region.x),data = Aboveground.CnoNA, REML=T,na.action=na.fail)
+# Best model
+A1<-lmer(Ctot.C.kg_m2~ CTreeBM.kg_m2 + CSand + CTreeBM.N + 
+                          (1|Region.x),data = Aboveground.CnoNA, REML=F,na.action=na.fail)
 summary(A1)
-drop1(A1,test="Chisq") # signifiant: MAP,Fire,N,treeBM,Sand
-AIC(A1) # 89.8487, with interaction, and no CTreeBM.N: 86.54618
-
-# Add interactions - no interactions seems to be significant here. 
-A1a <- update(A1, .~. +CMAP.mm_yr:CSand) # ns 
-anova(A1a,A1)
-AIC(A1a) #91.80854
-A1b <- update(A1, .~. +CTreeBM.kg_m2:CSand ) # ns 
-anova(A1b,A1)
-AIC(A1b) #91.89285
-A1c <- update(A1, .~. + CTreeBM.kg_m2:CMAP.mm_yr) # ns 
-anova(A1c,A1)
-AIC(A1c) #91.62461
-A1d <- update(A1, .~. + CTreeBM.kg_m2:Ctot.N.kg_m2) # ns 
-anova(A1d,A1)
-AIC(A1d) #91.85256
-A1e <- update(A1, .~. + CFire_frequency.2000_2017:Ctot.N.kg_m2) # ns 
-anova(A1e,A1)
-AIC(A1e) #92.49513
-A1f <- update(A1, .~. + CTreeBM.kg_m2:CFire_frequency.2000_2017) # ns 
-anova(A1f,A1)
-AIC(A1f) #93.05524
-A1g<- update(A1, .~. + landuse:CTreeBM.kg_m2) # ns 
-anova(A1g,A1)
-AIC(A1g) #88.52909 quite the same.. 
-A1h<- update(A1, .~. + landuse:CTreeBM.N) # ns 
-anova(A1h,A1)
-AIC(A1h) #86.54618 smaller.. 
-summary(A1h)
-drop1(A1h,test="Chisq")
+drop1(A1,test="Chisq") # signifiant: treeBM, treeBM.N
+AIC(A1) # 87.5625, with interaction, and no CTreeBM.N: 86.54618
 
 plot(Ctot.C.kg_m2~landuse,data=Aboveground.CnoNA) # significant 
 plot(Ctot.C.kg_m2~CTreeBM.kg_m2,data=Aboveground.CnoNA) # positive
 plot(Ctot.C.kg_m2~CTreeBM.N,data=Aboveground.CnoNA) # ?? 
 xyplot(Ctot.C.kg_m2~CTreeBM.N|landuse,data=Aboveground.CnoNA)
 
+# IF i remove treeBM.. 
+AB1<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + 
+                          landuse + CFire_frequency.2000_2017 + Ctot.N.kg_m2 + 
+                        + CSand + CShrubbiness + 
+                         (1|Region.x),data = Aboveground.CnoNA, REML=F, na.action=na.fail)
+
+summary(AB1)
+drop1(AB1,test="Chisq") # landuse, MAP... 
+anova(AB1)
+AIC(AB1) #112.927
+
+# Model averaging: All possible models between null and global
+modsetAB<-dredge(AB1,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CSand & Ctot.N.kg_m2))
+modselAB<-model.sel(modsetAB) #Model selection table giving AIC, deltaAIC and weighting
+modavgAB<-model.avg(modsetAB)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgAB)#Importance of each variable
+summary(modavgAB)#Estimated coefficients given weighting
+
+# Best model 
+AB2<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + 
+            landuse + #CMAP.mm_yr:landuse + 
+            (1|Region.x),data = Aboveground.CnoNA, REML=F, na.action=na.fail)
+
+summary(AB2)
+drop1(AB2,test="Chisq") # landuse *  
+anova(AB2)
+AIC(AB2) #108.6494, and 109.6414 with interaction. 
+
 # 2. From belowground.full fine scale ####
-Belowground.tot<-lmer(tot.C.kg_m2 ~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + tot.N.kg_m2 + TreeBM.kg_m2 + BM.N.trees.m2 + CSand + Shrubbiness +
-                        landuse:CMAP.mm_yr + landuse:CFire_frequency.2000_2017  + tot.N.kg_m2:landuse + landuse:CSand + landuse:BM.N.trees.m2 + landuse:Shrubbiness +
-                        CMAP.mm_yr:CSand +  TreeBM.kg_m2:CSand + landuse:CSand + tot.N.kg_m2:CSand + CFire_frequency.2000_2017:CSand + BM.N.trees.m2:CSand + Shrubbiness:CSand +
-                        TreeBM.kg_m2:CMAP.mm_yr +  tot.N.kg_m2:CMAP.mm_yr + CFire_frequency.2000_2017:CMAP.mm_yr + BM.N.trees.m2:CMAP.mm_yr + Shrubbiness:CMAP.mm_yr +
-                        TreeBM.kg_m2:tot.N.kg_m2 +  CFire_frequency.2000_2017:tot.N.kg_m2 + TreeBM.kg_m2:CFire_frequency.2000_2017 +BM.N.trees.m2: tot.N.kg_m2 + Shrubbiness:CFire_frequency.2000_2017 + Shrubbiness:tot.N.kg_m2 + 
-                        (1|Region), data = Belowground.full, REML=T)
+
+# Model averaging 
+summary(Belowground.full.CnoNA)
+Belowground.full.CnoNA<-Belowground.full[!is.na(Belowground.full$CFire_frequency.2000_2017),]
+
+Belowground <-lmer(Ctot.C.kg_m2 ~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 +  Ctot.N.kg_m2 + CTreeBM.kg_m2 + CSand + CShrubbiness + (1|Region), data = Belowground.full.CnoNA, REML=F, na.action=na.fail)
+
+modsetbelow.full<-dredge(Belowground,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse) & !(CSand & Ctot.N.kg_m2 ))
+modselbelow.full<-model.sel(modsetbelow.full) #Model selection table giving AIC, deltaAIC and weighting
+modavgbelow.full<-model.avg(modselbelow.full)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgbelow.full)#Importance of each variable
+summary(modavgbelow.full)#Estimated coefficients given weighting
+
+B.full<-lmer(Ctot.C.kg_m2 ~ CMAP.mm_yr + #landuse + 
+               CFire_frequency.2000_2017 +  Ctot.N.kg_m2 + CTreeBM.kg_m2 + #CSand 
+              # CShrubbiness + 
+               (1|Region),data = Belowground.full.CnoNA, REML=F, na.action=na.fail)
+
+summary(B.full)
+drop1(B.full,test="Chisq")
+anova(B.full)
+AIC(B.full) #105.904
+
+# Add interactions: 
+B1a <- update(B1, .~. +CMAP.mm_yr:CSand) # ns 
+anova(B1a,B1)
+AIC(B1a) #50.82971
+B1b <- update(B1, .~. +tot.N.kg_m2:CMAP.mm_yr ) # ns 
+anova(B1b,B1)
+AIC(B1b) #50.75608
+B1c <- update(B1, .~. + CMAP.mm_yr:Shrubbiness) # ns 
+anova(B1c,B1)
+AIC(B1c) #50.79712
+B1d <- update(B1, .~. + TreeBM.kg_m2:CFire_frequency.2000_2017.x) # ns 
+anova(B1d,B1)
+AIC(B1d) #50.3881
+
+# Removing N 
+Belowground.red <-lmer(Ctot.C.kg_m2 ~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 +  #Ctot.N.kg_m2 + 
+                     CTreeBM.kg_m2 + CSand + CShrubbiness + (1|Region),
+                   data = Belowground.full.CnoNA, REML=T, na.action=na.fail)
+
+modsetbelow.red<-dredge(Belowground.red,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse))
+modselbelow.red<-model.sel(modsetbelow.red) #Model selection table giving AIC, deltaAIC and weighting
+modavgbelow.red<-model.avg(modselbelow.red)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgbelow.red)#Importance of each variable
+summary(modavgbelow.red)#Estimated coefficients given weighting
+
+BR1 <-lmer(Ctot.C.kg_m2 ~ #CMAP.mm_yr + landuse +
+             CFire_frequency.2000_2017 + #CTreeBM.kg_m2 + 
+             #CSand + 
+             #CShrubbiness + 
+             (1|Region),data = Belowground.full.CnoNA, REML=T, na.action=na.fail)
+
+summary(BR1)
+drop1(BR1,test="Chisq")
+anova(BR1)
+AIC(BR1) #241.7772, only fire: 234.0106, fire+ sand: 236.9274, fire+ shrubs: 238.6526
+
+# FULL model selection without N first to look at interactions. 
+Belowground.tot<-lmer(tot.C.kg_m2 ~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2  + CSand + CShrubbiness + #tot.N.kg_m2 + 
+                        landuse:CMAP.mm_yr + landuse:CFire_frequency.2000_2017  +  landuse:CSand + landuse:CShrubbiness + #tot.N.kg_m2:landuse + 
+                        CMAP.mm_yr:CSand +  CTreeBM.kg_m2:CSand + #tot.N.kg_m2:CSand + 
+                        CFire_frequency.2000_2017:CSand +  CShrubbiness:CSand +
+                        CTreeBM.kg_m2:CMAP.mm_yr +  #tot.N.kg_m2:CMAP.mm_yr + 
+                        CFire_frequency.2000_2017:CMAP.mm_yr + Shrubbiness:CMAP.mm_yr +
+                        #TreeBM.kg_m2:tot.N.kg_m2 +  CFire_frequency.2000_2017:tot.N.kg_m2 + 
+                        CTreeBM.kg_m2:CFire_frequency.2000_2017 +#BM.N.trees.m2: tot.N.kg_m2 + Shrubbiness:CFire_frequency.2000_2017 + Shrubbiness:tot.N.kg_m2 + 
+                        (1|Region), data = Belowground.full.CnoNA, REML=F)
 
 summary(Belowground.tot)
 drop1(Belowground.tot,test="Chisq")
 anova(Belowground.tot)
-AIC(Belowground.tot) #152.5925
+AIC(Belowground.tot) #286.6673
 
-# Reduce the model to what was significant in drop1 
-Belowground.tot.red<-lmer(tot.C.kg_m2~ CMAP.mm_yr + #landuse + 
-                            CFire_frequency.2000_2017.x + tot.N.kg_m2 + TreeBM.kg_m2 + #BM.N.trees.m2 + 
-                            CSand + Shrubbiness +
-                            # landuse:MAP.mm_yr + landuse:Fire_frequency.2000_2017.x  + tot.N.kg_m2:landuse + landuse:Sand + landuse:BM.N.trees.m2 + 
-                            CMAP.mm_yr:CSand +  #TreeBM.kg_m2:Sand + landuse:Sand + tot.N.kg_m2:Sand + Fire_frequency.2000_2017.x:Sand + BM.N.trees.m2:Sand +  TreeBM.kg_m2:MAP.mm_yr + 
-                            tot.N.kg_m2:CMAP.mm_yr + #Fire_frequency.2000_2017.x:MAP.mm_yr + BM.N.trees.m2:MAP.mm_yr + 
-                            CMAP.mm_yr:Shrubbiness +
-                            #TreeBM.kg_m2:tot.N.kg_m2 +  
-                            CFire_frequency.2000_2017.x:tot.N.kg_m2 + TreeBM.kg_m2:CFire_frequency.2000_2017.x + #BM.N.trees.m2: tot.N.kg_m2 + 
-                            (1|Region), data = Belowground.full, REML=T)
+# Reduce model: 
+summary(Belowground.full)
+Belowground.red<-lmer(tot.C.kg_m2 ~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2  +  CSand + CShrubbiness + 
+                        landuse:CMAP.mm_yr + landuse:CFire_frequency.2000_2017  + landuse:CSand + landuse:CShrubbiness + #tot.N.kg_m2:landuse + 
+                        #CMAP.mm_yr:CSand +  CTreeBM.kg_m2:CSand + tot.N.kg_m2:CSand + 
+                        #CFire_frequency.2000_2017:CSand +  CShrubbiness:CSand +
+                        #CTreeBM.kg_m2:CMAP.mm_yr +  #tot.N.kg_m2:CMAP.mm_yr + 
+                        #CFire_frequency.2000_2017:CMAP.mm_yr + Shrubbiness:CMAP.mm_yr +
+                        #TreeBM.kg_m2:tot.N.kg_m2 +  CFire_frequency.2000_2017:tot.N.kg_m2 + 
+                        #CTreeBM.kg_m2:CFire_frequency.2000_2017 +#BM.N.trees.m2: tot.N.kg_m2 + Shrubbiness:CFire_frequency.2000_2017 + Shrubbiness:tot.N.kg_m2 + 
+                        (1|Region), data = Belowground.full.CnoNA, REML=F, na.action=na.fail)
+summary(Belowground.red)
+drop1(Belowground.red,test="Chisq") 
+anova(Belowground.red) 
+AIC(Belowground.red) # 286.6673, new AIC better: 277.4945
 
-summary(Belowground.tot.red)
-drop1(Belowground.tot.red,test="Chisq") 
-anova(Belowground.tot.red) # Nitrogen really high - something going on here.. 
-AIC(Belowground.tot.red) # 144.4792 - better
-
-# Reduce the model further.. 
-Belowground.tot.red2<-lmer(tot.C.kg_m2~ CMAP.mm_yr +
-                             CFire_frequency.2000_2017.x + tot.N.kg_m2 + TreeBM.kg_m2 + 
-                             CSand + 
-                             Shrubbiness + 
-                             CMAP.mm_yr:CSand + 
-                             tot.N.kg_m2:CMAP.mm_yr + 
-                             CMAP.mm_yr:Shrubbiness
-                           #CFire_frequency.2000_2017.x:tot.N.kg_m2 
-                           + TreeBM.kg_m2:CFire_frequency.2000_2017.x + 
-                             (1|Region), data = Belowground.full, REML=T)
-
-summary(Belowground.tot.red2)
-drop1(Belowground.tot.red2,test="Chisq") 
-anova(Belowground.tot.red2) 
-AIC(Belowground.tot.red2) # 144.4798 - not better.. Remove MAP:Sand, and the model AIC: 139.2077
-
-# Removing singular terms to look at their p-value. 
-Test1<-lmer(tot.C.kg_m2~ CMAP.mm_yr +
-              CFire_frequency.2000_2017.x + tot.N.kg_m2 + TreeBM.kg_m2 + 
-              CSand + 
-              Shrubbiness + 
-              CMAP.mm_yr:CSand + 
-              tot.N.kg_m2:CMAP.mm_yr + 
-              CMAP.mm_yr:Shrubbiness
-            + TreeBM.kg_m2:CFire_frequency.2000_2017.x + 
-              (1|Region), data = Belowground.full, REML=T)
-# terms one by one.. 
-Test1a<- update(Test1, .~. -CMAP.mm_yr:CSand)
-Test1b<- update(Test1, .~. -CMAP.mm_yr)
-Test1c<- update(Test1, .~. -CSand)
-Test1d<- update(Test1, .~. -tot.N.kg_m2:CMAP.mm_yr)
-Test1e<- update(Test1, .~. -CMAP.mm_yr:Shrubbiness)
-Test1f<- update(Test1, .~. -Shrubbiness)
-Test1g<- update(Test1, .~. -TreeBM.kg_m2:CFire_frequency.2000_2017.x)
-Test1h<- update(Test1, .~. -CFire_frequency.2000_2017.x)
-
-anova(Test1,Test1a) # - MAP:SAND . 
-anova(Test1,Test1b) # - MAP *
-anova(Test1,Test1c) # - Sand *
-anova(Test1,Test1d) # - N:MAP ***
-anova(Test1,Test1e) # - MAP:SHrubbiness **
-anova(Test1,Test1f) # - Shrubbiness * 
-anova(Test1,Test1g) # - TreeBM:Fire *
-anova(Test1,Test1h) # - Fire ***
+BF1<-lmer(tot.C.kg_m2 ~ -1 + landuse +  CShrubbiness +landuse:CShrubbiness + 
+                          (1|Region), data = Belowground.full.CnoNA, REML=F, na.action=na.fail)
+summary(BF1)
+drop1(BF1,test="Chisq") 
+anova(BF1) 
+AIC(BF1) #291.1328
 
 # distribution of residuals 
-E2 <- resid(Belowground.tot.red2, type ="pearson") 
-F2 <- fitted(Belowground.tot.red2)
+E2 <- resid(Belowground.red, type ="pearson") 
+F2 <- fitted(Belowground.red)
 
 par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
 plot(x = F2, 
@@ -1281,24 +1415,33 @@ plot(x = F2,
 abline(v = 0, lwd = 2, col = 2) # None of the fitted values <0
 abline(h = 0, lty = 2, col = 1)  # Good
 
+modsetbelow.tot.red<-dredge(Belowground.red,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse))
+modselbelow.tot.red<-model.sel(modsetbelow.tot.red) #Model selection table giving AIC, deltaAIC and weighting
+modavgbelow.tot.red<-model.avg(modsetbelow.tot.red)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgbelow.tot.red)#Importance of each variable
+summary(modavgbelow.tot.red)#Estimated coefficients given weighting
+
 # Exploring alternative models 
 
 # Adding livestock
-names(Belowground.red)
-Belowground.red <- Belowground.full[,c(1:12,15,21:26,30,44:52)]
+names(Belowground.full)
+Belowground.red <- Belowground.full[,c(3:7,10:13,16:18,22:28,31,45,47,49:56)]
 Belowground.red <- Belowground.red[Belowground.red$Region!="Ikorongo",]
 Belowground.red <- Belowground.red[Belowground.red$Region!="Park Nyigoti",]
+Belowground.red <- Belowground.red[Belowground.red$Region!="Seronera",]
+summary(Belowground.red)
 Belowground.red <- na.omit(Belowground.red)
 Belowground.red <- droplevels(Belowground.red)
 # Belowground.red[is.na(Belowground.red)] <- 0
 
-Belowground2<-lmer(tot.C.kg_m2~ CMAP.mm_yr + livestock + CFire_frequency.2000_2017.x + tot.N.kg_m2 + TreeBM.kg_m2  + CSand + Shrubbiness +
-                     livestock:CMAP.mm_yr + livestock:CFire_frequency.2000_2017.x  + tot.N.kg_m2:livestock + livestock:CSand + livestock:Shrubbiness +
-                     CMAP.mm_yr:CSand +  TreeBM.kg_m2:CSand + livestock:CSand + tot.N.kg_m2:CSand + CFire_frequency.2000_2017.x:CSand + Shrubbiness:CSand +
-                     TreeBM.kg_m2:CMAP.mm_yr +  tot.N.kg_m2:CMAP.mm_yr + CFire_frequency.2000_2017.x:CMAP.mm_yr +  Shrubbiness:CMAP.mm_yr +
-                     TreeBM.kg_m2:tot.N.kg_m2 +  CFire_frequency.2000_2017.x:tot.N.kg_m2 + TreeBM.kg_m2:CFire_frequency.2000_2017.x + Shrubbiness:CFire_frequency.2000_2017.x + Shrubbiness:tot.N.kg_m2 + 
-                     (1|Region), data = Belowground.red, REML=T)
-AIC(Belowground2) #144.4665
+Belowground2<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + total.dung + CFire_frequency.2000_2017 + #Ctot.N.kg_m2 + 
+                     CTreeBM.kg_m2  + CSand + CShrubbiness +
+                     #livestock:CMAP.mm_yr + livestock:CFire_frequency.2000_2017  + tot.N.kg_m2:livestock + livestock:CSand + livestock:Shrubbiness +
+                     #CMAP.mm_yr:CSand +  TreeBM.kg_m2:CSand + livestock:CSand + tot.N.kg_m2:CSand + CFire_frequency.2000_2017.x:CSand + Shrubbiness:CSand +
+                     #TreeBM.kg_m2:CMAP.mm_yr +  tot.N.kg_m2:CMAP.mm_yr + CFire_frequency.2000_2017.x:CMAP.mm_yr +  Shrubbiness:CMAP.mm_yr +
+                     #TreeBM.kg_m2:tot.N.kg_m2 +  CFire_frequency.2000_2017.x:tot.N.kg_m2 + TreeBM.kg_m2:CFire_frequency.2000_2017.x + Shrubbiness:CFire_frequency.2000_2017.x + Shrubbiness:tot.N.kg_m2 + 
+                     (1|Region), data = Belowground.red, REML=F)
+AIC(Belowground2) #46.6168
 summary(Belowground2)
 drop1(Belowground2,test="Chisq")
 
@@ -1341,6 +1484,8 @@ xyplot(tot.C.kg_m2~Sand|fMAP,data=Belowground.full)
 xyplot(tot.C.kg_m2~Shrubbiness|climate,data=Belowground.full)
 xyplot(tot.C.kg_m2~TreeBM.kg_m2|as.factor(Fire_frequency.2000_2017.x),data=Belowground.full)
 xyplot(tot.C.kg_m2~Fire_frequency.2000_2017.x|climate,data=Belowground.full)
+xyplot(tot.C.kg_m2~Fire_frequency.2000_2017.x|landuse,data=Belowground.full)
+xyplot(tot.C.kg_m2~Shrubbiness|landuse,data=Belowground.full)
 plot(tot.C.kg_m2~Sand, data=Belowground.full)
 plot(tot.C.kg_m2~Fire_frequency.2000_2017.x,data=Belowground.full)
 plot(tot.C.kg_m2~TreeBM.kg_m2,data=Belowground.full)
