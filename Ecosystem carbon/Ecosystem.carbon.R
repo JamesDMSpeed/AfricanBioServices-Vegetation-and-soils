@@ -1475,21 +1475,15 @@ colnames(importance.H)<-'Herbs'
 colnames(importance.DW)<-'DW'
 colnames(importance.W)<-'Woody'
 
-rownames(importance.Ahor)<-rownames(importance.Ahor)[order(rownames(importance.Ahor))]
-rownames(importance.MinHor)<-rownames(importance.MinHor)[order(rownames(importance.MinHor))]
-rownames(importance.H)<-rownames(importance.H)[order(rownames(importance.H))]
-rownames(importance.DW)<-rownames(importance.DW)[order(rownames(importance.DW))]
-rownames(importance.W)<-rownames(importance.W)[order(rownames(importance.W))]
+rownames(importance.Ahor) <- (c("MAP","Biomass N.fix trees","Sand","Shrubbiness","Fire frequency","Herbaceous biomass","Land-use","Tree biomass","MAP:Sand"))
 
-rownames(importance.Ahor) <- (c("Fire frequency","MAP","MAP:Sand","Sand","Shrubbiness","Tree biomass","Biomass N.fix trees","Herbaceous biomass","Land-use"))
+rownames(importance.MinHor) <- (c("Sand","MAP","Fire frequency","MAP:Sand","Land-use","Tree biomass","Shrubbiness","Biomass N.fix trees"))
 
-rownames(importance.MinHor) <- (c("Fire frequency","MAP","MAP:Sand","Sand","Shrubbiness","Tree biomass","Biomass N.fix trees","Land-use"))
+rownames(importance.H) <- (c("Biomass N.fix trees","Fire frequency","Tree biomass","Sand","Shrubbiness","MAP","Land-use","MAP:Sand"))
 
-rownames(importance.H) <- (c("Fire frequency","MAP","MAP:Sand","Sand","Shrubbiness","Tree biomass","Biomass N.fix trees","Land-use"))
+rownames(importance.DW) <- (c("MAP","Biomass N.fix trees","Sand","Fire frequency","Shrubbiness","Land-use","Tree biomass","MAP:Sand"))
 
-rownames(importance.DW) <- (c("Fire frequency","MAP","MAP:Sand","Sand","Shrubbiness","Tree biomass","Biomass N.fix trees","Land-use"))
-
-rownames(importance.W) <- (c("Fire frequency","MAP","MAP:Sand","Sand","Land-use"))
+rownames(importance.W) <- (c("Fire frequency","Sand","MAP","MAP:Sand","Land-use"))
 
 # Colours 
 # MAP: deepskyblue4
@@ -1501,23 +1495,43 @@ rownames(importance.W) <- (c("Fire frequency","MAP","MAP:Sand","Sand","Land-use"
 # Sand: darkgray
 # MAP:Sand: cyan4
 # Herb biomass: forestgreen
-par(mar=c(5,1,1,7))
 
 Legend.text <- c("MAP","Biomass N.fix trees","Sand","Shrubbiness","Fire frequency","Herbaceous biomass","Land-use","Tree biomass","MAP:Sand")
 # Plot A-hor
-barplot(t(as.matrix(importance.Ahor)), horiz=T,las=1,xlab='Relative variable importance',main='Soil A-horizon Carbon',cex.main = 1,axisname=F,col=c("cyan4",'darkolivegreen4','goldenrod3',"forestgreen","darkorange2","darkseagreen4","darkgray","darkolivegreen3","deepskyblue4"),beside=T, legend=rownames(importance.Ahor), args.legend=list(y=nrow(importance.Ahor)+9,x=+0.32))
+col.Ahor <- c("deepskyblue4","darkolivegreen3","darkgray","darkseagreen4","darkorange2","forestgreen","goldenrod3","darkolivegreen4","cyan4")
+#png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.Ahor.png")
+par(mar=c(5,12,1,1))
+barplot(t(as.matrix(importance.Ahor)), horiz=T,las=1,xlab='Relative variable importance',main='Soil A-horizon Carbon',cex.main = 1,axisname=T,col=col.Ahor,beside=T)
+#legend=rownames(importance.Ahor), args.legend=list(y=nrow(importance.Ahor)+9,x=+0.32))
+#dev.off()
 
 # Plot Min-hor
-barplot(t(as.matrix(importance.Min)), horiz=T,las=1,xlab='Relative variable importance',main='Soil Mineral-horizon Carbon',cex.main = 1,axisname=F,col=c('darkolivegreen3','darkseagreen4','darkolivegreen4',"goldenrod3","cyan4","darkorange2","deepskyblue4","darkgray"),beside=T)
+col.min <- c("darkgray","deepskyblue4","darkorange2","cyan4","goldenrod3",'darkolivegreen4','darkseagreen4','darkolivegreen3')
+#png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.Minhor.png")
+par(mar=c(5,12,1,1))
+barplot(t(as.matrix(importance.MinHor)), horiz=T,las=1,xlab='Relative variable importance',main='Soil Mineral-horizon Carbon',cex.main = 1,axisname=T,col= col.min,beside=T)
+#dev.off()
 
 # Plot Herb 
-barplot(t(as.matrix(importance.Herb)), horiz=T,las=1,xlab='Relative variable importance',main='Herbaceous Carbon',cex.main = 1,axisname=F,col=c('cyan4','goldenrod3','deepskyblue4',"darkseagreen4","darkgray","darkolivegreen4","darkorange2","darkolivegreen3"),beside=T)
+col.herb <- c("darkolivegreen3","darkorange2","darkolivegreen4","darkgray","darkseagreen4",'deepskyblue4','goldenrod3','cyan4')
+#png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.Herb.png")
+par(mar=c(5,12,1,1))
+barplot(t(as.matrix(importance.H)), horiz=T,las=1,xlab='Relative variable importance',main='Herbaceous Carbon',cex.main = 1,axisname=T,col=col.herb,beside=T)
+#dev.off()
 
 # Plot DW 
-barplot(t(as.matrix(importance.DW)), horiz=T,las=1,xlab='Relative variable importance',main='Dead Wood Carbon',col=c('cyan4','darkolivegreen4','goldenrod3',"darkseagreen4","darkorange2","darkgray","darkolivegreen3","deepskyblue4"),beside=T)
+col.DW <- c("deepskyblue4","darkolivegreen3","darkgray","darkorange2","darkseagreen4",'goldenrod3','darkolivegreen4',"cyan4")
+#png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.DW.png")
+par(mar=c(5,12,1,1))
+barplot(t(as.matrix(importance.DW)), horiz=T,las=1,xlab='Relative variable importance',main='Dead Wood Carbon',cex.main = 1,axisname=T,col=col.DW,beside=T)
+#dev.off()
 
 #Plot Woody
-barplot(t(as.matrix(importance.Woody)), horiz=T,las=1,xlab='Relative variable importance',main='Woody Carbon',cex.main = 1,axisname=F,col=c('goldenrod3','cyan4','deepskyblue4',"darkgray","darkorange2"),beside=T)
+col.W <- c("darkorange2","darkgray",'deepskyblue4','cyan4','goldenrod3')
+#png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.Woody.png")
+par(mar=c(5,12,1,1))
+barplot(t(as.matrix(importance.W)), horiz=T,las=1,xlab='Relative variable importance',main='Woody Carbon',cex.main = 1,axisname=T,col=col.W,beside=T)
+#dev.off()
 
 # PLOT variable coefficients from model averages ####
 con.avg.Ahor<- read.table("Ecosystem carbon/con.avg.Ahor.txt")
@@ -1527,104 +1541,80 @@ con.avg.DW<- read.table("Ecosystem carbon/con.avg.DW.txt")
 con.avg.W<- read.table("Ecosystem carbon/con.avg.W.txt")
 
 #Reorder rows
-con.avg.Ahor<-con.avg.Ahor[order(rownames(con.avg.Ahor)),]
-con.avg.MinHor<-con.avg.MinHor[order(rownames(con.avg.MinHor)),]
-con.avg.H<-con.avg.H[order(rownames(con.avg.H)),]
-con.avg.DW<-con.avg.DW[order(rownames(con.avg.DW)),]
-con.avg.W<-con.avg.W[order(rownames(con.avg.W)),]
+rownames(con.avg.W)
+con.avg.Ahor<-con.avg.Ahor[c(1,4,2,5,7,8,3,6,9,10),]
+con.avg.MinHor<-con.avg.MinHor[c(1,3,2,6,5,4,7,9,8),]
+con.avg.H<-con.avg.H[c(1,2,3,4,7,5,8,6,9),]
+con.avg.DW<-con.avg.DW[c(1,3,2,4,7,6,5,8,9),]
+con.avg.W<-con.avg.W[c(1,2,4,3,5,6),]
 
-# Separate into SE and Estimates 
+# Colours 
+# MAP: deepskyblue4
+# Tree bm: darkolivegreen4
+# N-fix tree bm: darkolivegreen3
+# Fire: darkorange2
+# Shrubbiness: darkseagreen4
+# Landuse: goldenrod3
+# Sand: darkgray
+# MAP:Sand: cyan4
+# Herb biomass: forestgreen
 
-#macplot_est<-rbind(Ahor=con.avg.Ahor[,1],Minhor=con.avg.MinHor[,1],Herb=con.avg.H[,1],DW=con.avg.DW[,1])
-#colnames(macplot_est)<-rownames(fullcoefsr1)
-#macplot_est<-macplot_est[,c(1,5,7,2,8,9,6,2,3)]
-#colnames(macplot_est)<-c('Intercept','Predator diversity (R)','NDVI','Habitat heterogeneity','Topographic heterogeneity','Winter minimum temperature','Ice-free history','Region:Eur vs. Arc','Region: NA vs. Arc')
-#macplot_se<-rbind(SR=fullcoefsr1[,2],PD=fullcoefpd1[,2],FD=fullcoeffd1[,2],FDPD=fullcoeffdpd1[,2])
-#macplot_se<-macplot_se[,c(1,5,7,2,8,9,6,2,3)]
-#macplot_p<-rbind(SR=fullcoefsr1[,5],PD=fullcoefpd1[,5],FD=fullcoeffd1[,5],FDPD=fullcoeffdpd1[,5])
-#macplot_p<-macplot_p[,c(1,5,7,2,8,9,6,2,3)]
-#macplot_p[macplot_p>=0.05]<-1
-#macplot_p[macplot_p<0.05]<-16
+# creating the "frame" and then plotting
+# A-hor 
+#png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Ahor.png")
+par(mar=c(5,12,1,1))
+plot(rep(NA,10),1:10, xlim=c(-1,1), type="n", ann=F,axes=F, bty="n")
+points(con.avg.Ahor$Estimate,1:10,pch=19,col=c(col.Ahor,"Black"), lwd=2)
+segments(y0=1:10, x0=con.avg.Ahor$Estimate-con.avg.Ahor$Std..Error, x1=con.avg.Ahor$Estimate+con.avg.Ahor$Std..Error,col=c(col.Ahor,"Black"),lwd=2)
+abline(v=0)
+axis(1)
+axis(2, at=1:10, labels= c("MAP","Biomass N.fix trees","Sand","Shrubbiness","Fire frequency","Herbaceous biomass","Land-use","Tree biomass","MAP:Sand",'Intercept'),par(las=1))
 
-barplot(t(as.matrix(importance.Ahor)), horiz=T,las=1,xlab='Relative variable importance',main='Soil A-horizon Carbon',cex.main = 1,axisname=F,col=c("cyan4",'darkolivegreen4','goldenrod3',"forestgreen","darkorange2","darkseagreen4","darkgray","darkolivegreen3","deepskyblue4"),beside=T, legend=rownames(importance.Ahor), args.legend=list(y=nrow(importance.Ahor)+9,x=+0.32))
+#dev.off()
 
-b1<-barplot(t(as.matrix(con.avg.Ahor[,2])),horiz=T,las=1,xlab='Model averaged coefficients',beside=T, points(con.avg.Ahor[,2]),pch=con.avg.Ahor[,2],col=c('black','orange','blue','pink4')) 
+# Min-hor
+#png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Minhor.png")
+par(mar=c(5,12,1,1))
+plot(rep(NA,9),1:9, xlim=c(-1,1), type="n", ann=F,axes=F, bty="n")
+points(con.avg.MinHor$Estimate,1:9,pch=19,col=c(col.min,"Black"), lwd=2)
+segments(y0=1:9, x0=con.avg.MinHor$Estimate-con.avg.MinHor$Std..Error, x1=con.avg.MinHor$Estimate+con.avg.MinHor$Std..Error,col=c(col.min,"Black"),lwd=2)
+abline(v=0)
+axis(1)
+axis(2, at=1:9, labels= c("Sand","MAP","Fire frequency","MAP:Sand","Land-use","Tree biomass","Shrubbiness","Biomass N.fix trees","Intercept"),par(las=1))
+#dev.off()
 
-arrows(macplot_est[,2:ncol(macplot_est)]+1.96*macplot_se[,2:ncol(macplot_est)],b1,
-       macplot_est[,2:ncol(macplot_est)]-1.96*macplot_se[,2:ncol(macplot_est)],b1,
-       angle=90,length=0.05,code=3,col=colsImp)#,col=c('black','orange','blue','pink4'))
-abline(v=0,lty=2)
-legend('topr',pch=16,col=rev(colsImp),legend=rev(c('Species','Phylogenetic','Functional','Functional:Phylogenetic')),title='Diversity',cex=0.7)
-legend('topl',pch=c(1,16),col=colsImp[4],c('P>=0.05','P<0.05'),cex=0.7,title='Significance')
+# Herb
+#png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Herb.png")
+par(mar=c(5,12,1,1))
+plot(rep(NA,9),1:9, xlim=c(-1,1), type="n", ann=F,axes=F, bty="n")
+points(con.avg.H$Estimate,1:9,pch=19,col=c(col.herb,"black"), lwd=2)
+segments(y0=1:9, x0=con.avg.H$Estimate-con.avg.H$Std..Error, x1=con.avg.H$Estimate+con.avg.H$Std..Error,col=c(col.herb,"black"),lwd=2)
+abline(v=0)
+axis(1)
+axis(2, at=1:9, labels= c("Biomass N.fix trees","Fire frequency","Tree biomass","Sand","Shrubbiness","MAP","Land-use","MAP:Sand","Intercept"),par(las=1))
+#dev.off()
 
+# DW
+#png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.DW.png")
+par(mar=c(5,12,1,1))
+plot(rep(NA,9),1:9, xlim=c(-1,1), type="n", ann=F,axes=F, bty="n")
+points(con.avg.DW$Estimate,1:9,pch=19,col=c(col.DW,"black"), lwd=2)
+segments(y0=1:9, x0=con.avg.DW$Estimate-con.avg.DW$Std..Error, x1=con.avg.DW$Estimate+con.avg.DW$Std..Error,col=c(col.DW,"black"),lwd=2)
+abline(v=0)
+axis(1)
+axis(2, at=1:9, labels= c("MAP","Biomass N.fix trees","Sand","Fire frequency","Shrubbiness","Land-use","Tree biomass","MAP:Sand","Intercept"),par(las=1))
+#dev.off()
 
-x11(12,6)
-tiff('S:\\DISENTANGLE\\WP3\\ArcticHerbivoreFDPD\\PhylogeneticFunctionalAnalysisPicanteR\\VarImpModAvgCoef_apr18.tif',width = 8,height=5,units='in',res=150,pointsize=8)
-par(mfrow=c(1,2))
-par(mar=c(5,13,1,1))
-#Imp
-#bI<-barplot(cbind(t(as.matrix(impdivsortx)),rep(NA,times=4)), horiz=T,las=1,xlab='Relative variable importance',col=colsImp#,col=c('darkred','red','pink4',grey(0.8))
-#        ,beside=T,legend.text=T,args.legend=list(cex=0.9,'topr',title='Diversity',legend=rev(c('Species','Phylogenetic','Functional','Functional divergence'))))
-bI<-barplot(cbind(t(as.matrix(impdivsortx)),rep(NA,times=4)), horiz=T,las=1,xlab='Relative variable importance',col=colsImp#,col=c('darkred','red','pink4',grey(0.8))
-            ,beside=T,legend.text=T,args.legend=list(cex=0.9,'topr',title='Diversity',legend=rev(c('Species','Phylogenetic','Functional','Functional divergence'))),
-            names.arg=c('Predator diversity (R)','Vegetation productivity \n (NDVI)','Habitat heterogeneity','Topographic heterogeneity','Climatic severity \n (winter minimum temperature)',
-                        'Landscape history \n (time since glaciation)','Zoogeographic region (F)',''))
-mtext('(a)',side=3,adj=0)
-par(mar=c(5,2,1,1))
-par(xpd=T)
-bI1<-barplot(cbind(t(as.matrix(impdivsortx)),rep(NA,times=4)), horiz=T,beside=T,xlim=c(-0.58,0.5),col=F,border=F,
-             xlab='Model averaged coefficients',las=1,names.arg=rep(NA,times=8))#,names.arg=colnames(macplot_est[,2:ncol(macplot_est)]))
-#names.arg=c(rep(NA,times=6),colnames(macplot_est[,2:ncol(macplot_est)])[7:8]))
-points(macplot_est[,2:ncol(macplot_est)],bI1,pch=macplot_p[,2:ncol(macplot_p)],col=colsImp,lwd=2,cex=1.5) #col=c('black','orange','blue','pink4')) 
-arrows(macplot_est[,2:ncol(macplot_est)]+1.96*macplot_se[,2:ncol(macplot_est)],bI1,
-       macplot_est[,2:ncol(macplot_est)]-1.96*macplot_se[,2:ncol(macplot_est)],bI1,
-       angle=90,length=0.05,code=3,col=colsImp)#,col=c('black','orange','blue','pink4'))
-#legend('topr',pch=c(1,16),col=colsImp[4],c('P>=0.05','P<0.05'),title='Significance',pt.cex=1.5,cex=0.9)
-text(-0.47,colMeans(bI1),c(rep(NA,times=6),'Zoogeographic region \n (Eurasian vs. Arctico-Siberian)','Zoogeographic region \n (N. American vs Arctico-Siberian)'),cex=0.8)
-axis(side=1)
-title(xlab='Model averaged coefficients')
-axis(side=2,pos=0,outer=F,lwd.ticks=NA,labels=F,lty=2)
-mtext('(b)',side=3,adj=0)
-dev.off()
-
-
-
-
-
-#### Plot observed data versus prediction ####
-# Scatter plot with Community N concentrations and rainfall
-RN<-ggplot(Belowground.full,aes(x=Fire_frequency.2000_2017.x, y=tot.C.kg_m2))
-RN<-RN+geom_ribbon(data=MyData,aes(ymin=SeUp, ymax=SeLo),fill="red",colour="red",alpha=.65,lwd=NA,show.legend=F)
-RN<-RN+geom_line(data=MyData,aes(ymin=SeUp, ymax=SeLo),colour="red",alpha=.9,lwd=2,show.legend=F)
-RN<-RN+geom_ribbon(data=MyData2,aes(ymin=SeUp, ymax=SeLo),fill="green4",colour="green4",alpha=.65,lwd=NA,show.legend=F)
-RN<-RN+geom_line(data=MyData2,aes(ymin=SeUp, ymax=SeLo),colour="green4",alpha=.9,lwd=2,show.legend=F)
-RN<-RN+geom_point(stats="identity",colour="grey50",fill="grey50",size=2.5)
-RN<-RN+facet_wrap(~landuse, scale="fixed")
-RN<-RN+scale_x_continuous(limits=c(0,530), breaks = c(0,200,400), labels = c(0,200,400), expand=c(0,0))
-RN<-RN+scale_y_continuous(expand=c(0,0))
-RN<-RN+ylab("Nitrogen concentration (%)")+xlab("Rainfall (mm)") # Adding x and ylabs to plot
-RN<-RN+theme_bw()+
-  theme(
-    rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
-    ,panel.background=element_rect(fill="transparent")
-    ,plot.background=element_rect(fill="transparent",colour=NA)
-    ,panel.grid.minor = element_blank() # Removing all grids and borders
-    ,panel.border = element_blank()
-    ,panel.grid.major.x = element_blank()
-    ,panel.grid.major.y = element_blank()
-    ,axis.line.y = element_line(color="black", size = .5) # Adding back the axis lines
-    ,axis.line.x = element_line(color="black", size = .5)
-    ,axis.title=element_text(size=12,color="black")
-    ,axis.text.x=element_text(size=11,color="black",
-                              margin=margin(2.5,2.5,2.5,2.5,"mm"))
-    ,axis.ticks.length=unit(-1.5, "mm")
-    ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
-    ,plot.margin = unit(c(5,5,5,5), "mm")
-    ,strip.text.x = element_text(size = 12, hjust=0.1,colour = "black") # The text size of the strip (facet panel) titles
-    ,strip.background = element_rect(fill="transparent",colour=NA))
-RN<-RN+annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = 0, xend = 0, size = 1) 
-RN<-RN+annotate(geom = 'segment', y = 0, yend = 0, color = 'black', x = -Inf, xend = Inf, size = 1) 
-RN
+#Woody
+#png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Woody.png")
+par(mar=c(5,12,1,1))
+plot(rep(NA,6),1:6, xlim=c(-1,1), type="n", ann=F,axes=F, bty="n")
+points(con.avg.W$Estimate,1:6,pch=19,col=c(col.W,"Black"), lwd=2)
+segments(y0=1:6, x0=con.avg.W$Estimate-con.avg.W$Std..Error, x1=con.avg.W$Estimate+con.avg.W$Std..Error,col=c(col.W,"Black"),lwd=2)
+abline(v=0)
+axis(1)
+axis(2, at=1:6, labels= c("Fire frequency","Sand","MAP","MAP:Sand","Land-use","Intercept"),par(las=1))
+#dev.off()
 
 #### Check the relationship between the factors Landuse, climat(dry-int-wet), climate.kat (Dry vs Wet) and texture ####
 str(Belowground.full)
@@ -1799,16 +1789,15 @@ vignette('piecewiseSEM') # too look at the package
 # Variation for each model component
 # Testing different models 
 #psem
-# na.omit? 
 Modlist <-   psem(
-  lme(tot.C.kg_m2~CMAP.mm_yr + CFire_frequency.2000_2017.x + tot.N.kg_m2 +CSand + Shrubbiness,random= ~ 1|Region/Block,na.action=na.omit, data=Belowground.full),
-  lme(Shrubbiness~CFire_frequency.2000_2017.x + CMAP.mm_yr,random= ~ 1|Region/Block,na.action=na.omit, data=Belowground.full),
-  lme(tot.N.kg_m2~ CSand,random= ~ 1|Region/Block,na.action=na.omit, data=Belowground.full),
-  lme(CFire_frequency.2000_2017.x~ CMAP.mm_yr,random= ~ 1|Region/Block,na.action=na.omit, data=Belowground.full))
+  lme(tot.C.kg_m2~CMAP.mm_yr + CFire_frequency.2000_2017 +CSand,random= ~ 1|Region.x,na.action=na.fail, data=Belowground.CnoNA),
+  lme(CShrubbiness~CFire_frequency.2000_2017 + CMAP.mm_yr,random= ~ 1|Region.x,na.action=na.fail, data=Belowground.CnoNA),
+  lme(tot.N.kg_m2~ CSand,random= ~ 1|Region.x,na.action=na.fail, data=Belowground.CnoNA),
+  lme(CFire_frequency.2000_2017~ CMAP.mm_yr,random= ~ 1|Region.x,na.action=na.fail, data=Belowground.CnoNA))
 # %~~% between correlated error - telling R to not care about the correlation between these variables. 
 # MySummary <- summary(modell)
 # save(MySummary, file="")
-sem.fit(Modlist,Belowground.full) # Error: no 'nobs' method is available
+summary(Modlist,Belowground.CnoNA) # Error: no 'nobs' method is available
 
 rsquared(Modlist) # new version of sem.model.fits
 # Marginal R2= proportion of variance explained by the fixed factor
