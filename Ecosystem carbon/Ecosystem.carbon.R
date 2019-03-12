@@ -252,7 +252,7 @@ Above_Below.C <- read.csv("Ecosystem carbon/Above_Below.C.csv",head=T)
 str(Belowground.full)
 Belowground.full$Fire_frequency.2000_2017.x <- as.numeric(Belowground.full$Fire_frequency.2000_2017.x)
 
-Block.Eco.C$Carbon.pool<- factor(Block.Eco.C$Carbon.pool, levels = c("TreeC.kg_m2","HerbC.kg_m2", "DWC.kg_m2","SoilAC.kg_m2","SoilMC.kg_m2"))
+#Block.Eco.C$Carbon.pool<- factor(Block.Eco.C$Carbon.pool, levels = c("TreeC.kg_m2","HerbC.kg_m2", "DWC.kg_m2","SoilAC.kg_m2","SoilMC.kg_m2"))
 levels(Block.Eco.C$Carbon.pool) <- c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon")
 Block.Eco.C$Region.x<- factor(Block.Eco.C$Region.x, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 Belowground.full$Region<- factor(Belowground.full$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
@@ -310,7 +310,12 @@ plot(tot.C.kg_m2~MAP.mm_yr,data=Belowground.full)
 plot(CN~MAP.mm_yr, data=Belowground.full)
 plot(CN~climate,data=Belowground.full)
 plot(tot.N.kg_m2~livestock, data=Belowground.full, na.rm=T)
+plot(tot.C.kg_m2~Class.x,data=Belowground.full)
+plot(tot.C.kg_m2~Region,data=Belowground.full)
 names(Belowground.full)
+Sand <- aggregate(Sand~Region, mean, data=Belowground.full)
+Clay <- aggregate(Clay~Region, mean, data=Belowground.full)
+C <- aggregate(tot.C.kg_m2~Region, mean, data=Belowground.full)
 
 #### TOT ECOSYSTEM C ####
 
@@ -788,21 +793,24 @@ names(Belowground.full)
 str(Belowground.full)
 names(Belowground.C)
 Belowground.C$CN <- Belowground.C$tot.C.kg_m2 / Belowground.C$tot.N.kg_m2
-MyVar1<-c("MAP.mm_yr","Sand","Fire_frequency.2000_2017","Shrubbiness","tot.N.kg_m2","CN")
 
-MyVar2<-c("MAP.mm_yr","Sand.pip.per","Fire_frequency.2000_2017","Shrubbiness","tot.N.kg_m2","TreeBM.N","TreeBM.kg_m2","tot.C.kg_m2")
+Tree.var<-c("TreeBM.kg_m2","No.trees_m2","Total.basal.area_m2","Shrubbiness","TreeBM.N","tot.N.kg_m2")
 
 names(Soil.Ahor)
-MyVar3<-c("CMAP.mm_yr","CSand","CFire_frequency.2000_2017","CShrubbiness","Ctot.N.kg_m2","CTreeBM.N","CTreeBM.kg_m2","Herb.C")
+ModelVar<-c("CMAP.mm_yr","CSand","CFire_frequency.2000_2017","CShrubbiness","CTreeBM.kg_m2","CHerb.C","Ctot.N.kg_m2")
+
+CandN<-c("Ctot.C.kg_m2","Ctot.N.kg_m2")
 
 # Want to get these two in one matrix. 
-pairs(Belowground.full[,MyVar1],lower.panel = panel.cor)
-pairs(Belowground.C[,MyVar2],lower.panel = panel.cor)
-pairs(Soil.Ahor[,MyVar3],lower.panel = panel.cor)
+pairs(Soil.Ahor[,Tree.var],lower.panel = panel.cor)
+pairs(Soil.Ahor[,ModelVar],lower.panel = panel.cor)
+pairs(Belowground.full[,CandN],lower.panel = panel.cor)
 # If I want these values in a table:
-Variables2 <- Belowground.C[,c(5,7,10,13,15,27,36,40)]
-Variables1 <- Belowground.full[,c(10:12,15,16,22,24,26,41,43,46)] # first select the collums I want to use 
-Mycor <- rcorr(as.matrix(Variables2), type="pearson") # Use the pearson correlation (r-value)
+Model.var <- Soil.Ahor[,c(32:34,36,37,43,41)]
+CandN.var <- Belowground.full[,c(53,56)] 
+Tree.var <- Soil.Ahor[,c(14:17,31,39)]
+
+Mycor <- rcorr(as.matrix(Tree.var), type="pearson") # Use the pearson correlation (r-value)
 MycorR <- as.data.frame(round(Mycor$r, digits=3))
 MycorP <- as.data.frame(round(Mycor$P, digits=3))
 
@@ -839,12 +847,14 @@ plot(MAP.mm_yr~landuse, data= Block.Eco.C) # not covarying
 plot(Last.fire_yr~landuse, data= Block.Eco.C) # not covarying
 plot(Fire_frequency.2000_2017~landuse, data= Block.Eco.C) # not covarying 
 plot(livestock~landuse,data=Belowground.full) # COVARYING
+plot(livestock~Region,data=Belowground.full) # COVARYING
 plot(wild~landuse,data=Belowground.full) # not covarying 
 
 plot(livestock~Region,data=Belowground.full)
 plot(tot.C.kg_m2~Region,data=Belowground.full)
 plot(tot.N.kg_m2~Region,data=Belowground.full)
 plot(Clay~Region,data=Belowground.full)
+plot(Herb.C~landuse, data=Soil.Ahor)
 
 par(mfrow=c(1,1))
 levels(Belowground.full$Region)
@@ -943,11 +953,18 @@ Herbaceous <- cbind(Herbaceous,tot.N.kg_m2[3])
 Woody <- cbind(Woody,tot.N.kg_m2[3])
 DW<- cbind(DW,tot.N.kg_m2[3])
 
+Total.Eco.C <- cbind(Soil.min[c(3:25,27,29:38)],Soil.Ahor[c(27)],Herbaceous[c(27)],Woody[c(27)],DW[c(27)])
+colnames(Total.Eco.C)[24] <- "Soil.min"
+colnames(Total.Eco.C)[35] <- "Soil.Ahor"
+colnames(Total.Eco.C)[36] <- "Herbaceous"
+colnames(Total.Eco.C)[37] <- "Woody"
+colnames(Total.Eco.C)[38] <- "DW"
+Total.Eco.C$tot.C.kg_m2 <- Total.Eco.C$Soil.min + Total.Eco.C$Soil.Ahor + Total.Eco.C$Herbaceous + Total.Eco.C$Woody + Total.Eco.C$DW
+
 names(Belowground.full)
 summary(Belowground.full)
 Belowground.full$CN <- Belowground.full$tot.C.kg_m2/Belowground.full$tot.N.kg_m2
 max(Belowground.full$CN)
-plot(CN~Region,data=Belowground.full)
 # scaling tot.C to be able to compare estimates.. 
 Belowground.C$Ctot.C.kg_m2 <- as.numeric(scale(Belowground.C$tot.C.kg_m2)) 
 Aboveground.C$Ctot.C.kg_m2 <- as.numeric(scale(Aboveground.C$DW)) + as.numeric(scale(Aboveground.C$Herbaceous)) + as.numeric(scale(Aboveground.C$Woody))
@@ -956,6 +973,7 @@ Soil.Ahor$Ctot.C.kg_m2 <- as.numeric(scale(Soil.Ahor$C.amount))
 Herbaceous$Ctot.C.kg_m2 <- as.numeric(scale(Herbaceous$C.amount)) 
 DW$Ctot.C.kg_m2 <- as.numeric(scale(DW$C.amount)) 
 Woody$Ctot.C.kg_m2 <- as.numeric(scale(Woody$C.amount)) 
+Total.Eco.C$Ctot.C.kg_m2 <- as.numeric(scale(Total.Eco.C$tot.C.kg_m2)) 
 Aboveground.C$Ctot.N.kg_m2 <- as.numeric(scale(Aboveground.C$tot.N.kg_m2))
 Belowground.C$Ctot.N.kg_m2 <- as.numeric(scale(Belowground.C$tot.N.kg_m2))
 Soil.min$Ctot.N.kg_m2 <- as.numeric(scale(Soil.min$tot.N.kg_m2))
@@ -1064,20 +1082,24 @@ AIC(B1.red) #50.99106, removing TreeBM: 52.52395
 
 # 2. Global model for A-hor C univariate variables ####
 names(Soil.Ahor)
-Soil.Ahor <- cbind(Soil.Ahor,Herbaceous[40])
+names(Herbaceous)
+Soil.Ahor <- cbind(Soil.Ahor,Herbaceous[27])
 colnames(Soil.Ahor)[42] <- "Herb.C"
+Soil.Ahor$CHerb.C <- as.numeric(scale(Soil.Ahor$Herb.C))
 Soil.Ahor.CnoNA<-Soil.Ahor[!is.na(Soil.Ahor$CFire_frequency.2000_2017),]
-Ahor.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand + CShrubbiness + Herb.C + CTreeBM.N + CMAP.mm_yr:CSand + 
+#Soil.Ahor.CnoNA <- Soil.Ahor.CnoNA[-14,] # remove outlier? 
+Ahor.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand + CShrubbiness + CHerb.C #+ CTreeBM.N 
+                 + CMAP.mm_yr:CSand + landuse:CMAP.mm_yr + landuse:CSand + 
                           (1|Region.x),data = Soil.Ahor.CnoNA, REML=F,
                         na.action=na.fail)
 
 summary(Ahor.block)
 drop1(Ahor.block,test="Chisq")  
 anova(Ahor.block)
-AIC(Ahor.block) #65.20516
+AIC(Ahor.block) #62.22761
 
 # Model averaging: All possible models between null and global
-modsetbelowA<-dredge(Ahor.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse)&!(CSand & Herb.C)&!(Herb.C & CTreeBM.N))
+modsetbelowA<-dredge(Ahor.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse)&!(CSand & CHerb.C))
 modselbelowA<-model.sel(modsetbelowA) #Model selection table giving AIC, deltaAIC and weighting
 modavgbelowA<-model.avg(modselbelowA)#Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modavgbelowA)#Importance of each variable
@@ -1087,20 +1109,23 @@ summary(modavgbelowA)$coefmat.full # Full average
 write.table(summary(modavgbelowA)$coefmat.subset, file="Ecosystem carbon/con.avg.Ahor.txt") # conditional average - I will try first with this.. 
 
 # 3. Global model for Mineral hor C univariate variables ####
+Soil.min <- cbind(Soil.min,Herbaceous[27])
+colnames(Soil.min)[42] <- "Herb.C"
+Soil.min$CHerb.C <- as.numeric(scale(Soil.min$Herb.C))
 Soil.min.CnoNA<-Soil.min[!is.na(Soil.min$CFire_frequency.2000_2017),]
-Min.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand + CShrubbiness + CTreeBM.N + CMAP.mm_yr:CSand +
+Min.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand + CShrubbiness + CHerb.C + #CTreeBM.N + 
+                  CMAP.mm_yr:CSand + landuse:CMAP.mm_yr + landuse:CSand + 
                           (1|Region.x),data = Soil.min.CnoNA, REML=F,
                         na.action=na.fail)
 
 summary(Min.block)
 drop1(Min.block,test="Chisq") # MAP,Fire,N,TreeBM
 anova(Min.block)
-AIC(Min.block) #59.16717
-names(Belowground.C)
+AIC(Min.block) #57.77696
 
 # Model averaging: All possible models between null and global
 modsetbelowM<-dredge(Min.block,trace = TRUE, rank = "AICc", REML = FALSE,
-                    subset=!(CTreeBM.kg_m2 & landuse))
+                    subset=!(CTreeBM.kg_m2 & landuse)&!(CSand & CHerb.C))
 modselbelowM<-model.sel(modsetbelowM) #Model selection table giving AIC, deltaAIC and weighting
 modavgbelowM<-model.avg(modselbelowM)#Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modavgbelowM)#Importance of each variable
@@ -1120,18 +1145,20 @@ plot(Ctot.C.kg_m2~CSand, data=Soil.min)
 plot(Ctot.C.kg_m2~CSand, data=Soil.Ahor)
 
 # 4. Global model for Herbs ####
+names(Herbaceous)
 Herbaceous.CnoNA<-Herbaceous[!is.na(Herbaceous$CFire_frequency.2000_2017),]
-Herbaceous.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand + CShrubbiness + CTreeBM.N + CMAP.mm_yr:CSand + 
+Herbaceous.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand + CShrubbiness + Ctot.N.kg_m2 + #CTreeBM.N + 
+                         CMAP.mm_yr:CSand + landuse:CMAP.mm_yr + landuse:CSand +
                    (1|Region.x),data = Herbaceous.CnoNA, REML=F,
                  na.action=na.fail)
 
 summary(Herbaceous.block)
 drop1(Herbaceous.block,test="Chisq")  
 anova(Herbaceous.block)
-AIC(Herbaceous.block) #44.56924
+AIC(Herbaceous.block) #52.15059
 
 # Model averaging: All possible models between null and global
-modsetaboveH<-dredge(Herbaceous.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse))
+modsetaboveH<-dredge(Herbaceous.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse) & !(Ctot.N.kg_m2 & CSand))
 modselaboveH<-model.sel(modsetaboveH) #Model selection table giving AIC, deltaAIC and weighting
 modavgaboveH<-model.avg(modselaboveH)#Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modavgaboveH)#Importance of each variable
@@ -1141,17 +1168,18 @@ write.table(summary(modavgaboveH)$coefmat.subset, file="Ecosystem carbon/con.avg
 
 # 5. Global model for DW #### 
 DW.CnoNA<-DW[!is.na(DW$CFire_frequency.2000_2017),]
-DW.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand + CShrubbiness + CTreeBM.N + CMAP.mm_yr:CSand + 
-                   (1|Region.x),data = Soil.Ahor.CnoNA, REML=F,
+DW.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand + CShrubbiness + Ctot.N.kg_m2 + #CTreeBM.N + 
+                 CMAP.mm_yr:CSand + landuse:CMAP.mm_yr + landuse:CSand +
+                   (1|Region.x),data = DW.CnoNA, REML=F,
                  na.action=na.fail)
 
 summary(DW.block)
 drop1(DW.block,test="Chisq")  
 anova(DW.block)
-AIC(DW.block) #65.25896
+AIC(DW.block) #92.05196
 
 # Model averaging: All possible models between null and global
-modsetaboveDW<-dredge(DW.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse))
+modsetaboveDW<-dredge(DW.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse) & !(Ctot.N.kg_m2 & CSand))
 modselaboveDW<-model.sel(modsetaboveDW) #Model selection table giving AIC, deltaAIC and weighting
 modavgaboveDW<-model.avg(modselaboveDW)#Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modavgaboveDW)#Importance of each variable
@@ -1161,17 +1189,17 @@ summary(modavgaboveDW)#Estimated coefficients given weighting
 write.table(summary(modavgaboveDW)$coefmat.subset, file="Ecosystem carbon/con.avg.DW.txt") 
 # 6. Global model for Woody #### 
 Woody.CnoNA<-Woody[!is.na(Woody$CFire_frequency.2000_2017),]
-Woody.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CSand + CMAP.mm_yr:CSand + 
+Woody.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CSand + + Ctot.N.kg_m2 + CMAP.mm_yr:CSand + landuse:CMAP.mm_yr + landuse:CSand +
                    (1|Region.x),data = Woody.CnoNA, REML=F,
                  na.action=na.fail)
 
 summary(Woody.block)
 drop1(Woody.block,test="Chisq")  
 anova(Woody.block)
-AIC(Woody.block) #69.92378
+AIC(Woody.block) #75.208
 
 # Model averaging: All possible models between null and global
-modsetaboveW<-dredge(Woody.block,trace = TRUE, rank = "AICc", REML = FALSE)
+modsetaboveW<-dredge(Woody.block,trace = TRUE, rank = "AICc", REML = FALSE, subset= !(Ctot.N.kg_m2 & CSand))
 modselaboveW<-model.sel(modsetaboveW) #Model selection table giving AIC, deltaAIC and weighting
 modavgaboveW<-model.avg(modselaboveW)#Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modavgaboveW)#Importance of each variable
@@ -1220,13 +1248,36 @@ modavgAB<-model.avg(modsetAB)#Averages coefficient estimates across multiple mod
 importance(modavgAB)#Importance of each variable
 summary(modavgAB)#Estimated coefficients given weighting
 
-# 8. From belowground.full fine scale ####
+# 8. Global model for Total Ecosystem C ####
+Total.Eco.C.CnoNA<-Total.Eco.C[!is.na(Total.Eco.C$CFire_frequency.2000_2017),]
+Tot.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand + CShrubbiness + 
+                  CMAP.mm_yr:CSand + landuse:CMAP.mm_yr + landuse:CSand + 
+                  (1|Region.x),data = Total.Eco.C.CnoNA, REML=F,
+                na.action=na.fail)
+
+summary(Tot.block)
+drop1(Tot.block,test="Chisq") # MAP,Fire,N,TreeBM
+anova(Tot.block)
+AIC(Tot.block) #57.6387
+
+# Model averaging: All possible models between null and global
+modsettot<-dredge(Tot.block,trace = TRUE, rank = "AICc", REML = FALSE,
+                     subset=!(CTreeBM.kg_m2 & landuse))
+modseltot<-model.sel(modsettot) #Model selection table giving AIC, deltaAIC and weighting
+modavgtot<-model.avg(modseltot)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgtot)#Importance of each variable
+write.table(importance(modavgtot),file="Ecosystem carbon/importancetot.txt")
+summary(modavgtot)#Estimated coefficients given weighting
+write.table(summary(modavgtot)$coefmat.subset, file="Ecosystem carbon/con.avg.tot.txt")
+
+# 9. From belowground.full fine scale ####
 
 # Model averaging 
 summary(Belowground.full.CnoNA)
 Belowground.full.CnoNA<-Belowground.full[!is.na(Belowground.full$CFire_frequency.2000_2017),]
 
-Belowground <-lmer(Ctot.C.kg_m2 ~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 +  Ctot.N.kg_m2 + CTreeBM.kg_m2 + CSand + CShrubbiness + (1|Region), data = Belowground.full.CnoNA, REML=F, na.action=na.fail)
+Belowground <-lmer(Ctot.C.kg_m2 ~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017  + CTreeBM.kg_m2 + CSand + CShrubbiness + CMAP.mm_yr:CSand + landuse:CMAP.mm_yr + landuse:CSand + 
+                     (1|Region), data = Belowground.full.CnoNA, REML=F, na.action=na.fail)
 
 modsetbelow.full<-dredge(Belowground,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse) & !(CSand & Ctot.N.kg_m2 ))
 modselbelow.full<-model.sel(modsetbelow.full) #Model selection table giving AIC, deltaAIC and weighting
@@ -1475,30 +1526,31 @@ colnames(importance.H)<-'Herbs'
 colnames(importance.DW)<-'DW'
 colnames(importance.W)<-'Woody'
 
-rownames(importance.Ahor) <- (c("MAP","Biomass N.fix trees","Sand","Shrubbiness","Fire frequency","Herbaceous biomass","Land-use","Tree biomass","MAP:Sand"))
+rownames(importance.Ahor) <- (c("MAP","Herbaceous biomass","Land-use","Sand","Shrubbiness","Fire frequency","Tree biomass","MAP:Sand","MAP:Land-use","Sand:Land-use"))
 
-rownames(importance.MinHor) <- (c("Sand","MAP","Fire frequency","MAP:Sand","Land-use","Tree biomass","Shrubbiness","Biomass N.fix trees"))
+rownames(importance.MinHor) <- (c("Sand","MAP","Fire frequency","MAP:Sand","Land-use","Tree biomass","Shrubbiness","MAP:Land-use","Sand:Land-use", "Herbacaous biomass"))
 
-rownames(importance.H) <- (c("Biomass N.fix trees","Fire frequency","Tree biomass","Sand","Shrubbiness","MAP","Land-use","MAP:Sand"))
+rownames(importance.H) <- (c("Sand","Fire frequency","Land-use","MAP","Shrubbiness","MAP:Sand","Tree biomass","Sand:Land-use", "Soil Nitrogen","MAP:Land-use"))
 
-rownames(importance.DW) <- (c("MAP","Biomass N.fix trees","Sand","Fire frequency","Shrubbiness","Land-use","Tree biomass","MAP:Sand"))
+rownames(importance.DW) <- (c("Land-use","MAP","Fire frequency","Shrubbiness","Sand","Soil Nitrogen","Tree biomass","MAP:Land-use","Sand:Land-use","MAP:Sand"))
 
-rownames(importance.W) <- (c("Fire frequency","Sand","MAP","MAP:Sand","Land-use"))
+rownames(importance.W) <- (c("Fire frequency","MAP","Sand","MAP:Sand","Land-use", "Soil Nitrogen","MAP:Land-use","Sand:Land-use"))
 
 # Colours 
-# MAP: deepskyblue4
-# Tree bm: darkolivegreen4
-# N-fix tree bm: darkolivegreen3
 # Fire: darkorange2
-# Shrubbiness: darkseagreen4
+# Herb biomass: forestgreen
+# Tree bm: darkolivegreen3
+# Shrubbiness: darkolivegreen4
 # Landuse: goldenrod3
 # Sand: darkgray
-# MAP:Sand: cyan4
-# Herb biomass: forestgreen
+# Soil N: coral4
+# MAP: deepskyblue4
+# MAP:Sand: deepskyblue2
+# MAP:Land-use: steelblue3
+# Sand:Land-use: khaki3
 
-Legend.text <- c("MAP","Tree Biomass N.fix","Sand","Shrubbiness","Fire frequency","Herbaceous biomass","Land-use","Tree biomass","MAP:Sand")
 # Plot A-hor
-col.Ahor <- c("deepskyblue4","darkolivegreen3","darkgray","darkseagreen4","darkorange2","forestgreen","goldenrod3","darkolivegreen4","cyan4")
+col.Ahor <- c("deepskyblue4","forestgreen","goldenrod3","darkgray","darkolivegreen4","darkorange2","darkolivegreen3","deepskyblue2","steelblue3","khaki3")
 png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.Ahor.png")
 par(mar=c(5,18,1,1))
 barplot(t(as.matrix(importance.Ahor)), horiz=T,las=1,xlab='Relative variable importance',main='Soil A-horizon Carbon',axisname=T,col=col.Ahor,beside=T,cex.main = 1,cex.axis=2,cex.lab=1,cex.names=2)
@@ -1507,28 +1559,28 @@ barplot(t(as.matrix(importance.Ahor)), horiz=T,las=1,xlab='Relative variable imp
 dev.off()
 
 # Plot Min-hor
-col.min <- c("darkgray","deepskyblue4","darkorange2","cyan4","goldenrod3",'darkolivegreen4','darkseagreen4','darkolivegreen3')
+col.min <- c("darkgray","deepskyblue4","darkorange2","deepskyblue2","goldenrod3",'darkolivegreen3','darkolivegreen4','steelblue3',"khaki3","forestgreen")
 png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.Minhor.png")
 par(mar=c(5,18,1,1))
 barplot(t(as.matrix(importance.MinHor)), horiz=T,las=1,xlab='Relative variable importance',main='Soil Mineral-horizon Carbon',cex.main = 1,axisname=T,col= col.min,beside=T,cex.axis=2,cex.lab=1,cex.names=2)
 dev.off()
 
 # Plot Herb 
-col.herb <- c("darkolivegreen3","darkorange2","darkolivegreen4","darkgray","darkseagreen4",'deepskyblue4','goldenrod3','cyan4')
+col.herb <- c("darkgray","darkorange2","goldenrod3","deepskyblue4","darkolivegreen4",'deepskyblue2',"darkolivegreen3","khaki3","coral4","steelblue3")
 png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.Herb.png")
 par(mar=c(5,18,1,1))
 barplot(t(as.matrix(importance.H)), horiz=T,las=1,xlab='Relative variable importance',main='Herbaceous Carbon',cex.main = 1,axisname=T,col=col.herb,beside=T,cex.axis=2,cex.lab=1,cex.names=2)
 dev.off()
 
 # Plot DW 
-col.DW <- c("deepskyblue4","darkolivegreen3","darkgray","darkorange2","darkseagreen4",'goldenrod3','darkolivegreen4',"cyan4")
+col.DW <- c("goldenrod3","deepskyblue4","darkorange2","darkolivegreen4","darkgray","coral4","darkolivegreen3","steelblue3","khaki3","deepskyblue2")
 png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.DW.png")
 par(mar=c(5,18,1,1))
 barplot(t(as.matrix(importance.DW)), horiz=T,las=1,xlab='Relative variable importance',main='Dead Wood Carbon',cex.main = 1,axisname=T,col=col.DW,beside=T,cex.axis=2,cex.lab=1,cex.names=2)
 dev.off()
 
 #Plot Woody
-col.W <- c("darkorange2","darkgray",'deepskyblue4','cyan4','goldenrod3')
+col.W <- c("darkorange2","deepskyblue4","darkgray","deepskyblue2","goldenrod3","coral4","steelblue3","khaki3")
 png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.Woody.png")
 par(mar=c(5,13,1,1))
 barplot(t(as.matrix(importance.W)),horiz=T,las=1,xlab='Relative variable importance',main='Woody Carbon',cex.main = 1,axisname=T,col=col.W,beside=T,cex.axis=2,cex.lab=1,cex.names=2)
@@ -1543,11 +1595,11 @@ con.avg.W<- read.table("Ecosystem carbon/con.avg.W.txt")
 
 #Reorder rows
 rownames(con.avg.W)
-con.avg.Ahor<-con.avg.Ahor[c(1,4,2,5,7,8,3,6,9,10),]
-con.avg.MinHor<-con.avg.MinHor[c(1,3,2,6,5,4,7,9,8),]
-con.avg.H<-con.avg.H[c(1,2,3,4,7,5,8,6,9),]
-con.avg.DW<-con.avg.DW[c(1,3,2,4,7,6,5,8,9),]
-con.avg.W<-con.avg.W[c(1,2,4,3,5,6),]
+con.avg.Ahor<-con.avg.Ahor[c(1,3,2,5,4,6,7,8,9,10,11),]
+con.avg.MinHor<-con.avg.MinHor[c(1,3,2,6,5,4,7,10,9,8,11),]
+con.avg.H<-con.avg.H[c(1,3,5,8,2,7,4,6,9,10,11),]
+con.avg.DW<-con.avg.DW[c(1,2,3,4,6,5,7,8,9,10,11),]
+con.avg.W<-con.avg.W[c(1,2,3,4,5,6,7,8,9),]
 
 # remove first row 
 con.avg.Ahor<-con.avg.Ahor[c(-1),]
@@ -1555,17 +1607,6 @@ con.avg.MinHor<-con.avg.MinHor[c(-1),]
 con.avg.H<-con.avg.H[c(-1),]
 con.avg.DW<-con.avg.DW[c(-1),]
 con.avg.W<-con.avg.W[c(-1),]
-
-# Colours 
-# MAP: deepskyblue4
-# Tree bm: darkolivegreen4
-# N-fix tree bm: darkolivegreen3
-# Fire: darkorange2
-# Shrubbiness: darkseagreen4
-# Landuse: goldenrod3
-# Sand: darkgray
-# MAP:Sand: cyan4
-# Herb biomass: forestgreen
 
 # Significance 
 con.avg.MinHor$sign <- con.avg.MinHor$Pr...z..
@@ -1580,62 +1621,66 @@ con.avg.W$sign <- con.avg.W$Pr...z..
 con.avg.W$sign[con.avg.W$sign>0.05] <- 16
 con.avg.W$sign[con.avg.W$sign<0.05] <- 1
 
+con.avg.DW$sign <- con.avg.DW$Pr...z..
+con.avg.DW$sign[con.avg.DW$sign>0.05] <- 16
+con.avg.DW$sign[con.avg.DW$sign<0.05] <- 1
+
 # creating the "frame" and then plotting
 # A-hor 
-#png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Ahor.png")
-par(mar=c(5,18,1,1))
-plot(rep(NA,9),1:9, xlim=c(-1,1), type="n", ann=F,axes=F, bty="n")
-points(con.avg.Ahor$Estimate,1:9,pch=19,col=c(col.Ahor), lwd=2, cex=1.5)
-arrows(y0=1:9, x0=con.avg.Ahor$Estimate-con.avg.Ahor$Std..Error, x1=con.avg.Ahor$Estimate+con.avg.Ahor$Std..Error,col=c(col.Ahor), angle=90,length=0.05,code=3,lwd=2)
+png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Ahor.png")
+par(mar=c(5,12,1,1))
+plot(rep(NA,10),1:10, xlim=c(-1.5,1.5), type="n", ann=F,axes=F, bty="n")
+points(con.avg.Ahor$Estimate,1:10,pch=16,col=c(col.Ahor), lwd=2, cex=2)
+arrows(y0=1:10, x0=con.avg.Ahor$Estimate-con.avg.Ahor$Std..Error, x1=con.avg.Ahor$Estimate+con.avg.Ahor$Std..Error,col=c(col.Ahor), angle=90,length=0.05,code=3,lwd=2)
 abline(v=0)
 axis(1,cex.axis=2)
-axis(2, at=1:9, labels= c("MAP","Biomass N.fix trees","Sand","Shrubbiness","Fire frequency","Herbaceous biomass","Land-use (PA)","Tree biomass","MAP:Sand"),par(las=1),cex.axis=2)
+axis(2, at=1:10, labels= c("MAP","Herb biomass","PA","Sand","Shrubbiness","Fire frequency","Tree biomass","MAP:Sand","MAP:PA","Sand:PA"),par(las=1),cex.axis=2)
 
-#dev.off()
+dev.off()
 
 # Min-hor
-#png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Minhor.png")
-par(mar=c(5,18,1,1))
-plot(rep(NA,8),1:8, xlim=c(-1,1), type="n", ann=F,axes=F, bty="n")
-arrows(y0=1:8, x0=con.avg.MinHor$Estimate-con.avg.MinHor$Std..Error, x1=con.avg.MinHor$Estimate+con.avg.MinHor$Std..Error,col=c(col.min), angle=90,length=0.05,code=3,lwd=2)
-points(con.avg.MinHor$Estimate,1:8,pch=con.avg.MinHor$sign,col=c(col.min), lwd=2, cex=1.5)
+png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Minhor.png")
+par(mar=c(5,12,1,1))
+plot(rep(NA,10),1:10, xlim=c(-1,1), type="n", ann=F,axes=F, bty="n")
+arrows(y0=1:10, x0=con.avg.MinHor$Estimate-con.avg.MinHor$Std..Error, x1=con.avg.MinHor$Estimate+con.avg.MinHor$Std..Error,col=c(col.min), angle=90,length=0.05,code=3,lwd=2)
+points(con.avg.MinHor$Estimate,1:10,pch=con.avg.MinHor$sign,col=c(col.min), lwd=2, cex=2)
 abline(v=0)
 axis(1,cex.axis=2)
-axis(2, at=1:8, labels= c("Sand","MAP","Fire frequency","MAP:Sand","Land-use (PA)","Tree biomass","Shrubbiness","Biomass N.fix trees"),par(las=1),cex.axis=2)
-#dev.off()
+axis(2, at=1:10, labels= c("Sand","MAP","Fire frequency","MAP:Sand","PA","Tree biomass","Shrubbiness","MAP:PA","Sand:PA", "Herb biomass"),par(las=1),cex.axis=2)
+dev.off()
 
 # Herb
-#png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Herb.png")
-par(mar=c(5,18,1,1))
-plot(rep(NA,8),1:8, xlim=c(-1,1), type="n", ann=F,axes=F, bty="n")
-points(con.avg.H$Estimate,1:8,pch=con.avg.H$sign,col=c(col.herb), lwd=2, cex=1.5)
-arrows(y0=1:8, x0=con.avg.H$Estimate-con.avg.H$Std..Error, x1=con.avg.H$Estimate+con.avg.H$Std..Error,col=c(col.herb), angle=90,length=0.05,code=3,lwd=2)
+png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Herb.png")
+par(mar=c(5,12,1,1))
+plot(rep(NA,10),1:10, xlim=c(-1.5,1.5), type="n", ann=F,axes=F, bty="n")
+points(con.avg.H$Estimate,1:10,pch=con.avg.H$sign,col=c(col.herb), lwd=2, cex=2)
+arrows(y0=1:10, x0=con.avg.H$Estimate-con.avg.H$Std..Error, x1=con.avg.H$Estimate+con.avg.H$Std..Error,col=c(col.herb), angle=90,length=0.05,code=3,lwd=2)
 abline(v=0)
 axis(1,cex.axis=2)
-axis(2, at=1:8, labels= c("Biomass N.fix trees","Fire frequency","Tree biomass","Sand","Shrubbiness","MAP","Land-use (PA)","MAP:Sand"),par(las=1),cex.axis=2)
-#dev.off()
+axis(2, at=1:10, labels= c("Sand","Fire frequency","PA","MAP","Shrubbiness","MAP:Sand","Tree biomass","Sand:PA", "Soil Nitrogen","MAP:PA"),par(las=1),cex.axis=2)
+dev.off()
 
 # DW
-#png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.DW.png")
-par(mar=c(5,18,1,1))
-plot(rep(NA,8),1:8, xlim=c(-1,1), type="n", ann=F,axes=F, bty="n")
-points(con.avg.DW$Estimate,1:8,pch=19,col=c(col.DW), lwd=2, cex=1.5)
-arrows(y0=1:8, x0=con.avg.DW$Estimate-con.avg.DW$Std..Error, x1=con.avg.DW$Estimate+con.avg.DW$Std..Error,col=c(col.DW), angle=90,length=0.05,code=3,lwd=2)
+png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.DW.png")
+par(mar=c(5,12,1,1))
+plot(rep(NA,10),1:10, xlim=c(-1.5,1.5), type="n", ann=F,axes=F, bty="n")
+points(con.avg.DW$Estimate,1:10,pch=con.avg.DW$sign,col=c(col.DW), lwd=2, cex=2)
+arrows(y0=1:10, x0=con.avg.DW$Estimate-con.avg.DW$Std..Error, x1=con.avg.DW$Estimate+con.avg.DW$Std..Error,col=c(col.DW), angle=90,length=0.05,code=3,lwd=2)
 abline(v=0)
 axis(1,cex.axis=2)
-axis(2, at=1:8, labels= c("MAP","Biomass N.fix trees","Sand","Fire frequency","Shrubbiness","Land-use (PA)","Tree biomass","MAP:Sand"),par(las=1),cex.axis=2)
-#dev.off()
+axis(2, at=1:10, labels= c("PA","MAP","Fire frequency","Shrubbiness","Sand","Soil Nitrogen","Tree biomass","MAP:PA","Sand:PA","MAP:Sand"),par(las=1),cex.axis=2)
+dev.off()
 
 #Woody
-#png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Woody.png")
-par(mar=c(5,13,1,1))
-plot(rep(NA,5),1:5, xlim=c(-1,1), type="n", ann=F,axes=F, bty="n")
-points(con.avg.W$Estimate,1:5,pch=con.avg.W$sign,col=c(col.W), lwd=2, cex=1.5)
-arrows(y0=1:5, x0=con.avg.W$Estimate-con.avg.W$Std..Error, x1=con.avg.W$Estimate+con.avg.W$Std..Error,col=c(col.W), angle=90,length=0.05,code=3,lwd=2)
+png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Woody.png")
+par(mar=c(5,12,1,1))
+plot(rep(NA,8),1:8, xlim=c(-1,1), type="n", ann=F,axes=F, bty="n")
+points(con.avg.W$Estimate,1:8,pch=con.avg.W$sign,col=c(col.W), lwd=2, cex=2)
+arrows(y0=1:8, x0=con.avg.W$Estimate-con.avg.W$Std..Error, x1=con.avg.W$Estimate+con.avg.W$Std..Error,col=c(col.W), angle=90,length=0.05,code=3,lwd=2)
 abline(v=0)
 axis(1,cex.axis=2)
-axis(2, at=1:5, labels= c("Fire frequency","Sand","MAP","MAP:Sand","Land-use (PA)"),par(las=1), cex.axis=2)
-#dev.off()
+axis(2, at=1:8, labels= c("Fire frequency","MAP","Sand","MAP:Sand","PA", "Soil Nitrogen","MAP:PA","Sand:PA"),par(las=1), cex.axis=2)
+dev.off()
 
 #### Check the relationship between the factors Landuse, climat(dry-int-wet), climate.kat (Dry vs Wet) and texture ####
 str(Belowground.full)
@@ -1702,132 +1747,32 @@ Fire.climate <- lmer(tot.C.kg_m2~CFire_frequency.2000_2017:climate.kat + (1|Regi
 xyplot(tot.C.kg_m2~CFire_frequency.2000_2017|climate.kat,data=Belowground.full)
 anova(Fire.climate)
 
-#### Hypothesis 1 ####
-# Testing my first hypothesis 1 where I think MAP has an effect on C, however, this relationship can be mediated by soil texture. 
-
-# Soil mineral horizon 
-Soil.min.H11<-lmer(C.amount~ MAP.mm_yr + (1|Region), data = Soil.min, REML=F)
-Soil.min.H12<-lmer(C.amount~ MAP.mm_yr + MAP.mm_yr:Sand.pip.per + (1|Region), data = Soil.min, REML=F)
-Soil.min.H13<-lmer(C.amount~ MAP.mm_yr*Sand.pip.per + (1|Region), data = Soil.min, REML=F)
-Soil.min.H14<-lmer(C.amount~ Sand.pip.per + (1|Region), data = Soil.min, REML=F)
-
-model.sel(Soil.min.H11,Soil.min.H12,Soil.min.H13,Soil.min.H14)
-# Look at delta AIC - the first is 0 (the best model), and the change to the next indicates if I should continue using it or not. If it is between 1 and 2, continue with second model as well. Here delta mod H14 = 0.59 (bring along). 
-
-Soil.min.H12<-lmer(C.amount~ MAP.mm_yr + MAP.mm_yr:Sand.pip.per + (1|Region), data = Soil.min, REML=T)
-Soil.min.H14<-lmer(C.amount~ Sand.pip.per + (1|Region), data = Soil.min, REML=T)
-
-summary(Soil.min.H12)
-summary(Soil.min.H14)
-
-# Assumption 1: Within group errors are independent, and identically normally distributed, mean= 0. And they are independent of the random effect. 
-
-hist(resid(Soil.min.H12)) # A bit sqewed towards right, more on the positive side - could consider log.transforming the data 
-hist(resid(Soil.min.H14)) # "more normally distributed" 
-plot(Soil.min.H12,factor(Region)~resid(.),abline=0) # Makao is strange Block 4 has a very low carbon amount (0.8 kg). 
-plot(Soil.min.H14,factor(Region)~resid(.),abline=0)
-
-# Another way to show the same. 
-plot(Soil.min.H12,resid(.)~fitted(.)|factor(Region)) # Distribution of residuals within each group. 
-
-# Soil A-horizon: The best model is taking MAP and the relationship between MAP:Sand into account
-Soil.A.H11<-lmer(C.amount~ MAP.mm_yr + (1|Region), data = Soil.Ahor, REML=F)
-Soil.A.H12<-lmer(C.amount~ MAP.mm_yr + MAP.mm_yr:Sand.pip.per + (1|Region), data = Soil.Ahor, REML=F)
-Soil.A.H13<-lmer(C.amount~ MAP.mm_yr*Sand.pip.per + (1|Region), data = Soil.Ahor, REML=F)
-Soil.A.H14<-lmer(C.amount~ Sand.pip.per + (1|Region), data = Soil.Ahor, REML=F)
-Soil.A.H15<-lmer(C.amount~ Sand.pip.per + MAP.mm_yr:Sand.pip.per + (1|Region), data = Soil.Ahor, REML=F)
-
-model.sel(Soil.A.H11,Soil.A.H12,Soil.A.H13,Soil.A.H14,Soil.A.H15)
-# AIC: H14 < H15 < H11 < H12 < H13 
-drop1(Soil.A.H15, test="Chi")
-
-Soil.A.H15<-lmer(C.amount~ Sand.pip.per + MAP.mm_yr:Sand.pip.per + (1|Region), data = Soil.Ahor, REML=T)
-
-summary(Soil.A.H15)
-hist(resid(Soil.A.H15)) # normally distriuted - a bit sqewed towards right 
-anova(Soil.A.H15, Soil.A.H14) # Due to high F value: Sand is very strong, MAP:Sand is 1.6 
-AIC(Soil.A.H15) # AIC: 30.42954
-
-#### Hypothesis 2 ####
-# Testing second hypothesis H2 where I ask about the effect of land use and woody plant cover. 
-Soil.min$BM.N.trees.m2 <- Soil.min$BM.Large.N.m2+Soil.min$BM.Small.N.m2
-plot(C.amount~log(BM.N.trees.m2),data=Soil.min)
-
-Soil.min.H21<-lmer(C.amount~ landuse + (1|Region), data = Soil.min, REML=F)
-Soil.min.H22<-lmer(C.amount~ No.small.trees + (1|Region), data = Soil.min, REML=F)
-Soil.min.H23<-lmer(C.amount~ landuse + No.small.trees + (1|Region), data = Soil.min, REML=F)
-Soil.min.H24<-lmer(C.amount~ landuse + No.small.trees + landuse:No.small.trees + (1|Region), data = Soil.min, REML=F)
-Soil.min.H25<-lmer(C.amount~ landuse:No.small.trees + (1|Region), data = Soil.min, REML=F)
-
-model.sel(Soil.min.H21,Soil.min.H22,Soil.min.H23,Soil.min.H24,Soil.min.H25) # AIC: H22<H25<H23<H24<H21
-anova(Soil.min.H22) # No.small.trees F: 0.13
-anova(Soil.min.H25) # landuse:No.small.trees F: 0.91
-
-Soil.min.H25<-lmer(C.amount~ landuse:No.small.trees + (1|Region), data = Soil.min, REML=T)
-Soil.min.H22<-lmer(C.amount~ No.small.trees + (1|Region), data = Soil.min, REML=T)
-
-summary(Soil.min.H25)
-summary(Soil.min.H22)
-hist(resid(Soil.min.H25))
-hist(resid(Soil.min.H22))
-AIC(Soil.min.H25) # 73.558
-AIC(Soil.min.H22) # 69.6068
-
-# per pool. 
-names(Soil.Ahor)
-Soil.A_horizon<-lmer(C.amount~ landuse*TreeBM.kg_m2 + landuse*No.large.trees + landuse*Last.fire_yr + landuse*Sand.pip.per + MAP.mm_yr*Sand.pip.per + (1|Region), data = Soil.Ahor, REML=T)
-
-drop1(Soil.A_horizon,test="Chi")
-
-Soil.Min_horizon<-lmer(C.amount~ landuse*TreeBM.kg_m2 + landuse*No.large.trees + landuse*Last.fire_yr + landuse*Sand.pip.per + MAP.mm_yr*Sand.pip.per + (1|Region), data = Soil.min, REML=T)
-
-drop1(Soil.Min_horizon,test="Chi")
-
-Woody.mod<-lmer(C.amount~ landuse*TreeBM.kg_m2 + landuse*No.large.trees + landuse*Last.fire_yr + landuse*Sand.pip.per + MAP.mm_yr*Sand.pip.per + (1|Region), data = Woody, REML=T)
-
-drop1(Woody.mod,test="Chi")
-
-Herbacaous.mod<-lmer(C.amount~ landuse*TreeBM.kg_m2 + landuse*No.large.trees + landuse*Last.fire_yr + landuse*Sand.pip.per + MAP.mm_yr*Sand.pip.per + (1|Region), data = Herbaceous, REML=T)
-
-drop1(Herbacaous.mod,test="Chi")
-
-DW.mod<-lmer(C.amount~ landuse*TreeBM.kg_m2 + landuse*No.large.trees + landuse*Last.fire_yr + landuse*Sand.pip.per + MAP.mm_yr*Sand.pip.per + (1|Region), data = DW, REML=T)
-
-drop1(DW.mod,test="Chi")
-
-Soil.A_horizon1 <- update(Soil.A_horizon, .~. -landuse:TreeBM.kg_m2)
-anova(Soil.A_horizon,Soil.A_horizon1) # using simpler model because the p-value is larger than 0.05?? (no difference between the two models)
-
-Soil.A_horizon2 <- update(Soil.A_horizon1, .~. -landuse:No.large.trees)
-anova(Soil.A_horizon1,Soil.A_horizon2) #Remove "landuse:No.large.trees"
-
 #### SEM model #### 
 
 library(MuMIn)
 library(piecewiseSEM)
 vignette('piecewiseSEM') # too look at the package 
-
+names(Total.Eco.C)
+Total.Eco.C.CnoNA<-Total.Eco.C[!is.na(Total.Eco.C$CFire_frequency.2000_2017),]
 # Variation for each model component
-# Testing different models 
+# A total model: 
 #psem
+?psem
 Modlist <-   psem(
-  lme(tot.C.kg_m2~CMAP.mm_yr + CFire_frequency.2000_2017 +CSand,random= ~ 1|Region.x,na.action=na.fail, data=Belowground.CnoNA),
-  lme(CShrubbiness~CFire_frequency.2000_2017 + CMAP.mm_yr,random= ~ 1|Region.x,na.action=na.fail, data=Belowground.CnoNA),
-  lme(tot.N.kg_m2~ CSand,random= ~ 1|Region.x,na.action=na.fail, data=Belowground.CnoNA),
-  lme(CFire_frequency.2000_2017~ CMAP.mm_yr,random= ~ 1|Region.x,na.action=na.fail, data=Belowground.CnoNA))
+  lme(Soil.Ahor~CMAP.mm_yr + CFire_frequency.2000_2017 + CSand + Herbaceous + landuse ,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Soil.min~CSand + CMAP.mm_yr + landuse ,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Woody~CSand + CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + #Ctot.N.kg_m2
+        ,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(DW~ landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Herbaceous~CSand + CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CShrubbiness,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(CFire_frequency.2000_2017~ CMAP.mm_yr + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA), 
+  lme(CShrubbiness~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA)
+)
+  #lme(Ctot.N.kg_m2~ CSand + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+      #Ctot.C.kg_m2%~~%Ctot.N.kg_m2,
+      #CTreeBM.kg_m2%~~%Ctot.N.kg_m2)
 # %~~% between correlated error - telling R to not care about the correlation between these variables. 
 # MySummary <- summary(modell)
 # save(MySummary, file="")
-summary(Modlist,Belowground.CnoNA) # Error: no 'nobs' method is available
+summary(Modlist,Total.Eco.C.CnoNA)
 
-rsquared(Modlist) # new version of sem.model.fits
-# Marginal R2= proportion of variance explained by the fixed factor
-# Conditional R2= Proportion of variance explained by the fixed factor and the random factor 
-
-# Response   family     link method     Marginal Conditional
-# 1 tot.C.kg_m2 gaussian identity   none 2.022436e-02   0.7121275
-# 2 tot.C.kg_m2 gaussian identity   none 2.290810e-01   0.9346487
-# 3 tot.C.kg_m2 gaussian identity   none 1.299114e-01   0.6023577
-# 4 tot.C.kg_m2 gaussian identity   none 5.934348e-01   0.9173345
-# 5 tot.C.kg_m2 gaussian identity   none 8.788994e-05   0.7287494
-# 6 tot.C.kg_m2 gaussian identity   none 2.193277e-02   0.7160153
