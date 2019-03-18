@@ -269,13 +269,13 @@ DryPhosplot
 
 
 
-
 ###Corrigating original soil data####
+###DONT RUN THINGS ABOVE THIS!###
 SoiltextA.orig<-read.csv("Termites/Soil data/Soil_texture.csv", sep=';',dec='.')
 
 ####Estimating prediction lines and adding the the corrected value into a dataset####
-Claymod <- lm(SoiltextAV$VClay~SoiltextAV$AClay)
-summary(Claymod)
+#Claymod <- lm(SoiltextAV$VClay~SoiltextAV$AClay)
+#summary(Claymod)
 #CLAY: Y= 1.3392X -10.4221, R^2 = 0.7338
 SoiltextA.orig$ClaySlope <- 1.3392
 SoiltextA.orig$ClayIntercept <- -10.4221
@@ -283,8 +283,8 @@ SoiltextA.orig$Claycorr <- SoiltextA.orig$ClaySlope*SoiltextA.orig$CLAY..+Soilte
 SoiltextA.orig$ClaySlope <- NULL
 SoiltextA.orig$ClayIntercept <- NULL
 
-Siltmod <- lm(SoiltextAV$VSilt~SoiltextAV$ASilt)
-summary(Siltmod)
+#Siltmod <- lm(SoiltextAV$VSilt~SoiltextAV$ASilt)
+#summary(Siltmod)
 #SILT: Y=  0.8139X + 12.6331, R^2 = 0.8072
 SoiltextA.orig$SiltSlope <- 0.8139
 SoiltextA.orig$SiltIntercept <- 12.6331
@@ -293,16 +293,18 @@ SoiltextA.orig$Siltcorr <- SoiltextA.orig$SiltSlope*SoiltextA.orig$SILT..+Soilte
 SoiltextA.orig$SiltSlope <- NULL
 SoiltextA.orig$SiltIntercept <- NULL
 
-Sandmod <- lm(SoiltextAV$VSand~SoiltextAV$ASand)
-summary(Sandmod)
+#Sandmod <- lm(SoiltextAV$VSand~SoiltextAV$ASand)
+#summary(Sandmod)
 #SAND: Y= 1.1281X-17.9957, R^2 = 0.9093
 SoiltextA.orig$SandSlope <- 1.1281
 SoiltextA.orig$SandIntercept <- -17.9957
-SoiltextA.orig$ASandcorr <- SoiltextA.orig$SandSlope*SoiltextA.orig$SAND..+SoiltextA.orig$SandIntercept
+SoiltextA.orig$Sandcorr <- SoiltextA.orig$SandSlope*SoiltextA.orig$SAND..+SoiltextA.orig$SandIntercept
 SoiltextA.orig$SandSlope <- NULL
 SoiltextA.orig$SandIntercept <- NULL
 
 write.csv(SoiltextA.orig,file="Termites/Soil data/Soil_texture_corrected.csv")
+
+
 #### Soil texture triangle####
 library(lattice)
 library(MASS)

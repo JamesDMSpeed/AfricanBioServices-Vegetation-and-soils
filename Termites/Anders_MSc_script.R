@@ -1,5 +1,6 @@
-#Loading data Anders Sundsdal MSc####
+#LOADING DATA Anders Sundsdal MSc####
 rm(list=ls())
+library(qpcR)
 library(lattice)
 library(MASS)
 library(ggplot2)
@@ -8,7 +9,9 @@ library(glmmTMB)
 library(dplyr)
 library(plyr)
 library(Hmisc)
-
+library(data.table)
+library(emmeans)
+library(nlme)
 setwd("C:/Users/ansun/Documents/Master data/GitHub__R-stat/AfricanBioServices-Vegetation-and-soils")
 #Loading masslossdata
 Massloss <-read.csv('Termites/Main & CG experiment/Massloss_data_CGMain.csv', sep=';',dec='.')
@@ -19,13 +22,49 @@ soiltext <- read.csv('Termites/Soil data/Soil_texture_corrected.csv', sep=',',de
 #Loading Soil Nutrient data
 soilnut <- read.csv('Termites/Soil data/Soil_Nutrient.csv', sep=';',dec='.')
 
-Massloss$Massloss.per <- (1-Massloss$Ashed.final.corrected.weight..tea.only..g./Massloss$Ashed.initial.corrected.weight..tea.only..g.)*100
+Massloss$Massloss.per <- (-1)*((((Massloss$Ashed.final.corrected.weight..tea.only..g.-Massloss$Ashed.initial.corrected.weight..tea.only..g.)/(Massloss$Ashed.initial.corrected.weight..tea.only..g.)))*100)
+Massloss$rain.sum..mm. <- NULL
+Massloss$OC.. <- NULL
+Massloss$Soil.Class <- NULL
+Massloss$SAND.. <- NULL
+Massloss$SILT.. <- NULL
+Massloss$CLAY.. <- NULL
 
-#Merging data
-levels(soilnut$Landuse)[levels(soilnut$Landuse)=="Seronera"] <- "Common Garden"
-soilnut$Landuse <- factor(soilnut$Landuse,levels=c("Agriculture","Common Garden","Pasture","Wild"))
+#Readjust and merge data####
+Data <- Massloss
+DataCG<-droplevels(Data[Data$Experiment=="CG",]) # Only commongarden data
+levels(DataCG$Landuse)[levels(DataCG$Landuse)=="Seronera"] <- "Wild"
+#Creating a block nr column in CG data to correspond to Main data, before merging later.
+#But first, renaming the column already called block to CGblock (Corresponds to the 4 blocks within the CG)
+colnames(DataCG)[(names(DataCG) == "Block")] <- "CGBlock"
+
+#Extract last number from Blockcode to create blocknr column:
+DataCG$Block <- sub(".*(?=.$)","",perl = T, DataCG$Blockcode)
+
+#Renaming Block nr for all Local soil to 1 as I want to have avarage among the four blocks.
+
+#Subset of local soil from CG 
+LocalCGsoil <- DataCG[DataCG$Site=="Seronera",]
+#Removing the subsetted data from the whole CG data, then putting in the adjusted subset:
+
+DataMain<-droplevels(Data[Data$Experiment=="Main",]) #Only landuse experiement data
+
+levels(Data$Landuse) # All levels incl. common garden
+levels(DataMain$Landuse)#Common Garden removed
+levels(DataCG$Landuse)#All landuses included, but only for CG experiment
+#Adding adjsted block numbering in CG back into Main experiemnt for a full dataset:
+DataMain$CGBlock <- NA
+
+Fulldata <- rbind(DataMain,DataCG) #Same as Data df, but now with adjusted Block numbers in CG local soil
+
+#Adding Soildata (texture and nutrient) and rainfalldata to masslossdata:
+levels(soilnut$Landuse)[levels(soilnut$Landuse)=="Seronera"] <- "Wild"
+levels(soiltext$Landuse)[levels(soiltext$Landuse)=="Common Garden"] <- "Wild"
 levels(soilnut$Landuse)
 levels(soiltext$Landuse)
+
+landuselvl <- levels(soilnut$Landuse) 
+soiltext$Landuse <- factor(soiltext$Landuse,levels= landuselvl)
 
 levels(soiltext$Region)[levels(soiltext$Region)=="Dry-Wet"] <- "Intermediate"
 levels(soilnut$Region)
@@ -33,145 +72,370 @@ levels(soiltext$Region)
 
 soilnut$Block <- as.factor(soilnut$Block)
 soiltext$Block <- as.factor(soiltext$Block)
-
+levels(soilnut$Block)
+levels(soiltext$Block)
+names(soiltext)
+names(soilnut)
 Soildata <- left_join(soilnut,soiltext, by=c("Site","Region","Landuse","Block"))
+Soildata$X <- NULL
+Soildata$Stuart_correction <- NULL
+Soildata$ID_SUA <- NULL
 
-#levels(Massloss$Site)[levels(Massloss$Site)=="Mwantimba\n"] <- "Mwantimba"
-Massloss$Site <- as.factor(Massloss$Site)
+Fulldata$Site <- as.factor(Fulldata$Site)
 Soildata$Site <- as.factor(Soildata$Site)
-levels(Massloss$Site)
+levels(Fulldata$Site)
 levels(Soildata$Site)
 
-levels(Massloss$Landuse)[levels(Massloss$Landuse)=="Seronera"] <- "Common Garden"
-Massloss$Landuse <- factor(Massloss$Landuse,levels=c("Agriculture","Common Garden","Pasture","Wild"))
-levels(Massloss$Landuse)
+levels(Fulldata$Landuse)
 levels(Soildata$Landuse)
 
-Massloss$Block <- as.factor(Massloss$Block)
+Fulldata$Block <- as.factor(Fulldata$Block)
+Fulldata$Region <- as.factor(Fulldata$Region)
+Soildata$Region <- as.factor(Soildata$Region)
+Fulldata$Region <- factor(Fulldata$Region,levels=c("Dry","Intermediate","Wet"))
+levels(Fulldata$Region)
+levels(Soildata$Region)
+Fulldata$Blockcode <- as.factor(Fulldata$Blockcode)
+Soildata$Blockcode <- as.factor(Soildata$Blockcode)
+Blockcodelvl <- levels(Fulldata$Blockcode) #Assign the levelorder in one dataset
+Soildata$Blockcode <- factor(Soildata$Blockcode,levels= Blockcodelvl) #...And assign that level to the other dataset
 
-Fulldata <- left_join(Massloss,Soildata,by=c("Season","Site","Region","Landuse","Block"))
-Fulldata <- left_join(Fulldata,precip,by=c("Season","Site"))
 
-#write.csv(Fulldata,file="Termites/Fulldata.csv")
+Fulldata <- left_join(Fulldata,Soildata,by=c("Season","Site","Region","Landuse","Block"))
 
+which(is.na(Fulldata$Claycorr))#Checking that the join operation went OK. SHould be zero NA's
+
+Fulldata <- left_join(Fulldata,precip, by=c("Season","Site"))
+which(is.na(Fulldata$precip))
+
+#Add new Block.ID to account for that Makao and Mwantiba has both Ag and Pasture.
+#So need to create a new column where Makao + Pasture =Makao.p, etc...
+Fulldata$Site.ID <- as.factor(with(Fulldata, ifelse(Site %in% c("Makao") &
+                                      Landuse == "Pasture", 
+                                      "Makao.p",
+                                    ifelse(Site %in% c("Makao") &
+                                      Landuse == "Agriculture",
+                                      "Makao.ag",
+                                    ifelse(Site %in% c("Mwantimba") &
+                                      Landuse == "Pasture",
+                                      "Mwantimba.p",
+                                    ifelse(Site %in% c("Mwantimba") &
+                                       Landuse == "Agriculture",
+                                       "Mwantimba.ag",
+                                    ifelse(Site == "Handajega","Handajega",
+                                    ifelse(Site == "Maswa", "Maswa",
+                                    ifelse(Site == "Seronera","Seronera","WRONG")))))))))
+levels(Fulldata$Site.ID)                          
+table(Fulldata$Site.ID,Fulldata$Landuse) #OK
+
+Fulldata$X <- NULL
+Fulldata$Blockcode.y <-  NULL
+colnames(Fulldata)[(names(Fulldata) == "Blockcode.x")] <- "Blockcode"
+Fulldata$CGBlock.y <- NULL
+Fulldata$CGBlock <- NULL
+Fulldata$CGBlock.x <- NULL
+
+write.csv(Fulldata,file="Termites/Fulldata.csv")
+
+###Loading Fulldata
 Fulldata <- read.csv("Termites/Fulldata.csv")
 
-#Data exploration####
 
-##Checking for missing values##
+
+
+#DATA EXPLORATION####
+# A Missing values?
+# B Outliers in Y / Outliers in X
+# C Collinearity X
+# D Relationships Y vs X
+# E Spatial/temporal aspects of sampling design
+# F Interactions (is the quality of the data good enough to include them?)
+# G Zero inflation Y
+# H Are categorical covariates balanced?
+# I Are the variables Norm.distributed?
+# Alain Zuur - data exploration functions
+source(file="C:/Users/ansun/Google Drive/09Fremdrift Master/Kjekke R ting/Data exploration/HighstatLibV10.R")
+# A Missing values? ####
+
 colSums(is.na(Fulldata))
+#Missing 96 Inital teabags:
+#OK since this is one plot in dry season in each site that
+#we're not used due to shortage of rooibos teabags.
+
+#Missing 156 Final ash corected weights (from LOI): If we substract the 96 unused plots,
+#then 60 teabag where not retrived in field.
+#After checking rawdatafile: 19 not retrived in dry season and  37 in wet season=56.
+#So 4 not accounted for.
+#Not too bad
+
+#Missing 156 obs in Massloss.g: This corresponds to final ash corrected weight,
+#OK.
+
+
+#Missing 96 obs in MOISTURE and 96 obs in TEMPERATURE,
+#this corresponds to the missing initial teabags due to less plots in dry season,
+#so OK, but...
+data.table(aggregate(Temperature..C.~Blockcode+Season,Fulldata, function(x) {sum(is.na(x))}, na.action = NULL))
+data.table(aggregate(Moisture.. ~Blockcode+Season,Fulldata, function(x) {sum(is.na(x))}, na.action = NULL))
+#Both climate variables has same number of observations, BUT! THese two variables
+#consist of a mean between two points in time for each season on plot level.
+#And moisture variable did not have data for wet season Dry_P1-P4 due to no battery left :( .
+#So the moisture variale for these  blocks are only based on the first measure...
+#Therefore, the temp variable are more "robust" and complete.
+#But could check if these moisture varables (Dry_P1-P4) are different from the other variables based on both time points:
+boxplot(Moisture.. ~Blockcode+Season,data=Fulldata) #Nope, so maybe OK.
+#But we see that Dry_Ag2 and Ag3 are quite moist compared to the other Dry_Ag.
+boxplot(Temperature..C. ~Blockcode+Season,data=Fulldata)
+boxplot(Moisture.. ~Landuse,data=Fulldata)
+
+
+which(is.na(Fulldata$Massloss.per))
 sum(is.na(Fulldata$Massloss.per))
 #Removing rows which consist of NAs in "Massloss.per" column
-Fulldata <- Fulldata[complete.cases(Fulldata[,40]),]
-#summary(Fulldata)
+#Data <- Fulldata[complete.cases(Fulldata[,40]),]
+#summary(Data)
 
-## Outliers##
+# B Outliers in Y / Outliers in X####
+
 #Ashed final weight
-
 dotchart(Fulldata$Ashed.final.corrected.weight..tea.only..g.)
 plot(Fulldata$Ashed.final.corrected.weight..tea.only..g.)
 #identify(Fulldata$Ashed.final.corrected.weight..tea.only..g)
+Fulldata[671,] # Maybe too high? Need to check massloss.g variable
 
 #Outlier in ashed data % (should be between 0-100):
-
-dotchart(Fulldata$Ashed.final.subsample.percentage.....) # One very large outlier for the final weight subsample percantage
+dotchart(Fulldata$Ashed.final.subsample.percentage.....) #
 plot(Fulldata$Ashed.final.subsample.percentage.....)
-#identify(Fulldata$Ashed.final.subsample.percentage.....) #[1] 516
 
 #Checking outliers in initial and final weights:
 #Inital weight:
-dotchart(Fulldata$Initial.weight.including.bag..cord.and.label..g.)
-plot(Fulldata$Initial.weight.including.bag..cord.and.label..g.)
+dotchart(Fulldata$Initial.weight.tea.only..g)
+plot(Fulldata$Initial.weight.tea.only..g)
 #identify(Fulldata$Initial.weight.tea.only..g.)
-#106 and 1611 looks wierd
-Fulldata[106,] # 1,191 may be too low for initial weight! Have to check for speling mistake
-Fulldata[1611,] #0,229 is too low for initial weight! Have to check for speling mistake
-#No need to remove these as long as the difference in mass loss make sense.
 
 #Checking for massloss outlier
 dotchart(Fulldata$Massloss..g. ) #
 plot(Fulldata$Massloss..g.)
 #identify(Fulldata$Massloss..g.)
-Fulldata[289,] # Minus massloss check this code: R414: -5.558675
-Fulldata[1614,] # Minus mass loss check this code: R275: - 9100
-#Removing these for now: 289 and 1614 rows:
-Fulldata <- Fulldata[-c(289, 1614), ]
+
+
+#Checking for Massloss per outlier
+dotchart(Fulldata$Massloss.per)
+plot(Fulldata$Massloss.per)
+#identify(Fulldata$Massloss.per)
+#How many are 100% massloss?
+nrow(subset(Fulldata,Massloss.per == 100))
+nrow(subset(Fulldata,Massloss.per >80))
+#44 obs. is 100% massloss
+#726 is over 60%
+#159 is over 80%
+
 #Checkig outliers in temperature and moisture:
 dotchart(Fulldata$Temperature..C.) #Looks ok
 plot(Fulldata$Temperature..C.)
-#identify(Fulldata$Temperature..C.)
+#identify(Data$Temperature..C.)
 dotchart(Fulldata$Moisture..) #Looks ok
 plot(Fulldata$Moisture..)
 
-###Correlation###
-Signdata <- rcorr(as.matrix(Fulldata))
+#Checking outliers in Soil variables:
+#C:N
+dotchart(Soildata$C.N) #One large outlier 
+plot(Soildata$C.N)
+#identify(Soildata$C.N)
+Soildata[39,] #19.9, not sure if remove or not,
+#for now, we'll let it be.
+boxplot(C.N ~Blockcode+Season,data=Soildata)
+#Here we see that Wet_W3 in dry seaon is
+#very different from other sites across season aswell
+#Clay
+dotchart(Soildata$Claycorr)  
+plot(Soildata$Claycorr)
+#identify(Soildata$Claycorr)
+#Sand
+dotchart(Soildata$Sandcorr) 
+plot(Soildata$Sandcorr)
+#identify(Soildata$Sandcorr)
+
+
+# C Collinearity X ####
+Signdata <- rcorr(as.matrix(Data))
            
 ###Checking Collinearity among variables###
+#Now, checking correlation
 names(Fulldata)
-MyVar<-c("Massloss.per","C.N","N.per","C.per","Claycorr","Siltcorr","ASandcorr",
-         "Rain.sum","Moisture..","Temperature..C.")
-#pairs(Fulldata[,MyVar]) #Not sure whats up here...
-#Silt is correlating with both Sand and Clay.
-#Sand and Clay are negatively correlated.
-#C and N percentage are correlated
+#Soil variables
+MySoil<-c("Massloss.per","C.N","Claycorr","Siltcorr","Sandcorr")
+#pairs(Fulldata[,MySoil], lower.panel= panel.cor)
+
+#Climate variables
+MyEnv<-c("Massloss.per","Rain.sum","Moisture..","Temperature..C.")
+pairs(Fulldata[,MyEnv], lower.panel= panel.cor)
+
+#Choosen variables:
+MyVarTot <- c("C.N","Claycorr","Sandcorr",
+           "Moisture..","Temperature..C.","Rain.sum")
+#pairs(Fulldata[,MyVarTot], lower.panel= panel.cor)
+
+MyVar1 <- c("C.N","Claycorr","Temperature..C.",
+            "Rain.sum" )
+#pairs(Fulldata[,MyVar1], lower.panel= panel.cor)
+MyVar2 <- c("Massloss.per","C.N","Sandcorr",
+            "Temperature..C.","Rain.sum")
+#pairs(Fulldata[,MyVar2], lower.panel= panel.cor)
+MyVar3 <- c("C.N","Claycorr","Moisture..")
+#pairs(Fulldata[,MyVar3], lower.panel= panel.cor)
+
+#CORRELATION RESULTS:
+
+#Silt - clay: 0.8
+#Silt - sand: -0.9
+#Sand - Clay: -1.0
+#--> Can't use these together in model
+
+#Moisture - temp: -0.6
+#Rain - temp not: ~0 #OK, can use together
+#Rain-Moist: 0.6
+
+#C:N - temp: 0.3 
+#Clay - temp: -0.3
+
+#Sand - moisture: -0.4
+#Sand - temp: 0.3
+
+#Clay - moisture: 0.4
+
+#Checking for variance inflation factor.
+#Want as low as possible,
+#because we want to be able to get P-values as low as possible.
+#High VIF increases the P-value. High VIF= high level of correlation.
+corvif(Fulldata[,MyVarTot]) #High for Sand and Clay
+corvif(Fulldata[,MyVar1])#OK
+corvif(Fulldata[,MyVar2])#OK
+corvif(Fulldata[,MyVar3])#OK
+
+
+#Checking for covariance among factors with boxplot:
+#If overlapping, they don't covary=OK
+
+names(Fulldata)
+par(mfrow = c(1, 1), mar = c(4, 3, 3, 2))
+
+#Checking Moisture:
+boxplot( Moisture.. ~Region+Season  , 
+        xlab = "Moisture",
+        ylab = "Region"  ,
+        data = Fulldata)
+        # Looks like more variable and moist in Dry region...
+        #Not good.
+
+boxplot( Moisture.. ~Blockcode  , 
+         xlab = "Moisture",
+         ylab = "Blockcode"  ,
+         data = Fulldata) #OK, I think
+
+boxplot( Moisture.. ~Landuse  , 
+         xlab = "Moisture",
+         ylab = "Blockcode"  ,
+         data = Fulldata) #OK
+
+#Checking Rainfall:
+boxplot(Rain.sum ~Region+Season  , 
+         xlab = "Moisture",
+         ylab = "Region"  ,
+         data = Fulldata)
+# Dry region in dry season: Really dry
+#Intermediate, same amount of rainfall both season
+#No difference in rainfall in wet vs dry regions in wet season.
+#THere is a pattern here, but the categories in Region are not
+#really following whats happening for the amount of Rain
+#Should only use Rain.sum.
+
+boxplot( Rain.sum ~Blockcode +Season  , 
+         xlab = "Moisture",
+         ylab = "Blockcode"  ,
+         data = Fulldata) #Pattern here, not OK.
+
+boxplot( Rain.sum ~Landuse  , 
+         xlab = "Moisture",
+         ylab = "Blockcode"  ,
+         data = Fulldata) #OK
+#Maybe thinking of not having Rgion and Season
+#in model and only use Rain.sum
+
+boxplot(Temperature..C.~Landuse,data=Fulldata) #Overlapping - not covarying
+boxplot(Temperature..C.~Region,data=Fulldata) #Overlaping - not covarying
+boxplot(Temperature..C.~Season,data=Fulldata) #Overlapping - not covarying
+
+boxplot(Moisture.. ~Landuse,data=Fulldata) #Overlapping
+boxplot(Moisture.. ~Region,data=Fulldata)
+boxplot(Moisture.. ~Season,data=Fulldata) #Covarying
+
+boxplot(Sandcorr ~Treatment,data=Fulldata) #Overlapping
+boxplot(Sandcorr ~Littertype,data=Fulldata) #Overlapping
+boxplot(Sandcorr ~Landuse,data=Fulldata) #Overlapping
+boxplot(Sandcorr ~Region,data=Fulldata) #Overlapping
+boxplot(Sandcorr ~Season,data=Fulldata) #Overlapping
+
+boxplot(Claycorr ~Treatment,data=Fulldata) #Overlapping
+boxplot(Claycorr ~Littertype,data=Fulldata) #Overlapping
+boxplot(Claycorr ~Landuse,data=Fulldata) #Overlapping
+boxplot(Claycorr ~Region,data=Fulldata) #Overlapping
+boxplot(Claycorr ~Season,data=Fulldata) #Overlapping
+
+boxplot(C.N ~Treatment,data=Fulldata) #Overlapping
+boxplot(C.N ~Littertype,data=Fulldata) #Overlapping
+boxplot(C.N ~Landuse,data=Fulldata) #Overlapping
+boxplot(C.N ~Region,data=Fulldata) #Overlapping
+boxplot(C.N ~Season,data=Fulldata) #Overlapping
+
+boxplot(Rain.sum ~Region,data=Fulldata)
+
+
+#SEPARATING EXP'S####
+DataCG<-droplevels(Fulldata[Fulldata$Experiment=="CG",]) # Only commongarden data
+DataMain<-droplevels(Fulldata[Fulldata$Experiment=="Main",]) #Only landuse experiement data
 
 #Housekeeping # Ensuring factors are factors####
-names(Fulldata)
-Fulldata$fsite<-as.factor(Fulldata$Site)
-Fulldata$fregion<-as.factor(Fulldata$Region)
-Fulldata$fseason<-as.factor(Fulldata$Season)
-Fulldata$flanduse<-as.factor(Fulldata$Landuse)
-Fulldata$ftreatment<-as.factor(Fulldata$Treatment)
-Fulldata$flittertype<-as.factor(Fulldata$Littertype) 
-Fulldata$fplot.id<-as.factor(Fulldata$Plot) # 220 plots # correct
-Fulldata$fteabag_code<-as.factor(Fulldata$Teabag.code) # 879 teabags - missing 1 teabag (Maybe one is a duplicate?)
-Fulldata$fsoil.class<-as.factor(Fulldata$Soil.Class)
-Fulldata$fmound_type<-as.factor(Fulldata$Mound.type)
-Fulldata$ftree_ants<-as.factor(Fulldata$Tree.with.ants)
-Fulldata$fblock<-as.factor(Fulldata$Block)
-Fulldata$fblockcode<-as.factor(Fulldata$Blockcode)
-Fulldata$fholes<-as.factor(Fulldata$Sign.of.hole.s.)
-Fulldata$fcheeting<-as.factor(Fulldata$Sign.of.termite.cheeting)
-Fulldata$froots<-as.factor(Fulldata$Sign.of.roots)
+names(Data)
+DataMain$fsite<-as.factor(DataMain$Site)
+DataMain$fregion<-as.factor(DataMain$Region)
+DataMain$fseason<-as.factor(DataMain$Season)
+DataMain$flanduse<-as.factor(DataMain$Landuse)
+DataMain$ftreatment<-as.factor(DataMain$Treatment)
+DataMain$flittertype<-as.factor(DataMain$Littertype) 
+DataMain$fplot.id<-as.factor(DataMain$Plot) # 220 plots # correct
+DataMain$fteabag_code<-as.factor(DataMain$Teabag.code) # 879 teabags - missing 1 teabag (Maybe one is a duplicate?)
+DataMain$fsoil.class<-as.factor(DataMain$Soil.Class)
+DataMain$fmound_type<-as.factor(DataMain$Mound.type)
+DataMain$ftree_ants<-as.factor(DataMain$Tree.with.ants)
+DataMain$fblock<-as.factor(DataMain$Block)
+DataMain$fblockcode<-as.factor(DataMain$Blockcode)
+DataMain$fholes<-as.factor(DataMain$Sign.of.hole.s.)
+DataMain$fcheeting<-as.factor(DataMain$Sign.of.termite.cheeting)
+DataMain$froots<-as.factor(DataMain$Sign.of.roots)
 
-names(Fulldata)
-
-#Seperate the experiments ####
-FulldataCG<-Fulldata[Fulldata$Experiment=="CG",] # Only commongarden data
-FulldataCG<-droplevels(FulldataCG) # Ensure factor level "Main" is removed.
-write.csv(write.csv(FulldataCG,file="Termites/CGdata.csv"))
-
-#Subset of local soil from CG
-LocalCGsoil <- FulldataCG[FulldataCG$Landuse=="Common Garden",]
-
-FulldataMain<-Fulldata[Fulldata$Experiment=="Main",] #Only landuse experiement data
-FulldataMain<-droplevels(FulldataMain)# Ensure factor level common garden dropped
-write.csv(write.csv(FulldataMain,file="Termites/Maindata.csv"))
-
-levels(Fulldata$Landuse) # All levels incl. common garden
-levels(FulldataMain$Landuse)#Common Garden removed
-levels(FulldataCG$Landuse)#All landuses included, but only for CG experiment
+names(Data)
 
 #Creating summaries (aggregate dataset)####
 se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Standard Error
 # Main experiment means and standard error (exclude blocks) # From Stu: Need to seperate out Agricutlure in Makao and Mwantimba(WHY?)
-names(FulldataMain)
+names(DataMain)
 #Creating means by landuse (excluding blocks)
-FulldataMainmean1<-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, FulldataMain, mean)
-FulldataMainse1 <-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, FulldataMain, se)
+DataMainmean1<-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, DataMain, mean)
+DataMainse1 <-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, DataMain, se)
 #Creating new column with the SE in the Mainmean dataset.
-FulldataMainmean1$SE <- FulldataMainse1$Massloss.per 
+DataMainmean1$SE <- DataMainse1$Massloss.per 
 
 
 #Graphing: Main experiment - decomposition across landuse #### 
 # Fill by termite * landuse = empty = absence, filled = prescence 
-FulldataMainmean1$tea.hole<-as.factor(with(FulldataMainmean1, paste(flittertype, ftreatment, sep=" ")))
-levels(FulldataMainmean1$tea.hole)
-#levels(FulldataMainmean$fregion)<-c("Dry region","Wet region")
-FulldataMainmean1$fregion <- as.factor(FulldataMainmean1$fregion)#Need to "re-factor" the region as levels are changed fro 3 to 2 in landuse experiment (only wet and dry).
-levels(FulldataMainmean1$fregion)
-levels(FulldataMainmean1$fseason)
-Mainexp <- FulldataMainmean1
+DataMainmean1$tea.hole<-as.factor(with(DataMainmean1, paste(flittertype, ftreatment, sep=" ")))
+levels(DataMainmean1$tea.hole)
+#levels(DataMainmean$fregion)<-c("Dry region","Wet region")
+DataMainmean1$fregion <- as.factor(DataMainmean1$fregion)#Need to "re-factor" the region as levels are changed fro 3 to 2 in landuse experiment (only wet and dry).
+levels(DataMainmean1$fregion)
+levels(DataMainmean1$fseason)
+Mainexp <- DataMainmean1
 #Now, ready for graphing: Main experiment massloss against landuse
 #Want to reorder tea.hole to have a nicer legend:
 Mainexp$tea.hole <- ordered(Mainexp$tea.hole, levels=c("Green Exclosed", "Rooibos Exclosed","Green Open","Rooibos Open"))
@@ -247,11 +511,11 @@ Mainp <- ggplot(data=Mainexp, aes(x=flanduse,y=Massloss.per,
  #      width= 20, height = 15,units ="cm",bg ="transparent",
   #     dpi = 600, limitsize = TRUE)
 
-#Termite effect and microbe effect variable####
-Greenop<-FulldataMain[FulldataMain$Littertype=="Green" & FulldataMain$Treatment=="Open",] # Only Green Open data
-Greenex<-FulldataMain[FulldataMain$Littertype=="Green" & FulldataMain$Treatment=="Exclosed",] # Only Green Open data
-Redop<-FulldataMain[FulldataMain$Littertype=="Rooibos" & FulldataMain$Treatment=="Open",] # Only Green Open data
-Redex<-FulldataMain[FulldataMain$Littertype=="Rooibos" & FulldataMain$Treatment=="Exclosed",] # Only Green Open data
+#CODE HERE NOT WORKING NOW.Termite effect and microbe effect variable for Main####
+Greenop<-DataMain[DataMain$Littertype=="Green" & DataMain$Treatment=="Open",] # Only Green Open data
+Greenex<-DataMain[DataMain$Littertype=="Green" & DataMain$Treatment=="Exclosed",] # Only Green Open data
+Redop<-DataMain[DataMain$Littertype=="Rooibos" & DataMain$Treatment=="Open",] # Only Green Open data
+Redex<-DataMain[DataMain$Littertype=="Rooibos" & DataMain$Treatment=="Exclosed",] # Only Green Open data
  
 
 #Creating dataframe with termite and microbe effect variable=Exlosed and Termite effect=Open minus exclosed):
@@ -270,7 +534,6 @@ ReddataM$Massloss.per<-Redex$Massloss.per
 ReddataT$Massloss.per<- (Redop$Massloss.per-Redex$Massloss.per)
 plot(ReddataT$Massloss.per)
 ReddataT$Massloss.per[ReddataT$Massloss.per<0] <- 0
-
 #Means and error
 se<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 #Redtea
@@ -307,6 +570,50 @@ GreendataTM$Littertype <- "Labile"
 TMMasslossMain <- rbind(GreendataTM,ReddataTM) 
 TMMasslossMain$Decomposer<-as.factor(TMMasslossMain$Decomposer)
 levels(TMMasslossMain$Decomposer)
+
+#Termite effect Dataset (CG+Main)####
+Greenop<-Fulldata[Fulldata$Littertype=="Green" & Fulldata$Treatment=="Open",] # Only Green Open data
+Greenex<-Fulldata[Fulldata$Littertype=="Green" & Fulldata$Treatment=="Exclosed",] # Only Green Open data
+Redop<-Fulldata[Fulldata$Littertype=="Rooibos" & Fulldata$Treatment=="Open",] # Only Green Open data
+Redex<-Fulldata[Fulldata$Littertype=="Rooibos" & Fulldata$Treatment=="Exclosed",] # Only Green Open data
+
+#For green littertype dataset
+length(Greenop$Massloss.per)#440
+length(Greenex$Massloss.per)#440
+#Joining the data:
+GreenOpEx <- cbind(Greenop,Greenex$Massloss.per)
+#Renaming columns to avoid confusion:
+colnames(GreenOpEx)[(names(GreenOpEx) == "Massloss.per")] <- "Open.Massloss"
+colnames(GreenOpEx)[(names(GreenOpEx) == "Greenex$Massloss.per")] <- "Excl.Massloss"
+GreenOpEx$Massloss..g..Ash.uncorrected <- NULL
+
+#Create termite effect variable for green:
+GreenOpEx$Termite.effect <- (GreenOpEx$Open.Massloss-GreenOpEx$Excl.Massloss)
+
+length(GreenOpEx$Termite.effect[GreenOpEx$Termite.effect < 0]) #268 values are negative (excl>op)
+#Above half of the litter has no termite effect 268/440 teabags.
+LabileTermEff <- GreenOpEx
+#Setting all negative values below zero:
+LabileTermEff$Termite.effect[LabileTermEff$Termite.effect < 0] <- 0
+
+#For red littertype dataset
+length(Redop$Massloss.per)#440
+length(Redex$Massloss.per)#440
+#Joining the data:
+RedOpEx <- cbind(Redop,Redex$Massloss.per)
+#Renaming columns to avoid confusion:
+colnames(RedOpEx)[(names(RedOpEx) == "Massloss.per")] <- "Open.Massloss"
+colnames(RedOpEx)[(names(RedOpEx) == "Redex$Massloss.per")] <- "Excl.Massloss"
+RedOpEx$Massloss..g..Ash.uncorrected <- NULL
+
+#Create termite effect variable for Red:
+RedOpEx$Termite.effect <- (RedOpEx$Open.Massloss-RedOpEx$Excl.Massloss)
+
+length(RedOpEx$Termite.effect[RedOpEx$Termite.effect < 0]) #139 values are negative (excl>op)
+#Below half of the litter has no termite effect 139/440 teabags --> Great!
+RecalTermEff <- RedOpEx
+#Setting all negative values below zero:
+RecalTermEff$Termite.effect[LabileTermEff$Termite.effect < 0] <- 0
 
 #BARPLOTTING - three own grafs for each Landuse####
 #Creating a fill factor:
@@ -508,48 +815,48 @@ WildP
 
 se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Standard Error
 # Main experiment means and standard error (include blocks) # From Stu: Need to seperate out Agricutlure in Makao and Mwantimba(WHY?)
-names(FulldataMain)
+names(DataMain)
 #Creating means by landuse (excluding blocks)
-FulldataMainmean<-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, FulldataMain, mean)
-FulldataMainse <-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, FulldataMain, se)
+DataMainmean<-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, DataMain, mean)
+DataMainse <-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, DataMain, se)
 #Creating new column with the SE in the Mainmean dataset.
-FulldataMainmean$SE <- FulldataMainse$Massloss.per 
+DataMainmean$SE <- DataMainse$Massloss.per 
 # Fill by termite * landuse = empty = absence, filled = prescence 
-FulldataMainmean$tea.hole<-as.factor(with(FulldataMainmean, paste(flittertype, ftreatment, sep=" ")))
-levels(FulldataMainmean$tea.hole)
-#levels(FulldataMainmean$fregion)<-c("Dry region","Wet region")
-FulldataMainmean$fregion <- factor(FulldataMainmean$fregion)#Need to "re-factor" the region as levels are changed fro 3 to 2 in landuse experiment (only wet and dry).
-levels(FulldataMainmean$fregion)
-levels(FulldataMainmean$fseason)
+DataMainmean$tea.hole<-as.factor(with(DataMainmean, paste(flittertype, ftreatment, sep=" ")))
+levels(DataMainmean$tea.hole)
+#levels(DataMainmean$fregion)<-c("Dry region","Wet region")
+DataMainmean$fregion <- factor(DataMainmean$fregion)#Need to "re-factor" the region as levels are changed fro 3 to 2 in landuse experiment (only wet and dry).
+levels(DataMainmean$fregion)
+levels(DataMainmean$fseason)
 
 #Common garden means and standard error (Exclude blocks)
-names(FulldataCG)
-FulldataCGmean <- aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, FulldataCG, mean)
-FulldataCGse <-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, FulldataCG, se)
+names(DataCG)
+DataCGmean <- aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, DataCG, mean)
+DataCGse <-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flanduse, DataCG, se)
 #Creating new column with the SE in the CGmean dataset.
-FulldataCGmean$SE <- FulldataCGse$Massloss.per
+DataCGmean$SE <- DataCGse$Massloss.per
 # Fill by termite * landuse = empty = absence, filled = prescence 
-FulldataCGmean$tea.hole<-as.factor(with(FulldataCGmean, paste(flittertype, ftreatment, sep=" ")))
-levels(FulldataCGmean$tea.hole)
-levels(FulldataCGmean$fregion)
-levels(FulldataCGmean$fseason)
+DataCGmean$tea.hole<-as.factor(with(DataCGmean, paste(flittertype, ftreatment, sep=" ")))
+levels(DataCGmean$tea.hole)
+levels(DataCGmean$fregion)
+levels(DataCGmean$fseason)
 
 #Need to add Intermediate into Maindata set. To have the local soil appear on the 1:1 line in the upcoming graph.
-IntermediateCG<-FulldataCGmean[FulldataCGmean$fregion=="Intermediate",] #extracting rows with "intermediate" from CG dataset
+IntermediateCG<-DataCGmean[DataCGmean$fregion=="Intermediate",] #extracting rows with "intermediate" from CG dataset
 
-FulldataMainmean<-rbind(FulldataMainmean,IntermediateCG) #Putting in the intermediate data into main dataset.
-levels(FulldataMainmean$fregion)
+DataMainmean<-rbind(DataMainmean,IntermediateCG) #Putting in the intermediate data into main dataset.
+levels(DataMainmean$fregion)
 
 #Putting CG means and SE with Main means and Se in the same dataset
-names(FulldataMainmean)
-names(FulldataCGmean)
+names(DataMainmean)
+names(DataCGmean)
 #Renaming colums to restrict merging of the Massloss and SE from the two experiments, when using merge() later.
-colnames(FulldataMainmean)[6]<-"massloss.perMain"
-colnames(FulldataMainmean)[7]<-"SEMain"
-colnames(FulldataCGmean)[6]<-"massloss.perCG"
-colnames(FulldataCGmean)[7]<-"SECG"
+colnames(DataMainmean)[6]<-"massloss.perMain"
+colnames(DataMainmean)[7]<-"SEMain"
+colnames(DataCGmean)[6]<-"massloss.perCG"
+colnames(DataCGmean)[7]<-"SECG"
 #Now that we have same amount of observations in both CG and Main dataset, we combine the massloss columns to create on dataset:
-MainCG <- merge(FulldataMainmean,FulldataCGmean)
+MainCG <- merge(DataMainmean,DataCGmean)
 
 #Want to reorder tea.hole to have a nicer legend:
 MainCG$tea.hole <- ordered(MainCG$tea.hole, levels=c("Green Exclosed", "Rooibos Exclosed","Green Open","Rooibos Open"))
@@ -620,153 +927,804 @@ MainCGplot
 
 
 #ANALYSIS####
-#LANDUSE EXPERIMENT####
-library(lme4)
-library(nlme)
+#MAIN LANDUSE EXPERIMENT####
 
-names(FulldataMain)
-FulldataMain$Blockcode
-firstmodel <- lmer(Massloss.per~Littertype+Landuse+Season+Region+Treatment+
-                     Littertype:Landuse+Littertype:Season+Littertype:Region+Littertype:Treatment+
-                     Landuse:Season+Landuse:Region+Landuse:Treatment+
-                     Season:Region+Season:Treatment+
-                     Littertype:Landuse:Treatment+
-                     Littertype:Landuse:Season+
-                     (1|Blockcode), data=FulldataMain, REML=T)
+#Want to answer the following questions:
+#1. Do litter decomposition rates differ across major land-uses
+#   in the Serengeti savannah ecosystem? 
+#2. Does temporal and spatial climate effects influence the
+#decomposition of litter?
 
-summary(firstmodel)
-anova(firstmodel)
-drop1(firstmodel,test="Chisq")
+#General massloss models, using Massloss.per as response varible####
+####Dataprocessing####
+#Separate littertypes
+RecalMain <- droplevels(DataMain[DataMain$Littertype =="Rooibos",])
+LabileMain <- droplevels(DataMain[DataMain$Littertype =="Green",])
 
-#Creating two data set for each littertype to be able to do a four-way interaction
-#(UPDATE: NOT POSSIBLE WITH THIS DATA). We know already that Littertype is important
-#so thats why we extract the data into littertype.
-RecalDataMain <- droplevels(FulldataMain[FulldataMain$Littertype =="Rooibos",])
-LabileDataMain <- droplevels(FulldataMain[FulldataMain$Littertype =="Green",])
+#Adding data from buring in Seronera soil (local soil) - i.e an additional wild site in intermediate rainregion
+LocalCGsoil2 <- DataCG[DataCG$Site=="Seronera",] #The sites are from 1-4, but actually they are just 1 when comparing to the other sites.
+#So replacing site numbering to only 1.
+LocalCGsoil2$Block <- 1
+LocalCGsoil2$Blockcode <- "Int_W1"
 
-#LMM Recalcitrant litter####
-Recalmodel <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
-                     Landuse:Season+Landuse:Region+Landuse:Treatment+
-                     Season:Region+Season:Treatment+Region:Treatment+
-                     Treatment:Landuse:Season+
-                     Treatment:Landuse:Region+
-                     Season:Landuse:Region+
-                     (1|Blockcode), data=RecalDataMain, REML=T)
-#LMM Labile litter####
-Labilemodel <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
-                      Landuse:Season+Landuse:Region+Landuse:Treatment+
-                      Season:Region+Season:Treatment+Region:Treatment+
-                      Treatment:Landuse:Season+
-                      Treatment:Landuse:Region+
-                      Season:Landuse:Region+
-                      (1|Blockcode), data=LabileDataMain, REML=T)
-summary(Recalmodel)
-anova(Recalmodel)
+RecalMain <- rbind.fill(RecalMain,LocalCGsoil2)
+LabileMain <- rbind.fill(LabileMain,LocalCGsoil2)
 
-summary(Labilemodel)
-anova(Labilemodel)
+#Renaming some columns (RECAL):
+names(RecalMain)
+colnames(RecalMain)[(names(RecalMain)== "Sandcorr")] <- "Sand"
+colnames(RecalMain)[(names(RecalMain)== "Claycorr")] <- "Clay"
+colnames(RecalMain)[(names(RecalMain)== "Moisture..")] <- "Moisture"
+colnames(RecalMain)[(names(RecalMain)== "Temperature..C.")] <- "Temp"
+colnames(RecalMain)[(names(RecalMain)== "Rain.sum")] <- "Rain"
+#Renaming some columns (LABILE):
+names(LabileMain)
+colnames(LabileMain)[(names(LabileMain)== "Sandcorr")] <- "Sand"
+colnames(LabileMain)[(names(LabileMain)== "Claycorr")] <- "Clay"
+colnames(LabileMain)[(names(LabileMain)== "Moisture..")] <- "Moisture"
+colnames(LabileMain)[(names(LabileMain)== "Temperature..C.")] <- "Temp"
+colnames(LabileMain)[(names(LabileMain)== "Rain.sum")] <- "Rain"
 
-#MODEL SELECTION - LABILE####
-summary(Labilemodel) # Fullmodel with Season,Region, landuse and treatment and all interactions 
-anova(Labilemodel) #Landuse,Season,Region
-AIC(Labilemodel)#4578.255
-drop1(Labilemodel,test="Chisq") # See what terms are important: Landuse:Season:Region is significant
-#                           Sum Sq Mean Sq NumDF  DenDF F value    Pr(>F)    
-# Landuse:Season:Treatment   62.11   31.05     2 604.09  0.4386    0.6451    
-# Landuse:Region:Treatment   22.31   11.15     2 604.11  0.1575    0.8543    
-# Landuse:Season:Region    2969.34 1484.67     2 604.27 20.9712 1.565e-09 ***
+#Block needs to be a unique number - not repeated across blocks (I think blockcode already do this but anyway...)
 
-#New trimmed model:
-Labilemodel2 <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
-                                      Landuse:Season+Landuse:Region+Landuse:Treatment+
-                                      Season:Region+Season:Treatment+Region:Treatment+
-                                      #Treatment:Landuse:Season+
-                                      #Treatment:Landuse:Region+
-                                      Season:Landuse:Region+
-                                      (1|Blockcode), data=LabileDataMain, REML=T)
-drop1(Labilemodel2,test="Chisq")
+LabileMain$blockdesign.num<-as.factor(with(LabileMain, paste(Season,Region,Landuse,Blockcode, sep="")))
+LabileMain$blockdesign.num<-as.numeric(LabileMain$blockdesign.num)
+LabileMain$blockdesign.num<-as.factor(LabileMain$blockdesign.num)
+table(LabileMain$blockdesign.num, LabileMain$Landuse)
 
-AIC(Labilemodel2)#Original 4578.255 - new 4587.699
+RecalMain$blockdesign.num<-as.factor(with(RecalMain, paste(Season,Region,Landuse,Blockcode, sep="")))
+RecalMain$blockdesign.num<-as.numeric(RecalMain$blockdesign.num)
+RecalMain$blockdesign.num<-as.factor(RecalMain$blockdesign.num)
+table(RecalMain$blockdesign.num, RecalMain$Landuse)
 
-#Model without three-way
-Labilemodel3 <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
-                       Landuse:Season+Landuse:Region+Region:Treatment+
-                       Landuse:Treatment+
-                       Season:Region+Season:Treatment+
-                       #Treatment:Landuse:Season+
-                       #Treatment:Landuse:Region+
-                       #Season:Landuse:Region+
-                       (1|Blockcode), data=LabileDataMain, REML=T)
-drop1(Labilemodel3,test="Chisq")
-#                  Sum Sq Mean Sq NumDF  DenDF   F value    Pr(>F)    
-# Landuse:Season      2132    1066     2 610.27   14.1944  9.43e-07 ***
-# Landuse:Region       589     295     2  18.06    3.9242   0.03844 *  
-# Region:Treatment      60      60     1 610.12    0.7951   0.37291    #NOT SIGN
-# Landuse:Treatment     51      26     2 610.11    0.3401   0.71180   #NOT SIGN 
-# Season:Region      77224   77224     1 610.29 1028.1645 < 2.2e-16 ***
-# Season:Treatment      29      29     1 610.10    0.3857   0.53480   #NOT SIGN 
+levels(RecalMain$blockdesign.num)
+#Labile Model - general massloss across season and landuse####
 
-#New trimmed model with threeway
-Labilemodel4 <- lmer(Massloss.per~Landuse+Season+Region+#Treatment+
-                       Landuse:Season+Landuse:Region+#Landuse:Treatment+
-                       Season:Region+#Region:Treatment+#Season:Treatment+
-                       #Treatment:Landuse:Season+
-                       #Treatment:Landuse:Region+
-                       Season:Landuse:Region+
-                       (1|Blockcode), data=LabileDataMain, REML=T)
-AIC(Labilemodel4)#Original 4578.255 - new 4591.76
-drop1(Labilemodel4,test="Chisq")
+LabileMainMod <- lmer(Massloss.per~Season+Landuse+Treatment+Sand+Rain+Temp+C.N+
+                        #Season:Landuse+
+                        #Season:Treatment+
+                        Season:Sand+#Season:Rain+#Season:Temp+Season:C.N+
+                        #Landuse:Treatment+#Landuse:Sand+
+                        Landuse:Rain+#Landuse:Temp+
+                        Landuse:C.N+
+                        #Treatment:Sand+Treatment:Rain+Treatment:Temp+Treatment:C.N+
+                        #Sand:Rain+
+                        #Sand:Temp+#Sand:C.N+
+                        #Rain:Temp+#Rain:C.N+
+                        #Temp:C.N+
+                        (Site.ID|blockdesign.num),na.action=na.omit,REML = T,data=LabileMain)
+summary(LabileMainMod)
+anova(LabileMainMod)
+drop1(LabileMainMod,test="Chisq")
+#First step in model selecion, drop1() output:
+#
+#Model:
+#   Massloss.per ~ Season + Landuse + Treatment + Sand + Rain + Temp + 
+#   C.N + Season:Landuse + Season:Treatment + Season:Sand + Season:Rain + 
+#   Season:Temp + Season:C.N + Landuse:Treatment + Landuse:Sand + 
+#   Landuse:Rain + Landuse:Temp + Landuse:C.N + Treatment:Sand + 
+#   Treatment:Rain + Treatment:Temp + Treatment:C.N + Sand:Rain + 
+#   Sand:Temp + Sand:C.N + Rain:Temp + Rain:C.N + Temp:C.N + 
+#   (Site.ID | blockdesign.num)
+# Df    AIC    LRT Pr(Chi)  
+# <none>               5362.4                 
+# Season:Landuse     2 5360.8 2.4228 0.29778  --> Remove
+# Season:Treatment   1 5363.1 2.6489 0.10362  
+# Season:Sand        1 5366.0 5.5492 0.01849 *
+#   Season:Rain        1 5360.5 0.0668 0.79599  
+# Season:Temp        1 5360.4 0.0035 0.95297  --> Remove
+# Season:C.N         1 5360.8 0.4041 0.52500  --> Remove
+# Landuse:Treatment  2 5361.7 3.3007 0.19198  
+# Landuse:Sand       2 5361.2 2.7853 0.24841  --> Remove
+# Landuse:Rain       2 5363.3 4.8696 0.08761 .
+# Landuse:Temp       2 5359.5 1.0505 0.59140  --> Remove
+# Landuse:C.N        2 5362.7 4.2601 0.11883  
+# Treatment:Sand     1 5361.5 1.0606 0.30308  --> Remove
+# Treatment:Rain     1 5360.9 0.5401 0.46237  --> Remove
+# Treatment:Temp     1 5360.8 0.3525 0.55273  --> Remove
+# Treatment:C.N      1 5361.2 0.8055 0.36944  --> Remove
+# Sand:Rain          1 5361.8 1.4382 0.23043  --> Remove
+# Sand:Temp          1 5363.8 3.4111 0.06476 .
+# Sand:C.N           1 5360.8 0.4367 0.50874  --> Remove
+# Rain:Temp          1 5362.7 2.2659 0.13225  
+# Rain:C.N           1 5364.1 3.6590 0.05577 .
+# Temp:C.N           1 5361.3 0.9381 0.33276  --> Remove
+##
+# Model:
+#   Massloss.per ~ Season + Landuse + Treatment + Sand + Rain + Temp + 
+#   C.N + Season:Treatment + Season:Sand + Season:Rain + Landuse:Treatment + 
+#   Landuse:Rain + Landuse:C.N + Sand:Temp + Rain:Temp + Rain:C.N + 
+#   (Site.ID | blockdesign.num)
+# Df    AIC     LRT   Pr(Chi)    
+# <none>               5347.1                      
+# Season:Treatment   1 5347.4  2.3654 0.1240501 --> Remove   
+# Season:Sand        1 5366.0 20.8875 4.871e-06 ***
+#   Season:Rain        1 5349.8  4.7048 0.0300789 *  
+#   Landuse:Treatment  2 5345.1  2.0755 0.3542505    --> Remove
+# Landuse:Rain       2 5358.5 15.4328 0.0004455 ***
+#   Landuse:C.N        2 5351.7  8.6280 0.0133800 *  
+#   Sand:Temp          1 5346.8  1.7583 0.1848327    --> Remove
+# Rain:Temp          1 5349.3  4.2191 0.0399706 *  
+#   Rain:C.N           1 5347.6  2.5607 0.1095503 --> Remove
+# #
+# Model:
+#   Massloss.per ~ Season + Landuse + Treatment + Sand + Rain + Temp + 
+#   C.N + Season:Sand + Season:Rain + Landuse:Rain + Landuse:C.N + 
+#   Rain:Temp + (Site.ID | blockdesign.num)
+# Df    AIC     LRT   Pr(Chi)    
+# <none>          5345.5                      
+# Treatment     1 5344.9  1.4302  0.231735   - 
+# Season:Sand   1 5362.6 19.0370 1.282e-05 ***
+#   Season:Rain   1 5347.3  3.8024  0.051179 .  ->Remove
+# Landuse:Rain  2 5356.2 14.6710  0.000652 ***
+#   Landuse:C.N   2 5348.5  6.9822  0.030467 *  
+#   Rain:Temp     1 5346.6  3.0917  0.078693 .->Remove  
+# #
+# Model:
+#   Massloss.per ~ Season + Landuse + Treatment + Sand + Rain + Temp + 
+#   C.N + Season:Sand + Landuse:Rain + Landuse:C.N +
+#   (Site.ID | blockdesign.num)
+#             Df    AIC     LRT   Pr(Chi)    
+# <none>          5348.7                  --> Worse AIC    
+# Treatment     1 5348.1  1.4647 0.2261840    
+# Temp          1 5356.7 10.0393 0.0015324 ** 
+#   Season:Sand   1 5360.6 13.9392 0.0001888 ***
+#   Landuse:Rain  2 5361.1 16.4388 0.0002694 ***
+#   Landuse:C.N   2 5351.5  6.8213 0.0330204 *  
 
-#                         Sum Sq Mean Sq NumDF  DenDF F value    Pr(>F)    
-# Treatment               55.64   55.64     1 612.11   0.792    0.3738    
-# Landuse:Season:Region 2962.96 1481.48     2 612.27  21.088 1.391e-09 ***
 
-#Testing significance between two-way interactions (with threeway):
-Labilemodel4a <- update(Labilemodel4, .~. -Season:Landuse:Region)
-Labilemodel4b <- update(Labilemodel4a, .~. -Landuse:Region)
-Labilemodel4c <- update(Labilemodel4a, .~. -Season:Region)
-Labilemodel4d <- update(Labilemodel4a, .~. -Season:Landuse)
+#Recal Model - general massloss across season and landuse####
+RecalMainMod <- lmer(Massloss.per~Season+Landuse+Treatment+Sand+Rain+Temp+
+                        (Site.ID|blockdesign.num),na.action=na.omit,REML = FALSE,data=RecalMain)
 
-anova(Labilemodel4,Labilemodel4a) #Season:Landuse:Region sign
-anova(Labilemodel4a,Labilemodel4b) #Landuse:Region sign
-anova(Labilemodel4a,Labilemodel4c)#Season:Region sign
-anova(Labilemodel4a,Labilemodel4d) #Season:Landuse sign
+#Termite effect models, using the difference between treatment (op-excl)####
+####Preliminary dataprocessing####
+names(LabileTermEff) #Data has both CG and Main experiment - Need to seperate
+names(RecalTermEff) #Data has both CG and Main experiment - Need to seperate
 
-#New trimmed model without threeway
-Labilemodel5 <- lmer(Massloss.per~Landuse+Season+Region+Treatment+
-                       #Landuse:Season+Landuse:Region+#Landuse:Treatment+
-                       #Season:Region+#Region:Treatment+#Season:Treatment+
-                       #Treatment:Landuse:Season+
-                       #Treatment:Landuse:Region+
-                       #Season:Landuse:Region+
-                       (1|Blockcode), data=LabileDataMain, REML=T)
-AIC(Labilemodel5) #5270.009
-drop1(Labilemodel5,test="Chisq")
-Massloss.per ~ Landuse + Season + Region + Treatment + (1 | Blockcode)
-#             Df    AIC    LRT   Pr(Chi)
-#   <none>       5287.5                     
-#   Landuse    2 5289.7   6.19   0.04527 *  
-#   Season     1 5833.7 548.12 < 2.2e-16 ***
-#   Region     1 5331.2  45.62 1.436e-11 ***
-#   Treatment  1 5286.0   0.45   0.50041    #Treatment not significant (makes sense as this is the labile litter)
+#Seperate experiments
+LabileTermEff.Main <- LabileTermEff[LabileTermEff$Experiment=="Main",]
+RecalTermEff.Main <- RecalTermEff[RecalTermEff$Experiment=="Main",]
+#Extracting Local soil (Seronera) and adding it to the Main datasets:
+LocalCGsoil.T.E.Labile <- LabileTermEff[LabileTermEff$Site=="Seronera",] #The sites are from 1-4, but actually they are just 1 when comparing to the other sites.
+LocalCGsoil.T.E.Recal <- RecalTermEff[RecalTermEff$Site=="Seronera",]
+#So replacing site numbering to only 1.
+LocalCGsoil.T.E.Labile$Block <- 1
+LocalCGsoil.T.E.Recal$Block  <- 1
+LocalCGsoil.T.E.Labile$Blockcode <- "Int_W1"
+LocalCGsoil.T.E.Recal$Blockcode <- "Int_W1"
+
+LabileTermEff.Main <- rbind(LabileTermEff.Main,LocalCGsoil.T.E.Labile)
+RecalTermEff.Main <- rbind(RecalTermEff.Main,LocalCGsoil.T.E.Recal)
+
+#Renaming some columns (RECAL):
+names(RecalTermEff.Main)
+colnames(RecalTermEff.Main)[(names(RecalTermEff.Main)== "Sandcorr")] <- "Sand"
+colnames(RecalTermEff.Main)[(names(RecalTermEff.Main)== "Claycorr")] <- "Clay"
+colnames(RecalTermEff.Main)[(names(RecalTermEff.Main)== "Moisture..")] <- "Moisture"
+colnames(RecalTermEff.Main)[(names(RecalTermEff.Main)== "Temperature..C.")] <- "Temp"
+colnames(RecalTermEff.Main)[(names(RecalTermEff.Main)== "Rain.sum")] <- "Rain"
+#Renaming some columns (LABILE):
+names(LabileTermEff.Main)
+colnames(LabileTermEff.Main)[(names(LabileTermEff.Main)== "Sandcorr")] <- "Sand"
+colnames(LabileTermEff.Main)[(names(LabileTermEff.Main)== "Claycorr")] <- "Clay"
+colnames(LabileTermEff.Main)[(names(LabileTermEff.Main)== "Moisture..")] <- "Moisture"
+colnames(LabileTermEff.Main)[(names(LabileTermEff.Main)== "Temperature..C.")] <- "Temp"
+colnames(LabileTermEff.Main)[(names(LabileTermEff.Main)== "Rain.sum")] <- "Rain"
+
+#Block needs to be a unique number - not repeated across blocks (I think blockcode already do this but anyway...)
+
+LabileTermEff.Main$blockdesign.num<-as.factor(with(LabileTermEff.Main, paste(Season,Region,Landuse,Blockcode, sep="")))
+LabileTermEff.Main$blockdesign.num<-as.numeric(LabileTermEff.Main$blockdesign.num)
+LabileTermEff.Main$blockdesign.num<-as.factor(LabileTermEff.Main$blockdesign.num)
+table(LabileTermEff.Main$blockdesign.num, LabileTermEff.Main$Landuse)
+
+RecalTermEff.Main$blockdesign.num<-as.factor(with(RecalTermEff.Main, paste(Season,Region,Landuse,Blockcode, sep="")))
+RecalTermEff.Main$blockdesign.num<-as.numeric(RecalTermEff.Main$blockdesign.num)
+RecalTermEff.Main$blockdesign.num<-as.factor(RecalTermEff.Main$blockdesign.num)
+table(RecalTermEff.Main$blockdesign.num, RecalTermEff.Main$Landuse)
+
+
+##Labile Model - Termite effect massloss####
+LabileT.E.Mod <- lmer(Termite.effect~Season+Landuse+Sand+Rain+Temp+
+                        (Site.ID|blockdesign.num),na.action=na.omit,REML = FALSE,data=LabileTermEff.Main)
+
+#Recal Model - Termite effect massloss####
+RecalT.E.Mod <- lmer(Termite.effect~Season+Landuse+Sand+Rain+Temp+
+                        (Site.ID|blockdesign.num),na.action=na.omit,REML = FALSE,data=RecalTermEff.Main)
+
+
+#COMMON GARDEN EXP####
+#Dataprocessing - getting data ready for modelling####
+DataCG<-droplevels(Fulldata[Fulldata$Experiment=="CG",]) # Only commongarden data
+DataMain<-droplevels(Fulldata[Fulldata$Experiment=="Main",]) #Only landuse experiement data
+LocalCGsoil <- DataCG[DataCG$Site=="Seronera",]
+
+#Add local soil from CG to Main experiment:
+DataMain <- rbind.fill(DataMain,LocalCGsoil)
+
+write.csv(write.csv(DataMain,file="Termites/Maindata.csv"))
+write.csv(write.csv(DataCG,file="Termites/CGdata.csv"))
+
+#Then, want to combine the two data set by left_join.
+#Problem: CG data has 224 obs (on block level), whilce main exp. has 1568 obs (on plot level).
+#Need to aggregate Main to block level, first:
+se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Standard Error
+
+DataMainSummary<-aggregate(cbind(Massloss.per,Massloss..g.,Moisture..,Temperature..C.,Rain.sum, C.N, Sandcorr, Claycorr)~Season+Landuse+Region+Blockcode+Treatment+Littertype,DataMain,mean)
+#DataMainSummaryse <- aggregate(cbind(Massloss.per,Massloss..g.,Moisture..,Temperature..C.,Rain.sum, C.N, Sandcorr, Claycorr)~Season+Landuse+Region+Blockcode+Treatment+Littertype,DataMain, se)
+#DataMainSummary$SE <- DataMainSummaryse$
+length(DataMainSummary$Massloss.per) #224
+
+Regionlvl <-  levels(DataCG$Region) #Adjusting correct factor level order
+levels(DataMain$Region) <- Regionlvl #Adjusting correct level order
+Landuselvl <- levels(DataMain$Landuse) #Adjusting correct level order
+levels(DataCG$Landuse) <- Landuselvl #Adjusting correct level order
+
+names(DataMainSummary)
+names(DataCG)
+Blockcodelvl <- levels(DataCG$Blockcode)
+levels(DataMainSummary$Blockcode) <- Blockcodelvl
+
+DataMCG <- left_join(DataMainSummary,DataCG,by=c("Season","Treatment","Littertype","Blockcode"))
+
+#Creating variables for difference between CG (y) and Main (x):
+DataMCG$MainCGdiff <- DataMCG$Massloss.per.x-DataMCG$Massloss.per.y
+DataMCG$Moistdiff <- DataMCG$Moisture...x -DataMCG$Moisture...y
+DataMCG$Tempdiff <- DataMCG$Temperature..C..x -DataMCG$Temperature..C..y
+#Renaming some columns:
+names(DataMCG)
+colnames(DataMCG)[(names(DataMCG) == "C.N.x")] <-"CN"
+colnames(DataMCG)[(names(DataMCG)== "Sandcorr.x")] <- "Sand"
+colnames(DataMCG)[(names(DataMCG)== "Claycorr.x")] <- "Clay"
+#colnames(DataMCG)[(names(DataMCG)== "Moisture...x")] <- "Moisture"
+#colnames(DataMCG)[(names(DataMCG)== "Temperature..C..x")] <- "Temp"
+colnames(DataMCG)[(names(DataMCG)== "Landuse.x")] <- "Landuse"
+colnames(DataMCG)[(names(DataMCG)== "Region.x")] <- "Region"
+colnames(DataMCG)[(names(DataMCG)== "Rain.sum.x")] <- "Rain"
+
+#Creating dataset for each littertype:
+RecalDataMCG <- droplevels(DataMCG[DataMCG$Littertype =="Rooibos",])
+LabileDataMCG <- droplevels(DataMCG[DataMCG$Littertype =="Green",])
+
+#Block needs to be a unique number - not repeated 
+LabileDataMCG$blockdesign.num<-as.factor(with(LabileDataMCG, paste(Season,Blockcode,Treatment, sep="")))
+LabileDataMCG$blockdesign.num<-as.numeric(LabileDataMCG$blockdesign.num)
+LabileDataMCG$blockdesign.num<-as.factor(LabileDataMCG$blockdesign.num)
+table(LabileDataMCG$Site.ID, LabileDataMCG$Landuse)
+
+RecalDataMCG$blockdesign.num<-as.factor(with(RecalDataMCG, paste(Season,Treatment,Blockcode, sep="")))
+RecalDataMCG$blockdesign.num<-as.numeric(RecalDataMCG$blockdesign.num)
+RecalDataMCG$blockdesign.num<-as.factor(RecalDataMCG$blockdesign.num)
+table(RecalDataMCG$Site.ID, RecalDataMCG$Landuse)
+#COMMON GARDEN MODELLING####
+#Labilemodel analysis####
+names(LabileDataMCG)
+levels(LabileDataMCG$Site.ID)
+#Using Tempdiff instead of Temp variable
+#Using Sand and not Clay
+#First, writing up all combinations, then excluding first the ones that does not make sense to include (in interactions)
+LabileFullMCGMod <- lmer(MainCGdiff ~ Season+Landuse+Treatment+Tempdiff+Sand+CN+Rain+
+                             Season:Landuse+Season:Treatment+Season:Tempdiff+Season:Sand+Season:CN+Season:Rain+
+                             Treatment:Landuse+Treatment:Tempdiff+Treatment:Sand+Treatment:CN+
+                             Landuse:Treatment+Landuse:Tempdiff+Landuse:Sand+Landuse:CN+#Landuse:Rain+
+                             Tempdiff:Sand+Tempdiff:CN+Tempdiff:Rain+
+                             Sand:CN+#Sand:Rain+
+                             Season:Landuse:Treatment+Season:Landuse:Tempdiff+Season:Landuse:CN+#Season:Landuse:Sand+#Season:Landuse:Rain+
+                             Landuse:Treatment:Tempdiff+Landuse:Treatment:Sand+Landuse:Treatment:CN+#Landuse:Treatment:Rain+
+                             #Treatment:Tempdiff:Sand+#Treatment:Tempdiff:CN+Treatment:Tempdiff:Rain+
+                             #Tempdiff:Sand:CN+Tempdiff:Sand:Rain+
+                             #Sand:CN:Rain+
+                             (1|Site.ID), na.action=na.omit, REML=F, data =LabileDataMCG)
+
+LabileMCGMod <- lmer(MainCGdiff ~ Season+Landuse+Treatment+Tempdiff+Sand+CN+Rain+
+                         Season:Landuse+Season:Treatment+Season:Tempdiff+
+                       Season:Sand+Season:CN+Season:Rain+
+                         Treatment:Landuse+Treatment:Tempdiff+Treatment:Sand+
+                       Treatment:CN+
+                         Landuse:Treatment+Landuse:Tempdiff+
+                       Landuse:Sand+Landuse:CN+Landuse:Rain+
+                         Tempdiff:Sand+Tempdiff:CN+Tempdiff:Rain+
+                         Sand:CN+Sand:Rain+
+                         #Season:Landuse:Treatment+
+                   Season:Landuse:Tempdiff+
+                     #Season:Landuse:CN+#
+                     Season:Landuse:Sand+
+                     Season:Landuse:Rain+
+                         #Landuse:Treatment:Tempdiff+
+                    #Landuse:Treatment:Sand+Landuse:Treatment:CN+Landuse:Treatment:Rain+
+                        # Treatment:Tempdiff:Sand+Treatment:Tempdiff:CN+Treatment:Tempdiff:Rain+
+                         #Tempdiff:Sand:CN+
+                     Tempdiff:Sand:Rain+
+                         Sand:CN:Rain+
+                         (1|Site.ID), na.action=na.omit, REML=F, data =LabileDataMCG)
+
+
+summary(LabileMCGMod)
+anova(LabileMCGMod) 
+AIC(LabileMCGMod)# Orig (All possble interactions): 790.2116, new:767.9645 
+drop1(LabileMCGMod,test="Chisq")
+#How the selection scenario was done:
+#First of all: I get warning of Singular fit and consider rescaling. But keep going anyway:
+#Step 1 - Running full model and Drop1:
+#Model:
+# MainCGdiff ~ Season + Landuse + Treatment + Tempdiff + Sand + 
+#   CN + Rain + Season:Landuse + Season:Treatment + Season:Tempdiff + 
+#   Season:Sand + Season:CN + Season:Rain + Treatment:Landuse + 
+#   Treatment:Tempdiff + Treatment:Sand + Treatment:CN + Landuse:Treatment + 
+#   Landuse:Tempdiff + Landuse:Sand + Landuse:CN + Landuse:Rain + 
+#   Tempdiff:Sand + Tempdiff:CN + Tempdiff:Rain + Sand:CN + Sand:Rain + 
+#   Season:Landuse:Treatment + Season:Landuse:Tempdiff + Season:Landuse:CN + 
+#   Season:Landuse:Sand + Season:Landuse:Rain + Landuse:Treatment:Tempdiff + 
+#   Landuse:Treatment:Sand + Landuse:Treatment:CN + Landuse:Treatment:Rain + 
+#   Treatment:Tempdiff:Sand + Treatment:Tempdiff:CN + Treatment:Tempdiff:Rain + 
+#   Tempdiff:Sand:CN + Tempdiff:Sand:Rain + Sand:CN:Rain + (1 | 
+#                                                             Site.ID)
+# Df    AIC     LRT   Pr(Chi)    
+# <none>                        790.21                      
+# Season:Landuse:Treatment    2 786.28  0.0645 0.9682651 -->Remove
+# Season:Landuse:Tempdiff     2 802.22 16.0127 0.0003333 ***
+#   Season:Landuse:CN           2 787.67  1.4630 0.4811823  -->Remove  
+# Season:Landuse:Sand         2 793.00  6.7928 0.0334944 *  
+#   Season:Landuse:Rain         2 798.37 12.1622 0.0022856 ** 
+#   Landuse:Treatment:Tempdiff  2 788.63  2.4209 0.2980687  -->Remove  
+# Landuse:Treatment:Sand      2 786.38  0.1703 0.9183592  -->Remove  
+# Landuse:Treatment:CN        2 786.51  0.3000 0.8607008  -->Remove  
+# Landuse:Treatment:Rain      3 785.92  1.7127 0.6341079  -->Remove  
+# Treatment:Tempdiff:Sand     1 788.51  0.2995 0.5841925  -->Remove  
+# Treatment:Tempdiff:CN       1 790.61  2.3953 0.1217034  -->Remove  
+# Treatment:Tempdiff:Rain     1 788.21  0.0009 0.9758912  -->Remove  
+# Tempdiff:Sand:CN            1 788.23  0.0176 0.8945908  -->Remove  
+# Tempdiff:Sand:Rain          1 802.54 14.3329 0.0001532 ***
+#   Sand:CN:Rain                1 800.72 12.5107 0.0004046 ***
+
+#Step 2: Remove N.S and run drop1 again:
 
 
 
 
-#Trimming model with threeway
-Labilemodel6<- lmer(Massloss.per~Landuse+Season+Region+Treatment+
-                      #Landuse:Season+Landuse:Region+#Landuse:Treatment+
-                      #Season:Region+#Region:Treatment+#Season:Treatment+
-                      #Treatment:Landuse:Season+
-                      #Treatment:Landuse:Region+
-                      Season:Landuse:Region+
-                      (1|Blockcode), data=LabileDataMain, REML=T)
+#2. All threeways N.S:
+#                         Df    AIC    LRT  Pr(Chi)
+# Season:Landuse:Tempdiff  3 809.30 4.5446 0.208348   -->Remove
+# Season:Landuse:CN        3 809.85 5.0996 0.164650   
+# Landuse:Treatment:Sand   3 809.03 4.2825 0.232533  -->Remove
+#
+#3. Last threeway somewhat sign. AIC:
+#                     Df    AIC    LRT  Pr(Chi)
+# Season:Treatment    1 807.32 2.1224 0.14516  
+# Season:Tempdiff     1 805.68 0.4774 0.48961  
+# Season:Sand         1 808.28 3.0769 0.07941 .
+# Season:Rain         1 805.22 0.0224 0.88093  
+# Landuse:Treatment   3 802.47 1.2748 0.73513  
+# Treatment:Tempdiff  1 807.44 2.2450 0.13405  
+# Treatment:Sand      1 805.28 0.0827 0.77362  
+# Treatment:CN        1 808.38 3.1783 0.07462 .
+# Landuse:Tempdiff    3 808.52 7.3186 0.06241 .
+# Landuse:Sand        3 804.34 3.1412 0.37036  
+# Tempdiff:Sand       1 806.62 1.4206 0.23331  
+# Tempdiff:CN         1 807.96 2.7600 0.09665 .
+# Tempdiff:Rain       1 806.36 1.1608 0.28129  
+# Sand:CN             1 805.31 0.1124 0.73739  
+# Season:Landuse:CN   3 807.71 6.5068 0.08940 .
+#--> Removing threeway to test twoway interactions
+# 
+#4. AIC:
+#                     Df    AIC    LRT  Pr(Chi)
+# Season:Landuse      3 814.46 12.7511 0.005207 **
+# Season:Treatment    1 807.75  2.0399 0.153222   
+# Season:Tempdiff     1 805.78  0.0776 0.780518   
+# Season:Sand         1 814.63  8.9188 0.002823 **
+# Season:CN           1 805.75  0.0388 0.843853    --> Remove
+# Season:Rain         1 805.71  0.0010 0.974976    --> Remove
+# Landuse:Treatment   3 802.93  1.2209 0.747984    --> Remove
+# Treatment:Tempdiff  1 807.86  2.1579 0.141841    --> Remove
+# Treatment:Sand      1 805.79  0.0789 0.778796    --> Remove
+# Treatment:CN        1 808.77  3.0613 0.080178 . 
+# Landuse:Tempdiff    3 804.60  2.8945 0.408184   --> Remove 
+# Landuse:Sand        3 809.30  7.5947 0.055175 . 
+# Landuse:CN          3 805.40  3.6955 0.296279  --> Remove  
+# Tempdiff:Sand       1 806.46  0.7566 0.384405  --> Remove  
+# Tempdiff:CN         1 807.25  1.5390 0.214761  --> Remove  
+# Tempdiff:Rain       1 805.71  0.0041 0.948778 --> Remove   
+# Sand:CN             1 805.73  0.0188 0.890984 --> Remove
+# 
+#5.Removed N.S two-ways, better AIC:790.8469. When I added three-way AIC: 800 and threeway was N.S. So removed:
+#                     Df    AIC    LRT  Pr(Chi)
+#Season:Landuse    3 796.76 11.9174 0.007671 **
+# Season:Treatment  1 791.05  2.1989 0.138109   
+# Season:Tempdiff   1 789.89  1.0480 0.305968   --> Remove
+# Season:Sand       1 797.46  8.6130 0.003338 **
+# Season:CN         1 789.09  0.2438 0.621440   --> Remove
+# Season:Rain       1 789.70  0.8570 0.354567   --> Remove
+# Treatment:CN      1 790.78  1.9281 0.164966   
+# Landuse:Sand      3 795.73 10.8820 0.012381 * 
+#--> Removing the most N.S, above P=20.
+#
+#6.AIC: 786.4553
+#                   Df    AIC    LRT  Pr(Chi)
+# Tempdiff          1 788.05   3.592 0.0580646 .  
+# Rain              1 909.37 124.912 < 2.2e-16 ***
+# Season:Landuse    3 797.51  17.057 0.0006880 ***
+# Season:Treatment  1 786.65   2.194 0.1385375    --> Remove
+# Season:Sand       1 799.57  15.111 0.0001014 ***
+# Treatment:CN      1 786.38   1.924 0.1654536    --> Remove
+# Landuse:Sand      3 791.79  11.338 0.0100296 *  
+
+# 7. AIC: 787.1119
+#                Df    AIC     LRT   Pr(Chi)    
+# <none>            787.11                      
+# Treatment       1 786.65   1.542  0.214331    --> Remove
+# Tempdiff        1 788.64   3.532  0.060186 .  
+# CN              1 786.18   1.066  0.301758    --> Remove
+# Rain            1 907.02 121.907 < 2.2e-16 ***
+# Season:Landuse  3 797.59  16.475  0.000906 ***
+# Season:Sand     1 799.56  14.449  0.000144 ***
+# Landuse:Sand    3 791.62  10.506  0.014719 * 
+
+#6. Significant twoways, and some N.S covariates.
+#Trying update() to see significance of these when a twoway are removed
+
+LabileMCGMod1 <- update(LabileMCGMod, .~. -Season:Landuse)
+LabileMCGMod2 <- update(LabileMCGMod, .~. -Season:Sand)
+LabileMCGMod3 <- update(LabileMCGMod, .~. -Landuse:Sand) 
+
+LabileMCGMod1a <- update(LabileMCGMod1,.~.-Treatment)
+LabileMCGMod1b <- update(LabileMCGMod1,.~.-Tempdiff)
+LabileMCGMod1c <- update(LabileMCGMod1,.~.-CN)
+LabileMCGMod1d <- update(LabileMCGMod1,.~.-Rain)
+
+LabileMCGMod2a <- update(LabileMCGMod2,.~.-Treatment)
+LabileMCGMod2b <- update(LabileMCGMod2,.~.-Tempdiff)
+LabileMCGMod2c <- update(LabileMCGMod2,.~.-CN)
+LabileMCGMod2d <- update(LabileMCGMod2,.~.-Rain)
+
+LabileMCGMod3a <- update(LabileMCGMod3,.~.-Treatment)
+LabileMCGMod3b <- update(LabileMCGMod3,.~.-Tempdiff)
+LabileMCGMod3c <- update(LabileMCGMod3,.~.-CN)
+LabileMCGMod3d <- update(LabileMCGMod3,.~.-Rain)
+
+#Significance of covariates when Season:Landuse removed:
+anova(LabileMCGMod1,LabileMCGMod1a) #Treatment N.S --> Remove
+anova(LabileMCGMod1,LabileMCGMod1b) #Tempdiff N.S 
+anova(LabileMCGMod1,LabileMCGMod1c) #CN N.S --> Remove
+anova(LabileMCGMod1,LabileMCGMod1d) #Rain Sign
+#Significance of covariates when Season:Sand removed:
+anova(LabileMCGMod2,LabileMCGMod2a) #Treatment  N.S --> Remove
+anova(LabileMCGMod2,LabileMCGMod2b) #Tempdiff N.S 
+anova(LabileMCGMod2,LabileMCGMod2c) #CN N.S --> Remove
+anova(LabileMCGMod2,LabileMCGMod2d) #Rain Sign
+#Significance of covariates when Landuse:Sand removed:
+anova(LabileMCGMod3,LabileMCGMod3a) #Treatment N.S --> Remove
+anova(LabileMCGMod3,LabileMCGMod3b) #Tempdiff Sign #SHould I remove the twoway or does this mean that the twoway has an interaction on this, so keep the two way?
+anova(LabileMCGMod3,LabileMCGMod3c) #CN N.S --> Remove
+anova(LabileMCGMod3,LabileMCGMod3d) #Rain Sign 
 
 
-AIC(Labilemodel6) #Original 4578.255 - New: 4591.957
-drop1(Labilemodel6,test="Chisq")
+#New alternative selected models:
+Alt1LabileMCGMod <- lmer(MainCGdiff ~ Season+Landuse+#Treatment
+                           #Tempdiff
+                           Sand+#CN+
+                           Rain+
+                       Season:Landuse+Season:Sand+Landuse:Sand+
+                       (1|Site.ID), na.action=na.omit, REML=F, data =LabileDataMCG)
 
-boxplot(FulldataMain$rain.sum..mm.~FulldataMain$Season)
+summary(Alt1LabileMCGMod)
+anova(Alt1LabileMCGMod) 
+AIC(Alt1LabileMCGMod)# Orig: 785.6975, new: 786.957, 
+drop1(Alt1LabileMCGMod,test="Chisq")
+#               Df    AIC     LRT   Pr(Chi)    
+# <none>            785.70                      
+# Tempdiff        1 786.96   3.260 0.0710100 .  --> Remove/Or change Temdiff to Temp variable
+# Rain            1 903.60 119.906 < 2.2e-16 ***
+# Season:Landuse  3 796.45  16.748 0.0007962 ***
+# Season:Sand     1 797.64  13.943 0.0001885 ***
+# Landuse:Sand    3 788.96   9.265 0.0259699 * 
+#
+#Using Temp variable instead, not better model:
+#                   Df    AIC     LRT   Pr(Chi)    
+# <none>               786.39                      
+# Temperature..C..x  1 786.96   2.570 0.1089035    
+# Rain               1 900.52 116.130 < 2.2e-16 ***
+# Season:Landuse     3 796.48  16.093 0.0010851 ** 
+# Season:Sand        1 798.76  14.369 0.0001502 ***
+# Landuse:Sand       3 792.72  12.337 0.0063150 ** 
+#---> Swithcing back to Tempdiff variable, but trying now to remove it.
+#
+#New model without Tempdiff. AIC: 786.957
+# #Model:
+# MainCGdiff ~ Season + Landuse + Sand + Rain + Season:Landuse + 
+# Season:Sand + Landuse:Sand + (1 | Site.ID)
+# Df    AIC     LRT   Pr(Chi)    
+# <none>            786.96                      
+# Rain            1 907.62 122.661 < 2.2e-16 ***
+# Season:Landuse  3 794.48  13.524 0.0036298 ** 
+# Season:Sand     1 797.73  12.773 0.0003516 ***
+# Landuse:Sand    3 793.06  12.100 0.0070499 ** 
+#
+#Adding CN back into model, as I think it should be important:
+#AIC=788.1711
+# Model:
+# MainCGdiff ~ Season + Landuse + Sand + CN + Rain + Season:Landuse + 
+# Season:Sand + Landuse:Sand + (1 | Site.ID)
+#                 Df    AIC     LRT   Pr(Chi)    
+# <none>            788.17                      
+# CN              1 786.96   0.786 0.3753433    --> Still not sign, Remove
+# Rain            1 909.60 123.430 < 2.2e-16 ***
+# Season:Landuse  3 795.01  12.834 0.0050098 ** 
+# Season:Sand     1 799.17  12.996 0.0003122 ***
+# Landuse:Sand    3 795.05  12.881 0.0049013 ** 
+#
+#Doing update again, to get p-vaues for all covariates. Problem: unsure how to get corect p-values
+#when multiple interactions are signigifant.
+
+
+#Checking distrubution of the modelled data. Problem: I dont know how to interpret this:
+E1 <- resid(Alt1LabileMCGMod, type ="pearson")  #THIS IS FOR lme4..NOT lme, in lme = "type = "n"
+F1 <- fitted(Alt1LabileMCGMod)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F1, 
+     y = E1,
+     xlab = "Fitted values",
+     ylab = "Residuals")
+abline(v = 0, lwd = 2, col = 2) # Several of the fitted values <0 #PROBLEM???
+abline(h = 0, lty = 2, col = 1)
+
+#Getting parameter estimates directly:
+Alt1LabileMCGModA <- lmer(MainCGdiff ~ -1+Season + Landuse + Sand + Rain + Season:Landuse + 
+                           Season:Sand + Landuse:Sand + 
+                           (1| Site.ID),REML=T,data=LabileDataMCG)
+
+summary(Alt1LabileMCGMod)
+
+#Should also try and add back some variables to test.
+####
+
+#Recalcitrantmodel analysis####
+names(LabileDataMCG)
+levels(LabileDataMCG$Site.ID)
+#Using Tempdiff instead of Temp variable
+#Using Sand and not Clay
+#First, writing up all combinations, then excluding first the ones that does not make sense to include (in interactions)
+RecalFullMCGMod <- lmer(MainCGdiff ~ Season+Landuse+Treatment+Tempdiff+Sand+CN+Rain+
+                           Season:Landuse+Season:Treatment+Season:Tempdiff+Season:Sand+Season:CN+#Season:Rain+
+                           Treatment:Landuse+Treatment:Tempdiff+Treatment:Sand+Treatment:CN+
+                          Landuse:Treatment+Landuse:Tempdiff+Landuse:Sand+Landuse:CN+#Landuse:Rain+
+                          Tempdiff:Sand+Tempdiff:CN+Tempdiff:Rain+
+                          Sand:CN+#Sand:Rain+
+                          Season:Landuse:Treatment+Season:Landuse:Tempdiff+Season:Landuse:CN+
+                          #Season:Landuse:Sand+#Season:Landuse:Rain+
+                          Landuse:Treatment:Tempdiff+Landuse:Treatment:Sand+Landuse:Treatment:CN+
+                          #Landuse:Treatment:Rain+
+                          #Treatment:Tempdiff:Sand+#Treatment:Tempdiff:CN+Treatment:Tempdiff:Rain+
+                          #Tempdiff:Sand:CN+Tempdiff:Sand:Rain+
+                          #Sand:CN:Rain+
+                           (1|Site.ID), na.action=na.omit, REML=F, data =RecalDataMCG)
+RecalMCGMod <- lmer(MainCGdiff ~ #Season+#Landuse+
+                      Treatment+#Tempdiff+
+                      Sand+#CN+
+                      Rain+
+                          #Season:Landuse+#Season:Treatment+#Season:Tempdiff+
+                      #Season:Sand+#Season:CN+#Season:Rain+
+                          #Treatment:Landuse+#Treatment:Tempdiff+
+                      #Treatment:Sand+
+                     # Treatment:CN+
+                          #Landuse:Treatment+#Landuse:Tempdiff+#Landuse:Sand+
+                     # Landuse:CN+#Landuse:Rain+
+                          #Tempdiff:Sand+Tempdiff:CN+Tempdiff:Rain+
+                          #Sand:CN+#Sand:Rain+
+                          #Season:Landuse:Treatment+Season:Landuse:Tempdiff+
+                          #Season:Landuse:CN+
+                          #Season:Landuse:Sand+#Season:Landuse:Rain+
+                          #Landuse:Treatment:Tempdiff+Landuse:Treatment:Sand+Landuse:Treatment:CN+
+                          #Landuse:Treatment:Rain+
+                          #Treatment:Tempdiff:Sand+#Treatment:Tempdiff:CN+Treatment:Tempdiff:Rain+
+                          #Tempdiff:Sand:CN+Tempdiff:Sand:Rain+
+                          #Sand:CN:Rain+
+                          (1|Site.ID), na.action=na.omit, REML=F, data =RecalDataMCG)
+
+
+summary(RecalMCGMod) #Oops singular fit, not good. Need to reduce or adjust the model until singular fit is removed
+AIC(RecalMCGMod)# Orig: 1042 New: 1021.285
+drop1(RecalMCGMod,test="Chisq")
+# Model:
+#   MainCGdiff ~ Season + Landuse + Treatment + Tempdiff + Sand + 
+#   CN + Rain + Season:Landuse + Season:Treatment + Season:Tempdiff + 
+#   Season:Sand + Season:CN + Treatment:Landuse + Treatment:Tempdiff + 
+#   Treatment:Sand + Treatment:CN + Landuse:Treatment + Landuse:Tempdiff + 
+#   Landuse:Sand + Landuse:CN + Tempdiff:Sand + Tempdiff:CN + 
+#   Tempdiff:Rain + Sand:CN + Season:Landuse:Treatment + Season:Landuse:Tempdiff + 
+#   Season:Landuse:CN + Landuse:Treatment:Tempdiff + Landuse:Treatment:Sand + 
+#   Landuse:Treatment:CN + (1 | Site.ID)
+#                             Df    AIC    LRT Pr(Chi)  
+# <none>                        1043.0                 
+# Season:Sand                 1 1047.5 6.5855 0.01028 *
+#   Tempdiff:Sand               1 1041.5 0.5128 0.47394  
+# Tempdiff:CN                 1 1042.2 1.2845 0.25707  
+# Tempdiff:Rain               1 1042.4 1.4482 0.22881  
+# Sand:CN                     1 1041.2 0.2200 0.63903  
+# Season:Landuse:Treatment    2 1042.0 2.9902 0.22422  --> Remove
+# Season:Landuse:Tempdiff     2 1042.1 3.1385 0.20820  --> Remove
+# Season:Landuse:CN           2 1044.8 5.8871 0.05268 .
+# Landuse:Treatment:Tempdiff  2 1040.3 1.3616 0.50622  --> Remove
+# Landuse:Treatment:Sand      2 1039.5 0.5886 0.74506  --> Remove
+# Landuse:Treatment:CN        2 1039.2 0.2064 0.90193  --> Remove
+
+#Drop1 again:
+#
+#Model:
+# MainCGdiff ~ Season + Landuse + Treatment + Tempdiff + Sand + 
+#   CN + Rain + Season:Landuse + Season:Treatment + Season:Tempdiff + 
+#   Season:Sand + Season:CN + Treatment:Landuse + Treatment:Tempdiff + 
+#   Treatment:Sand + Treatment:CN + Landuse:Treatment + Landuse:Tempdiff + 
+#   Landuse:Sand + Landuse:CN + Tempdiff:Sand + Tempdiff:CN + 
+#   Tempdiff:Rain + Sand:CN + Season:Landuse:CN + (1 | Site.ID)
+# Df    AIC    LRT  Pr(Chi)   
+# <none>                1032.4                   
+# Season:Treatment    1 1032.9 2.4901 0.114561   
+# Season:Tempdiff     1 1031.8 1.4233 0.232853   
+# Season:Sand         1 1037.2 6.7288 0.009487 **
+#   Landuse:Treatment   2 1033.1 4.6607 0.097261 . 
+# Treatment:Tempdiff  1 1031.2 0.7919 0.373524   
+# Treatment:Sand      1 1034.5 4.1165 0.042466 * 
+#   Treatment:CN        1 1033.7 3.2358 0.072045 . 
+# Landuse:Tempdiff    2 1034.4 5.9532 0.050965 . 
+# Landuse:Sand        2 1031.8 3.4179 0.181058   
+# Tempdiff:Sand       1 1030.9 0.4425 0.505905   
+# Tempdiff:CN         1 1031.3 0.8392 0.359632   
+# Tempdiff:Rain       1 1030.6 0.1601 0.689049   
+# Sand:CN             1 1030.8 0.3851 0.534910   
+# Season:Landuse:CN   2 1034.2 5.8244 0.054355 . 
+#--> Need to use update() to remove threeway and look at twoway significance:
+#
+#After doing update() (below) the new output of Drop1 is:
+# Model:
+# MainCGdiff ~ Season + Landuse + Treatment + Tempdiff + Sand + 
+# CN + Rain + Season:Landuse + Season:Sand + Season:CN + Treatment:Landuse + 
+# Treatment:Sand + Treatment:CN + Landuse:Treatment + Landuse:Tempdiff + 
+# Landuse:CN + Season:Landuse:CN + (1 | Site.ID)
+#                   Df    AIC    LRT Pr(Chi)  
+# <none>               1029.8                 
+# Rain               1 1031.3 3.4589 0.06291 .
+# Season:Sand        1 1034.3 6.5199 0.01067 *
+# Landuse:Treatment  2 1029.7 3.9111 0.14149
+# Treatment:Sand     1 1031.0 3.2485 0.07149 .
+# Treatment:CN       1 1032.7 4.9294 0.02640 *
+# Landuse:Tempdiff   2 1029.9 4.1147 0.12780  
+# Season:Landuse:CN  2 1030.8 5.0025 0.08198 .
+
+#Doing drop1 again, without threeway Season:Landuse:CN:
+#Model:
+# MainCGdiff ~ Season + Landuse + Treatment + Tempdiff + Sand + 
+# CN + Rain + Season:Landuse + Season:Sand + Season:CN + Treatment:Landuse + 
+# Treatment:Sand + Treatment:CN + Landuse:Treatment + Landuse:Tempdiff + 
+# Landuse:CN + (1 | Site.ID)
+#                       Df    AIC    LRT Pr(Chi)  
+# <none>               1030.8                 
+# Rain               1 1032.7 3.8997 0.04829 *
+# Season:Landuse     2 1029.9 3.1187 0.21028  -->Remove
+# Season:Sand        1 1032.4 3.5712 0.05879 .
+# Season:CN          1 1029.0 0.1667 0.68303  -->Remove
+# Landuse:Treatment  2 1030.8 4.0060 0.13493  -->Remove
+# Treatment:Sand     1 1032.2 3.3730 0.06627 .
+# Treatment:CN       1 1033.8 4.9561 0.02600 *
+# Landuse:Tempdiff   2 1030.5 3.6520 0.16105  -->Remove 
+# Landuse:CN         2 1027.4 0.5788 0.74870 -->Remove
+
+# #
+# Model:
+# MainCGdiff ~ Season + Landuse + Treatment + Tempdiff + Sand + 
+# CN + Rain + Season:Sand + Treatment:Sand + Treatment:CN + 
+# (1 | Site.ID)
+#                 Df    AIC    LRT  Pr(Chi)   
+# <none>            1023.6                   
+# Landuse         2 1024.3 4.7331 0.093803 . 
+# Tempdiff        1 1023.6 2.0362 0.153595   
+# Rain            1 1028.2 6.6421 0.009959 **
+# Season:Sand     1 1023.6 2.0157 0.155674   -->Remove
+# Treatment:Sand  1 1024.4 2.8877 0.089258 . 
+# Treatment:CN    1 1024.2 2.6308 0.104806  -->Remove
+
+# Model:
+# MainCGdiff ~ Season + Landuse + Treatment + Tempdiff + Sand + 
+# CN + Rain + Treatment:Sand + (1 | Site.ID)
+#                 Df    AIC    LRT  Pr(Chi)   
+# <none>            1024.1                   
+# Season          1 1022.1 0.0000 0.999781   
+# Landuse         2 1024.7 4.6124 0.099640 . 
+# Tempdiff        1 1024.5 2.4063 0.120850   
+# CN              1 1026.4 4.3019 0.038069 * 
+# Rain            1 1030.7 8.6040 0.003354 **
+# Treatment:Sand  1 1024.4 2.2606 0.132702 --> Remove
+
+# Removing last two-way interaction:
+# Model:
+# MainCGdiff ~ Season + Landuse + Treatment + Tempdiff + Sand + 
+# CN + Rain + (1 | Site.ID)
+#           Df    AIC    LRT  Pr(Chi)   
+# <none>       1024.4                   
+# Season     1 1022.4 0.0001 0.991041   -->Remove
+# Landuse    2 1024.9 4.5167 0.104525   -->Remove
+# Treatment  1 1026.1 3.6995 0.054427 . 
+# Tempdiff   1 1024.7 2.3571 0.124711   -->Remove
+# Sand       1 1026.2 3.8133 0.050846 . 
+# CN         1 1026.5 4.1014 0.042847 * 
+# Rain       1 1030.6 8.2464 0.004083 **
+
+#
+# Model (THIS IS THE FIRST WITHOUT "SINGULAR FIT" WARNING - GOOD!):
+# MainCGdiff ~ Treatment + Sand + CN + Rain + (1 | Site.ID)
+#            Df    AIC     LRT   Pr(Chi)    
+# <none>       1021.3                      
+# Treatment  1 1023.1  3.7774   0.05195 .  
+# Sand       1 1022.5  3.1653   0.07522 .  
+# CN         1 1021.9  2.6468   0.10376    -->This is now N.S. Could be due to interaction with one of the terms that were removed?
+# Rain       1 1035.8 16.5207 4.812e-05 ***
+#--> Trying to add one each of the variables separately to see if CN changes. My bet is Landuse or Treatment that is somewhat collinear.
+# I want to test some inereraction and if its afecting covariates to be significant
+# But, for now I'll remove CN from model:
+# Model:
+# MainCGdiff ~ Treatment + Sand + Rain + (1 | Site.ID)
+#           Df    AIC     LRT  Pr(Chi)    
+# <none>       1021.9                     
+# Treatment  1 1023.7  3.7769  0.05197 .  
+# Sand       1 1023.3  3.3946  0.06541 .  
+# Rain       1 1036.6 16.7079 4.36e-05 ***
+##Tried to remove Sand - the model gets worse AIC-wise.
+#Will now try adding variable back and maybe twoway interaction that would make sense
+
+
+#Best model so far:
+#MainCGdiff ~ 
+RecalMCGModBEST <- lmer(MainCGdiff~ Treatment + Sand + CN + Rain + (1 | Site.ID), na.action=na.omit, REML=T, data =RecalDataMCG)
+summary(RecalMCGModBEST)
+
+#Checking assumptions:
+E1 <- resid(RecalMCGModBEST, type ="pearson")  #THIS IS FOR lme4..NOT lme, in lme = "type = "n"
+F1 <- fitted(RecalMCGModBEST)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F1, 
+     y = E1,
+     xlab = "Fitted values",
+     ylab = "Residuals")
+abline(v = 0, lwd = 2, col = 2) # Several of the fitted values <0 #PROBLEM???
+abline(h = 0, lty = 2, col = 1)
+
+
+RecalMCGMod1 <- update(RecalMCGMod, .~. -Season:Landuse:CN)
+
+RecalMCGMod1a <- update(RecalMCGMod1,.~.-Season:Treatment)
+RecalMCGMod1b <- update(RecalMCGMod1,.~.-Season:Tempdiff)
+RecalMCGMod1c <- update(RecalMCGMod1,.~.-Season:Sand)
+RecalMCGMod1d <- update(RecalMCGMod1,.~.-Landuse:Treatment)
+RecalMCGMod1e <- update(RecalMCGMod1,.~.-Treatment:Tempdiff)
+RecalMCGMod1f <- update(RecalMCGMod1,.~.-Treatment:Sand )
+RecalMCGMod1g <- update(RecalMCGMod1,.~.-Treatment:CN)
+RecalMCGMod1h <- update(RecalMCGMod1,.~.-Landuse:Tempdiff)
+RecalMCGMod1i <- update(RecalMCGMod1,.~.-Landuse:Sand)
+RecalMCGMod1j <- update(RecalMCGMod1,.~.-Tempdiff:Sand)
+RecalMCGMod1k <- update(RecalMCGMod1,.~.-Tempdiff:CN)
+RecalMCGMod1l <- update(RecalMCGMod1,.~.-Tempdiff:Rain)
+RecalMCGMod1m <- update(RecalMCGMod1,.~.-Sand:CN)
+
+#Comparing each model when threeway removed and one two way removed:
+anova(RecalMCGMod1,RecalMCGMod1a)#Season:Treatment N.S
+anova(RecalMCGMod1,RecalMCGMod1b)#Season:Tempdiff N.S
+anova(RecalMCGMod1,RecalMCGMod1c)#Season:Sand N.S
+anova(RecalMCGMod1,RecalMCGMod1d)#Landuse:Treatment N.S
+anova(RecalMCGMod1,RecalMCGMod1e)#Treatment:Tempdiff N.S
+anova(RecalMCGMod1,RecalMCGMod1f)#Treatment:Sand N.S
+anova(RecalMCGMod1,RecalMCGMod1g)#Treatment:CN N.s 0.06
+anova(RecalMCGMod1,RecalMCGMod1h)#Landuse:Tempdiff N.S
+anova(RecalMCGMod1,RecalMCGMod1i)#Landuse:Sand N.S
+anova(RecalMCGMod1,RecalMCGMod1j)#Tempdiff:Sand N.S
+anova(RecalMCGMod1,RecalMCGMod1k)#Tempdiff:CN N.S
+anova(RecalMCGMod1,RecalMCGMod1l)#Tempdiff:Rain N.S
+anova(RecalMCGMod1,RecalMCGMod1m)#Sand:CN N.S
+#-->Removing all N.S two-ways
+
+
 
 
 
@@ -864,27 +1822,7 @@ library(itsadug)
 plot(acf_resid(Recalmodel), type="b",alpha=0.05)
 abline(c(0,0), lty = 2, col = 1)
 
-
-
-
-
 ####Modelling Landuse main experiment####
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #### Provisional analysis####
 
@@ -939,6 +1877,7 @@ plot(AndersTea,flittertype~resid(.),abline=0) # Rooibos larger resid error
 plot(AndersTea,ftreatment~resid(.),abline=0) # Open larger residual error
 plot(AndersTea,flanduse~resid(.),abline=0) # OK
 plot(AndersTea,fregion~resid(.),abline=0) # OK
+
 
 # Checking resids vs fit
 E1 <- resid(AndersTea, type = "pearson")
