@@ -960,6 +960,7 @@ colnames(Total.Eco.C)[36] <- "Herbaceous"
 colnames(Total.Eco.C)[37] <- "Woody"
 colnames(Total.Eco.C)[38] <- "DW"
 Total.Eco.C$tot.C.kg_m2 <- Total.Eco.C$Soil.min + Total.Eco.C$Soil.Ahor + Total.Eco.C$Herbaceous + Total.Eco.C$Woody + Total.Eco.C$DW
+Total.Eco.C <- cbind(Total.Eco.C, tot.N.kg_m2[3])
 
 names(Belowground.full)
 summary(Belowground.full)
@@ -974,6 +975,7 @@ Herbaceous$Ctot.C.kg_m2 <- as.numeric(scale(Herbaceous$C.amount))
 DW$Ctot.C.kg_m2 <- as.numeric(scale(DW$C.amount)) 
 Woody$Ctot.C.kg_m2 <- as.numeric(scale(Woody$C.amount)) 
 Total.Eco.C$Ctot.C.kg_m2 <- as.numeric(scale(Total.Eco.C$tot.C.kg_m2)) 
+Total.Eco.C$Ctot.N.kg_m2 <- as.numeric(scale(Total.Eco.C$tot.N.kg_m2)) 
 Aboveground.C$Ctot.N.kg_m2 <- as.numeric(scale(Aboveground.C$tot.N.kg_m2))
 Belowground.C$Ctot.N.kg_m2 <- as.numeric(scale(Belowground.C$tot.N.kg_m2))
 Soil.min$Ctot.N.kg_m2 <- as.numeric(scale(Soil.min$tot.N.kg_m2))
@@ -1759,18 +1761,20 @@ Total.Eco.C.CnoNA<-Total.Eco.C[!is.na(Total.Eco.C$CFire_frequency.2000_2017),]
 #psem
 ?psem
 Modlist <-   psem(
-  lme(Soil.Ahor~CMAP.mm_yr + CFire_frequency.2000_2017 + CSand + Herbaceous + landuse ,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(Soil.min~CSand + CMAP.mm_yr + landuse ,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(Woody~CSand + CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + #Ctot.N.kg_m2
-        ,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Soil.Ahor~CMAP.mm_yr + CFire_frequency.2000_2017 + Herbaceous + landuse, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Soil.min~ CSand + landuse + CFire_frequency.2000_2017, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Woody~CSand + CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + Ctot.N.kg_m2, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   lme(DW~ landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(Herbaceous~CSand + CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CShrubbiness,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Herbaceous ~CSand + CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CShrubbiness + Ctot.N.kg_m2,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   lme(CFire_frequency.2000_2017~ CMAP.mm_yr + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA), 
-  lme(CShrubbiness~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA)
+  lme(CShrubbiness~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Ctot.N.kg_m2~ CSand + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  Soil.Ahor%~~%Ctot.N.kg_m2,
+  Soil.min%~~%Ctot.N.kg_m2,
+  CShrubbiness%~~%Woody,
+  CSand%~~%CMAP.mm_yr
 )
-  #lme(Ctot.N.kg_m2~ CSand + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-      #Ctot.C.kg_m2%~~%Ctot.N.kg_m2,
-      #CTreeBM.kg_m2%~~%Ctot.N.kg_m2)
+
 # %~~% between correlated error - telling R to not care about the correlation between these variables. 
 # MySummary <- summary(modell)
 # save(MySummary, file="")
