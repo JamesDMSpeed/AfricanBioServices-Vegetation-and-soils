@@ -1750,33 +1750,108 @@ xyplot(tot.C.kg_m2~CFire_frequency.2000_2017|climate.kat,data=Belowground.full)
 anova(Fire.climate)
 
 #### SEM model #### 
-
+# %~~% between correlated error - telling R to not care about the correlation between these variables. 
+# MySummary <- summary(modell)
+# save(MySummary, file="")
 library(MuMIn)
 library(piecewiseSEM)
 vignette('piecewiseSEM') # too look at the package 
 names(Total.Eco.C)
 Total.Eco.C.CnoNA<-Total.Eco.C[!is.na(Total.Eco.C$CFire_frequency.2000_2017),]
 # Variation for each model component
-# A total model: 
-#psem
-?psem
-Modlist <-   psem(
-  lme(Soil.Ahor~CMAP.mm_yr + CFire_frequency.2000_2017 + Herbaceous + landuse, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(Soil.min~ CSand + landuse + CFire_frequency.2000_2017, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(Woody~CSand + CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + Ctot.N.kg_m2, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(DW~ landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(Herbaceous ~CSand + CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CShrubbiness + Ctot.N.kg_m2,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(CFire_frequency.2000_2017~ CMAP.mm_yr + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA), 
-  lme(CShrubbiness~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(Ctot.N.kg_m2~ CSand + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  Soil.Ahor%~~%Ctot.N.kg_m2,
-  Soil.min%~~%Ctot.N.kg_m2,
-  CShrubbiness%~~%Woody,
-  CSand%~~%CMAP.mm_yr
+# A total model of all direct effects based on literature 
+
+Modlist1 <-   psem(
+  lme(Woody~ CFire_frequency.2000_2017 + landuse + CMAP.mm_yr + CSand, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(DW~ Woody + CFire_frequency.2000_2017 + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Herbaceous ~  CSand + CMAP.mm_yr + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Soil.Ahor~ Herbaceous, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Soil.min~ Soil.Ahor + CSand, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(CFire_frequency.2000_2017~ landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA), 
+  landuse%~~%CMAP.mm_yr, # I know these are not correlated
+  landuse%~~%CSand # I know these are not correlated 
 )
 
-# %~~% between correlated error - telling R to not care about the correlation between these variables. 
-# MySummary <- summary(modell)
-# save(MySummary, file="")
-summary(Modlist,Total.Eco.C.CnoNA)
+summary(Modlist1,Total.Eco.C.CnoNA)
+# Good fit, sign: Woody~Fire and Soil.min~Soil.A
 
+# Adding Shrubbiness and Nitrogen
+Modlist2 <-   psem(
+  lme(Woody~ CFire_frequency.2000_2017 + landuse + CMAP.mm_yr + CSand + Ctot.N.kg_m2, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(DW~ Woody + CFire_frequency.2000_2017 + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Herbaceous ~  CShrubbiness + CSand + CMAP.mm_yr + landuse + Ctot.N.kg_m2,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Soil.Ahor~ Herbaceous, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Soil.min~ Soil.Ahor + CSand, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  #lme(CFire_frequency.2000_2017~ landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA), 
+  lme(CShrubbiness~ landuse + CFire_frequency.2000_2017,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Ctot.N.kg_m2~ CSand,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  landuse%~~%CMAP.mm_yr, # I know these are not correlated
+  landuse%~~%CSand, # I know these are not correlated 
+  CShrubbiness%~~% Woody,
+  Soil.Ahor%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path.. 
+  Soil.min%~~%Ctot.N.kg_m2
+)
+
+summary(Modlist2,Total.Eco.C.CnoNA)
+# Good fit, Woody~Fire and Soil.min~Soil.A and N~Sand 
+# Other sign: Shrub~MAP and Soil.min~Woody (dont know why)
+
+# Add significant variables, remove non sign.
+Modlist3 <-   psem(
+  lme(Woody~ CFire_frequency.2000_2017 + landuse + CSand + Ctot.N.kg_m2, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(DW~ Woody + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Herbaceous ~  CShrubbiness + CSand + CMAP.mm_yr + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Soil.Ahor~ Herbaceous, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Soil.min~ Soil.Ahor + CSand + Woody, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(CShrubbiness~  CFire_frequency.2000_2017 + CMAP.mm_yr,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Ctot.N.kg_m2~ CSand,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  landuse%~~%CMAP.mm_yr, # I know these are not correlated
+  landuse%~~%CSand, # I know these are not correlated 
+  CShrubbiness%~~% Woody,
+  Soil.Ahor%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path.. 
+  Soil.min%~~%Ctot.N.kg_m2
+)
+
+summary(Modlist3,Total.Eco.C.CnoNA)
+# good fit, sign: Woody~Fire, Soil.min~Soil.A, Shrubbiness~Fire, Shrubbiness~MAP, N~Sand 
+
+# Remove non sign further 
+Modlist4 <-   psem(
+  lme(Woody~ CFire_frequency.2000_2017 + landuse + CSand, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(DW~ landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Herbaceous ~  CShrubbiness + CSand + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Soil.Ahor~ Herbaceous, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Soil.min~ Soil.Ahor + CSand, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(CShrubbiness~  CFire_frequency.2000_2017 + CMAP.mm_yr,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Ctot.N.kg_m2~ CSand,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  landuse%~~%CMAP.mm_yr, # I know these are not correlated
+  landuse%~~%CSand, # I know these are not correlated 
+  CShrubbiness%~~% Woody,
+  Soil.Ahor%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path.. 
+  Soil.min%~~%Ctot.N.kg_m2
+)
+
+summary(Modlist4,Total.Eco.C.CnoNA)
+# good fit, sign: Woody~Fire, Soil.min~Soil.A, Shrubbiness~Fire, Shrubbiness~MAP, N~Sand 
+
+# Remove non sign further, and add some almost sign, work on this till I find the best.. 
+Modlist5 <-   psem(
+  lme(Woody~ CFire_frequency.2000_2017, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(DW~ landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Herbaceous ~  CSand + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  #lme(Soil.Ahor~ Herbaceous, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Soil.min~ Soil.Ahor + CSand + CFire_frequency.2000_2017, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(CShrubbiness~  CFire_frequency.2000_2017 + CMAP.mm_yr,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Ctot.N.kg_m2~ CSand + CMAP.mm_yr,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  landuse%~~%CMAP.mm_yr, # I know these are not correlated
+  landuse%~~%CSand, # I know these are not correlated 
+  CShrubbiness%~~% Woody,
+  Soil.Ahor%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path.. 
+  Soil.min%~~%Ctot.N.kg_m2
+)
+
+SEMsummary <- summary(Modlist5,Total.Eco.C.CnoNA)
+SEMsummary$coefficients
+SEMsummary$R2
+write.table(SEMsummary$coefficients, file="Ecosystem carbon/SEM.coefficients.txt") 
+write.table(SEMsummary$R2, file="Ecosystem carbon/SEM.R2.txt") 

@@ -1,0 +1,7 @@
+"Response" "family" "link" "method" "Marginal" "Conditional"
+"1" "Woody" "gaussian" "identity" "none" 0.36 0.8
+"2" "DW" "gaussian" "identity" "none" 0.17 0.17
+"3" "Herbaceous" "gaussian" "identity" "none" 0.27 0.7
+"4" "Soil.min" "gaussian" "identity" "none" 0.62 0.8
+"5" "CShrubbiness" "gaussian" "identity" "none" 0.32 0.32
+"6" "Ctot.N.kg_m2" "gaussian" "identity" "none" 0.68 0.68
