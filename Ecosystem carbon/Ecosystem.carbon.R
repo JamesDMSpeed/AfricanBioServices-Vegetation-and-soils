@@ -897,6 +897,8 @@ Belowground.full <- read.csv("Ecosystem carbon/Soil.data/Belowground.Carbon.csv"
 
 Block.Eco.C$Region.x<- factor(Block.Eco.C$Region.x, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 Belowground.full$Region<- factor(Belowground.full$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+names(Belowground.full)
+Livestock.dung<- aggregate(livestock~Region + Block.ID, mean, data=Belowground.full)
 
 # About mixed effect models (nlme package)
 # REML = restricted maximum likelihood estimation 
@@ -1087,6 +1089,7 @@ names(Soil.Ahor)
 names(Herbaceous)
 Soil.Ahor <- cbind(Soil.Ahor,Herbaceous[27])
 colnames(Soil.Ahor)[42] <- "Herb.C"
+Soil.Ahor2 <- left_join(Soil.Ahor,Livestock.dung,by="Block.ID",drop=F)
 Soil.Ahor$CHerb.C <- as.numeric(scale(Soil.Ahor$Herb.C))
 Soil.Ahor.CnoNA<-Soil.Ahor[!is.na(Soil.Ahor$CFire_frequency.2000_2017),]
 #Soil.Ahor.CnoNA <- Soil.Ahor.CnoNA[-14,] # remove outlier? 
@@ -1109,6 +1112,29 @@ write.table(importance(modavgbelowA),file="Ecosystem carbon/importanceAhor.txt")
 summary(modavgbelowA)#Estimated coefficients given weighting
 summary(modavgbelowA)$coefmat.full # Full average 
 write.table(summary(modavgbelowA)$coefmat.subset, file="Ecosystem carbon/con.avg.Ahor.txt") # conditional average - I will try first with this.. 
+
+# With livestock dung 
+Soil.Ahor2.CnoNA<-Soil.Ahor2[!is.na(Soil.Ahor2$livestock),]
+Soil.Ahor2.CnoNA$Clivestock <- as.numeric(scale(Soil.Ahor2.CnoNA$livestock))
+Ahor2.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand + CShrubbiness + CHerb.C + Clivestock  
+                  + CMAP.mm_yr:CSand + landuse:CMAP.mm_yr + landuse:CSand + 
+                    (1|Region.x),data = Soil.Ahor2.CnoNA, REML=F,
+                  na.action=na.fail)
+
+summary(Ahor2.block)
+drop1(Ahor2.block,test="Chisq")  
+anova(Ahor2.block)
+AIC(Ahor2.block) #62.22761
+
+# Model averaging: All possible models between null and global
+modsetbelowA2<-dredge(Ahor2.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse)&!(CSand & CHerb.C))
+modselbelowA2<-model.sel(modsetbelowA2) #Model selection table giving AIC, deltaAIC and weighting
+modavgbelowA2<-model.avg(modselbelowA2)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgbelowA2)#Importance of each variable
+#write.table(importance(modavgbelowA),file="Ecosystem carbon/importanceAhor.txt")
+summary(modavgbelowA2)#Estimated coefficients given weighting
+summary(modavgbelowA2)$coefmat.full # Full average 
+#write.table(summary(modavgbelowA)$coefmat.subset, file="Ecosystem carbon/con.avg.Ahor.txt") # conditional average - I will try first with this.. 
 
 # 3. Global model for Mineral hor C univariate variables ####
 Soil.min <- cbind(Soil.min,Herbaceous[27])
