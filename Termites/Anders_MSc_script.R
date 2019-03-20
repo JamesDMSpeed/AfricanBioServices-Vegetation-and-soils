@@ -970,29 +970,24 @@ colnames(LabileMain)[(names(LabileMain)== "Rain.sum")] <- "Rain"
 LabileMain$blockdesign.num<-as.factor(with(LabileMain, paste(Season,Region,Landuse,Blockcode, sep="")))
 LabileMain$blockdesign.num<-as.numeric(LabileMain$blockdesign.num)
 LabileMain$blockdesign.num<-as.factor(LabileMain$blockdesign.num)
-table(LabileMain$blockdesign.num, LabileMain$Landuse)
+table(LabileMain$blockdesign.num, LabileMain$Site)
 
 RecalMain$blockdesign.num<-as.factor(with(RecalMain, paste(Season,Region,Landuse,Blockcode, sep="")))
 RecalMain$blockdesign.num<-as.numeric(RecalMain$blockdesign.num)
 RecalMain$blockdesign.num<-as.factor(RecalMain$blockdesign.num)
-table(RecalMain$blockdesign.num, RecalMain$Landuse)
+table(RecalMain$blockdesign.num, RecalMain$Site)
 
 levels(RecalMain$blockdesign.num)
 #Labile Model - general massloss across season and landuse####
+#Singularity issue: Can't use Site.ID when using Region and Landuse as covariates.
+LabileMainMod <- lmer(Massloss.per~Season+Landuse+Region+Treatment+Sand+Temp+C.N+
+                       Season:Landuse+Season:Treatment+Season:Sand+Season:Temp+
+                        Season:C.N+Landuse:Treatment+Landuse:Sand+Landuse:Temp+Landuse:C.N+
+                        Treatment:Sand+Treatment:Temp+Treatment:C.N+
+                        Sand:Temp+Sand:C.N+
+                        Temp:C.N+
+                        (1|blockdesign.num), na.action=na.omit,REML = F,data=LabileMain)
 
-LabileMainMod <- lmer(Massloss.per~Season+Landuse+Treatment+Sand+Rain+Temp+C.N+
-                        #Season:Landuse+
-                        #Season:Treatment+
-                        Season:Sand+#Season:Rain+#Season:Temp+Season:C.N+
-                        #Landuse:Treatment+#Landuse:Sand+
-                        Landuse:Rain+#Landuse:Temp+
-                        Landuse:C.N+
-                        #Treatment:Sand+Treatment:Rain+Treatment:Temp+Treatment:C.N+
-                        #Sand:Rain+
-                        #Sand:Temp+#Sand:C.N+
-                        #Rain:Temp+#Rain:C.N+
-                        #Temp:C.N+
-                        (Site.ID|blockdesign.num),na.action=na.omit,REML = T,data=LabileMain)
 summary(LabileMainMod)
 anova(LabileMainMod)
 drop1(LabileMainMod,test="Chisq")
