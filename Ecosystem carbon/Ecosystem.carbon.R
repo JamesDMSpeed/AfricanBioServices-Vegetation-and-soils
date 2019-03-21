@@ -798,6 +798,8 @@ Tree.var<-c("TreeBM.kg_m2","No.trees_m2","Total.basal.area_m2","Shrubbiness","Tr
 
 names(Soil.Ahor)
 ModelVar<-c("CMAP.mm_yr","CSand","CFire_frequency.2000_2017","CShrubbiness","CTreeBM.kg_m2","CHerb.C","Ctot.N.kg_m2")
+names(Soil.Ahor2.CnoNA)
+ModelVar2<-c("CMAP.mm_yr","CSand","CFire_frequency.2000_2017","CShrubbiness","CTreeBM.kg_m2","CHerb.C","Ctot.N.kg_m2","Clivestock","Cwild")
 
 CandN<-c("Ctot.C.kg_m2","Ctot.N.kg_m2")
 
@@ -805,6 +807,7 @@ CandN<-c("Ctot.C.kg_m2","Ctot.N.kg_m2")
 pairs(Soil.Ahor[,Tree.var],lower.panel = panel.cor)
 pairs(Soil.Ahor[,ModelVar],lower.panel = panel.cor)
 pairs(Belowground.full[,CandN],lower.panel = panel.cor)
+pairs(Soil.Ahor2.CnoNA[,ModelVar2],lower.panel = panel.cor)
 # If I want these values in a table:
 Model.var <- Soil.Ahor[,c(32:34,36,37,43,41)]
 CandN.var <- Belowground.full[,c(53,56)] 
@@ -899,7 +902,7 @@ Block.Eco.C$Region.x<- factor(Block.Eco.C$Region.x, levels = c("Makao","Maswa","
 Belowground.full$Region<- factor(Belowground.full$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 names(Belowground.full)
 Livestock.dung<- aggregate(livestock~Region + Block.ID, mean, data=Belowground.full)
-
+Wild.dung<- aggregate(wild~Region + Block.ID, mean, data=Belowground.full)
 # About mixed effect models (nlme package)
 # REML = restricted maximum likelihood estimation 
 # Fixed effects influence the mean of y, while Random effects influence the variance of y 
@@ -1089,10 +1092,8 @@ names(Soil.Ahor)
 names(Herbaceous)
 Soil.Ahor <- cbind(Soil.Ahor,Herbaceous[27])
 colnames(Soil.Ahor)[42] <- "Herb.C"
-Soil.Ahor2 <- left_join(Soil.Ahor,Livestock.dung,by="Block.ID",drop=F)
 Soil.Ahor$CHerb.C <- as.numeric(scale(Soil.Ahor$Herb.C))
 Soil.Ahor.CnoNA<-Soil.Ahor[!is.na(Soil.Ahor$CFire_frequency.2000_2017),]
-#Soil.Ahor.CnoNA <- Soil.Ahor.CnoNA[-14,] # remove outlier? 
 Ahor.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand + CShrubbiness + CHerb.C #+ CTreeBM.N 
                  + CMAP.mm_yr:CSand + landuse:CMAP.mm_yr + landuse:CSand + 
                           (1|Region.x),data = Soil.Ahor.CnoNA, REML=F,
@@ -1113,11 +1114,19 @@ summary(modavgbelowA)#Estimated coefficients given weighting
 summary(modavgbelowA)$coefmat.full # Full average 
 write.table(summary(modavgbelowA)$coefmat.subset, file="Ecosystem carbon/con.avg.Ahor.txt") # conditional average - I will try first with this.. 
 
-# With livestock dung 
+# With livestock and wild dung 
+Soil.Ahor2 <- left_join(Soil.Ahor,Livestock.dung,by="Block.ID",drop=F)
+Soil.Ahor2 <- left_join(Soil.Ahor2,Wild.dung,by="Block.ID",drop=F)
+Soil.Ahor2 <- cbind(Soil.Ahor2,Herbaceous[27])
+colnames(Soil.Ahor2)[46] <- "Herb.C"
 Soil.Ahor2.CnoNA<-Soil.Ahor2[!is.na(Soil.Ahor2$livestock),]
 Soil.Ahor2.CnoNA$Clivestock <- as.numeric(scale(Soil.Ahor2.CnoNA$livestock))
-Ahor2.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand + CShrubbiness + CHerb.C + Clivestock  
-                  + CMAP.mm_yr:CSand + landuse:CMAP.mm_yr + landuse:CSand + 
+Soil.Ahor2.CnoNA$Cwild <- as.numeric(scale(Soil.Ahor2.CnoNA$wild))
+Soil.Ahor2.CnoNA$CHerb.C <- as.numeric(scale(Soil.Ahor2.CnoNA$Herb.C))
+Soil.Ahor2.CnoNA <- droplevels(Soil.Ahor2.CnoNA)
+Ahor2.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + CFire_frequency.2000_2017 + 
+                    CTreeBM.kg_m2 + CSand + CShrubbiness + CHerb.C + Clivestock + Cwild 
+                  + CMAP.mm_yr:CSand + Clivestock:CMAP.mm_yr +
                     (1|Region.x),data = Soil.Ahor2.CnoNA, REML=F,
                   na.action=na.fail)
 
@@ -1127,14 +1136,14 @@ anova(Ahor2.block)
 AIC(Ahor2.block) #62.22761
 
 # Model averaging: All possible models between null and global
-modsetbelowA2<-dredge(Ahor2.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse)&!(CSand & CHerb.C))
+modsetbelowA2<-dredge(Ahor2.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CSand & CHerb.C)&!(Cwild & CSand) & !(Cwild & CMAP.mm_yr) & !(Clivestock & CSand))
 modselbelowA2<-model.sel(modsetbelowA2) #Model selection table giving AIC, deltaAIC and weighting
 modavgbelowA2<-model.avg(modselbelowA2)#Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modavgbelowA2)#Importance of each variable
-#write.table(importance(modavgbelowA),file="Ecosystem carbon/importanceAhor.txt")
+write.table(importance(modavgbelowA2),file="Ecosystem carbon/importanceAhor.dung.txt")
 summary(modavgbelowA2)#Estimated coefficients given weighting
-summary(modavgbelowA2)$coefmat.full # Full average 
-#write.table(summary(modavgbelowA)$coefmat.subset, file="Ecosystem carbon/con.avg.Ahor.txt") # conditional average - I will try first with this.. 
+summary(modavgbelowA2)$coefmat.subset # Full average 
+write.table(summary(modavgbelowA2)$coefmat.subset, file="Ecosystem carbon/con.avg.Ahor.dung.txt") # conditional average - I will try first with this.. 
 
 # 3. Global model for Mineral hor C univariate variables ####
 Soil.min <- cbind(Soil.min,Herbaceous[27])
@@ -1150,6 +1159,8 @@ summary(Min.block)
 drop1(Min.block,test="Chisq") # MAP,Fire,N,TreeBM
 anova(Min.block)
 AIC(Min.block) #57.77696
+plot(Ctot.C.kg_m2~Region.x,data=Soil.min.CnoNA)
+Soil.min.CnoNA2 <- Soil.min.CnoNA[-16,]
 
 # Model averaging: All possible models between null and global
 modsetbelowM<-dredge(Min.block,trace = TRUE, rank = "AICc", REML = FALSE,
@@ -1171,6 +1182,37 @@ plot(Ctot.C.kg_m2~CTreeBM.kg_m2, data=Soil.min)
 plot(Ctot.C.kg_m2~CTreeBM.kg_m2, data=Soil.Ahor)
 plot(Ctot.C.kg_m2~CSand, data=Soil.min)
 plot(Ctot.C.kg_m2~CSand, data=Soil.Ahor)
+
+# WIth livestock and wild dung 
+Soil.min2 <- left_join(Soil.min,Livestock.dung,by="Block.ID",drop=F)
+Soil.min2 <- left_join(Soil.min2,Wild.dung,by="Block.ID",drop=F)
+Soil.min2 <- cbind(Soil.min2,Herbaceous[27])
+colnames(Soil.min2)[46] <- "Herb.C"
+Soil.min2.CnoNA<-Soil.min2[!is.na(Soil.min2$livestock),]
+Soil.min2.CnoNA$Clivestock <- as.numeric(scale(Soil.min2.CnoNA$livestock))
+Soil.min2.CnoNA$Cwild <- as.numeric(scale(Soil.min2.CnoNA$wild))
+Soil.min2.CnoNA$CHerb.C <- as.numeric(scale(Soil.min2.CnoNA$Herb.C))
+Soil.min2.CnoNA <- droplevels(Soil.min2.CnoNA)
+
+Min.block2<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + CFire_frequency.2000_2017 + 
+                  CTreeBM.kg_m2 + CSand + CShrubbiness + CHerb.C + Clivestock + Cwild 
+                + CMAP.mm_yr:CSand + Clivestock:CMAP.mm_yr +
+                  (1|Region.x),data = Soil.min2.CnoNA, REML=F,
+                na.action=na.fail)
+
+summary(Min.block2)
+drop1(Min.block2,test="Chisq") # MAP,Fire,N,TreeBM
+anova(Min.block2)
+AIC(Min.block2)
+
+# Model averaging: All possible models between null and global
+modsetbelowM2<-dredge(Min.block2,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CSand & CHerb.C)&!(Cwild & CSand) & !(Cwild & CMAP.mm_yr) & !(Clivestock & CSand))
+modselbelowM2<-model.sel(modsetbelowM2) #Model selection table giving AIC, deltaAIC and weighting
+modavgbelowM2<-model.avg(modselbelowM2)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgbelowM2)#Importance of each variable
+write.table(importance(modavgbelowM2),file="Ecosystem carbon/importanceMinhor.dung.txt")
+summary(modavgbelowM2)#Estimated coefficients given weighting
+write.table(summary(modavgbelowM2)$coefmat.subset, file="Ecosystem carbon/con.avg.MinHor.dung.txt")
 
 # 4. Global model for Herbs ####
 names(Herbaceous)
@@ -1217,6 +1259,8 @@ summary(modavgaboveDW)#Estimated coefficients given weighting
 write.table(summary(modavgaboveDW)$coefmat.subset, file="Ecosystem carbon/con.avg.DW.txt") 
 # 6. Global model for Woody #### 
 Woody.CnoNA<-Woody[!is.na(Woody$CFire_frequency.2000_2017),]
+# Remove Handajega outlier 
+Woody.CnoNA <- Woody.CnoNA[-16,]
 Woody.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CSand + + Ctot.N.kg_m2 + CMAP.mm_yr:CSand + landuse:CMAP.mm_yr + landuse:CSand +
                    (1|Region.x),data = Woody.CnoNA, REML=F,
                  na.action=na.fail)
@@ -1278,6 +1322,7 @@ summary(modavgAB)#Estimated coefficients given weighting
 
 # 8. Global model for Total Ecosystem C ####
 Total.Eco.C.CnoNA<-Total.Eco.C[!is.na(Total.Eco.C$CFire_frequency.2000_2017),]
+Total.Eco.C.CnoNA <- Total.Eco.C.CnoNA[(-16),]
 Tot.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand + CShrubbiness + 
                   CMAP.mm_yr:CSand + landuse:CMAP.mm_yr + landuse:CSand + 
                   (1|Region.x),data = Total.Eco.C.CnoNA, REML=F,
@@ -1540,6 +1585,17 @@ summary(CNBelowground)
 drop1(CNBelowground,test="Chisq")
 AIC(CNBelowground) # 360.9615, remove Fire, AIC sligtly better: 360.2276
 
+# PLOT above and below C ####
+names(Total.Eco.C)
+names(total.soil.data)
+Total.Eco.C$Region.x<- factor(Total.Eco.C$Region.x, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+total.soil.data$Region<- factor(total.soil.data$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+plot(Soil.min~Region.x,data=Total.Eco.C)
+plot(Soil.Ahor~Region.x,data=Total.Eco.C)
+AHorizon <- total.soil.data[total.soil.data$Horizon=="A-hor",]
+MinHorizon <- total.soil.data[total.soil.data$Horizon=="Min-hor",]
+plot(Tot.C.per~Region,data=AHorizon)
+plot(Tot.C.per~Region,data=MinHorizon)
 # PLOT Importance #### 
 importance.Ahor<- read.table("Ecosystem carbon/importanceAhor.txt")
 importance.MinHor<- read.table("Ecosystem carbon/importanceMinHor.txt")
@@ -1547,12 +1603,17 @@ importance.H<- read.table("Ecosystem carbon/importanceaboveH.txt")
 importance.DW<- read.table("Ecosystem carbon/importanceaboveDW.txt")
 importance.W<- read.table("Ecosystem carbon/importanceaboveW.txt")
 
+importance.Ahor.dung<- read.table("Ecosystem carbon/importanceAhor.dung.txt")
+importance.MinHor.dung<- read.table("Ecosystem carbon/importanceMinHor.dung.txt")
+
 # I now have all my importance variables 
 colnames(importance.Ahor)<-'Ahor'
 colnames(importance.MinHor)<-'MinHor'
 colnames(importance.H)<-'Herbs'
 colnames(importance.DW)<-'DW'
 colnames(importance.W)<-'Woody'
+colnames(importance.Ahor.dung)<-'Ahor'
+colnames(importance.MinHor.dung)<-'MinHor'
 
 rownames(importance.Ahor) <- (c("MAP","Herbaceous biomass","Land-use","Sand","Shrubbiness","Fire frequency","Tree biomass","MAP:Sand","MAP:Land-use","Sand:Land-use"))
 
@@ -1562,7 +1623,14 @@ rownames(importance.H) <- (c("Sand","Fire frequency","Land-use","MAP","Shrubbine
 
 rownames(importance.DW) <- (c("Land-use","MAP","Fire frequency","Shrubbiness","Sand","Soil Nitrogen","Tree biomass","MAP:Land-use","Sand:Land-use","MAP:Sand"))
 
+#With outlier 
 rownames(importance.W) <- (c("Fire frequency","MAP","Sand","MAP:Sand","Land-use", "Soil Nitrogen","MAP:Land-use","Sand:Land-use"))
+# Without outlier 
+rownames(importance.W) <- (c("Sand","MAP","MAP:Sand","Fire frequency","Land-use","MAP:Land-use","Soil Nitrogen","Sand:Land-use"))
+
+rownames(importance.Ahor.dung) <- (c("Sand","MAP","Livestock dung","Wild dung","MAP:Sand","Shrubbiness","Fire frequency","Tree biomass","Herbaceous biomass","MAP:Live.dung"))
+
+rownames(importance.MinHor.dung) <- (c("Sand","Tree biomass","Shrubbiness","MAP","Fire frequency","Wild dung","Livestock dung", "Herbacaous biomass","MAP:Sand","MAP:Live.dung"))
 
 # Colours 
 # Fire: darkorange2
@@ -1576,6 +1644,8 @@ rownames(importance.W) <- (c("Fire frequency","MAP","Sand","MAP:Sand","Land-use"
 # MAP:Sand: deepskyblue2
 # MAP:Land-use: steelblue3
 # Sand:Land-use: khaki3
+# Livestock dung: tan3
+# Wild dung: tan4 
 
 # Plot A-hor
 col.Ahor <- c("deepskyblue4","forestgreen","goldenrod3","darkgray","darkolivegreen4","darkorange2","darkolivegreen3","deepskyblue2","steelblue3","khaki3")
@@ -1586,12 +1656,29 @@ barplot(t(as.matrix(importance.Ahor)), horiz=T,las=1,xlab='Relative variable imp
 #legend=rownames(importance.Ahor), args.legend=list(y=nrow(importance.Ahor)+9,x=+0.32))
 dev.off()
 
+# Plot A-hor with dung 
+col.Ahor.dung <- c("darkgray","deepskyblue4","tan3", "tan4", "deepskyblue2", "darkolivegreen4", "darkorange2", "darkolivegreen3", "forestgreen", "steelblue3")
+png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.Ahor.dung.png")
+par(mar=c(5,17,1,1))
+barplot(t(as.matrix(importance.Ahor.dung)), horiz=T,las=1,xlab='Relative variable importance',main='Soil A-horizon Carbon',axisname=T,col=col.Ahor.dung,beside=T,cex.main = 1,cex.axis=2,cex.lab=1,cex.names=2)
+
+#legend=rownames(importance.Ahor), args.legend=list(y=nrow(importance.Ahor)+9,x=+0.32))
+dev.off()
+
 # Plot Min-hor
 col.min <- c("darkgray","deepskyblue4","darkorange2","deepskyblue2","goldenrod3",'darkolivegreen3','darkolivegreen4','steelblue3',"khaki3","forestgreen")
 png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.Minhor.png")
 par(mar=c(5,18,1,1))
 barplot(t(as.matrix(importance.MinHor)), horiz=T,las=1,xlab='Relative variable importance',main='Soil Mineral-horizon Carbon',cex.main = 1,axisname=T,col= col.min,beside=T,cex.axis=2,cex.lab=1,cex.names=2)
 dev.off()
+
+# Plot Min-hor with dung 
+col.min.dung <- c("darkgray","darkolivegreen3",'darkolivegreen4',"deepskyblue4","darkorange2","tan4","tan3","forestgreen",'steelblue3',"khaki3")
+png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.Minhor.dung.png")
+par(mar=c(5,17,1,1))
+barplot(t(as.matrix(importance.MinHor.dung)), horiz=T,las=1,xlab='Relative variable importance',main='Soil Mineral-horizon Carbon',cex.main = 1,axisname=T,col= col.min.dung,beside=T,cex.axis=2,cex.lab=1,cex.names=2)
+dev.off()
+
 
 # Plot Herb 
 col.herb <- c("darkgray","darkorange2","goldenrod3","deepskyblue4","darkolivegreen4",'deepskyblue2',"darkolivegreen3","khaki3","coral4","steelblue3")
@@ -1609,10 +1696,11 @@ dev.off()
 
 #Plot Woody
 col.W <- c("darkorange2","deepskyblue4","darkgray","deepskyblue2","goldenrod3","coral4","steelblue3","khaki3")
-png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.Woody.png")
+col.W.out <- c("darkgray","deepskyblue4","deepskyblue2","darkorange2","goldenrod3","steelblue3","coral4","khaki3")
+#png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.Woody.outl.png")
 par(mar=c(5,13,1,1))
-barplot(t(as.matrix(importance.W)),horiz=T,las=1,xlab='Relative variable importance',main='Woody Carbon',cex.main = 1,axisname=T,col=col.W,beside=T,cex.axis=2,cex.lab=1,cex.names=2)
-dev.off()
+barplot(t(as.matrix(importance.W)),horiz=T,las=1,xlab='Relative variable importance',main='Woody Carbon',cex.main = 1,axisname=T,col=col.W.out,beside=T,cex.axis=2,cex.lab=1,cex.names=2)
+#dev.off()
 
 # PLOT variable coefficients from model averages ####
 con.avg.Ahor<- read.table("Ecosystem carbon/con.avg.Ahor.txt")
@@ -1621,13 +1709,19 @@ con.avg.H<- read.table("Ecosystem carbon/con.avg.H.txt")
 con.avg.DW<- read.table("Ecosystem carbon/con.avg.DW.txt")
 con.avg.W<- read.table("Ecosystem carbon/con.avg.W.txt")
 
+con.avg.Ahor.dung<- read.table("Ecosystem carbon/con.avg.Ahor.dung.txt")
+con.avg.MinHor.dung<- read.table("Ecosystem carbon/con.avg.MinHor.dung.txt")
+
 #Reorder rows
 rownames(con.avg.W)
 con.avg.Ahor<-con.avg.Ahor[c(1,3,2,5,4,6,7,8,9,10,11),]
 con.avg.MinHor<-con.avg.MinHor[c(1,3,2,6,5,4,7,10,9,8,11),]
 con.avg.H<-con.avg.H[c(1,3,5,8,2,7,4,6,9,10,11),]
 con.avg.DW<-con.avg.DW[c(1,2,3,4,6,5,7,8,9,10,11),]
-con.avg.W<-con.avg.W[c(1,2,3,4,5,6,7,8,9),]
+con.avg.W<-con.avg.W[c(1,2,3,4,5,6,7,8,9),] # With outlier 
+con.avg.W<-con.avg.W[c(1,4,3,5,2,6,7,8,9),] # Without outlier 
+con.avg.Ahor.dung <- con.avg.Ahor.dung[c(1,3,2,5,6,4,8,9,10,7,11),]
+con.avg.MinHor.dung <- con.avg.MinHor.dung[c(1,2,4,3,5,6,7,8,9,10,11),]
 
 # remove first row 
 con.avg.Ahor<-con.avg.Ahor[c(-1),]
@@ -1635,11 +1729,22 @@ con.avg.MinHor<-con.avg.MinHor[c(-1),]
 con.avg.H<-con.avg.H[c(-1),]
 con.avg.DW<-con.avg.DW[c(-1),]
 con.avg.W<-con.avg.W[c(-1),]
-
+con.avg.Ahor.dung <- con.avg.Ahor.dung[c(-1),]
+con.avg.MinHor.dung <- con.avg.MinHor.dung[c(-1),]
 # Significance 
+
+# With dung A-hor
+con.avg.Ahor.dung$sign <- con.avg.Ahor.dung$Pr...z..
+con.avg.Ahor.dung$sign[con.avg.Ahor.dung$sign>0.05] <- 16
+con.avg.Ahor.dung$sign[con.avg.Ahor.dung$sign<0.05] <- 1
+
 con.avg.MinHor$sign <- con.avg.MinHor$Pr...z..
 con.avg.MinHor$sign[con.avg.MinHor$sign>0.05] <- 16
 con.avg.MinHor$sign[con.avg.MinHor$sign<0.05] <- 1
+
+con.avg.MinHor.dung$sign <- con.avg.MinHor.dung$Pr...z..
+con.avg.MinHor.dung$sign[con.avg.MinHor.dung$sign>0.05] <- 16
+con.avg.MinHor.dung$sign[con.avg.MinHor.dung$sign<0.05] <- 1
 
 con.avg.H$sign <- con.avg.H$Pr...z..
 con.avg.H$sign[con.avg.H$sign>0.05] <- 16
@@ -1666,6 +1771,18 @@ axis(2, at=1:10, labels= c("MAP","Herb biomass","PA","Sand","Shrubbiness","Fire 
 
 dev.off()
 
+# A-hor with dung 
+png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Ahor.dung.png")
+par(mar=c(5,17,1,1))
+plot(rep(NA,10),1:10, xlim=c(-1.5,1.5), type="n", ann=F,axes=F, bty="n")
+points(con.avg.Ahor.dung$Estimate,1:10,pch=con.avg.Ahor.dung$sign,col=c(col.Ahor.dung), lwd=2, cex=2)
+arrows(y0=1:10, x0=con.avg.Ahor.dung$Estimate-con.avg.Ahor.dung$Std..Error, x1=con.avg.Ahor.dung$Estimate+con.avg.Ahor.dung$Std..Error,col=c(col.Ahor.dung), angle=90,length=0.05,code=3,lwd=2)
+abline(v=0)
+axis(1,cex.axis=2)
+axis(2, at=1:10, labels= c("Sand","MAP","Livestock dung","Wild dung","MAP:Sand","Shrubbiness","Fire frequency","Tree biomass","Herbaceous biomass","MAP:Live.dung"),par(las=1),cex.axis=2)
+
+dev.off()
+
 # Min-hor
 png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Minhor.png")
 par(mar=c(5,12,1,1))
@@ -1675,6 +1792,17 @@ points(con.avg.MinHor$Estimate,1:10,pch=con.avg.MinHor$sign,col=c(col.min), lwd=
 abline(v=0)
 axis(1,cex.axis=2)
 axis(2, at=1:10, labels= c("Sand","MAP","Fire frequency","MAP:Sand","PA","Tree biomass","Shrubbiness","MAP:PA","Sand:PA", "Herb biomass"),par(las=1),cex.axis=2)
+dev.off()
+
+# Min-hor with dung 
+png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Minhor.dung.png")
+par(mar=c(5,17,1,1))
+plot(rep(NA,10),1:10, xlim=c(-1,1), type="n", ann=F,axes=F, bty="n")
+arrows(y0=1:10, x0=con.avg.MinHor.dung$Estimate-con.avg.MinHor.dung$Std..Error, x1=con.avg.MinHor.dung$Estimate+con.avg.MinHor.dung$Std..Error,col=c(col.min.dung), angle=90,length=0.05,code=3,lwd=2)
+points(con.avg.MinHor.dung$Estimate,1:10,pch=con.avg.MinHor.dung$sign,col=c(col.min.dung), lwd=2, cex=2)
+abline(v=0)
+axis(1,cex.axis=2)
+axis(2, at=1:10, labels= c("Sand","Tree biomass","Shrubbiness","MAP","Fire frequency","Wild dung","Livestock dung", "Herbacaous biomass","MAP:Sand","MAP:Live.dung"),par(las=1),cex.axis=2)
 dev.off()
 
 # Herb
@@ -1700,14 +1828,16 @@ axis(2, at=1:10, labels= c("PA","MAP","Fire frequency","Shrubbiness","Sand","Soi
 dev.off()
 
 #Woody
-png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Woody.png")
-par(mar=c(5,12,1,1))
+png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Woody.out.png")
+par(mar=c(5,13,1,1))
 plot(rep(NA,8),1:8, xlim=c(-1,1), type="n", ann=F,axes=F, bty="n")
-points(con.avg.W$Estimate,1:8,pch=con.avg.W$sign,col=c(col.W), lwd=2, cex=2)
-arrows(y0=1:8, x0=con.avg.W$Estimate-con.avg.W$Std..Error, x1=con.avg.W$Estimate+con.avg.W$Std..Error,col=c(col.W), angle=90,length=0.05,code=3,lwd=2)
+points(con.avg.W$Estimate,1:8,pch=con.avg.W$sign,col=c(col.W.out), lwd=2, cex=2)
+arrows(y0=1:8, x0=con.avg.W$Estimate-con.avg.W$Std..Error, x1=con.avg.W$Estimate+con.avg.W$Std..Error,col=c(col.W.out), angle=90,length=0.05,code=3,lwd=2)
 abline(v=0)
 axis(1,cex.axis=2)
-axis(2, at=1:8, labels= c("Fire frequency","MAP","Sand","MAP:Sand","PA", "Soil Nitrogen","MAP:PA","Sand:PA"),par(las=1), cex.axis=2)
+axis(2, at=1:8, labels= c("Fire frequency","MAP","Sand","MAP:Sand","PA", "Soil Nitrogen","MAP:PA","Sand:PA"),par(las=1), cex.axis=2) # With outlier 
+axis(2, at=1:8, labels= c("Sand","MAP","MAP:Sand","Fire frequency","Land-use","MAP:Land-use","Soil Nitrogen","Sand:Land-use"),par(las=1), cex.axis=2) # Without outlier 
+
 dev.off()
 
 #### Check the relationship between the factors Landuse, climat(dry-int-wet), climate.kat (Dry vs Wet) and texture ####
@@ -1783,11 +1913,19 @@ library(MuMIn)
 library(piecewiseSEM)
 vignette('piecewiseSEM') # too look at the package 
 names(Total.Eco.C)
+Total.Eco.C <- left_join(Total.Eco.C,Livestock.dung,by="Block.ID",drop=F)
+Total.Eco.C <- left_join(Total.Eco.C,Wild.dung,by="Block.ID",drop=F)
+Total.Eco.C$Clivestock <- as.numeric(scale(Total.Eco.C$livestock))
+Total.Eco.C$Cwild <- as.numeric(scale(Total.Eco.C$wild))
 Total.Eco.C.CnoNA<-Total.Eco.C[!is.na(Total.Eco.C$CFire_frequency.2000_2017),]
+Total.Eco.C.CnoNA<-Total.Eco.C.CnoNA[(-16),]
+Total.Eco.C.CnoNA<-droplevels(Total.Eco.C.CnoNA)
+Total.Eco.C.CnoNA2<-Total.Eco.C.CnoNA[!is.na(Total.Eco.C.CnoNA$livestock),]
+Total.Eco.C.CnoNA2 <- droplevels(Total.Eco.C.CnoNA2)
 # Variation for each model component
 # A total model of all direct effects based on literature 
 
-Modlist1 <-   psem(
+Modlist <-   psem(
   lme(Woody~ CFire_frequency.2000_2017 + landuse + CMAP.mm_yr + CSand, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   lme(DW~ Woody + CFire_frequency.2000_2017 + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   lme(Herbaceous ~  CSand + CMAP.mm_yr + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
@@ -1798,7 +1936,7 @@ Modlist1 <-   psem(
   landuse%~~%CSand # I know these are not correlated 
 )
 
-summary(Modlist1,Total.Eco.C.CnoNA)
+summary(Modlist,Total.Eco.C.CnoNA)
 # Good fit, sign: Woody~Fire and Soil.min~Soil.A
 
 # Adding Shrubbiness and Nitrogen
@@ -1819,14 +1957,14 @@ Modlist2 <-   psem(
 )
 
 summary(Modlist2,Total.Eco.C.CnoNA)
-# Good fit, Woody~Fire and Soil.min~Soil.A and N~Sand 
-# Other sign: Shrub~MAP and Soil.min~Woody (dont know why)
+# Good fit,Soil.min~Soil.A and N~Sand 
+# Other sign: Shrub~MAP and Herb~Fire (dont know why)
 
 # Add significant variables, remove non sign.
 Modlist3 <-   psem(
   lme(Woody~ CFire_frequency.2000_2017 + landuse + CSand + Ctot.N.kg_m2, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   lme(DW~ Woody + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(Herbaceous ~  CShrubbiness + CSand + CMAP.mm_yr + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Herbaceous ~  CShrubbiness + CFire_frequency.2000_2017 + CSand + CMAP.mm_yr + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   lme(Soil.Ahor~ Herbaceous, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   lme(Soil.min~ Soil.Ahor + CSand + Woody, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   lme(CShrubbiness~  CFire_frequency.2000_2017 + CMAP.mm_yr,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
@@ -1839,11 +1977,11 @@ Modlist3 <-   psem(
 )
 
 summary(Modlist3,Total.Eco.C.CnoNA)
-# good fit, sign: Woody~Fire, Soil.min~Soil.A, Shrubbiness~Fire, Shrubbiness~MAP, N~Sand 
+# good fit, sign: Soil.min~Soil.A, Shrubbiness~Fire, Shrubbiness~MAP, N~Sand 
 
 # Remove non sign further 
 Modlist4 <-   psem(
-  lme(Woody~ CFire_frequency.2000_2017 + landuse + CSand, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Woody~  Ctot.N.kg_m2 + landuse + CSand, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   lme(DW~ landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   lme(Herbaceous ~  CShrubbiness + CSand + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   lme(Soil.Ahor~ Herbaceous, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
@@ -1858,26 +1996,41 @@ Modlist4 <-   psem(
 )
 
 summary(Modlist4,Total.Eco.C.CnoNA)
-# good fit, sign: Woody~Fire, Soil.min~Soil.A, Shrubbiness~Fire, Shrubbiness~MAP, N~Sand 
+# good fit, sign: Soil.min~Soil.A, Shrubbiness~Fire, Shrubbiness~MAP, N~Sand 
 
 # Remove non sign further, and add some almost sign, work on this till I find the best.. 
 Modlist5 <-   psem(
-  lme(Woody~ CFire_frequency.2000_2017, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Woody~ landuse, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   lme(DW~ landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   lme(Herbaceous ~  CSand + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   #lme(Soil.Ahor~ Herbaceous, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(Soil.min~ Soil.Ahor + CSand + CFire_frequency.2000_2017, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Soil.min~ Soil.Ahor, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   lme(CShrubbiness~  CFire_frequency.2000_2017 + CMAP.mm_yr,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(Ctot.N.kg_m2~ CSand + CMAP.mm_yr,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Ctot.N.kg_m2~ CSand,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   landuse%~~%CMAP.mm_yr, # I know these are not correlated
   landuse%~~%CSand, # I know these are not correlated 
   CShrubbiness%~~% Woody,
   Soil.Ahor%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path.. 
   Soil.min%~~%Ctot.N.kg_m2
 )
-
 SEMsummary <- summary(Modlist5,Total.Eco.C.CnoNA)
 SEMsummary$coefficients
 SEMsummary$R2
-write.table(SEMsummary$coefficients, file="Ecosystem carbon/SEM.coefficients.txt") 
-write.table(SEMsummary$R2, file="Ecosystem carbon/SEM.R2.txt") 
+#write.table(SEMsummary$coefficients, file="Ecosystem carbon/SEM.coefficients.txt") 
+#write.table(SEMsummary$R2, file="Ecosystem carbon/SEM.R2.txt") 
+
+# Run a SEM with dung included 
+Modlist2 <-   psem(
+  lme(Woody~ CFire_frequency.2000_2017 + Clivestock, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(DW~  Herbaceous,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(Herbaceous ~  CFire_frequency.2000_2017 + CMAP.mm_yr,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(Soil.Ahor~ Clivestock + Cwild, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(Soil.min~ Soil.Ahor, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CShrubbiness~ Cwild + CFire_frequency.2000_2017, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(Ctot.N.kg_m2~ CSand, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  CShrubbiness%~~% Woody, 
+  Soil.Ahor%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path.. 
+  Soil.min%~~%Ctot.N.kg_m2
+)
+summary(Modlist2,Total.Eco.C.CnoNA2)
+
