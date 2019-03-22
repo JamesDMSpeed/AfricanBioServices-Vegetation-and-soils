@@ -14,7 +14,7 @@ library(emmeans)
 library(nlme)
 library(MuMIn)
 
-setwd("~/Master data/GitHub_ABS/AfricanBioServices-Vegetation-and-soils")
+#setwd("~/Master data/GitHub_ABS/AfricanBioServices-Vegetation-and-soils")
 #Loading masslossdata
 Massloss <-read.csv('Termites/Main & CG experiment/Massloss_data_CGMain.csv', sep=';',dec='.')
 #Loading rainfalldata
@@ -990,6 +990,10 @@ LabileMain$Blockcode <- as.factor(LabileMain$Blockcode)
 LabileMain$Blockcode <- droplevels(LabileMain$Blockcode)
 levels(LabileMain$Blockcode)
 levels(LabileMain$Region)
+LabileMain$Region <- droplevels(as.factor(LabileMain$Region))
+levels(LabileMain$Plot)
+LabileMain$Plot <- droplevels(as.factor(LabileMain$Plot))
+LabileMain$Blockcode <- droplevels(LabileMain$Blockcode)
 
 #Singularity issue: Can't use Site.ID when using Region as covariate.
 LabileMainMod <- lmer(Massloss.per~Season+Landuse+Region+
