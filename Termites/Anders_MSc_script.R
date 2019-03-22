@@ -948,12 +948,12 @@ LocalCGsoil2 <- DataCG[DataCG$Site=="Seronera",]
 LabileLocalCGsoil2 <- LocalCGsoil2[LocalCGsoil2$Littertype=="Green",]
 RecalLocalCGsoil2 <- LocalCGsoil2[LocalCGsoil2$Littertype=="Rooibos",]
 #Removing 4-block design into 1 block with 4 replicates:
-LabileLocalCGsoil2$Block <- 1
-LabileLocalCGsoil2$Blockcode <- "Int_W1"
-RecalLocalCGsoil2$Block <- 1
-RecalLocalCGsoil2$Blockcode <- "Int_W1"
+#LabileLocalCGsoil2$Block <- 1
+#LabileLocalCGsoil2$Blockcode <- "Int_W1"
+#RecalLocalCGsoil2$Block <- 1
+#RecalLocalCGsoil2$Blockcode <- "Int_W1"
 
-RecalMain <- rbind.fill(RecalMain,RecalLocalCGsoil2)
+#RecalMain <- rbind.fill(RecalMain,RecalLocalCGsoil2)
 #LabileMain <- rbind.fill(LabileMain,LabileLocalCGsoil2)
 
 #Renaming some columns (RECAL):
@@ -991,19 +991,19 @@ LabileMain$Blockcode <- droplevels(LabileMain$Blockcode)
 levels(LabileMain$Blockcode)
 levels(LabileMain$Region)
 LabileMain$Region <- droplevels(as.factor(LabileMain$Region))
+LabileMain$Plot <- as.factor(LabileMain$Plot)
 levels(LabileMain$Plot)
-LabileMain$Plot <- droplevels(as.factor(LabileMain$Plot))
-LabileMain$Blockcode <- droplevels(LabileMain$Blockcode)
 
 #Singularity issue: Can't use Site.ID when using Region as covariate.
 LabileMainMod <- lmer(Massloss.per~Season+Landuse+Region+
-                        Treatment+Sand+Temp+C.N+
+                        Treatment+
+                        Sand+Temp+C.N+
                        #Season:Landuse+Season:Treatment+Season:Sand+Season:Temp+
                         #Season:C.N+Landuse:Treatment+Landuse:Sand+Landuse:Temp+Landuse:C.N+
                         #Treatment:Sand+Treatment:Temp+Treatment:C.N+
                         #Sand:Temp+Sand:C.N+
                         #Temp:C.N+
-                        (1|Site/Blockcode/Plot), na.action=na.omit,REML = F,data=LabileMain)
+                        (1|Site/Blockcode/Plot), na.action=na.omit,REML = T,data=LabileMain)
 summary(LabileMainMod)
 anova(LabileMainMod)
 drop1(LabileMainMod,test="Chisq")
