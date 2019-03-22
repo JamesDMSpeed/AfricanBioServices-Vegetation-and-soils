@@ -2000,7 +2000,7 @@ summary(Modlist4,Total.Eco.C.CnoNA)
 
 # Remove non sign further, and add some almost sign, work on this till I find the best.. 
 Modlist5 <-   psem(
-  lme(Woody~ landuse, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
+  lme(Woody~ landuse , random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   lme(DW~ landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   lme(Herbaceous ~  CSand + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
   #lme(Soil.Ahor~ Herbaceous, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
