@@ -12,7 +12,9 @@ library(Hmisc)
 library(data.table)
 library(emmeans)
 library(nlme)
-setwd("C:/Users/ansun/Documents/Master data/GitHub__R-stat/AfricanBioServices-Vegetation-and-soils")
+library(MuMIn)
+
+setwd("~/Master data/GitHub_ABS/AfricanBioServices-Vegetation-and-soils")
 #Loading masslossdata
 Massloss <-read.csv('Termites/Main & CG experiment/Massloss_data_CGMain.csv', sep=';',dec='.')
 #Loading rainfalldata
@@ -942,13 +944,17 @@ RecalMain <- droplevels(DataMain[DataMain$Littertype =="Rooibos",])
 LabileMain <- droplevels(DataMain[DataMain$Littertype =="Green",])
 
 #Adding data from buring in Seronera soil (local soil) - i.e an additional wild site in intermediate rainregion
-LocalCGsoil2 <- DataCG[DataCG$Site=="Seronera",] #The sites are from 1-4, but actually they are just 1 when comparing to the other sites.
-#So replacing site numbering to only 1.
-LocalCGsoil2$Block <- 1
-LocalCGsoil2$Blockcode <- "Int_W1"
+LocalCGsoil2 <- DataCG[DataCG$Site=="Seronera",]
+LabileLocalCGsoil2 <- LocalCGsoil2[LocalCGsoil2$Littertype=="Green",]
+RecalLocalCGsoil2 <- LocalCGsoil2[LocalCGsoil2$Littertype=="Rooibos",]
+#Removing 4-block design into 1 block with 4 replicates:
+LabileLocalCGsoil2$Block <- 1
+LabileLocalCGsoil2$Blockcode <- "Int_W1"
+RecalLocalCGsoil2$Block <- 1
+RecalLocalCGsoil2$Blockcode <- "Int_W1"
 
-RecalMain <- rbind.fill(RecalMain,LocalCGsoil2)
-LabileMain <- rbind.fill(LabileMain,LocalCGsoil2)
+RecalMain <- rbind.fill(RecalMain,RecalLocalCGsoil2)
+#LabileMain <- rbind.fill(LabileMain,LabileLocalCGsoil2)
 
 #Renaming some columns (RECAL):
 names(RecalMain)
@@ -967,32 +973,33 @@ colnames(LabileMain)[(names(LabileMain)== "Rain.sum")] <- "Rain"
 
 #Block needs to be a unique number - not repeated across blocks (I think blockcode already do this but anyway...)
 
-LabileMain$blockdesign.num<-as.factor(with(LabileMain, paste(Season,Region,Landuse,Blockcode, sep="")))
+LabileMain$blockdesign.num<-as.factor(with(LabileMain, paste(Site,Block,Landuse, sep="")))
 LabileMain$blockdesign.num<-as.numeric(LabileMain$blockdesign.num)
 LabileMain$blockdesign.num<-as.factor(LabileMain$blockdesign.num)
-table(LabileMain$blockdesign.num, LabileMain$Landuse)
+table(LabileMain$blockdesign.num, LabileMain$Site)
 
-RecalMain$blockdesign.num<-as.factor(with(RecalMain, paste(Season,Region,Landuse,Blockcode, sep="")))
+RecalMain$blockdesign.num<-as.factor(with(RecalMain, paste(Site,Block,Landuse, sep="")))
 RecalMain$blockdesign.num<-as.numeric(RecalMain$blockdesign.num)
 RecalMain$blockdesign.num<-as.factor(RecalMain$blockdesign.num)
-table(RecalMain$blockdesign.num, RecalMain$Landuse)
+table(RecalMain$blockdesign.num, RecalMain$Site)
 
 levels(RecalMain$blockdesign.num)
-#Labile Model - general massloss across season and landuse####
+#Labile Model - general massloss across season and landuse, Drop1 script#### 
+levels(LabileMain$Site)
+LabileMain$Blockcode <- as.factor(LabileMain$Blockcode)
+LabileMain$Blockcode <- droplevels(LabileMain$Blockcode)
+levels(LabileMain$Blockcode)
+levels(LabileMain$Region)
 
-LabileMainMod <- lmer(Massloss.per~Season+Landuse+Treatment+Sand+Rain+Temp+C.N+
-                        #Season:Landuse+
-                        #Season:Treatment+
-                        Season:Sand+#Season:Rain+#Season:Temp+Season:C.N+
-                        #Landuse:Treatment+#Landuse:Sand+
-                        Landuse:Rain+#Landuse:Temp+
-                        Landuse:C.N+
-                        #Treatment:Sand+Treatment:Rain+Treatment:Temp+Treatment:C.N+
-                        #Sand:Rain+
-                        #Sand:Temp+#Sand:C.N+
-                        #Rain:Temp+#Rain:C.N+
+#Singularity issue: Can't use Site.ID when using Region as covariate.
+LabileMainMod <- lmer(Massloss.per~Season+Landuse+Region+
+                        Treatment+Sand+Temp+C.N+
+                       #Season:Landuse+Season:Treatment+Season:Sand+Season:Temp+
+                        #Season:C.N+Landuse:Treatment+Landuse:Sand+Landuse:Temp+Landuse:C.N+
+                        #Treatment:Sand+Treatment:Temp+Treatment:C.N+
+                        #Sand:Temp+Sand:C.N+
                         #Temp:C.N+
-                        (Site.ID|blockdesign.num),na.action=na.omit,REML = T,data=LabileMain)
+                        (1|Site/Blockcode/Plot), na.action=na.omit,REML = F,data=LabileMain)
 summary(LabileMainMod)
 anova(LabileMainMod)
 drop1(LabileMainMod,test="Chisq")
@@ -1073,9 +1080,43 @@ drop1(LabileMainMod,test="Chisq")
 #   Landuse:C.N   2 5351.5  6.8213 0.0330204 *  
 
 
+#Labile Model - general massloss across season and landuse, dredge script####
+#Need to use na.caion=na.fail, therfore removing Na's from data set:
+summary(LabileMain)
+#Removing rows which consist of NAs in "Massloss.per" column
+LabileMain_NA_filtered <- LabileMain[complete.cases(LabileMain$Massloss.per,LabileMain$C.N,LabileMain$Sand,LabileMain$Temp),]
+summary(LabileMain_NA_filtered)
+
+which(is.na(LabileMain_NA_delete$Massloss.per))
+sum(is.na(LabileMain$Massloss.per))
+#summary(LabileMainta)
+
+LabileMainMod <- lmer(Massloss.per~Season+Landuse+#Region+
+                        Treatment+Sand+Temp+C.N+
+                        #Season:Landuse+Season:Treatment+Season:Sand+Season:Temp+
+                        #Season:C.N+Landuse:Treatment+Landuse:Sand+Landuse:Temp+Landuse:C.N+
+                        #Treatment:Sand+Treatment:Temp+Treatment:C.N+
+                        #Sand:Temp+Sand:C.N+
+                        #Temp:C.N+
+                        (1|Site/Blockcode/Plot), na.action=na.fail,REML = F,data=LabileMain_NA_filtered)
+
+modsetlmer <- dredge(LabileMainMod,trace=TRUE)
+model.sel(modsetlmer) #Model selection table giving AIC, deltaAIC and weighting
+modavglmer<-model.avg(modsetlmer) #Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavglmer)#Importance of each variable
+summary(modavglmer)#Estimated coefficients given weighting
+
 #Recal Model - general massloss across season and landuse####
-RecalMainMod <- lmer(Massloss.per~Season+Landuse+Treatment+Sand+Rain+Temp+
-                        (Site.ID|blockdesign.num),na.action=na.omit,REML = FALSE,data=RecalMain)
+RecalMain$Blockcode <- as.factor(RecalMain$Blockcode)
+#Singular fit issue:
+RecalMainMod <- lmer(Massloss.per~Season+Landuse+Region+
+                       Treatment+Sand+Temp+C.N+
+                       #Season:Landuse+Season:Treatment+Season:Sand+Season:Temp+
+                       #Season:C.N+Landuse:Treatment+Landuse:Sand+Landuse:Temp+Landuse:C.N+
+                       #Treatment:Sand+Treatment:Temp+Treatment:C.N+
+                       #Sand:Temp+Sand:C.N+
+                       #Temp:C.N+
+                       (1|Site/Blockcode/Plot),na.action=na.omit,REML = FALSE, data=RecalMain)
 
 #Termite effect models, using the difference between treatment (op-excl)####
 ####Preliminary dataprocessing####
@@ -1126,13 +1167,14 @@ table(RecalTermEff.Main$blockdesign.num, RecalTermEff.Main$Landuse)
 
 
 ##Labile Model - Termite effect massloss####
-LabileT.E.Mod <- lmer(Termite.effect~Season+Landuse+Sand+Rain+Temp+
-                        (Site.ID|blockdesign.num),na.action=na.omit,REML = FALSE,data=LabileTermEff.Main)
+#Singular fit issue:
+LabileT.E.Mod <- lmer(Termite.effect~Season+Landuse+Region+Sand+Rain+Temp+
+                        (1|Site/Blockcode/Plot),na.action=na.omit,REML = FALSE, data=LabileTermEff.Main)
 
 #Recal Model - Termite effect massloss####
-RecalT.E.Mod <- lmer(Termite.effect~Season+Landuse+Sand+Rain+Temp+
-                        (Site.ID|blockdesign.num),na.action=na.omit,REML = FALSE,data=RecalTermEff.Main)
-
+#Singular fit issue:
+RecalT.E.Mod <- lmer(Termite.effect~Season+Landuse+Region+Sand+Rain+Temp+
+                       (1|Site/Blockcode/Plot),na.action=na.omit,REML = FALSE, data=RecalTermEff.Main)
 
 #COMMON GARDEN EXP####
 #Dataprocessing - getting data ready for modelling####
@@ -1204,18 +1246,18 @@ levels(LabileDataMCG$Site.ID)
 #Using Tempdiff instead of Temp variable
 #Using Sand and not Clay
 #First, writing up all combinations, then excluding first the ones that does not make sense to include (in interactions)
-LabileFullMCGMod <- lmer(MainCGdiff ~ Season+Landuse+Treatment+Tempdiff+Sand+CN+Rain+
-                             Season:Landuse+Season:Treatment+Season:Tempdiff+Season:Sand+Season:CN+Season:Rain+
-                             Treatment:Landuse+Treatment:Tempdiff+Treatment:Sand+Treatment:CN+
-                             Landuse:Treatment+Landuse:Tempdiff+Landuse:Sand+Landuse:CN+#Landuse:Rain+
-                             Tempdiff:Sand+Tempdiff:CN+Tempdiff:Rain+
-                             Sand:CN+#Sand:Rain+
-                             Season:Landuse:Treatment+Season:Landuse:Tempdiff+Season:Landuse:CN+#Season:Landuse:Sand+#Season:Landuse:Rain+
-                             Landuse:Treatment:Tempdiff+Landuse:Treatment:Sand+Landuse:Treatment:CN+#Landuse:Treatment:Rain+
+LabileFullMCGMod <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Tempdiff+Sand+CN+Rain+
+                             #Season:Landuse+Season:Treatment+Season:Tempdiff+Season:Sand+Season:CN+Season:Rain+
+                             #Treatment:Landuse+Treatment:Tempdiff+Treatment:Sand+Treatment:CN+
+                             #Landuse:Treatment+Landuse:Tempdiff+Landuse:Sand+Landuse:CN+#Landuse:Rain+
+                             #Tempdiff:Sand+Tempdiff:CN+Tempdiff:Rain+
+                             #Sand:CN+#Sand:Rain+
+                             #Season:Landuse:Treatment+Season:Landuse:Tempdiff+Season:Landuse:CN+#Season:Landuse:Sand+#Season:Landuse:Rain+
+                             #Landuse:Treatment:Tempdiff+Landuse:Treatment:Sand+Landuse:Treatment:CN+#Landuse:Treatment:Rain+
                              #Treatment:Tempdiff:Sand+#Treatment:Tempdiff:CN+Treatment:Tempdiff:Rain+
                              #Tempdiff:Sand:CN+Tempdiff:Sand:Rain+
                              #Sand:CN:Rain+
-                             (1|Site.ID), na.action=na.omit, REML=F, data =LabileDataMCG)
+                             (1|Site), na.action=na.omit, REML=F, data =LabileDataMCG)
 
 LabileMCGMod <- lmer(MainCGdiff ~ Season+Landuse+Treatment+Tempdiff+Sand+CN+Rain+
                          Season:Landuse+Season:Treatment+Season:Tempdiff+
@@ -1237,7 +1279,7 @@ LabileMCGMod <- lmer(MainCGdiff ~ Season+Landuse+Treatment+Tempdiff+Sand+CN+Rain
                          #Tempdiff:Sand:CN+
                      Tempdiff:Sand:Rain+
                          Sand:CN:Rain+
-                         (1|Site.ID), na.action=na.omit, REML=F, data =LabileDataMCG)
+                         (1|Site), na.action=na.omit, REML=F, data =LabileDataMCG)
 
 
 summary(LabileMCGMod)
