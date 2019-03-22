@@ -1,4 +1,9 @@
 #LOADING DATA Anders Sundsdal MSc####
+# Clear plots
+if(!is.null(dev.list())) dev.off()
+# Clear console
+cat("\014") 
+# Clean workspace
 rm(list=ls())
 library(qpcR)
 library(lattice)
@@ -13,6 +18,8 @@ library(data.table)
 library(emmeans)
 library(nlme)
 library(MuMIn)
+#require(devtools)
+#install_version("lme4", version = "1.1-18-1", repos = "https://cran.r-project.org")
 
 #setwd("~/Master data/GitHub_ABS/AfricanBioServices-Vegetation-and-soils")
 #Loading masslossdata
@@ -156,7 +163,7 @@ Fulldata <- read.csv("Termites/Fulldata.csv")
 # H Are categorical covariates balanced?
 # I Are the variables Norm.distributed?
 # Alain Zuur - data exploration functions
-source(file="C:/Users/ansun/Google Drive/09Fremdrift Master/Kjekke R ting/Data exploration/HighstatLibV10.R")
+#source(file="C:/Users/ansun/Google Drive/09Fremdrift Master/Kjekke R ting/Data exploration/HighstatLibV10.R")
 # A Missing values? ####
 
 colSums(is.na(Fulldata))
@@ -615,7 +622,14 @@ length(RedOpEx$Termite.effect[RedOpEx$Termite.effect < 0]) #139 values are negat
 #Below half of the litter has no termite effect 139/440 teabags --> Great!
 RecalTermEff <- RedOpEx
 #Setting all negative values below zero:
-RecalTermEff$Termite.effect[LabileTermEff$Termite.effect < 0] <- 0
+RecalTermEff$Termite.effect[RecalTermEff$Termite.effect < 0] <- 0
+
+#Creating dataset for Vilde using the termite effect variable:
+#In dryseason in block level
+RecalTermEff_Dryseason <- droplevels(RecalTermEff[RecalTermEff$Season=="Dry",])
+levels(RecalTermEff_Dryseason$Season)
+RecalTermEff_Dryseason_Block <-aggregate(Termite.effect~Season+Region+Site+Landuse+Block, RecalTermEff_Dryseason, mean)
+write.csv(write.csv(RecalTermEff_Dryseason_Block,file="Termites/RecalTermEff_Dryseason_Block.csv"))
 
 #BARPLOTTING - three own grafs for each Landuse####
 #Creating a fill factor:
@@ -948,13 +962,13 @@ LocalCGsoil2 <- DataCG[DataCG$Site=="Seronera",]
 LabileLocalCGsoil2 <- LocalCGsoil2[LocalCGsoil2$Littertype=="Green",]
 RecalLocalCGsoil2 <- LocalCGsoil2[LocalCGsoil2$Littertype=="Rooibos",]
 #Removing 4-block design into 1 block with 4 replicates:
-#LabileLocalCGsoil2$Block <- 1
-#LabileLocalCGsoil2$Blockcode <- "Int_W1"
-#RecalLocalCGsoil2$Block <- 1
-#RecalLocalCGsoil2$Blockcode <- "Int_W1"
-
-#RecalMain <- rbind.fill(RecalMain,RecalLocalCGsoil2)
-#LabileMain <- rbind.fill(LabileMain,LabileLocalCGsoil2)
+ LabileLocalCGsoil2$Block <- 1
+ LabileLocalCGsoil2$Blockcode <- "Int_W1"
+ RecalLocalCGsoil2$Block <- 1
+ RecalLocalCGsoil2$Blockcode <- "Int_W1"
+ 
+ RecalMain <- rbind.fill(RecalMain,RecalLocalCGsoil2)
+ LabileMain <- rbind.fill(LabileMain,LabileLocalCGsoil2)
 
 #Renaming some columns (RECAL):
 names(RecalMain)
@@ -1003,7 +1017,8 @@ LabileMainMod <- lmer(Massloss.per~Season+Landuse+Region+
                         #Treatment:Sand+Treatment:Temp+Treatment:C.N+
                         #Sand:Temp+Sand:C.N+
                         #Temp:C.N+
-                        (1|Site/Blockcode/Plot), na.action=na.omit,REML = T,data=LabileMain)
+                        (1|Site/Blockcode/Plot), na.action=na.omit,REML = F,data=LabileMain)
+
 summary(LabileMainMod)
 anova(LabileMainMod)
 drop1(LabileMainMod,test="Chisq")
@@ -1095,7 +1110,7 @@ which(is.na(LabileMain_NA_delete$Massloss.per))
 sum(is.na(LabileMain$Massloss.per))
 #summary(LabileMainta)
 
-LabileMainMod <- lmer(Massloss.per~Season+Landuse+#Region+
+LabileMainMod <- lmer(Massloss.per~Season+Landuse+Region+
                         Treatment+Sand+Temp+C.N+
                         #Season:Landuse+Season:Treatment+Season:Sand+Season:Temp+
                         #Season:C.N+Landuse:Treatment+Landuse:Sand+Landuse:Temp+Landuse:C.N+
