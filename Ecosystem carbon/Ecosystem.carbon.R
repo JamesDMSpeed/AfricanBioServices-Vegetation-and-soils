@@ -1112,7 +1112,7 @@ importance(modavgbelowA)#Importance of each variable
 write.table(importance(modavgbelowA),file="Ecosystem carbon/importanceAhor.txt")
 summary(modavgbelowA)#Estimated coefficients given weighting
 summary(modavgbelowA)$coefmat.full # Full average 
-write.table(summary(modavgbelowA)$coefmat.subset, file="Ecosystem carbon/con.avg.Ahor.txt") # conditional average - I will try first with this.. 
+write.table(summary(modavgbelowA)$coefmat.subset, file="Ecosystem carbon/ConAvgAhor.txt") # conditional average - I will try first with this.. 
 
 # With livestock and wild dung 
 Soil.Ahor2 <- left_join(Soil.Ahor,Livestock.dung,by="Block.ID",drop=F)
@@ -1143,7 +1143,7 @@ importance(modavgbelowA2)#Importance of each variable
 write.table(importance(modavgbelowA2),file="Ecosystem carbon/importanceAhor.dung.txt")
 summary(modavgbelowA2)#Estimated coefficients given weighting
 summary(modavgbelowA2)$coefmat.subset # Full average 
-write.table(summary(modavgbelowA2)$coefmat.subset, file="Ecosystem carbon/con.avg.Ahor.dung.txt") # conditional average - I will try first with this.. 
+write.table(summary(modavgbelowA2)$coefmat.subset, file="Ecosystem carbon/ConAvgAhordung.txt") # conditional average - I will try first with this.. 
 
 # 3. Global model for Mineral hor C univariate variables ####
 Soil.min <- cbind(Soil.min,Herbaceous[27])
@@ -1170,7 +1170,7 @@ modavgbelowM<-model.avg(modselbelowM)#Averages coefficient estimates across mult
 importance(modavgbelowM)#Importance of each variable
 write.table(importance(modavgbelowM),file="Ecosystem carbon/importanceMinhor.txt")
 summary(modavgbelowM)#Estimated coefficients given weighting
-write.table(summary(modavgbelowM)$coefmat.subset, file="Ecosystem carbon/con.avg.MinHor.txt")
+write.table(summary(modavgbelowM)$coefmat.subset, file="Ecosystem carbon/ConAvgMinHor.txt")
 
 # simple comparison of A and min 
 par(mfrow=c(1,2))
@@ -1212,7 +1212,7 @@ modavgbelowM2<-model.avg(modselbelowM2)#Averages coefficient estimates across mu
 importance(modavgbelowM2)#Importance of each variable
 write.table(importance(modavgbelowM2),file="Ecosystem carbon/importanceMinhor.dung.txt")
 summary(modavgbelowM2)#Estimated coefficients given weighting
-write.table(summary(modavgbelowM2)$coefmat.subset, file="Ecosystem carbon/con.avg.MinHor.dung.txt")
+write.table(summary(modavgbelowM2)$coefmat.subset, file="Ecosystem carbon/ConAvgMinHordung.txt")
 
 # 4. Global model for Herbs ####
 names(Herbaceous)
@@ -1234,7 +1234,7 @@ modavgaboveH<-model.avg(modselaboveH)#Averages coefficient estimates across mult
 importance(modavgaboveH)#Importance of each variable
 write.table(importance(modavgaboveH),file="Ecosystem carbon/importanceaboveH.txt")
 summary(modavgaboveH)#Estimated coefficients given weighting
-write.table(summary(modavgaboveH)$coefmat.subset, file="Ecosystem carbon/con.avg.H.txt") 
+write.table(summary(modavgaboveH)$coefmat.subset, file="Ecosystem carbon/ConAvgH.txt") 
 
 # 5. Global model for DW #### 
 DW.CnoNA<-DW[!is.na(DW$CFire_frequency.2000_2017),]
@@ -1256,7 +1256,7 @@ importance(modavgaboveDW)#Importance of each variable
 write.table(importance(modavgaboveDW),file="Ecosystem carbon/importanceaboveDW.txt")
 #importance$Variable <- c("MAP","Tree biomass (N.fix)","Sand","Fire frequency","Shrubbiness","Land-use","Tree biomass","MAP:Sand")
 summary(modavgaboveDW)#Estimated coefficients given weighting
-write.table(summary(modavgaboveDW)$coefmat.subset, file="Ecosystem carbon/con.avg.DW.txt") 
+write.table(summary(modavgaboveDW)$coefmat.subset, file="Ecosystem carbon/ConAvgDW.txt") 
 # 6. Global model for Woody #### 
 Woody.CnoNA<-Woody[!is.na(Woody$CFire_frequency.2000_2017),]
 # Remove Handajega outlier 
@@ -1278,7 +1278,7 @@ importance(modavgaboveW)#Importance of each variable
 write.table(importance(modavgaboveW),file="Ecosystem carbon/importanceaboveW.txt")
 #importance$Variable <- c("MAP","Tree biomass (N.fix)","Sand","Fire frequency","Shrubbiness","Land-use","Tree biomass","MAP:Sand")
 summary(modavgaboveW)#Estimated coefficients given weighting
-write.table(summary(modavgaboveW)$coefmat.subset, file="Ecosystem carbon/con.avg.W.txt") 
+write.table(summary(modavgaboveW)$coefmat.subset, file="Ecosystem carbon/ConAvgW.txt") 
 
 # 7. Global model for Aboveground C ####
 summary(Aboveground.C)#NA in fire variables
@@ -1587,15 +1587,32 @@ AIC(CNBelowground) # 360.9615, remove Fire, AIC sligtly better: 360.2276
 
 # PLOT above and below C ####
 names(Total.Eco.C)
-names(total.soil.data)
 Total.Eco.C$Region.x<- factor(Total.Eco.C$Region.x, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
-total.soil.data$Region<- factor(total.soil.data$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 plot(Soil.min~Region.x,data=Total.Eco.C)
 plot(Soil.Ahor~Region.x,data=Total.Eco.C)
+# Aggrigate per region: 
+Above.C <- aggregate(tot.C.kg_m2~Region.x,mean,data=Aboveground.C)
+A.hor <- aggregate(Soil.Ahor~Region.x,mean,data=Total.Eco.C)
+Min.hor <- aggregate(Soil.min~Region.x,mean,data=Total.Eco.C)
+
+# Total soil data 
+total.soil.data <- read.csv("Ecosystem carbon/Soil.data/Total.soil.data.csv", head=T)
+names(total.soil.data)
+total.soil.data$Region<- factor(total.soil.data$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+total.soil.data <- droplevels(total.soil.data)
+# Aggrigate to get A and min horizon varlues for carbon
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 AHorizon <- total.soil.data[total.soil.data$Horizon=="A-hor",]
 MinHorizon <- total.soil.data[total.soil.data$Horizon=="Min-hor",]
+A.hor <- aggregate(C.kg_m2.scaled~Region,mean,data=AHorizon)
+SE.A.hor <- aggregate(C.kg_m2.scaled~Region,SE,data=AHorizon)
+Min.hor <- aggregate(C.kg_m2.scaled~Region,mean,data=MinHorizon)
+SE.Min.hor <- aggregate(C.kg_m2.scaled~Region,SE,data=MinHorizon)
 plot(Tot.C.per~Region,data=AHorizon)
 plot(Tot.C.per~Region,data=MinHorizon)
+
+summary(lm(C.kg_m2.scaled~Horizon, data=total.soil.data))
+
 # PLOT Importance #### 
 importance.Ahor<- read.table("Ecosystem carbon/importanceAhor.txt")
 importance.MinHor<- read.table("Ecosystem carbon/importanceMinHor.txt")
