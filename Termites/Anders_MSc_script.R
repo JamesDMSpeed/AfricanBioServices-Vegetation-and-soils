@@ -1047,8 +1047,10 @@ levels(LabileMain$Plot)
 #List of terms for the models:
 # All possible model interactions
 f <-formula(y ~ Season*Landuse*Treatment*Region*Sand*C.N*Temp) # Add more where appropriate
-termssubTEST<-f[1:7] # Need to adjust subset for how many factors you include…
 terms <-attr(terms.formula(f), "term.labels")
+termssubTEST<-terms[1:62] # All interactions except Sand:C.N:Temp [63]   
+termssubTEST
+
 ModelTEST <- lmer(Massloss.per~terms+
                         (1|Site/Blockcode/Plot), na.action=na.omit,REML = F,data=LabileMain)
 
