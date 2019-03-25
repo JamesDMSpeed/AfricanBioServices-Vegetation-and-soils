@@ -163,7 +163,7 @@ Fulldata <- read.csv("Termites/Fulldata.csv")
 # H Are categorical covariates balanced?
 # I Are the variables Norm.distributed?
 # Alain Zuur - data exploration functions
-#source(file="C:/Users/ansun/Google Drive/09Fremdrift Master/Kjekke R ting/Data exploration/HighstatLibV10.R")
+source(file="C:/Users/ansun/Google Drive/09Fremdrift Master/Kjekke R ting/Data exploration/HighstatLibV10.R")
 # A Missing values? ####
 
 colSums(is.na(Fulldata))
@@ -188,8 +188,8 @@ data.table(aggregate(Temperature..C.~Blockcode+Season,Fulldata, function(x) {sum
 data.table(aggregate(Moisture.. ~Blockcode+Season,Fulldata, function(x) {sum(is.na(x))}, na.action = NULL))
 #Both climate variables has same number of observations, BUT! THese two variables
 #consist of a mean between two points in time for each season on plot level.
-#And moisture variable did not have data for wet season Dry_P1-P4 due to no battery left :( .
-#So the moisture variale for these  blocks are only based on the first measure...
+#And moisture variable did not have data for wet season Dry_P1 to Dry_P4 due to no battery left :( .
+#So the moisture variale for these  blocks are only based on the first measure before it broke...
 #Therefore, the temp variable are more "robust" and complete.
 #But could check if these moisture varables (Dry_P1-P4) are different from the other variables based on both time points:
 boxplot(Moisture.. ~Blockcode+Season,data=Fulldata) #Nope, so maybe OK.
@@ -293,6 +293,10 @@ MyVar2 <- c("Massloss.per","C.N","Sandcorr",
 #pairs(Fulldata[,MyVar2], lower.panel= panel.cor)
 MyVar3 <- c("C.N","Claycorr","Moisture..")
 #pairs(Fulldata[,MyVar3], lower.panel= panel.cor)
+MyVar4 <- c("C.N","Moisture..","Temperature..C.")
+MyVar5 <- c("C.N","Moisture..","Sandcorr","Temperature..C.")
+MyVar6 <- c("C.N","Moisture..","Temperature..C.","Rain.sum")
+MyVar7 <- c("C.N","Moisture..","Sandcorr","Temperature..C.","Rain.sum")
 
 #CORRELATION RESULTS:
 
@@ -318,9 +322,43 @@ MyVar3 <- c("C.N","Claycorr","Moisture..")
 #because we want to be able to get P-values as low as possible.
 #High VIF increases the P-value. High VIF= high level of correlation.
 corvif(Fulldata[,MyVarTot]) #High for Sand and Clay
+# GVIF
+# C.N              1.097046
+# Claycorr        13.080490
+# Sandcorr        13.979418
+# Moisture..       3.723475
+# Temperature..C.  2.148949
+# Rain.sum         2.328552
+
 corvif(Fulldata[,MyVar1])#OK
 corvif(Fulldata[,MyVar2])#OK
 corvif(Fulldata[,MyVar3])#OK
+corvif(Fulldata[,MyVar4])#No texture or rain variable
+# GVIF
+# C.N             1.09585
+# Moisture..      1.53766
+# Temperature..C. 1.64781
+corvif(Fulldata[,MyVar5])#Include texture, not a high increase in inflation.
+# GVIF
+# C.N             1.096648
+# Moisture..      1.640716
+# Sandcorr        1.192411
+# Temperature..C. 1.677015
+corvif(Fulldata[,MyVar6]) #Include only rain, higher infaltion compared to only sand.
+# GVIF
+# C.N             1.096198
+# Moisture..      2.926265
+# Temperature..C. 2.131238
+# Rain.sum        1.903446
+corvif(Fulldata[,MyVar7]) #Inlcude both rain and texture, high infaltion in moisture.
+# GVIF
+# C.N             1.096709
+# Moisture..      3.696862
+# Sandcorr        1.430227
+# Temperature..C. 2.146452
+# Rain.sum        2.283072
+
+#Should probably not include rain if I want texture and moisture in a model.
 
 
 #Checking for covariance among factors with boxplot:
@@ -998,7 +1036,6 @@ RecalMain$blockdesign.num<-as.factor(RecalMain$blockdesign.num)
 table(RecalMain$blockdesign.num, RecalMain$Site)
 
 levels(RecalMain$blockdesign.num)
-#Labile Model - general massloss across season and landuse, Drop1 script#### 
 levels(LabileMain$Site)
 LabileMain$Blockcode <- as.factor(LabileMain$Blockcode)
 LabileMain$Blockcode <- droplevels(LabileMain$Blockcode)
@@ -1007,8 +1044,16 @@ levels(LabileMain$Region)
 LabileMain$Region <- droplevels(as.factor(LabileMain$Region))
 LabileMain$Plot <- as.factor(LabileMain$Plot)
 levels(LabileMain$Plot)
+#List of terms for the models:
+# All possible model interactions
+f <-formula(y ~ Season*Landuse*Treatment*Region*Sand*C.N*Temp) # Add more where appropriate
+termssubTEST<-f[1:7] # Need to adjust subset for how many factors you include…
+terms <-attr(terms.formula(f), "term.labels")
+ModelTEST <- lmer(Massloss.per~terms+
+                        (1|Site/Blockcode/Plot), na.action=na.omit,REML = F,data=LabileMain)
 
-#Singularity issue: Can't use Site.ID when using Region as covariate.
+
+#Labile Model - general massloss across season and landuse, Drop1 script#### 
 LabileMainMod <- lmer(Massloss.per~Season+Landuse+Region+
                         Treatment+
                         Sand+Temp+C.N+
@@ -1100,30 +1145,46 @@ drop1(LabileMainMod,test="Chisq")
 
 
 #Labile Model - general massloss across season and landuse, dredge script####
-#Need to use na.caion=na.fail, therfore removing Na's from data set:
+#Need to use na.action=na.fail, therfore removing Na's from data set:
 summary(LabileMain)
 #Removing rows which consist of NAs in "Massloss.per" column
 LabileMain_NA_filtered <- LabileMain[complete.cases(LabileMain$Massloss.per,LabileMain$C.N,LabileMain$Sand,LabileMain$Temp),]
 summary(LabileMain_NA_filtered)
 
-which(is.na(LabileMain_NA_delete$Massloss.per))
+which(is.na(LabileMain_NA_filtered$Massloss.per))
 sum(is.na(LabileMain$Massloss.per))
-#summary(LabileMainta)
+#Removed threeway Sand:Temp:C.N to get a working mode and not an error 
+LabileMainMod1 <- lmer(Massloss.per~Season+Landuse+Region+
+                      Treatment+
+                      Sand+Temp+C.N+
+                      Season:Landuse+Season:Treatment+Season:Sand+Season:Temp+
+                      Season:C.N+Landuse:Treatment+Landuse:Sand+Landuse:Temp+Landuse:C.N+
+                      Treatment:Sand+Treatment:Temp+Treatment:C.N+
+                      Sand:Temp+Sand:C.N+
+                      Temp:C.N+
+                      Season:Landuse:Region+Season:Landuse:Treatment+Season:Landuse:Sand+
+                      Season:Landuse:Temp+Season:Landuse:C.N+
+                      Landuse:Region:Treatment+Landuse:Region:Sand+Landuse:Region:Temp+Landuse:Region:C.N+
+                      Region:Treatment:Sand+Region:Treatment:Temp+Region:Treatment:Temp+Region:Treatment:C.N+
+                      Treatment:Sand:Temp+Treatment:Sand:C.N+Treatment:Sand+
+                      Sand:Temp:C.N-Sand:Temp:C.N+
+                      (1|Site/Blockcode/Plot),REML = F, na.action=na.omit,data=LabileMain_NA_filtered)
+#Removed threeway Sand:Temp:C.N to get a working mode and not an error 
+LabileMainMod2 <- lmer(Massloss.per~(Season+Landuse+Region+Treatment+Sand+Temp+C.N)^3-Sand:Temp:C.N+
+                        (1|Site/Blockcode/Plot),na.action=na.omit, REML=F,data=LabileMain_NA_filtered)
 
-LabileMainMod <- lmer(Massloss.per~Season+Landuse+Region+
-                        Treatment+Sand+Temp+C.N+
-                        #Season:Landuse+Season:Treatment+Season:Sand+Season:Temp+
-                        #Season:C.N+Landuse:Treatment+Landuse:Sand+Landuse:Temp+Landuse:C.N+
-                        #Treatment:Sand+Treatment:Temp+Treatment:C.N+
-                        #Sand:Temp+Sand:C.N+
-                        #Temp:C.N+
-                        (1|Site/Blockcode/Plot), na.action=na.fail,REML = F,data=LabileMain_NA_filtered)
-
-modsetlmer <- dredge(LabileMainMod,trace=TRUE)
-model.sel(modsetlmer) #Model selection table giving AIC, deltaAIC and weighting
-modavglmer<-model.avg(modsetlmer) #Averages coefficient estimates across multiple models according to the weigthing from above
-importance(modavglmer)#Importance of each variable
-summary(modavglmer)#Estimated coefficients given weighting
+                        
+                        
+                        
+                        
+                        
+summary(LabileMainMod3)
+#REMEMBER TO SET REML=F BEFORE DREDGING:
+modsetlmer_LabileMain <- dredge(LabileMainMod,trace=2)
+model.sel(modsetlmer_LabileMain) #Model selection table giving AIC, deltaAIC and weighting
+modavglmer_LabileMain<-model.avg(modsetlmer_LabileMain) #Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavglmer_LabileMain)#Importance of each variable
+summarymodmodavglmer_LabileMain <- summary(modavglmer_LabileMain)#Estimated coefficients given weighting
 
 #Recal Model - general massloss across season and landuse####
 RecalMain$Blockcode <- as.factor(RecalMain$Blockcode)
