@@ -90,6 +90,7 @@ Vildetrees <- read.csv(file="Ecosystem carbon/Tree.data/Vildetrees.csv", head=T)
 names(Vildetrees)
 
 Vildetrees$area<- factor(Vildetrees$area, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera", "Park Nyigoti","Ikorongo"))
+#Vildetrees <- Vildetrees[(-78),] remove outlier?? 
 
 # adding N and non.N
 Non.N <- Vildetrees %>%
