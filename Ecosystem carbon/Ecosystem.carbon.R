@@ -1621,7 +1621,7 @@ dev.off()
 
 # Plot Min-hor FULL
 col.min.full <- c("darkgray","deepskyblue4","goldenrod3","darkorange2","deepskyblue2",'steelblue3','darkolivegreen4',"khaki3",'darkolivegreen3',"forestgreen")
-png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.Minhor.png")
+png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.MinhorFull.png")
 par(mar=c(5,18,1,1))
 barplot(t(as.matrix(importance.MinHorFull)), horiz=T,las=1,xlab='Relative variable importance',main='Soil Mineral-horizon Carbon',cex.main = 1,axisname=T,col= col.min.full,beside=T,cex.axis=2,cex.lab=1,cex.names=2)
 dev.off()
