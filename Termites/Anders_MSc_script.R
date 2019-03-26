@@ -1034,79 +1034,58 @@ levels(LabileMain$Region)
 LabileMain$Region <- droplevels(as.factor(LabileMain$Region))
 LabileMain$Plot <- as.factor(LabileMain$Plot)
 levels(LabileMain$Plot)
-#List of terms for the models:
-# All possible model interactions
-f <-formula(y ~ Season*Landuse*Treatment*Region*Sand*C.N*Temp) # Add more where appropriate
-terms <-attr(terms.formula(f), "term.labels")
-termssubTEST<-terms[1:62] # All interactions except Sand:C.N:Temp [63]   
-termssubTEST
 
-ModelTEST <- lmer(Massloss.per~terms+
-                        (1|Site/Blockcode/Plot), na.action=na.omit,REML = F,data=LabileMain)
+#Labile Models - general massloss across season and landuse
 
-
-
-#Labile Models - general massloss across season and landuse, dredge script####
-
-#Labile Model 1 - With Moisture
-#Have to remove threeway C.N:Temp:Moisture to make it work.
-LabileMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Moisture)^3-C.N:Temp:Moisture+
+#Labile Model 1 - No moisture, no rain.
+#Have to remove a threeway to make it work.
+LabileMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^3-C.N:Temp:Sand+
                          (1|Site/Blockcode/Plot), na.action=na.omit,REML = F,data=LabileMain)
-summary(LabileMainMod1)
+summary(LabileMainMod2)
 
+#DREDGING
 #Need to use na.action=na.fail, therfore removing Na's from data set:
-summary(LabileMain)
-
-#Removing rows which consist of NAs in "Massloss.per" column
+#Removing rows which consist of NAs in all variable used in model:
 LabileMain_NA_filtered <- LabileMain[complete.cases(LabileMain$Massloss.per,LabileMain$C.N,LabileMain$Sand,LabileMain$Temp),]
 summary(LabileMain_NA_filtered)
-
 which(is.na(LabileMain_NA_filtered$Massloss.per))
-sum(is.na(LabileMain$Massloss.per))
-#Removed threeway Sand:Temp:C.N to get a working mode and not an error 
-LabileMainMod1 <- lmer(Massloss.per~Season+Landuse+Region+
-                      Treatment+
-                      Sand+Temp+C.N+
-                      Season:Landuse+Season:Treatment+Season:Sand+Season:Temp+
-                      Season:C.N+Landuse:Treatment+Landuse:Sand+Landuse:Temp+Landuse:C.N+
-                      Treatment:Sand+Treatment:Temp+Treatment:C.N+
-                      Sand:Temp+Sand:C.N+
-                      Temp:C.N+
-                      Season:Landuse:Region+Season:Landuse:Treatment+Season:Landuse:Sand+
-                      Season:Landuse:Temp+Season:Landuse:C.N+
-                      Landuse:Region:Treatment+Landuse:Region:Sand+Landuse:Region:Temp+Landuse:Region:C.N+
-                      Region:Treatment:Sand+Region:Treatment:Temp+Region:Treatment:Temp+Region:Treatment:C.N+
-                      Treatment:Sand:Temp+Treatment:Sand:C.N+Treatment:Sand+
-                      Sand:Temp:C.N-Sand:Temp:C.N+
-                      (1|Site/Blockcode/Plot),REML = F, na.action=na.omit,data=LabileMain_NA_filtered)
-#Removed threeway Sand:Temp:C.N to get a working mode and not an error 
-LabileMainMod2 <- lmer(Massloss.per~(Season+Landuse+Region+Treatment+Sand+Temp+C.N)^3-Sand:Temp:C.N+
-                        (1|Site/Blockcode/Plot),na.action=na.omit, REML=F,data=LabileMain_NA_filtered)
+#Changed data file to NA_filtered in LabileMainMod1 and set na.action=na.fail, and REML=F to use dredging.
+LabileMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^3-C.N:Temp:Sand+
+                         (1|Site/Blockcode/Plot), na.action=na.fail,REML = F,data=LabileMain_NA_filtered)
 
-                        
-                        
-                        
-                        
-                        
-summary(LabileMainMod2)
-#REMEMBER TO SET REML=F BEFORE DREDGING:
-modsetlmer_LabileMain <- dredge(LabileMainMod,trace=2)
-model.sel(modsetlmer_LabileMain) #Model selection table giving AIC, deltaAIC and weighting
-modavglmer_LabileMain<-model.avg(modsetlmer_LabileMain) #Averages coefficient estimates across multiple models according to the weigthing from above
-importance(modavglmer_LabileMain)#Importance of each variable
-summarymodmodavglmer_LabileMain <- summary(modavglmer_LabileMain)#Estimated coefficients given weighting
+modsetlmer_LabileMainMod1 <- dredge(LabileMainMod1,trace=2, REML=F)
+model.sel(LabileMainMod1) #Model selection table giving AIC, deltaAIC and weighting
+modavglmer_LabileMainMod1<-model.avg(modsetlmer_LabileMainMod1) #Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavglmer_LabileMainMod1)#Importance of each variable
+write.table(importance(modavglmer_LabileMainMod1),file="Termites/Importance_LabileMain1.txt")
+summarymodmodavglmer_LabileMain1 <- summary(modavglmer_LabileMainMod1)#Estimated coefficients given weighting
+write.table(summary(modavglmer_LabileMainMod1)$coefmat.subset,file="Termites/SumCoef_LabileMain1.txt")
+
 
 #Recal Model - general massloss across season and landuse####
-RecalMain$Blockcode <- as.factor(RecalMain$Blockcode)
-#Singular fit issue:
-RecalMainMod <- lmer(Massloss.per~Season+Landuse+Region+
-                       Treatment+Sand+Temp+C.N+
-                       #Season:Landuse+Season:Treatment+Season:Sand+Season:Temp+
-                       #Season:C.N+Landuse:Treatment+Landuse:Sand+Landuse:Temp+Landuse:C.N+
-                       #Treatment:Sand+Treatment:Temp+Treatment:C.N+
-                       #Sand:Temp+Sand:C.N+
-                       #Temp:C.N+
-                       (1|Site/Blockcode/Plot),na.action=na.omit,REML = FALSE, data=RecalMain)
+#Recal Model 1 - No moisture, no rain.
+#Have to remove a threeway to make it work.
+RecalMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^3-C.N:Temp:Sand+
+                         (1|Site/Blockcode/Plot), na.action=na.omit,REML = F,data=RecalMain)
+summary(RecalMainMod2)
+
+#DREDGING
+#Need to use na.action=na.fail, therfore removing Na's from data set:
+#Removing rows which consist of NAs in all variable used in model:
+RecalMain_NA_filtered <- RecalMain[complete.cases(RecalMain$Massloss.per,RecalMain$C.N,RecalMain$Sand,RecalMain$Temp),]
+summary(RecalMain_NA_filtered)
+which(is.na(RecalMain_NA_filtered$Massloss.per))
+#Changed data file to NA_filtered in RecalMainMod1 and set na.action=na.fail, and REML=F to use dredging.
+RecalMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^3-C.N:Temp:Sand+
+                        (1|Site/Blockcode/Plot), na.action=na.fail,REML = F,data=RecalMain_NA_filtered)
+
+modsetlmer_RecalMainMod1 <- dredge(RecalMainMod1,trace=2, REML=F)
+model.sel(RecalMainMod1) #Model selection table giving AIC, deltaAIC and weighting
+modavglmer_RecalMainMod1<-model.avg(modsetlmer_RecalMainMod1) #Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavglmer_RecalMainMod1)#Importance of each variable
+write.table(importance(modavglmer_RecalMainMod1),file="Termites/Importance_RecalMain1.txt")
+summarymodmodavglmer_RecalMain1 <- summary(modavglmer_RecalMainMod1)#Estimated coefficients given weighting
+write.table(summary(modavglmer_RecalMainMod1)$coefmat.subset,file="Termites/SumCoef_RecalMain1.txt")
 
 #Termite effect models, using the difference between treatment (op-excl)####
 ####Preliminary dataprocessing####
