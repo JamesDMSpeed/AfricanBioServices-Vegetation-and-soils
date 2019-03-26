@@ -163,7 +163,7 @@ Fulldata <- read.csv("Termites/Fulldata.csv")
 # H Are categorical covariates balanced?
 # I Are the variables Norm.distributed?
 # Alain Zuur - data exploration functions
-#source(file="C:/Users/ansun/Google Drive/09Fremdrift Master/Kjekke R ting/Data exploration/HighstatLibV10.R")
+source(file="C:/Users/ansun/Google Drive/09Fremdrift Master/Kjekke R ting/Data exploration/HighstatLibV10.R")
 # A Missing values? ####
 
 colSums(is.na(Fulldata))
@@ -188,8 +188,8 @@ data.table(aggregate(Temperature..C.~Blockcode+Season,Fulldata, function(x) {sum
 data.table(aggregate(Moisture.. ~Blockcode+Season,Fulldata, function(x) {sum(is.na(x))}, na.action = NULL))
 #Both climate variables has same number of observations, BUT! THese two variables
 #consist of a mean between two points in time for each season on plot level.
-#And moisture variable did not have data for wet season Dry_P1-P4 due to no battery left :( .
-#So the moisture variale for these  blocks are only based on the first measure...
+#And moisture variable did not have data for wet season Dry_P1 to Dry_P4 due to no battery left :( .
+#So the moisture variale for these  blocks are only based on the first measure before it broke...
 #Therefore, the temp variable are more "robust" and complete.
 #But could check if these moisture varables (Dry_P1-P4) are different from the other variables based on both time points:
 boxplot(Moisture.. ~Blockcode+Season,data=Fulldata) #Nope, so maybe OK.
@@ -293,6 +293,10 @@ MyVar2 <- c("Massloss.per","C.N","Sandcorr",
 #pairs(Fulldata[,MyVar2], lower.panel= panel.cor)
 MyVar3 <- c("C.N","Claycorr","Moisture..")
 #pairs(Fulldata[,MyVar3], lower.panel= panel.cor)
+MyVar4 <- c("C.N","Moisture..","Temperature..C.")
+MyVar5 <- c("C.N","Moisture..","Sandcorr","Temperature..C.")
+MyVar6 <- c("C.N","Moisture..","Temperature..C.","Rain.sum")
+MyVar7 <- c("C.N","Moisture..","Sandcorr","Temperature..C.","Rain.sum")
 
 #CORRELATION RESULTS:
 
@@ -318,9 +322,43 @@ MyVar3 <- c("C.N","Claycorr","Moisture..")
 #because we want to be able to get P-values as low as possible.
 #High VIF increases the P-value. High VIF= high level of correlation.
 corvif(Fulldata[,MyVarTot]) #High for Sand and Clay
+# GVIF
+# C.N              1.097046
+# Claycorr        13.080490
+# Sandcorr        13.979418
+# Moisture..       3.723475
+# Temperature..C.  2.148949
+# Rain.sum         2.328552
+
 corvif(Fulldata[,MyVar1])#OK
 corvif(Fulldata[,MyVar2])#OK
 corvif(Fulldata[,MyVar3])#OK
+corvif(Fulldata[,MyVar4])#No texture or rain variable
+# GVIF
+# C.N             1.09585
+# Moisture..      1.53766
+# Temperature..C. 1.64781
+corvif(Fulldata[,MyVar5])#Include texture, not a high increase in inflation.
+# GVIF
+# C.N             1.096648
+# Moisture..      1.640716
+# Sandcorr        1.192411
+# Temperature..C. 1.677015
+corvif(Fulldata[,MyVar6]) #Include only rain, higher infaltion compared to only sand.
+# GVIF
+# C.N             1.096198
+# Moisture..      2.926265
+# Temperature..C. 2.131238
+# Rain.sum        1.903446
+corvif(Fulldata[,MyVar7]) #Inlcude both rain and texture, high infaltion in moisture.
+# GVIF
+# C.N             1.096709
+# Moisture..      3.696862
+# Sandcorr        1.430227
+# Temperature..C. 2.146452
+# Rain.sum        2.283072
+
+#Should probably not include rain if I want texture and moisture in a model.
 
 
 #Checking for covariance among factors with boxplot:
@@ -941,8 +979,9 @@ MainCGplot
  #     width= 30, height = 15,units ="cm",bg ="transparent",
   #   dpi = 600, limitsize = TRUE)
 
-
+#|####
 #ANALYSIS####
+#|####
 #MAIN LANDUSE EXPERIMENT####
 
 #Want to answer the following questions:
@@ -985,20 +1024,8 @@ colnames(LabileMain)[(names(LabileMain)== "Moisture..")] <- "Moisture"
 colnames(LabileMain)[(names(LabileMain)== "Temperature..C.")] <- "Temp"
 colnames(LabileMain)[(names(LabileMain)== "Rain.sum")] <- "Rain"
 
-#Block needs to be a unique number - not repeated across blocks (I think blockcode already do this but anyway...)
-
-LabileMain$blockdesign.num<-as.factor(with(LabileMain, paste(Site,Block,Landuse, sep="")))
-LabileMain$blockdesign.num<-as.numeric(LabileMain$blockdesign.num)
-LabileMain$blockdesign.num<-as.factor(LabileMain$blockdesign.num)
-table(LabileMain$blockdesign.num, LabileMain$Site)
-
-RecalMain$blockdesign.num<-as.factor(with(RecalMain, paste(Site,Block,Landuse, sep="")))
-RecalMain$blockdesign.num<-as.numeric(RecalMain$blockdesign.num)
-RecalMain$blockdesign.num<-as.factor(RecalMain$blockdesign.num)
-table(RecalMain$blockdesign.num, RecalMain$Site)
 
 levels(RecalMain$blockdesign.num)
-#Labile Model - general massloss across season and landuse, Drop1 script#### 
 levels(LabileMain$Site)
 LabileMain$Blockcode <- as.factor(LabileMain$Blockcode)
 LabileMain$Blockcode <- droplevels(LabileMain$Blockcode)
@@ -1007,123 +1034,67 @@ levels(LabileMain$Region)
 LabileMain$Region <- droplevels(as.factor(LabileMain$Region))
 LabileMain$Plot <- as.factor(LabileMain$Plot)
 levels(LabileMain$Plot)
+#List of terms for the models:
+# All possible model interactions
+f <-formula(y ~ Season*Landuse*Treatment*Region*Sand*C.N*Temp) # Add more where appropriate
+terms <-attr(terms.formula(f), "term.labels")
+termssubTEST<-terms[1:62] # All interactions except Sand:C.N:Temp [63]   
+termssubTEST
 
-#Singularity issue: Can't use Site.ID when using Region as covariate.
-LabileMainMod <- lmer(Massloss.per~Season+Landuse+Region+
-                        Treatment+
-                        Sand+Temp+C.N+
-                       #Season:Landuse+Season:Treatment+Season:Sand+Season:Temp+
-                        #Season:C.N+Landuse:Treatment+Landuse:Sand+Landuse:Temp+Landuse:C.N+
-                        #Treatment:Sand+Treatment:Temp+Treatment:C.N+
-                        #Sand:Temp+Sand:C.N+
-                        #Temp:C.N+
+ModelTEST <- lmer(Massloss.per~terms+
                         (1|Site/Blockcode/Plot), na.action=na.omit,REML = F,data=LabileMain)
 
-summary(LabileMainMod)
-anova(LabileMainMod)
-drop1(LabileMainMod,test="Chisq")
-#First step in model selecion, drop1() output:
-#
-#Model:
-#   Massloss.per ~ Season + Landuse + Treatment + Sand + Rain + Temp + 
-#   C.N + Season:Landuse + Season:Treatment + Season:Sand + Season:Rain + 
-#   Season:Temp + Season:C.N + Landuse:Treatment + Landuse:Sand + 
-#   Landuse:Rain + Landuse:Temp + Landuse:C.N + Treatment:Sand + 
-#   Treatment:Rain + Treatment:Temp + Treatment:C.N + Sand:Rain + 
-#   Sand:Temp + Sand:C.N + Rain:Temp + Rain:C.N + Temp:C.N + 
-#   (Site.ID | blockdesign.num)
-# Df    AIC    LRT Pr(Chi)  
-# <none>               5362.4                 
-# Season:Landuse     2 5360.8 2.4228 0.29778  --> Remove
-# Season:Treatment   1 5363.1 2.6489 0.10362  
-# Season:Sand        1 5366.0 5.5492 0.01849 *
-#   Season:Rain        1 5360.5 0.0668 0.79599  
-# Season:Temp        1 5360.4 0.0035 0.95297  --> Remove
-# Season:C.N         1 5360.8 0.4041 0.52500  --> Remove
-# Landuse:Treatment  2 5361.7 3.3007 0.19198  
-# Landuse:Sand       2 5361.2 2.7853 0.24841  --> Remove
-# Landuse:Rain       2 5363.3 4.8696 0.08761 .
-# Landuse:Temp       2 5359.5 1.0505 0.59140  --> Remove
-# Landuse:C.N        2 5362.7 4.2601 0.11883  
-# Treatment:Sand     1 5361.5 1.0606 0.30308  --> Remove
-# Treatment:Rain     1 5360.9 0.5401 0.46237  --> Remove
-# Treatment:Temp     1 5360.8 0.3525 0.55273  --> Remove
-# Treatment:C.N      1 5361.2 0.8055 0.36944  --> Remove
-# Sand:Rain          1 5361.8 1.4382 0.23043  --> Remove
-# Sand:Temp          1 5363.8 3.4111 0.06476 .
-# Sand:C.N           1 5360.8 0.4367 0.50874  --> Remove
-# Rain:Temp          1 5362.7 2.2659 0.13225  
-# Rain:C.N           1 5364.1 3.6590 0.05577 .
-# Temp:C.N           1 5361.3 0.9381 0.33276  --> Remove
-##
-# Model:
-#   Massloss.per ~ Season + Landuse + Treatment + Sand + Rain + Temp + 
-#   C.N + Season:Treatment + Season:Sand + Season:Rain + Landuse:Treatment + 
-#   Landuse:Rain + Landuse:C.N + Sand:Temp + Rain:Temp + Rain:C.N + 
-#   (Site.ID | blockdesign.num)
-# Df    AIC     LRT   Pr(Chi)    
-# <none>               5347.1                      
-# Season:Treatment   1 5347.4  2.3654 0.1240501 --> Remove   
-# Season:Sand        1 5366.0 20.8875 4.871e-06 ***
-#   Season:Rain        1 5349.8  4.7048 0.0300789 *  
-#   Landuse:Treatment  2 5345.1  2.0755 0.3542505    --> Remove
-# Landuse:Rain       2 5358.5 15.4328 0.0004455 ***
-#   Landuse:C.N        2 5351.7  8.6280 0.0133800 *  
-#   Sand:Temp          1 5346.8  1.7583 0.1848327    --> Remove
-# Rain:Temp          1 5349.3  4.2191 0.0399706 *  
-#   Rain:C.N           1 5347.6  2.5607 0.1095503 --> Remove
-# #
-# Model:
-#   Massloss.per ~ Season + Landuse + Treatment + Sand + Rain + Temp + 
-#   C.N + Season:Sand + Season:Rain + Landuse:Rain + Landuse:C.N + 
-#   Rain:Temp + (Site.ID | blockdesign.num)
-# Df    AIC     LRT   Pr(Chi)    
-# <none>          5345.5                      
-# Treatment     1 5344.9  1.4302  0.231735   - 
-# Season:Sand   1 5362.6 19.0370 1.282e-05 ***
-#   Season:Rain   1 5347.3  3.8024  0.051179 .  ->Remove
-# Landuse:Rain  2 5356.2 14.6710  0.000652 ***
-#   Landuse:C.N   2 5348.5  6.9822  0.030467 *  
-#   Rain:Temp     1 5346.6  3.0917  0.078693 .->Remove  
-# #
-# Model:
-#   Massloss.per ~ Season + Landuse + Treatment + Sand + Rain + Temp + 
-#   C.N + Season:Sand + Landuse:Rain + Landuse:C.N +
-#   (Site.ID | blockdesign.num)
-#             Df    AIC     LRT   Pr(Chi)    
-# <none>          5348.7                  --> Worse AIC    
-# Treatment     1 5348.1  1.4647 0.2261840    
-# Temp          1 5356.7 10.0393 0.0015324 ** 
-#   Season:Sand   1 5360.6 13.9392 0.0001888 ***
-#   Landuse:Rain  2 5361.1 16.4388 0.0002694 ***
-#   Landuse:C.N   2 5351.5  6.8213 0.0330204 *  
 
 
-#Labile Model - general massloss across season and landuse, dredge script####
-#Need to use na.caion=na.fail, therfore removing Na's from data set:
+#Labile Models - general massloss across season and landuse, dredge script####
+
+#Labile Model 1 - With Moisture
+#Have to remove threeway C.N:Temp:Moisture to make it work.
+LabileMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Moisture)^3-C.N:Temp:Moisture+
+                         (1|Site/Blockcode/Plot), na.action=na.omit,REML = F,data=LabileMain)
+summary(LabileMainMod1)
+
+#Need to use na.action=na.fail, therfore removing Na's from data set:
 summary(LabileMain)
+
 #Removing rows which consist of NAs in "Massloss.per" column
 LabileMain_NA_filtered <- LabileMain[complete.cases(LabileMain$Massloss.per,LabileMain$C.N,LabileMain$Sand,LabileMain$Temp),]
 summary(LabileMain_NA_filtered)
 
-which(is.na(LabileMain_NA_delete$Massloss.per))
+which(is.na(LabileMain_NA_filtered$Massloss.per))
 sum(is.na(LabileMain$Massloss.per))
-#summary(LabileMainta)
+#Removed threeway Sand:Temp:C.N to get a working mode and not an error 
+LabileMainMod1 <- lmer(Massloss.per~Season+Landuse+Region+
+                      Treatment+
+                      Sand+Temp+C.N+
+                      Season:Landuse+Season:Treatment+Season:Sand+Season:Temp+
+                      Season:C.N+Landuse:Treatment+Landuse:Sand+Landuse:Temp+Landuse:C.N+
+                      Treatment:Sand+Treatment:Temp+Treatment:C.N+
+                      Sand:Temp+Sand:C.N+
+                      Temp:C.N+
+                      Season:Landuse:Region+Season:Landuse:Treatment+Season:Landuse:Sand+
+                      Season:Landuse:Temp+Season:Landuse:C.N+
+                      Landuse:Region:Treatment+Landuse:Region:Sand+Landuse:Region:Temp+Landuse:Region:C.N+
+                      Region:Treatment:Sand+Region:Treatment:Temp+Region:Treatment:Temp+Region:Treatment:C.N+
+                      Treatment:Sand:Temp+Treatment:Sand:C.N+Treatment:Sand+
+                      Sand:Temp:C.N-Sand:Temp:C.N+
+                      (1|Site/Blockcode/Plot),REML = F, na.action=na.omit,data=LabileMain_NA_filtered)
+#Removed threeway Sand:Temp:C.N to get a working mode and not an error 
+LabileMainMod2 <- lmer(Massloss.per~(Season+Landuse+Region+Treatment+Sand+Temp+C.N)^3-Sand:Temp:C.N+
+                        (1|Site/Blockcode/Plot),na.action=na.omit, REML=F,data=LabileMain_NA_filtered)
 
-LabileMainMod <- lmer(Massloss.per~Season+Landuse+Region+
-                        Treatment+Sand+Temp+C.N+
-                        #Season:Landuse+Season:Treatment+Season:Sand+Season:Temp+
-                        #Season:C.N+Landuse:Treatment+Landuse:Sand+Landuse:Temp+Landuse:C.N+
-                        #Treatment:Sand+Treatment:Temp+Treatment:C.N+
-                        #Sand:Temp+Sand:C.N+
-                        #Temp:C.N+
-                        (1|Site/Blockcode/Plot), na.action=na.fail,REML = F,data=LabileMain_NA_filtered)
-
-modsetlmer <- dredge(LabileMainMod,trace=TRUE)
-model.sel(modsetlmer) #Model selection table giving AIC, deltaAIC and weighting
-modavglmer<-model.avg(modsetlmer) #Averages coefficient estimates across multiple models according to the weigthing from above
-importance(modavglmer)#Importance of each variable
-summary(modavglmer)#Estimated coefficients given weighting
+                        
+                        
+                        
+                        
+                        
+summary(LabileMainMod2)
+#REMEMBER TO SET REML=F BEFORE DREDGING:
+modsetlmer_LabileMain <- dredge(LabileMainMod,trace=2)
+model.sel(modsetlmer_LabileMain) #Model selection table giving AIC, deltaAIC and weighting
+modavglmer_LabileMain<-model.avg(modsetlmer_LabileMain) #Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavglmer_LabileMain)#Importance of each variable
+summarymodmodavglmer_LabileMain <- summary(modavglmer_LabileMain)#Estimated coefficients given weighting
 
 #Recal Model - general massloss across season and landuse####
 RecalMain$Blockcode <- as.factor(RecalMain$Blockcode)
@@ -1194,7 +1165,7 @@ LabileT.E.Mod <- lmer(Termite.effect~Season+Landuse+Region+Sand+Rain+Temp+
 #Singular fit issue:
 RecalT.E.Mod <- lmer(Termite.effect~Season+Landuse+Region+Sand+Rain+Temp+
                        (1|Site/Blockcode/Plot),na.action=na.omit,REML = FALSE, data=RecalTermEff.Main)
-
+#|####
 #COMMON GARDEN EXP####
 #Dataprocessing - getting data ready for modelling####
 DataCG<-droplevels(Fulldata[Fulldata$Experiment=="CG",]) # Only commongarden data
@@ -1786,11 +1757,124 @@ anova(RecalMCGMod1,RecalMCGMod1m)#Sand:CN N.S
 #-->Removing all N.S two-ways
 
 
+#|####
+#STUFF REMOVED####
+#|####
+#Stuff removed from orig script, but kept here in case it's needed:####
+#Labile Model - general massloss across season and landuse, Drop1 script#### 
+LabileMainMod <- lmer(Massloss.per~Season+Landuse+Region+
+                        Treatment+
+                        Sand+Temp+C.N+
+                        #Season:Landuse+Season:Treatment+Season:Sand+Season:Temp+
+                        #Season:C.N+Landuse:Treatment+Landuse:Sand+Landuse:Temp+Landuse:C.N+
+                        #Treatment:Sand+Treatment:Temp+Treatment:C.N+
+                        #Sand:Temp+Sand:C.N+
+                        #Temp:C.N+
+                        (1|Site/Blockcode/Plot), na.action=na.omit,REML = F,data=LabileMain)
+
+summary(LabileMainMod)
+anova(LabileMainMod)
+drop1(LabileMainMod,test="Chisq")
+#First step in model selecion, drop1() output:
+#
+#Model:
+#   Massloss.per ~ Season + Landuse + Treatment + Sand + Rain + Temp + 
+#   C.N + Season:Landuse + Season:Treatment + Season:Sand + Season:Rain + 
+#   Season:Temp + Season:C.N + Landuse:Treatment + Landuse:Sand + 
+#   Landuse:Rain + Landuse:Temp + Landuse:C.N + Treatment:Sand + 
+#   Treatment:Rain + Treatment:Temp + Treatment:C.N + Sand:Rain + 
+#   Sand:Temp + Sand:C.N + Rain:Temp + Rain:C.N + Temp:C.N + 
+#   (Site.ID | blockdesign.num)
+# Df    AIC    LRT Pr(Chi)  
+# <none>               5362.4                 
+# Season:Landuse     2 5360.8 2.4228 0.29778  --> Remove
+# Season:Treatment   1 5363.1 2.6489 0.10362  
+# Season:Sand        1 5366.0 5.5492 0.01849 *
+#   Season:Rain        1 5360.5 0.0668 0.79599  
+# Season:Temp        1 5360.4 0.0035 0.95297  --> Remove
+# Season:C.N         1 5360.8 0.4041 0.52500  --> Remove
+# Landuse:Treatment  2 5361.7 3.3007 0.19198  
+# Landuse:Sand       2 5361.2 2.7853 0.24841  --> Remove
+# Landuse:Rain       2 5363.3 4.8696 0.08761 .
+# Landuse:Temp       2 5359.5 1.0505 0.59140  --> Remove
+# Landuse:C.N        2 5362.7 4.2601 0.11883  
+# Treatment:Sand     1 5361.5 1.0606 0.30308  --> Remove
+# Treatment:Rain     1 5360.9 0.5401 0.46237  --> Remove
+# Treatment:Temp     1 5360.8 0.3525 0.55273  --> Remove
+# Treatment:C.N      1 5361.2 0.8055 0.36944  --> Remove
+# Sand:Rain          1 5361.8 1.4382 0.23043  --> Remove
+# Sand:Temp          1 5363.8 3.4111 0.06476 .
+# Sand:C.N           1 5360.8 0.4367 0.50874  --> Remove
+# Rain:Temp          1 5362.7 2.2659 0.13225  
+# Rain:C.N           1 5364.1 3.6590 0.05577 .
+# Temp:C.N           1 5361.3 0.9381 0.33276  --> Remove
+##
+# Model:
+#   Massloss.per ~ Season + Landuse + Treatment + Sand + Rain + Temp + 
+#   C.N + Season:Treatment + Season:Sand + Season:Rain + Landuse:Treatment + 
+#   Landuse:Rain + Landuse:C.N + Sand:Temp + Rain:Temp + Rain:C.N + 
+#   (Site.ID | blockdesign.num)
+# Df    AIC     LRT   Pr(Chi)    
+# <none>               5347.1                      
+# Season:Treatment   1 5347.4  2.3654 0.1240501 --> Remove   
+# Season:Sand        1 5366.0 20.8875 4.871e-06 ***
+#   Season:Rain        1 5349.8  4.7048 0.0300789 *  
+#   Landuse:Treatment  2 5345.1  2.0755 0.3542505    --> Remove
+# Landuse:Rain       2 5358.5 15.4328 0.0004455 ***
+#   Landuse:C.N        2 5351.7  8.6280 0.0133800 *  
+#   Sand:Temp          1 5346.8  1.7583 0.1848327    --> Remove
+# Rain:Temp          1 5349.3  4.2191 0.0399706 *  
+#   Rain:C.N           1 5347.6  2.5607 0.1095503 --> Remove
+# #
+# Model:
+#   Massloss.per ~ Season + Landuse + Treatment + Sand + Rain + Temp + 
+#   C.N + Season:Sand + Season:Rain + Landuse:Rain + Landuse:C.N + 
+#   Rain:Temp + (Site.ID | blockdesign.num)
+# Df    AIC     LRT   Pr(Chi)    
+# <none>          5345.5                      
+# Treatment     1 5344.9  1.4302  0.231735   - 
+# Season:Sand   1 5362.6 19.0370 1.282e-05 ***
+#   Season:Rain   1 5347.3  3.8024  0.051179 .  ->Remove
+# Landuse:Rain  2 5356.2 14.6710  0.000652 ***
+#   Landuse:C.N   2 5348.5  6.9822  0.030467 *  
+#   Rain:Temp     1 5346.6  3.0917  0.078693 .->Remove  
+# #
+# Model:
+#   Massloss.per ~ Season + Landuse + Treatment + Sand + Rain + Temp + 
+#   C.N + Season:Sand + Landuse:Rain + Landuse:C.N +
+#   (Site.ID | blockdesign.num)
+#             Df    AIC     LRT   Pr(Chi)    
+# <none>          5348.7                  --> Worse AIC    
+# Treatment     1 5348.1  1.4647 0.2261840    
+# Temp          1 5356.7 10.0393 0.0015324 ** 
+#   Season:Sand   1 5360.6 13.9392 0.0001888 ***
+#   Landuse:Rain  2 5361.1 16.4388 0.0002694 ***
+#   Landuse:C.N   2 5351.5  6.8213 0.0330204 *  
 
 
+
+#Block needs to be a unique number - not repeated across blocks (I think blockcode already do this but anyway...)
+LabileMain$blockdesign.num<-as.factor(with(LabileMain, paste(Site,Block,Landuse, sep="")))
+LabileMain$blockdesign.num<-as.numeric(LabileMain$blockdesign.num)
+LabileMain$blockdesign.num<-as.factor(LabileMain$blockdesign.num)
+table(LabileMain$blockdesign.num, LabileMain$Site)
+
+RecalMain$blockdesign.num<-as.factor(with(RecalMain, paste(Site,Block,Landuse, sep="")))
+RecalMain$blockdesign.num<-as.numeric(RecalMain$blockdesign.num)
+RecalMain$blockdesign.num<-as.factor(RecalMain$blockdesign.num)
+table(RecalMain$blockdesign.num, RecalMain$Site)
 
 
 #STUFF NOT SORTED####
+
+
+
+
+
+
+
+
+
                   
 AndersTea2b <- update(AndersTea2, .~. -flittertype:ftreatment)
 AndersTea2c <- update(AndersTea2, .~. -sand.per)
