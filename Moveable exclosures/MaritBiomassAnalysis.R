@@ -1,4 +1,3 @@
-setwd("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/R assistance/Analysis")
 #### Biomass exploration ####
 #clear system & add package libraries
 rm(list=ls())
@@ -28,14 +27,14 @@ Datanuts <- Datanuts[Datanuts$harvest!="H0",] #removing H0                #280 o
 Datanuts <- droplevels(Datanuts)
 
 #### RUN FIRST ####
-  #Housekeeping
-  #Date variable
-  #Dataframes for modelling
-  #Functions
+#Housekeeping
+#Date variable
+#Dataframes for modelling
+#Functions
 # For graphs
-  #Average NAP
-  #Average CONS 
-  #Aggregating rainfall per region
+#Average NAP
+#Average CONS 
+#Aggregating rainfall per region
 
 #### Housekeeping ####
 # Removing Ex2 - separate analysis
@@ -62,6 +61,14 @@ colnames(Databiom)[colnames(Databiom)=="productivity.total.g.m2.day"] <- "prodto
 colnames(Databiom)[colnames(Databiom)=="consumption.total.g.m2.day"] <- "constot"
 colnames(Databiom)[colnames(Databiom)=="productivity.other.g.m2.day"] <- "prodoth"
 colnames(Databiom)[colnames(Databiom)=="consumption.other.g.m2.day"] <- "consoth"
+
+#Productivity and consumptions per harvest period
+Databiom$prodtargsum <- Databiom$prodtarg*Databiom$growth.period
+Databiom$constargsum <- Databiom$constarg*Databiom$growth.period
+Databiom$prodothsum <- Databiom$prodoth*Databiom$growth.period
+Databiom$consothsum <- Databiom$consoth*Databiom$growth.period
+Databiom$prodtotsum <- Databiom$prodtot*Databiom$growth.period
+Databiom$constotsum <- Databiom$constot*Databiom$growth.period
 
 colnames(Databiom)[colnames(Databiom)=="sand.per"] <- "sand"
 
@@ -119,12 +126,97 @@ Databiom <- cbind(Databiom,Datanuts[,"N.total",drop=FALSE])
 #Rain per day for each harvest period
 Databiom$rain.day <- Databiom$rain.sum/Databiom$growth.period
 
+#### Average df site per harvest ####
+DataEx <- Databiom[Databiom$treatment!="open",] #Removing Open
+DataEx <- DataEx[order(DataEx[,3],DataEx[,9],DataEx[,12]),]
+DataEx$Rdate <- as.character(DataEx$Rdate)
+DataOp <- Databiom[Databiom$treatment!="exclosed",] #Removing Exclosure
+DataOp <- DataOp[order(DataOp[,3],DataOp[,9],DataOp[,12]),]
+DataOp$Rdate <- as.character(DataOp$Rdate)
+
+Exmean <- aggregate.data.frame(DataEx[,c(18,19,21,26:33,40:52,57:65)], list(as.factor(DataEx$YrMonth), DataEx$site.id, DataEx$landuse), mean, na.rm=TRUE,na.action="na.pass")
+Exmean$treatment <- "exclosed"
+Exmean$treatment <- factor(Exmean$treatment)
+Exmean$Rdate <- as.character(Exmean$Rdate)
+
+Opmean <- aggregate.data.frame(DataOp[,c(18,19,21,26:33,40:52,57:65)], list(as.factor(DataOp$YrMonth), DataOp$site.id, DataOp$landuse), mean, na.rm=TRUE, na.action="na.pass")
+Opmean$treatment <- "open"
+Opmean$treatment <- factor(Opmean$treatment)
+Opmean$Rdate <- as.character(Opmean$Rdate)
+
+Datamean <- bind_rows(Exmean,Opmean) #NB! Using rbind resulted in aborting the whole session!!
+colnames(Datamean)[1] <- "YrMonth"
+colnames(Datamean)[2] <- "site.id"
+colnames(Datamean)[3] <- "landuse"
+
+#### Cumulative production, consumption, rainfall and N contents for aggregated data #### 
+Datamean$Cum_prod<-c(cumsum(Datamean[1:7,25]),cumsum(Datamean[8:14,25]),cumsum(Datamean[15:21,25]),cumsum(Datamean[22:28,25]),cumsum(Datamean[29:35,25]),cumsum(Datamean[36:42,25]),cumsum(Datamean[43:49,25]),cumsum(Datamean[50:56,25]),cumsum(Datamean[57:63,25]),cumsum(Datamean[64:70,25]))
+
+Datamean$Cum_cons<-c(cumsum(Datamean[1:7,26]),cumsum(Datamean[8:14,26]),cumsum(Datamean[15:21,26]),cumsum(Datamean[22:28,26]),cumsum(Datamean[29:35,26]),cumsum(Datamean[36:42,26]),cumsum(Datamean[43:49,26]),cumsum(Datamean[50:56,26]),cumsum(Datamean[57:63,26]),cumsum(Datamean[64:70,26]))
+
+Datamean$Cum_prodtarg<-c(cumsum(Datamean[1:7,21]),cumsum(Datamean[8:14,21]),cumsum(Datamean[15:21,21]),cumsum(Datamean[22:28,21]),cumsum(Datamean[29:35,21]),cumsum(Datamean[36:42,21]),cumsum(Datamean[43:49,21]),cumsum(Datamean[50:56,21]),cumsum(Datamean[57:63,21]),cumsum(Datamean[64:70,21]))
+
+Datamean$Cum_constarg<-c(cumsum(Datamean[1:7,22]),cumsum(Datamean[8:14,22]),cumsum(Datamean[15:22,22]),cumsum(Datamean[22:28,22]),cumsum(Datamean[29:35,22]),cumsum(Datamean[36:42,22]),cumsum(Datamean[43:49,22]),cumsum(Datamean[50:56,22]),cumsum(Datamean[57:63,22]),cumsum(Datamean[64:70,22]))
+
+Datamean$Cum_rain<-c(cumsum(Datamean[1:7,5]),cumsum(Datamean[8:14,5]),cumsum(Datamean[15:21,5]),cumsum(Datamean[22:28,5]),cumsum(Datamean[29:35,5]),cumsum(Datamean[36:42,5]),cumsum(Datamean[43:49,5]),cumsum(Datamean[50:56,5]),cumsum(Datamean[57:63,5]),cumsum(Datamean[64:70,5]))
+
+Datamean$Cum_N.targ<-c(cumsum(Datamean[1:7,33]),cumsum(Datamean[8:14,33]),cumsum(Datamean[15:21,33]),cumsum(Datamean[22:28,33]),cumsum(Datamean[29:35,33]),cumsum(Datamean[36:42,33]),cumsum(Datamean[43:49,33]),cumsum(Datamean[50:56,33]),cumsum(Datamean[57:63,33]),cumsum(Datamean[64:70,33]))
+
+Datamean$Cum_N.tot<-c(cumsum(Datamean[1:7,35]),cumsum(Datamean[8:14,35]),cumsum(Datamean[15:21,35]),cumsum(Datamean[22:28,35]),cumsum(Datamean[29:35,35]),cumsum(Datamean[36:42,35]),cumsum(Datamean[43:49,35]),cumsum(Datamean[50:56,35]),cumsum(Datamean[57:63,35]),cumsum(Datamean[64:70,35]))
+
+# % production consumed 
+Datamean$Cum_perc_cons<-Datamean$Cum_cons/Datamean$Cum_prod*100
+
+#### Cumulative production, consumption, rainfall and N contents for non-aggregated data ####
+##DataEx 
+DataEx$Cum_prod<-c(cumsum(DataEx[1:7,50]),cumsum(DataEx[8:14,50]),cumsum(DataEx[15:21,50]),cumsum(DataEx[22:28,50]),cumsum(DataEx[29:35,50]),cumsum(DataEx[36:42,50]),cumsum(DataEx[43:49,50]),cumsum(DataEx[50:56,50]),cumsum(DataEx[57:63,50]),cumsum(DataEx[64:70,50]),cumsum(DataEx[71:77,50]),cumsum(DataEx[78:84,50]),cumsum(DataEx[85:91,50]),cumsum(DataEx[92:98,50]),cumsum(DataEx[99:105,50]),cumsum(DataEx[106:112,50]),cumsum(DataEx[113:119,50]),cumsum(DataEx[120:126,50]),cumsum(DataEx[127:133,50]),cumsum(DataEx[134:140,50]))
+
+DataEx$Cum_cons<-c(cumsum(DataEx[1:7,51]),cumsum(DataEx[8:14,51]),cumsum(DataEx[15:21,51]),cumsum(DataEx[22:28,51]),cumsum(DataEx[29:35,51]),cumsum(DataEx[36:42,51]),cumsum(DataEx[43:49,51]),cumsum(DataEx[50:56,51]),cumsum(DataEx[57:63,51]),cumsum(DataEx[64:70,51]),cumsum(DataEx[71:77,51]),cumsum(DataEx[78:84,51]),cumsum(DataEx[85:91,51]),cumsum(DataEx[92:98,51]),cumsum(DataEx[99:105,51]),cumsum(DataEx[106:112,51]),cumsum(DataEx[113:119,51]),cumsum(DataEx[120:126,51]),cumsum(DataEx[127:133,51]),cumsum(DataEx[134:140,51]))
+
+DataEx$Cum_prodtarg<-c(cumsum(DataEx[1:7,46]),cumsum(DataEx[8:14,46]),cumsum(DataEx[15:21,46]),cumsum(DataEx[22:28,46]),cumsum(DataEx[29:35,46]),cumsum(DataEx[36:42,46]),cumsum(DataEx[43:49,46]),cumsum(DataEx[50:56,46]),cumsum(DataEx[57:63,46]),cumsum(DataEx[64:70,46]),cumsum(DataEx[71:77,46]),cumsum(DataEx[78:84,46]),cumsum(DataEx[85:91,46]),cumsum(DataEx[92:98,46]),cumsum(DataEx[99:105,46]),cumsum(DataEx[106:112,46]),cumsum(DataEx[113:119,46]),cumsum(DataEx[120:126,46]),cumsum(DataEx[127:133,46]),cumsum(DataEx[134:140,46]))
+
+DataEx$Cum_constarg<-c(cumsum(DataEx[1:7,47]),cumsum(DataEx[8:14,47]),cumsum(DataEx[15:21,47]),cumsum(DataEx[22:28,47]),cumsum(DataEx[29:35,47]),cumsum(DataEx[36:42,47]),cumsum(DataEx[43:49,47]),cumsum(DataEx[50:56,47]),cumsum(DataEx[57:63,47]),cumsum(DataEx[64:70,47]),cumsum(DataEx[71:77,47]),cumsum(DataEx[78:84,47]),cumsum(DataEx[85:91,47]),cumsum(DataEx[92:98,47]),cumsum(DataEx[99:105,47]),cumsum(DataEx[106:112,47]),cumsum(DataEx[113:119,47]),cumsum(DataEx[120:126,47]),cumsum(DataEx[127:133,47]),cumsum(DataEx[134:140,47]))
+
+DataEx$Cum_N.tot<-c(cumsum(DataEx[1:7,64]),cumsum(DataEx[8:14,64]),cumsum(DataEx[15:21,64]),cumsum(DataEx[22:28,64]),cumsum(DataEx[29:35,64]),cumsum(DataEx[36:42,64]),cumsum(DataEx[43:49,64]),cumsum(DataEx[50:56,64]),cumsum(DataEx[57:63,64]),cumsum(DataEx[64:70,64]),cumsum(DataEx[71:77,64]),cumsum(DataEx[78:84,64]),cumsum(DataEx[85:91,64]),cumsum(DataEx[92:98,64]),cumsum(DataEx[99:105,64]),cumsum(DataEx[106:112,64]),cumsum(DataEx[113:119,64]),cumsum(DataEx[120:126,64]),cumsum(DataEx[127:133,64]),cumsum(DataEx[134:140,64]))
+
+DataEx$Cum_prod<-c(cumsum(DataEx[1:7,50]),cumsum(DataEx[8:14,50]),cumsum(DataEx[15:21,50]),cumsum(DataEx[22:28,50]),cumsum(DataEx[29:35,50]),cumsum(DataEx[36:42,50]),cumsum(DataEx[43:49,50]),cumsum(DataEx[50:56,50]),cumsum(DataEx[57:63,50]),cumsum(DataEx[64:70,50]),cumsum(DataEx[71:77,50]),cumsum(DataEx[78:84,50]),cumsum(DataEx[85:91,50]),cumsum(DataEx[92:98,50]),cumsum(DataEx[99:105,50]),cumsum(DataEx[106:112,50]),cumsum(DataEx[113:119,50]),cumsum(DataEx[120:126,50]),cumsum(DataEx[127:133,50]),cumsum(DataEx[134:140,50]))
+
+DataEx$Cum_cons<-c(cumsum(DataEx[1:7,51]),cumsum(DataEx[8:14,51]),cumsum(DataEx[15:21,51]),cumsum(DataEx[22:28,51]),cumsum(DataEx[29:35,51]),cumsum(DataEx[36:42,51]),cumsum(DataEx[43:49,51]),cumsum(DataEx[50:56,51]),cumsum(DataEx[57:63,51]),cumsum(DataEx[64:70,51]),cumsum(DataEx[71:77,51]),cumsum(DataEx[78:84,51]),cumsum(DataEx[85:91,51]),cumsum(DataEx[92:98,51]),cumsum(DataEx[99:105,51]),cumsum(DataEx[106:112,51]),cumsum(DataEx[113:119,51]),cumsum(DataEx[120:126,51]),cumsum(DataEx[127:133,51]),cumsum(DataEx[134:140,51]))
+
+###DataOp
+DataOp$Cum_prod<-c(cumsum(DataOp[1:7,50]),cumsum(DataOp[8:14,50]),cumsum(DataOp[15:21,50]),cumsum(DataOp[22:28,50]),cumsum(DataOp[29:35,50]),cumsum(DataOp[36:42,50]),cumsum(DataOp[43:49,50]),cumsum(DataOp[50:56,50]),cumsum(DataOp[57:63,50]),cumsum(DataOp[64:70,50]),cumsum(DataOp[71:77,50]),cumsum(DataOp[78:84,50]),cumsum(DataOp[85:91,50]),cumsum(DataOp[92:98,50]),cumsum(DataOp[99:105,50]),cumsum(DataOp[106:112,50]),cumsum(DataOp[113:119,50]),cumsum(DataOp[120:126,50]),cumsum(DataOp[127:133,50]),cumsum(DataOp[134:140,50]))
+
+DataOp$Cum_cons<-c(cumsum(DataOp[1:7,51]),cumsum(DataOp[8:14,51]),cumsum(DataOp[15:21,51]),cumsum(DataOp[22:28,51]),cumsum(DataOp[29:35,51]),cumsum(DataOp[36:42,51]),cumsum(DataOp[43:49,51]),cumsum(DataOp[50:56,51]),cumsum(DataOp[57:63,51]),cumsum(DataOp[64:70,51]),cumsum(DataOp[71:77,51]),cumsum(DataOp[78:84,51]),cumsum(DataOp[85:91,51]),cumsum(DataOp[92:98,51]),cumsum(DataOp[99:105,51]),cumsum(DataOp[106:112,51]),cumsum(DataOp[113:119,51]),cumsum(DataOp[120:126,51]),cumsum(DataOp[127:133,51]),cumsum(DataOp[134:140,51]))
+
+DataOp$Cum_prodtarg<-c(cumsum(DataOp[1:7,46]),cumsum(DataOp[8:14,46]),cumsum(DataOp[15:21,46]),cumsum(DataOp[22:28,46]),cumsum(DataOp[29:35,46]),cumsum(DataOp[36:42,46]),cumsum(DataOp[43:49,46]),cumsum(DataOp[50:56,46]),cumsum(DataOp[57:63,46]),cumsum(DataOp[64:70,46]),cumsum(DataOp[71:77,46]),cumsum(DataOp[78:84,46]),cumsum(DataOp[85:91,46]),cumsum(DataOp[92:98,46]),cumsum(DataOp[99:105,46]),cumsum(DataOp[106:112,46]),cumsum(DataOp[113:119,46]),cumsum(DataOp[120:126,46]),cumsum(DataOp[127:133,46]),cumsum(DataOp[134:140,46]))
+
+DataOp$Cum_constarg<-c(cumsum(DataOp[1:7,47]),cumsum(DataOp[8:14,47]),cumsum(DataOp[15:21,47]),cumsum(DataOp[22:28,47]),cumsum(DataOp[29:35,47]),cumsum(DataOp[36:42,47]),cumsum(DataOp[43:49,47]),cumsum(DataOp[50:56,47]),cumsum(DataOp[57:63,47]),cumsum(DataOp[64:70,47]),cumsum(DataOp[71:77,47]),cumsum(DataOp[78:84,47]),cumsum(DataOp[85:91,47]),cumsum(DataOp[92:98,47]),cumsum(DataOp[99:105,47]),cumsum(DataOp[106:112,47]),cumsum(DataOp[113:119,47]),cumsum(DataOp[120:126,47]),cumsum(DataOp[127:133,47]),cumsum(DataOp[134:140,47]))
+
+DataOp$Cum_N.tot<-c(cumsum(DataOp[1:7,64]),cumsum(DataOp[8:14,64]),cumsum(DataOp[15:21,64]),cumsum(DataOp[22:28,64]),cumsum(DataOp[29:35,64]),cumsum(DataOp[36:42,64]),cumsum(DataOp[43:49,64]),cumsum(DataOp[50:56,64]),cumsum(DataOp[57:63,64]),cumsum(DataOp[64:70,64]),cumsum(DataOp[71:77,64]),cumsum(DataOp[78:84,64]),cumsum(DataOp[85:91,64]),cumsum(DataOp[92:98,64]),cumsum(DataOp[99:105,64]),cumsum(DataOp[106:112,64]),cumsum(DataOp[113:119,64]),cumsum(DataOp[120:126,64]),cumsum(DataOp[127:133,64]),cumsum(DataOp[134:140,64]))
+
+
 #### Dataframes for modelling ####
 # Dataframe total productivity
 Dataprod <- Databiom[complete.cases(Databiom[c("prodtot")]),]   #271 obs
 
 # Dataframe total consumption
 Datacons <- Databiom[complete.cases(Databiom[c("constot")]),]   #135 obs
+
+# Combine again DataEx and DataOp. Getting accumulated values on block level
+Databiom2 <- bind_rows(DataEx,DataOp) 
+
+#Adding SE to Datamean
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+CumprodSE <- aggregate(Cum_prod~YrMonth+site.id+landuse+treatment,Databiom2,SE)
+CumprodSE$Cum_prod<-round(CumprodSE$Cum_prod,digits=2)
+colnames(CumprodSE)[5]<-"Cum_prodSE"
+
+CumconsSE <- aggregate(Cum_cons~YrMonth+site.id+landuse+treatment,Databiom2,SE)
+CumconsSE$Cum_cons<-round(CumconsSE$Cum_cons,digits=2)
+colnames(CumconsSE)[5]<-"Cum_consSE"
+
+Datamean$Cumprod_SE<-CumprodSE$Cum_prodSE
+Datamean$Cumcons_SE<-CumconsSE$Cum_consSE
 
 ####Functions ####
 # Loading function for determining marginal and conditional R square of mixed 
@@ -349,29 +441,29 @@ dotchart(Databiom$prodtarg,groups=as.factor(Databiom$plot.id)) # Outlier -4.29
 dotchart(Databiom$prodtarg,groups=Databiom$landuse,main = "landuse") # Outlier -4.29 #Separating between landuses --> Both outliers in pasture
 #To identify the outliers. plot(), then identify(). Click on outliers to define, then esc. 
 plot(Databiom$prodtot) 
-  #identify(Databiom$prodtot) # 25  37 243 247
+#identify(Databiom$prodtot) # 25  37 243 247
 plot(Databiom$prodtarg) 
-  #identify(Databiom$prodtarg) # 253 254
+#identify(Databiom$prodtarg) # 253 254
 plot(Databiom$constot) 
-  #identify(Databiom$constot) # 25 273
+#identify(Databiom$constot) # 25 273
 plot(Databiom$constarg) 
-  #identify(Databiom$constarg) #45 273
+#identify(Databiom$constarg) #45 273
 
-  # 25 is outlier in both prodtot and constot   #Large biomass! ~109g, due to underneath tree?
+# 25 is outlier in both prodtot and constot   #Large biomass! ~109g, due to underneath tree?
 
 #Looking at specific rows with the outliers
 Databiom[c(25,37,243,247),]  #49, 63, 311, 315
-  #All >7, exclosed, H1/H1/H7/H7, dry/int/wet/wet, Makao/Seronera/Hand/Hand
+#All >7, exclosed, H1/H1/H7/H7, dry/int/wet/wet, Makao/Seronera/Hand/Hand
 Databiom[c(253,254),]
-  #Both wet_P_3_H7  -4.29 -4.66 #There was a lot more target sp. in the setup than harvest plots
+#Both wet_P_3_H7  -4.29 -4.66 #There was a lot more target sp. in the setup than harvest plots
 Databiom[c(25,273),]
-  #Both ex, Dry_p_1 and se_1, H1/H7 4.59 and -2.79
+#Both ex, Dry_p_1 and se_1, H1/H7 4.59 and -2.79
 Databiom[c(45),"constarg"]
-  #Handajega Ex H2  3.35
+#Handajega Ex H2  3.35
 
 #Plotting difftarget and difftotal
 plot(Databiom$difftarget~Databiom$rain.sum)
-  #identify(Databiom$difftarget~Databiom$rain.sum) #213 253
+#identify(Databiom$difftarget~Databiom$rain.sum) #213 253
 
 #### MAP of the study period #### 
 # H3 to H7 (May 2017- May 2018) (Including H1 and H2 would give an overlap period, and want to include the large rainfall values from last harvest to show the unusual year)
@@ -399,25 +491,6 @@ AvgMAP1 <- aggregate(rain.sum~site.name,AvgMAP,sum)
 # dp<-dp+scale_y_continuous(limits=c(-2.5,8),sec.axis = sec_axis(~ . *70, breaks = c(0,100,200,300,400,500), labels = c(0,100,200,300,400,500), name = "Precipitation (mm)"))
 # rain <-rain + scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(min(Databiom$YrMonth),max=max(Databiom$YrMonth))) 
 
-#### Average df site per harvest ####
-DataEx <- Databiom[Databiom$treatment!="open",] #Removing Open
-DataOp <- Databiom[Databiom$treatment!="exclosed",] #Removing Exclosure
-
-Exmean <- aggregate.data.frame(DataEx[,c(18,19,21,26:33,40:46,51:59)], list(as.factor(DataEx$YrMonth), DataEx$site.id), mean, na.action="na.pass")
-Exmean$treatment <- "exclosed"
-Exmean$treatment <- factor(Exmean$treatment)
-Exmean$Rdate <- as.character(Exmean$Rdate)
-
-Opmean <- aggregate.data.frame(DataOp[,c(18,19,21,26:33,40:46,51:59)], list(as.factor(DataOp$YrMonth), DataOp$site.id), mean, na.action="na.pass")
-Opmean$treatment <- "open"
-Opmean$treatment <- factor(Opmean$treatment)
-Opmean$Rdate <- as.character(Opmean$Rdate)
-
-Datamean <- bind_rows(Exmean,Opmean) #NB! Using rbind resulted in aborting the whole session!!
-
-names(Datamean)
-View(Datamean)
-?rbind
 #### Average NAP ####
 # Average of each site per harvest
 Totprod <- aggregate(prodtot~region+landuse+site.id+YrMonth+treatment,na.rm=T,Databiom,mean)
@@ -527,22 +600,22 @@ names(Avgprod3)
 #rain <- ggplot( data = avgRain, aes( x=YrMonth, y=rain.sum,colour="dark blue" )) + geom_line()
 
 ####OVERVIEW dataframes ####
-  #Avgprod - 138 obs, 8 var
-  #Avgprod2 - 
-  #Avgprod3 - From Avgprod, joined with RainregionX
-  #Avgprod4 - From Avgprod3, without target
-  #Avgprod5 - From Avgprod4 without Seronera
-  #Avgprod6 - From Avgprod5, without Seronera and open
-  #Avgprod6b - From Avgprod4, with Seronera, without open
+#Avgprod - 138 obs, 8 var
+#Avgprod2 - 
+#Avgprod3 - From Avgprod, joined with RainregionX
+#Avgprod4 - From Avgprod3, without target
+#Avgprod5 - From Avgprod4 without Seronera
+#Avgprod6 - From Avgprod5, without Seronera and open
+#Avgprod6b - From Avgprod4, with Seronera, without open
 
-  #Avgcons - 70 obs, 7 var
-  #Avgcons2 - without Seronera
-  #Avgcons3 - From Avgcons, joined with RainregionX
-  #Avgcons4 - From Avgcons3, without target
-  #Avgcons5 - From Avgcons4, without Seronera
+#Avgcons - 70 obs, 7 var
+#Avgcons2 - without Seronera
+#Avgcons3 - From Avgcons, joined with RainregionX
+#Avgcons4 - From Avgcons3, without target
+#Avgcons5 - From Avgcons4, without Seronera
 
-  #Avgprodcons  - From Avgprod6,Avgcons5    Without Seronera
-  #Avgprodcons2 - Avgprod6b,Avgcons4        With Seronera 
+#Avgprodcons  - From Avgprod6,Avgcons5    Without Seronera
+#Avgprodcons2 - Avgprod6b,Avgcons4        With Seronera 
 
 #### NAP target+total ####
 legend_title<-"land-use"
@@ -582,8 +655,8 @@ nap<-nap+ theme_bw() +
   theme(axis.line = element_line(color = 'black'))
 nap
 #ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPtarg.png",
-     #  width= 26, height = 18,units ="cm",
-    # dpi = 600, limitsize = TRUE)
+#  width= 26, height = 18,units ="cm",
+# dpi = 600, limitsize = TRUE)
 
 #### NAP with Seronera ####
 # Remove target species
@@ -592,7 +665,7 @@ Avgprod4<-droplevels(Avgprod4)
 legend_title<-"land-use"
 legend_title2<-"treatment"
 nap2<- ggplot(Avgprod4, aes(x=YrMonth, y=Productivity, colour=landuse,shape=treatment,
-                          group=site.id))
+                            group=site.id))
 nap2<-nap2+ geom_hline(yintercept = 0, size =1, linetype="dotted", colour="grey")
 nap2<-nap2+geom_line(aes(linetype=landuse),size=1.2, alpha=.5, show.legend=F)
 nap2<-nap2+geom_errorbar(aes(ymin=Productivity-SE.x, ymax=Productivity+SE.x),linetype="solid",width=.2,lwd=1.1,show.legend=F)
@@ -637,8 +710,8 @@ nap2<-nap2+ theme_bw() +
 nap2
 
 #ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPwithSeronera.png",
-    #   width= 26, height = 18,units ="cm",
-    #  dpi = 600, limitsize = TRUE)
+#   width= 26, height = 18,units ="cm",
+#  dpi = 600, limitsize = TRUE)
 
 #### NAP without Seronera ####
 Avgprod5 <- Avgprod4[Avgprod4$region!="Intermediate Region",]
@@ -691,14 +764,14 @@ nap3<-nap3+ theme_bw() +
 nap3
 
 #ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAP.png",
-    #   width= 26, height = 18,units ="cm",
-    #   dpi = 600, limitsize = TRUE)
+#   width= 26, height = 18,units ="cm",
+#   dpi = 600, limitsize = TRUE)
 #### CONS plot without Seronera ####
 Avgcons2 <- Avgcons[Avgcons$region!="Intermediate Region",]
 legend_title<-"land-use"
 legend_title2<-"treatment"
 cons<- ggplot(Avgcons2, aes(x=YrMonth, y=Consumption, colour=landuse,shape=pool,
-                          linetype=pool,group=site.id))
+                            linetype=pool,group=site.id))
 cons<-cons+geom_line(size=1.2, alpha=.5, show.legend=F)
 cons<-cons+geom_errorbar(aes(ymin=Consumption-SE, ymax=Consumption+SE),width=.2,lwd=1.1,show.legend=F)
 cons<-cons+geom_point(size=4, fill="white", stroke=2)
@@ -719,7 +792,7 @@ Avgcons4 <- droplevels(Avgcons4)
 
 legend_title<-"land-use"
 cons2<- ggplot(Avgcons4, aes(x=YrMonth, y=Consumption, colour=landuse,
-                          group=site.id))
+                             group=site.id))
 cons2<-cons2+geom_hline(yintercept = 0, size =1, linetype="dotted", colour="grey") #the dashed zero-line
 cons2<-cons2+geom_line(aes(linetype=landuse),size=1.2, alpha=.5, show.legend=F) #2 lines per landuse
 cons2<-cons2+geom_errorbar(aes(ymin=Consumption-SE.x, ymax=Consumption+SE.x),width=.2,lwd=1.1,show.legend=F)
@@ -782,8 +855,8 @@ Avgprodcons$Biomass_change<-c("Productivity","Consumption")
 # Se.x.y = consumption
 #SeLo and SeUp= rainfall
 
-  #This one is not the same as the AvgProd5b dataframe! Here values of biomass change is in same column and not in each Productivity and Consumption
-  #Avgprodcons <- gather(Avgprodcons, biomass_change,biomass, Productivity, Consumption, factor_key=TRUE )
+#This one is not the same as the AvgProd5b dataframe! Here values of biomass change is in same column and not in each Productivity and Consumption
+#Avgprodcons <- gather(Avgprodcons, biomass_change,biomass, Productivity, Consumption, factor_key=TRUE )
 
 #With Seronera
 dim(Avgprod6b) #35 12
@@ -799,7 +872,7 @@ Avgprodcons2$Biomass_change<-c("Productivity","Consumption","Productivity","Cons
 #### NAP+CONS plot without Seronera ####
 legend_title<-"land-use"
 napcons<- ggplot(Avgprodcons, aes(x=YrMonth, y=Productivity, colour=landuse,fill=landuse,shape=Biomass_change,
-                            group=site.id.y))
+                                  group=site.id.y))
 napcons<-napcons+geom_hline(yintercept = 0, size =1, linetype="dotted", colour="grey")
 napcons<-napcons+geom_line(aes(y = Consumption), linetype=2,size=1.2,show.legend=F)
 napcons<-napcons+geom_point(aes(y = Consumption), shape =21,size=4,show.legend=F)
@@ -840,20 +913,20 @@ napcons<-napcons+annotate(geom="text",x=as.Date("2017-10-01"), y=8, label=c("Dry
 #napcons<-napcons+guides(shape=F, fill=F,colour = guide_legend(override.aes = list(shape=c(21, 21),
 #                                                                         size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),nrow=2,byrow=TRUE))
 napcons<-napcons+ guides(colour=F, fill=F,shape = guide_legend("Biomass change",override.aes = list(shape=c(21, 22),
-                                                                                            size=5,fill=c("gray50","white"),col="gray50", stroke=2),nrow=2,byrow=TRUE))
+                                                                                                    size=5,fill=c("gray50","white"),col="gray50", stroke=2),nrow=2,byrow=TRUE))
 napconsb <-napcons+geom_point(data =Avgprodcons, aes(size=landuse, shape = NA), colour = "grey50")
 napconsb<-napconsb+ guides(size=guide_legend("Land-use", override.aes=list(shape=c(21, 21), size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),
-                                     nrow=2,byrow=TRUE),legend.margin=margin(0,0,0,0))
+                                             nrow=2,byrow=TRUE),legend.margin=margin(0,0,0,0))
 napconsb
 
 
 #ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONS.png",
-    #   width= 26, height = 18,units ="cm",
-    #   dpi = 600, limitsize = TRUE)
+#   width= 26, height = 18,units ="cm",
+#   dpi = 600, limitsize = TRUE)
 
 legend_title<-"land-use"
 napcons<- ggplot(Avgprodcons, aes(x=YrMonth, y=Productivity, colour=landuse,fill=landuse,shape=Biomass_change,
-                                    group=site.id.y))
+                                  group=site.id.y))
 napcons<-napcons+geom_hline(yintercept = 0, size =1, linetype="dotted", colour="grey")
 napcons<-napcons+geom_line(aes(y = Consumption), linetype=2,size=1.2,show.legend=F)
 napcons<-napcons+geom_point(aes(y = Consumption), shape =21,size=4,show.legend=F)
@@ -892,19 +965,19 @@ napcons<-napcons+ theme_bw() +
 napcons<-napcons+ annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
 napcons<-napcons+annotate(geom="text",x=as.Date("2017-10-01"), y=8, label=c("Dry Region","Wet Region","Dry Region","Wet Region"),color="black", size=5)
 napcons<-napcons+guides(shape=F, fill=F,colour = guide_legend(override.aes = list(shape=c(21, 21),
-                                                                                    size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),nrow=2,byrow=TRUE))
+                                                                                  size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),nrow=2,byrow=TRUE))
 napcons<-napcons+ guides(colour=F, fill=F,shape = guide_legend("Biomass change",override.aes = list(shape=c(21, 22),
-                                                                                                      size=5,fill=c("gray50","white"),col="gray50", stroke=2),nrow=2,byrow=TRUE))
+                                                                                                    size=5,fill=c("gray50","white"),col="gray50", stroke=2),nrow=2,byrow=TRUE))
 
 napconsb <-napcons+geom_point(data =Avgprodcons, aes(size=landuse, shape = NA), colour = "grey50")
 napconsb<-napconsb+ guides(size=guide_legend("Land-use", override.aes=list(shape=c(21, 21), size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),
-                                               nrow=2,byrow=TRUE),legend.margin=margin(0,0,0,0))
+                                             nrow=2,byrow=TRUE),legend.margin=margin(0,0,0,0))
 napconsb <- napconsb+theme(panel.spacing.x=unit(2, "lines"),panel.spacing.y=unit(1, "lines"))
 napconsb
 
 #ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONS2.png",
-     #  width= 26, height = 18,units ="cm",
-      # dpi = 600, limitsize = TRUE)
+#  width= 26, height = 18,units ="cm",
+# dpi = 600, limitsize = TRUE)
 
 #### NAP+CONS plot with Seronera ####
 #prod6b cons4
@@ -919,7 +992,7 @@ Avgprodcons2$region <-factor (Avgprodcons2$region,levels=c("Dry Region","Wet Reg
 
 legend_title<-"land-use"
 napcons2<- ggplot(Avgprodcons2, aes(x=YrMonth, y=Productivity, colour=landuse,fill=landuse,shape=Biomass_change,
-                                  group=site.id.y))
+                                    group=site.id.y))
 napcons2<-napcons2+geom_hline(yintercept = 0, size =1, linetype="dotted", colour="grey")
 napcons2<-napcons2+geom_line(aes(y = Consumption), linetype=2,size=1.2,show.legend=F)
 napcons2<-napcons2+geom_point(aes(y = Consumption), shape =21,size=4,show.legend=F)
@@ -958,20 +1031,20 @@ napcons2<-napcons2+ theme_bw() +
 napcons2<-napcons2+ annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
 napcons2<-napcons2+annotate(geom="text",x=as.Date("2017-10-01"), y=8, label=c("Dry Region","Wet Region","Dry Region","Wet Region", "Intermediate Region"),color="black", size=5)
 napcons2<-napcons2+guides(shape=F, fill=F,colour = guide_legend(override.aes = list(shape=c(21, 21),
-                                                                       size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),nrow=2,byrow=TRUE))
+                                                                                    size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),nrow=2,byrow=TRUE))
 napcons2<-napcons2+ guides(colour=F, fill=F,shape = guide_legend("Biomass change",override.aes = list(shape=c(21, 22),
-                                                                                                    size=5,fill=c("gray50","white"),col="gray50", stroke=2),nrow=2,byrow=TRUE))
+                                                                                                      size=5,fill=c("gray50","white"),col="gray50", stroke=2),nrow=2,byrow=TRUE))
 
 napcons2b <-napcons2+geom_point(data =Avgprodcons2, aes(size=landuse, shape = NA), colour = "grey50")
 napcons2b<-napcons2b+ guides(size=guide_legend("Land-use", override.aes=list(shape=c(21, 21), size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),
-                                             nrow=2,byrow=TRUE),legend.margin=margin(0,0,0,0))
+                                               nrow=2,byrow=TRUE),legend.margin=margin(0,0,0,0))
 napcons2b <- napcons2b+theme(panel.spacing.x=unit(2, "lines"),panel.spacing.y=unit(1, "lines"))
 napcons2b
 #could also use the lemon package with facet_rep_wrap(), but might need to reinstall R for this to work 
 
 #ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSSeronera2BEST.png",
-     #  width= 26, height = 18,units ="cm",
-    # dpi = 600, limitsize = TRUE)
+#  width= 26, height = 18,units ="cm",
+# dpi = 600, limitsize = TRUE)
 
 
 ####|####
@@ -1165,13 +1238,13 @@ corMatrix(cs1AR1.) #What does this give?
 
 #LME with temporal auto-correlation (using nlme package)
 NAP.lme <- lme(prodtot~landuse+treatment+sand+rain.sum+
-                  landuse:treatment+
-                  landuse:rain.sum+
-                  treatment:rain.sum+
-                  landuse:sand+
-                  rain.sum:sand+
-                  landuse:treatment:rain.sum, 
-              random=~1|site.name/block.id, method="REML",correlation=cs1AR1,data=Dataprod)
+                 landuse:treatment+
+                 landuse:rain.sum+
+                 treatment:rain.sum+
+                 landuse:sand+
+                 rain.sum:sand+
+                 landuse:treatment:rain.sum, 
+               random=~1|site.name/block.id, method="REML",correlation=cs1AR1,data=Dataprod)
 summary(NAP.lme)#for parameter estimates, don't use the p-values
 anova(NAP.lme) #get F statistics and P-values
 AIC(NAP.lme) #1185.861
@@ -1195,12 +1268,12 @@ acf(E2, na.action=na.pass,main="Auto-correlation plot for residuals") # Temproal
 #Selecting fixed structure using ML. Simplifying with drop1
 #Rain.sum non-transformed
 NAPfull1 <- lme(prodtot~treatment+rain.sum,
-                  #landuse:treatment+
-                  #landuse:rain.sum,
-                  #treatment:rain.sum,
-                  #landuse:sand+
-                  #rain.sum:sand+
-                  #landuse:treatment:rain.sum, 
+                #landuse:treatment+
+                #landuse:rain.sum,
+                #treatment:rain.sum,
+                #landuse:sand+
+                #rain.sum:sand+
+                #landuse:treatment:rain.sum, 
                 random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Dataprod)
 drop1(NAPfull1,test="Chisq") #dropping if not significant term
 AIC(NAPfull1) #1094.439
@@ -1208,15 +1281,15 @@ P1 <- NAPfull1
 anova(P1)
 
 #Poly(rain.sum,2) 
-  # As we expect effect size to level off at certain threshold
+# As we expect effect size to level off at certain threshold
 NAPfull2 <- lme(prodtot~landuse+treatment+sand+poly(rain.sum,2)+
                   #landuse:treatment+
                   landuse:poly(rain.sum,2)+
                   #treatment:poly(rain.sum,2)+
                   #landuse:sand+
                   sand:poly(rain.sum,2),
-                  #landuse:treatment:poly(rain.sum,2), 
-                 random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Dataprod)
+                #landuse:treatment:poly(rain.sum,2), 
+                random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Dataprod)
 drop1(NAPfull2,test="Chisq") #dropping if not significant term
 AIC(NAPfull2) #1032.561
 P2 <- NAPfull2
@@ -1224,13 +1297,13 @@ anova(P2)
 
 #Poly(rain.day,2)
 NAPfull2.2 <- lme(prodtot~landuse+treatment+poly(rain.day,2)+
-                  #landuse:treatment+
-                  #landuse:sand+
-                  landuse:poly(rain.day,2),
+                    #landuse:treatment+
+                    #landuse:sand+
+                    landuse:poly(rain.day,2),
                   #treatment:poly(rain.day,2),
                   #sand:poly(rain.day,2)+
-                #landuse:treatment:poly(rain.day,2), 
-                random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Dataprod)
+                  #landuse:treatment:poly(rain.day,2), 
+                  random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Dataprod)
 drop1(NAPfull2.2,test="Chisq") #dropping if not significant term
 AIC(NAPfull2.2) #1026.974
 P2.2 <- NAPfull2.2
@@ -1261,8 +1334,8 @@ NAPfull3 <- lme(prodtot~landuse+treatment+sand+rain.sum+log(rain.sum)+
                   #landuse:sand+
                   sand:rain.sum+
                   sand:log(rain.sum),
-                  #landuse:treatment:rain.sum+
-                  #landuse:treatment:log(rain.sum), 
+                #landuse:treatment:rain.sum+
+                #landuse:treatment:log(rain.sum), 
                 random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Dataprod)
 drop1(NAPfull3,test="Chisq") #dropping if not significant term
 AIC(NAPfull3) #1075.48
@@ -1274,13 +1347,13 @@ model.sel(P1,P2,P2.2,P3) #P2.2 seems best
 #### Model without Handajega H7
 #Poly(rain.day,2)
 NAPfull2.3 <- lme(prodtot~landuse+treatment+poly(rain.day,2)+
-                   #landuse:treatment+
-                   #landuse:sand+
-                   landuse:poly(rain.day,2),
-                 #treatment:poly(rain.day,2),
-                 #sand:poly(rain.day,2)+
-                 #landuse:treatment:poly(rain.day,2), 
-                 random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Dataprod1)
+                    #landuse:treatment+
+                    #landuse:sand+
+                    landuse:poly(rain.day,2),
+                  #treatment:poly(rain.day,2),
+                  #sand:poly(rain.day,2)+
+                  #landuse:treatment:poly(rain.day,2), 
+                  random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Dataprod1)
 drop1(NAPfull2.3,test="Chisq") #dropping if not significant term
 AIC(NAPfull2.3) #1026.974
 P2.3 <- NAPfull2.3
@@ -1303,21 +1376,21 @@ anova(P2b,P2e) #rain                p-value <.0001
 #Step 9 and 10 - Zuur. The aftermath
 # Refitting with REML and validating the model
 P2.2 <- lme(prodtot~-1+landuse+treatment+poly(rain.day,2)+
-      landuse:poly(rain.day,2),
-    random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=Dataprod)
+              landuse:poly(rain.day,2),
+            random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=Dataprod)
 summary(P2.2)
 
 #Without WET_H7
 P2.3 <- lme(prodtot~landuse+treatment+poly(rain.day,2)+
-                   landuse:poly(rain.day,2),
-                 random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=Dataprod1)
+              landuse:poly(rain.day,2),
+            random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=Dataprod1)
 summary(P2.3)
 
 #With weight: VarIdent, allowing unequal variance
 P2.4 <- lme(prodtot~landuse+treatment+poly(rain.day,2)+
-                  landuse:poly(rain.day,2),
-                random=~1|site.name/block.id,method="REML",correlation=cs1AR1,
-                weights = varIdent(form =~1 | treatment*landuse), data=Dataprod)
+              landuse:poly(rain.day,2),
+            random=~1|site.name/block.id,method="REML",correlation=cs1AR1,
+            weights = varIdent(form =~1 | treatment*landuse), data=Dataprod)
 
 #Graphical model validation checking for homogeneity by plotting standardized residuals vs fitted values
 par(mfrow=c(1,1))
@@ -1461,7 +1534,7 @@ Datacons1 <- Datacons[!(Datacons$site.name=="Handajega" & Datacons$harvest=="H7"
 
 #Linear model
 consmod <- lm(constot~landuse+rain.sum+sand+prodtot+N.total+
-               landuse:rain.sum,data=Datacons)
+                landuse:rain.sum,data=Datacons)
 summary(consmod)
 plot(resid(consmod)~Datacons$landuse,xlab="landuse",ylab="residuals")
 plot(resid(consmod)~Datacons$YrMonthNumber,xlab="YrMonth",ylab="residuals") #pattern through time
@@ -1483,7 +1556,7 @@ CONS.lme <- lme(constot~landuse+prodtot+sand+poly(rain.sum,2)+N.total+
                   sand:N.total+
                   prodtot:sand+
                   landuse:sand:poly(rain.sum,2), 
-              random=~1|site.name/block.id, method="REML",correlation=cs1AR1,data=Datacons)
+                random=~1|site.name/block.id, method="REML",correlation=cs1AR1,data=Datacons)
 summary(CONS.lme)#don't use the p-values from here
 anova(CONS.lme) #nothing significant
 AIC(CONS.lme) #541.2802
@@ -1505,16 +1578,16 @@ acf(EC, na.action=na.pass,main="Auto-correlation plot for residuals") # Temproal
 
 #Selecting fixed structure using ML. Simplifying with drop1
 CONS.lme <- lme(constot~prodtot,
-                  #landuse:prodtot+
-                  #landuse:sand+
-                  #landuse:poly(rain.sum,2)+
-                  #landuse:N.total+
-                  #poly(rain.sum,2):sand+
-                  #poly(rain.sum,2):N.total+
-                  #prodtot:N.total+
-                  #sand:N.total,
-                  #prodtot:sand+
-                  #landuse:sand:poly(rain.sum,2),
+                #landuse:prodtot+
+                #landuse:sand+
+                #landuse:poly(rain.sum,2)+
+                #landuse:N.total+
+                #poly(rain.sum,2):sand+
+                #poly(rain.sum,2):N.total+
+                #prodtot:N.total+
+                #sand:N.total,
+                #prodtot:sand+
+                #landuse:sand:poly(rain.sum,2),
                 random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Datacons)
 drop1(CONS.lme,test="Chisq") #dropping if not significant term
 C1 <- CONS.lme
@@ -1609,6 +1682,61 @@ CONSpred
 hist(Dataprod$prodtargfrac)
 
 
+####ANNUAL #### 
+# ANCOVA: Total annual production 
+#Subset with last period only
+
+Meanannual <- subset(Datamean, YrMonth=="2018-05")
+Dataannual <- subset(Databiom2, YrMonth=="2018-05")
+Dataannual <- Dataannual[complete.cases(Dataannual[c("Cum_prod")]),] #Removing DRY_P 3 and 4 and DRY_W 1 and 3
+m1<-lm(Cum_prod~treatment+landuse+poly(Cum_rain,2)+landuse:poly(Cum_rain,2),
+       Meanannual, na.action=na.omit)
+summary(m1)
+anova(m1)
+shapiro.test(resid(m1)) #Normal distribution of residuals. Normally distributed if p>0.05
+library(car)
+leveneTest(resid(m1)~landuse, data=Meanannual) #Homogenous residuals. p-value >0.05 means equal  variances
+
+
+## Figure Annual NAP
+site<-c("Makao","Mwantimba","Maswa","Seronera","Handajega")
+landuse<-c("Pasture","Wild")
+
+### Total primary production
+#getting mean obs from grassmean, and ci from standing
+cum_prod<-tapply(Meanannual$Cum_prod,list(Meanannual$treatment, Meanannual$site.id),mean) 
+cum_prod.ci<-tapply(Dataannual$Cum_prod,list(Dataannual$treatment, Dataannual$site.id),sd) 
+
+nap <- ggplot(Avgprod, aes(x=YrMonth, y=Productivity, colour=landuse,shape=treatment,
+                           group=site.id))
+#Plot annual NAP
+legend_title<-"landuse"
+annual <- ggplot(Meanannual, aes(x=site.id, y=Cum_prod, fill=landuse, group=treatment))
+annual <- annual+geom_col(position="dodge",size=1.2, alpha=.5, show.legend=F)
+annual <- annual+geom_errorbar(aes(Cum_prod, ymin=Cum_prod-Cumprod_SE, ymax=Cum_prod+Cumprod_SE),width=.2,lwd=1.1,show.legend=F)
+annual <- annual +scale_fill_manual(legend_title, values=c( "tan3","turquoise3"))
+annual<-annual+ xlab("Site") + ylab(expression(paste("Cumulative Productivity (g ",m^-2,")")))
+annual <- annual + theme_bw() +
+  theme(plot.background = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank() 
+        ,axis.text.y=element_text(size=12)
+        ,axis.text.x=element_text(size=10,angle=35, hjust=1)
+        ,axis.line=element_line( size=.5)
+        ,axis.title=element_text(size=14)
+        ,legend.text=element_text(size=12)
+        ,legend.title=element_text(size=14)
+        #,legend.position = c(0.25, 0.82)
+        ,plot.margin = unit(c(5,5,7,5), "mm")
+        ,strip.background = element_blank()
+        #,strip.text = element_text(size=12)
+        ,strip.text = element_text(size=12)
+        #,axis.text.x=element_blank()
+        #,axis.ticks.x=element_blank()
+        ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
+  theme(axis.line = element_line(color = 'black'))
 
 
 ####|####
