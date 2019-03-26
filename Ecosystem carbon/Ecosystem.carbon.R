@@ -806,7 +806,7 @@ names(Soil.Ahor)
 ModelVar<-c("CMAP.mm_yr","CSand","CFire_frequency.2000_2017","CShrubbiness","CTreeBM.kg_m2","Herbaceous","Ctot.N.kg_m2")
 
 names(Soil.Ahor2.CnoNA)
-ModelVar2<-c("CMAP.mm_yr","CSand","CFire_frequency.2000_2017","CShrubbiness","CTreeBM.kg_m2","CHerb.C","Ctot.N.kg_m2","Clivestock","Cwild", "CTermites")
+ModelVar2<-c("CMAP.mm_yr","CSand","CFire_frequency.2000_2017","CShrubbiness","CTreeBM.kg_m2","Herbaceous","Ctot.N.kg_m2","Clivestock","Cwild", "CTermites")
 
 CandN<-c("Ctot.C.kg_m2","Ctot.N.kg_m2")
 
@@ -814,7 +814,7 @@ CandN<-c("Ctot.C.kg_m2","Ctot.N.kg_m2")
 pairs(Soil.Ahor[,Tree.var],lower.panel = panel.cor)
 pairs(Soil.Ahor[,ModelVar],lower.panel = panel.cor)
 pairs(Belowground.full[,CandN],lower.panel = panel.cor)
-pairs(Soil.Ahor2.CnoNA[,ModelVar2],lower.panel = panel.cor)
+pairs(Total.Eco.C.CnoNA2[,ModelVar2],lower.panel = panel.cor)
 # If I want these values in a table:
 Model.var <- Soil.Ahor[,c(32:34,36,37,43,41)]
 CandN.var <- Belowground.full[,c(53,56)] 
@@ -1246,7 +1246,7 @@ modselaboveH<-model.sel(modsetaboveH) #Model selection table giving AIC, deltaAI
 modavgaboveH<-model.avg(modselaboveH)#Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modavgaboveH)#Importance of each variable
 write.table(importance(modavgaboveH),file="Ecosystem carbon/importanceaboveH.txt")
-summary(modavgaboveH)#Estimated coefficients given weighting
+#Estimated coefficients given weighting
 write.table(summary(modavgaboveH)$coefmat.subset, file="Ecosystem carbon/ConAvgH.txt") 
 
 # 5. Global model for DW #### 
@@ -1481,10 +1481,8 @@ Total.Eco.C$Region.x<- factor(Total.Eco.C$Region.x, levels = c("Makao","Maswa","
 plot(Soil.min~Region.x,data=Total.Eco.C)
 plot(Soil.Ahor~Region.x,data=Total.Eco.C)
 # Aggrigate per region: 
-Above.C <- aggregate(tot.C.kg_m2~Region.x,mean,data=Aboveground.C)
-A.hor <- aggregate(Soil.Ahor~Region.x,mean,data=Total.Eco.C)
-Min.hor <- aggregate(Soil.min~Region.x,mean,data=Total.Eco.C)
-landuseSand <- Total.Eco.C[c(1,4,10)]
+names(Total.Eco.C)
+landuseSand <- Total.Eco.C[c(1,4,10,44,46)]
 # Total soil data 
 total.soil.data <- read.csv("Ecosystem carbon/Soil.data/Total.soil.data.csv", head=T)
 names(total.soil.data)
@@ -1492,6 +1490,13 @@ total.soil.data$Region<- factor(total.soil.data$Region, levels = c("Makao","Masw
 total.soil.data <- droplevels(total.soil.data)
 total.soil.data <- left_join(total.soil.data,landuseSand, by="Block.ID")
 total.soil.data <- total.soil.data[total.soil.data$Horizon!="O-hor",] 
+AHor <- total.soil.data[total.soil.data$Horizon=="A-hor",]
+# Plot A-hor carbon against livestock and wild 
+names(AHor)
+par(mfrow=c(1,2))
+plot(C.kg_m2.scaled~livestock, data=AHor)
+plot(C.kg_m2.scaled~wild, data=AHor)
+
 # Aggrigate to get A and min horizon varlues for carbon
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 AHorizon <- total.soil.data[total.soil.data$Horizon=="A-hor",]
@@ -1906,22 +1911,30 @@ anova(Fire.climate)
 library(MuMIn)
 library(piecewiseSEM)
 vignette('piecewiseSEM') # too look at the package 
+
+# Add termites 
+Termites <- read.csv("Termites/RecalTermEff_Dryseason_Block.csv", head=T)
+Termites <- Termites[Termites$Landuse!="Agriculture",]
+Termites <- Termites[c(4,6,7)]
+Termites <- Termites[Termites$Site!="Seronera",]
+Termites <- droplevels(Termites)
+Termites$Site<- factor(Termites$Site, levels = c("Makao","Maswa","Mwantimba","Handajega"))
+Termites <- Termites[order(Termites[,1]), ]
+Termites$Block.ID <- as.numeric(1:16)
+Termites <- Termites[c(3,4)]
+
 names(Total.Eco.C)
 Total.Eco.C <- left_join(Total.Eco.C,Livestock.dung,by="Block.ID",drop=F)
 Total.Eco.C <- left_join(Total.Eco.C,Wild.dung,by="Block.ID",drop=F)
+Total.Eco.C <- left_join(Total.Eco.C,Termites,by="Block.ID",drop=F)
 Total.Eco.C$Clivestock <- as.numeric(scale(Total.Eco.C$livestock))
 Total.Eco.C$Cwild <- as.numeric(scale(Total.Eco.C$wild))
+Total.Eco.C$CTermites <- as.numeric(scale(Total.Eco.C$Termite.effect))
 Total.Eco.C.CnoNA<-Total.Eco.C[!is.na(Total.Eco.C$CFire_frequency.2000_2017),]
 Total.Eco.C.CnoNA<-Total.Eco.C.CnoNA[(-16),]
 Total.Eco.C.CnoNA<-droplevels(Total.Eco.C.CnoNA)
 Total.Eco.C.CnoNA2<-Total.Eco.C.CnoNA[!is.na(Total.Eco.C.CnoNA$livestock),]
 Total.Eco.C.CnoNA2 <- droplevels(Total.Eco.C.CnoNA2)
-
-# Add termites 
-Termites <- read.csv("Termites/RecalTermEff_Dryseason_Block.csv", head=T)
-Termites <- Termites[Termites$Landuse!="Agriculture",]
-Termites <- Termites[c(4:7)]
-Termites <- Termites[Termites$Site!="Seronera",]
 
 # Variation for each model component
 # A total model of all direct effects based on literature 
@@ -2024,16 +2037,20 @@ SEMsummary$R2
 Modlist1 <-   psem(
   lme(Woody~ CFire_frequency.2000_2017 + Clivestock, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(DW~  Herbaceous,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(Herbaceous ~  CFire_frequency.2000_2017 + CMAP.mm_yr,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(Soil.Ahor~ Clivestock + Cwild, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(Soil.min~ Soil.Ahor, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CShrubbiness~ Cwild + CFire_frequency.2000_2017, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(Herbaceous ~CFire_frequency.2000_2017,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(Soil.Ahor~ Clivestock + Cwild , random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(Soil.min~ Soil.Ahor , random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CShrubbiness~  CFire_frequency.2000_2017 , random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(Ctot.N.kg_m2~ CSand, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CTermites~Cwild, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   CShrubbiness%~~% Woody, 
   Soil.Ahor%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path.. 
   Soil.min%~~%Ctot.N.kg_m2
 )
 summary(Modlist1,Total.Eco.C.CnoNA2)
+
+SEM.dung <- summary(Modlist1,Total.Eco.C.CnoNA2)  # Good fit
+write.csv(SEM.dung$coefficients, file = "Ecosystem carbon/SEMdung.csv")
 
 # Run a SEM with dung included FULL 
 summary(Belowground.full.CnoNA2)
