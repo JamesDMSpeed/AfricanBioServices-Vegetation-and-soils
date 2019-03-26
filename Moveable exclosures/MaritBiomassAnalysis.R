@@ -18,10 +18,10 @@ library(nlme)
 library(lme4)
 library(MuMIn) #for mod.sel()
 
-Biomass <- read.csv("Biomass.csv", header=T,sep=",")
+Biomass <- read.csv("Moveable exclosures/Biomass.csv", header=T,sep=",")
 tail(Biomass)
 
-Nuts <- read.csv("Nutrients.csv", header=T,sep=",")
+Nuts <- read.csv("Moveable exclosures/Nutrients.csv", header=T,sep=",")
 Datanuts <- Nuts[Nuts$treatment!="EX2",] #Removing Mesh exclosures  #300 obs
 Datanuts <- Datanuts[Datanuts$harvest!="H0",] #removing H0                #280 obs
 Datanuts <- droplevels(Datanuts)
@@ -1698,8 +1698,9 @@ leveneTest(resid(m1)~landuse, data=Meanannual) #Homogenous residuals. p-value >0
 
 
 ## Figure Annual NAP
-site<-c("Makao","Mwantimba","Maswa","Seronera","Handajega")
-landuse<-c("Pasture","Wild")
+levels(Meanannual$site)<-c("Makao","Maswa","Seronera","Mwantimba","Handajega")
+levels(Meanannual$site.id)<-c("Dry \n Pasture","Dry \n Wild","Intermediate \n Wild","Wet \n Pasture","Wet \n Wild")
+levels(Meanannual$landuse)<-c("Pasture","Wild")
 
 ### Total primary production
 #getting mean obs from grassmean, and ci from standing
@@ -1708,11 +1709,12 @@ cum_prod.ci<-tapply(Dataannual$Cum_prod,list(Dataannual$treatment, Dataannual$si
 
 #Plot annual NAP
 legend_title<-"landuse"
-annual <- ggplot(Meanannual, aes(x=site.id, y=Cum_prod, fill=landuse, group=treatment))
-annual <- annual+geom_col(position="dodge",size=1.2, alpha=.5, show.legend=F)
-annual <- annual+geom_errorbar(aes(Cum_prod, ymin=Cum_prod-Cumprod_SE, ymax=Cum_prod+Cumprod_SE),width=.2,lwd=1.1,show.legend=F)
+annual <- ggplot(Meanannual, aes(x=site.id, y=Cum_prod, colour=landuse,fill=landuse, group=treatment))
+annual <- annual+geom_errorbar(aes(ymin=Cum_prod, ymax=Cum_prod+Cumprod_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # ymin=Cum_prod-Cumprod_SE
+annual <- annual+geom_col(position=position_dodge(width=.95),size=1.2, alpha=.5, show.legend=F)
 annual <- annual +scale_fill_manual(legend_title, values=c( "tan3","turquoise3"))
-annual<-annual+ xlab("Site") + ylab(expression(paste("Cumulative Productivity (g ",m^-2,")")))
+annual <- annual +scale_colour_manual(legend_title, values=c( "tan3","turquoise3"))
+annual<-annual+ xlab("Site") + ylab(expression(paste("Cumulative productivity (g ",m^-2,")")))
 annual <- annual + theme_bw() +
   theme(plot.background = element_blank()
         ,panel.grid.minor = element_blank()
@@ -1720,7 +1722,7 @@ annual <- annual + theme_bw() +
         ,panel.grid.major.x = element_blank()
         ,panel.grid.major.y = element_blank() 
         ,axis.text.y=element_text(size=12)
-        ,axis.text.x=element_text(size=10,angle=35, hjust=1)
+        ,axis.text.x=element_text(size=12)
         ,axis.line=element_line( size=.5)
         ,axis.title=element_text(size=14)
         ,legend.text=element_text(size=12)
@@ -1734,7 +1736,7 @@ annual <- annual + theme_bw() +
         #,axis.ticks.x=element_blank()
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
-
+annual
 
 ####|####
 ####VEGETATION COVER ####
