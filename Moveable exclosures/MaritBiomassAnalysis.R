@@ -1394,24 +1394,24 @@ P2.4 <- lme(prodtot~landuse+treatment+poly(rain.day,2)+
 
 #Graphical model validation checking for homogeneity by plotting standardized residuals vs fitted values
 par(mfrow=c(1,1))
-E <- resid(P2.3,type="normalized")
-Fit <- fitted(P2.3)
+E <- resid(P2.2,type="normalized")
+Fit <- fitted(P2.2)
 #plot(x=Fit,y=E,xlab="Fitted values",ylab="Residuals") 
 par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
 plot(x = Fit, 
      y = E,
      xlab = "Fitted values",
-     ylab = "Residuals",main="Residuals P2final")
+     ylab = "Residuals",main="Residuals P2.2")
 abline(v = 0, lwd = 2, col = 2) #Fitted values: many below zero, and some large... bad spread? 
 abline(h = 0, lty = 2, col = 1) 
 #Alternatively: plot(P2cfinal)   Get the same, residuals Vs fitted
-plot(E~landuse,data=Dataprod1,main="Landuse",ylab="Residuals") #a bit less var. for pasture
-plot(E~treatment,data=Dataprod1,main="Treatment",ylab="Residuals") #quite equal
-plot(x=Dataprod1$rain.sum,y=E,ylab="Residuals",xlab="Rainfall",main="Rainfall")
+plot(E~landuse,data=Dataprod,main="Landuse",ylab="Residuals") #a bit less var. for pasture
+plot(E~treatment,data=Dataprod,main="Treatment",ylab="Residuals") #quite equal
+plot(x=Dataprod$rain.sum,y=E,ylab="Residuals",xlab="Rainfall",main="Rainfall")
 hist(E) #Residuals of the model
-hist(Dataprod1$prodtot) #hist of Y-variable
-plot(P2.3,prodtot~fitted(.)) #Y variable vs fitted values 
-plot(P2.3,prodtot~resid(.))  # Y variable vs residuals
+hist(Dataprod$prodtot) #hist of Y-variable
+plot(P2.2,prodtot~fitted(.)) #Y variable vs fitted values 
+plot(P2.2,prodtot~resid(.))  # Y variable vs residuals
 
 par(mfrow=c(2,2))
 plot(predict(P2.3)~landuse+treatment+rain.day+
@@ -1433,14 +1433,13 @@ r.squared.lme(P2cfinal) #To get conditional and marginal R^2 for the model
 
 # Bad fit - solution --> additive mixed model (gamm)  #See Zuur ch.5.10
 library(mgcv)
-P4 <- gamm(prodtot~landuse+treatment+sand+poly(rain.sum,2)+
-             landuse:poly(rain.sum,2)+
-             sand:poly(rain.sum,2),
+P4 <- gamm(prodtot~landuse+treatment+sand+poly(rain.day,2)+
+             landuse:poly(rain.day,2)+
+             sand:poly(rain.day,2),
            random = list(site.name=~ 1), data = Dataprod) #How to also add block to random structure? 
 
 summary(P4)
 plot(P4$lme) #Same bad structure!
-plot(P4$gam)
 
 #Exploring some raw data again. 
 par(mfrow=c(1,2))
@@ -1461,8 +1460,8 @@ plot(difftotal~landuse,data=Dataprod)
 str(Dataprod)
 
 #A:Specify covariate values for predictions
-MyData <- expand.grid(landuse=levels(Dataprod$landuse),treatment=levels(Dataprod$treatment),
-                      rain.sum=seq(min(Dataprod$rain.sum), max(Dataprod$rain.sum), length = 25)) #Length of rain.sum estimates 25 random numbers between the min and max for every other category (if just landuse in the model, then it would estimate 50 random points  - 25 for pasture/ 25 for wild)
+MyData <- expand.grid(landuse=levels(Dataprod1$landuse),treatment=levels(Dataprod1$treatment),
+                      rain.sum=seq(min(Dataprod1$rain.sum), max(Dataprod1$rain.sum), length = 25)) #Length of rain.sum estimates 25 random numbers between the min and max for every other category (if just landuse in the model, then it would estimate 50 random points  - 25 for pasture/ 25 for wild)
 #B. Create X matrix with expand.grid
 X <- model.matrix(~landuse+treatment+poly(rain.sum,2)+
                     landuse:poly(rain.sum,2),data=MyData)
@@ -1472,14 +1471,14 @@ head(X)
 #NewData$Pred <- predict(M4, NewData, level = 0)
 #The level = 0 ensure that we fit the fixed effects
 #Or:
-MyData$Pred <- X %*% fixef(P2.2)  # = X * beta
+MyData$Pred <- X %*% fixef(P2.3)  # = X * beta
 
 #D. Calculate standard errors (SE) for predicted values
 #   SE of fitted values are given by the square root of
 #   the diagonal elements of: X * cov(betas) * t(X)  
 #   Take this for granted!
 
-MyData$SE <- sqrt(  diag(X %*% vcov(P2.2) %*% t(X))  )
+MyData$SE <- sqrt(  diag(X %*% vcov(P2.3) %*% t(X))  )
 
 #And using the Pred and SE values, we can calculate
 #a 95% confidence interval
@@ -1707,8 +1706,6 @@ landuse<-c("Pasture","Wild")
 cum_prod<-tapply(Meanannual$Cum_prod,list(Meanannual$treatment, Meanannual$site.id),mean) 
 cum_prod.ci<-tapply(Dataannual$Cum_prod,list(Dataannual$treatment, Dataannual$site.id),sd) 
 
-nap <- ggplot(Avgprod, aes(x=YrMonth, y=Productivity, colour=landuse,shape=treatment,
-                           group=site.id))
 #Plot annual NAP
 legend_title<-"landuse"
 annual <- ggplot(Meanannual, aes(x=site.id, y=Cum_prod, fill=landuse, group=treatment))
