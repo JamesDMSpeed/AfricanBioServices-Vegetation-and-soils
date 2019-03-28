@@ -805,23 +805,24 @@ Tree.var<-c("TreeBM.kg_m2","No.trees_m2","Total.basal.area_m2","Shrubbiness","Tr
 names(Soil.Ahor)
 ModelVar<-c("CMAP.mm_yr","CSand","CFire_frequency.2000_2017","CShrubbiness","CTreeBM.kg_m2","Herbaceous","Ctot.N.kg_m2")
 
-names(Soil.Ahor2.CnoNA)
-ModelVar2<-c("CMAP.mm_yr","CSand","CFire_frequency.2000_2017","CShrubbiness","CTreeBM.kg_m2","Herbaceous","Ctot.N.kg_m2","Clivestock","Cwild", "CTermites")
+names(Belowground.full.CnoNA)
+ModelVar2<-c("MAP.mm_yr","Sand","Fire_frequency.2000_2017.x","Shrubbiness","TreeBM.kg_m2","Herbaceous","tot.N.kg_m2","livestock","wild", "Termite.effect")
 
 CandN<-c("Ctot.C.kg_m2","Ctot.N.kg_m2")
 
 # Want to get these two in one matrix. 
 pairs(Soil.Ahor[,Tree.var],lower.panel = panel.cor)
 pairs(Soil.Ahor[,ModelVar],lower.panel = panel.cor)
-pairs(Belowground.full[,CandN],lower.panel = panel.cor)
+pairs(Belowground.full[,ModelVar2],lower.panel = panel.cor)
 pairs(Total.Eco.C.CnoNA2[,ModelVar2],lower.panel = panel.cor)
 # If I want these values in a table:
-Model.var <- Soil.Ahor[,c(32:34,36,37,43,41)]
+Model.var <- Belowground.full[,c(12,13,16,17,23,25,26,27,31,47,59,61)]
 CandN.var <- Belowground.full[,c(53,56)] 
 Tree.var <- Soil.Ahor[,c(14:17,31,39)]
 
-Mycor <- rcorr(as.matrix(Tree.var), type="pearson") # Use the pearson correlation (r-value)
+Mycor <- rcorr(as.matrix(Model.var), type="pearson") # Use the pearson correlation (r-value)
 MycorR <- as.data.frame(round(Mycor$r, digits=3))
+write.csv(MycorR, file= "Ecosystem carbon/VariableCorrelation.csv")
 MycorP <- as.data.frame(round(Mycor$P, digits=3))
 
 # The values here is pearson correlation coeficients - in other words, the r value (between -1 and 1 where 0 is no correlation). 
@@ -1812,7 +1813,7 @@ points(con.avg.H$Estimate,1:10,pch=con.avg.H$sign,col=c(col.herb), lwd=2, cex=2)
 arrows(y0=1:10, x0=con.avg.H$Estimate-con.avg.H$SD, x1=con.avg.H$Estimate+con.avg.H$SD,col=c(col.herb), angle=90,length=0.05,code=3,lwd=2)
 abline(v=0)
 axis(1,cex.axis=2)
-axis(2, at=1:10, labels= c("Fire frequency","Land-use","Sand","Sand:Land-use","MAP","Shrubbiness", "Soil Nitrogen","MAP:Land-use","MAP:Sand","Tree biomass"),par(las=1),cex.axis=2)
+axis(2, at=1:10, labels= c("Fire frequency","PA","Sand","Sand:PA","MAP","Shrubbiness", "Soil Nitrogen","MAP:PA","MAP:Sand","Tree biomass"),par(las=1),cex.axis=2)
 dev.off()
 
 # DW
@@ -1835,7 +1836,7 @@ arrows(y0=1:8, x0=con.avg.W$Estimate-con.avg.W$SD, x1=con.avg.W$Estimate+con.avg
 abline(v=0)
 axis(1,cex.axis=2)
 #axis(2, at=1:8, labels= c("Fire frequency","MAP","Sand","MAP:Sand","PA", "Soil Nitrogen","MAP:PA","Sand:PA"),par(las=1), cex.axis=2) # With outlier 
-axis(2, at=1:8, labels= c("Sand","MAP","MAP:Sand","Fire frequency","Land-use","MAP:Land-use","Soil Nitrogen","Sand:Land-use"),par(las=1), cex.axis=2) # Without outlier 
+axis(2, at=1:8, labels= c("Sand","MAP","MAP:Sand","Fire frequency","PA","MAP:PA","Soil Nitrogen","Sand:PA"),par(las=1), cex.axis=2) # Without outlier 
 
 dev.off()
 
@@ -1936,7 +1937,7 @@ Total.Eco.C.CnoNA<-droplevels(Total.Eco.C.CnoNA)
 Total.Eco.C.CnoNA2<-Total.Eco.C.CnoNA[!is.na(Total.Eco.C.CnoNA$livestock),]
 Total.Eco.C.CnoNA2 <- droplevels(Total.Eco.C.CnoNA2)
 
-# Variation for each model component
+# Variation for each model component BLOCK LEVEL
 # A total model of all direct effects based on literature 
 
 Modlist <-   psem(
