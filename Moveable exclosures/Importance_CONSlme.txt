@@ -1,0 +1,16 @@
+"x"
+"prodtot" 0.999999988514269
+"N.total" 0.721871451373205
+"sand" 0.587501087216526
+"N.total:prodtot" 0.444689734220661
+"landuse" 0.410197955750219
+"prodtot:sand" 0.326552103588293
+"N.total:sand" 0.252305703074733
+"poly(rain.sum, 2)" 0.198879415133543
+"landuse:prodtot" 0.102054068283485
+"landuse:N.total" 0.0852205000751708
+"landuse:sand" 0.0574520259060555
+"landuse:poly(rain.sum, 2)" 0.0218866262623219
+"N.total:poly(rain.sum, 2)" 0.0139029116887566
+"poly(rain.sum, 2):sand" 0.00831267144389631
+"landuse:poly(rain.sum, 2):sand" 2.32018883467423e-05

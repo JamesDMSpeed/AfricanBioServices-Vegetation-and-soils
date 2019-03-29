@@ -21,7 +21,7 @@ library(MuMIn) #for mod.sel()
 Biomass <- read.csv("Moveable exclosures/Biomass.csv", header=T,sep=",")
 tail(Biomass)
 
-Nuts <- read.csv("Moveable exclosures/Nutrients.csv", header=T,sep=";")
+Nuts <- read.csv("Moveable exclosures/Nutrients.csv", header=T,sep=",")
 Datanuts <- Nuts[Nuts$treatment!="EX2",] #Removing Mesh exclosures  #300 obs
 Datanuts <- Datanuts[Datanuts$harvest!="H0",] #removing H0                #280 obs
 Datanuts <- droplevels(Datanuts)
@@ -1642,6 +1642,33 @@ drop1(C2.3,test="Chisq") #dropping if not significant term
 AIC(C2.3)
 
 model.sel(C2.1,C2.2,C2.3)
+
+# DREDGING - THREE VERY SIMILAR MODELS
+LabileMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^2+
+                         Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+Region:Landuse:Treatment-
+                         C.N:Temp-C.N:Sand-Temp:Sand+
+                         (1|Site/Blockcode/Plot), na.action=na.fail,REML = F,data=LabileMain_NA_filtered)
+
+CONS.lme <- lme(constot~landuse+prodtot+sand+poly(rain.sum,2)+N.total+
+                  landuse:prodtot+
+                  landuse:sand+
+                  landuse:poly(rain.sum,2)+
+                  landuse:N.total+
+                  poly(rain.sum,2):sand+
+                  poly(rain.sum,2):N.total+
+                  prodtot:N.total+
+                  sand:N.total+
+                  prodtot:sand+
+                  landuse:sand:poly(rain.sum,2), 
+                random=~1|site.name/block.id, method="ML",correlation=cs1AR1,data=Datacons)
+
+modsetlmer_CONSlme <- dredge(CONS.lme,trace=2) 
+model.sel(CONS.lme) #Model selection table giving AIC, deltaAIC and weighting
+modavglmer_CONSlme<-model.avg(modsetlmer_CONSlme) #Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modsetlmer_CONSlme)#Importance of each variable
+write.table(importance(modavglmer_CONSlme),file="Moveable exclosures/Importance_CONSlme.txt")
+summarymodmodavglmer_CONSlme <- summary(modavglmer_CONSlme)#Estimated coefficients given weighting
+write.table(summary(modavglmer_CONSlme)$coefmat.subset,file="Moveable exclosure/SumCoef_CONSlme.txt")
 
 # Refitting with REML and validating the model
 C1 <- lme(constot~prodtot,
