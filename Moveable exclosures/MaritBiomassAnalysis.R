@@ -1530,6 +1530,7 @@ NAPpred<-NAPpred+annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black
 NAPpred<-NAPpred+annotate(geom = 'segment', y = 0, yend = 0, color = 'black', x = -Inf, xend = Inf, size = 0.5) 
 NAPpred
 
+
 #### Total CONS, periodic lme ####
 #Dataframe without the Handajega H7 values
 Datacons1 <- Datacons[!(Datacons$site.name=="Handajega" & Datacons$harvest=="H7"),]
