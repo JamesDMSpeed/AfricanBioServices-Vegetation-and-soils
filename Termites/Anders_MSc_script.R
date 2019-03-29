@@ -668,6 +668,12 @@ RecalTermEff_Dryseason <- droplevels(RecalTermEff[RecalTermEff$Season=="Dry",])
 levels(RecalTermEff_Dryseason$Season)
 RecalTermEff_Dryseason_Block <-aggregate(Termite.effect~Season+Region+Site+Landuse+Block, RecalTermEff_Dryseason, mean)
 write.csv(write.csv(RecalTermEff_Dryseason_Block,file="Termites/RecalTermEff_Dryseason_Block.csv"))
+#In wetseason in block level
+RecalTermEff_Wetseason <- droplevels(RecalTermEff[RecalTermEff$Season=="Wet",])
+levels(RecalTermEff_Wetseason$Season)
+RecalTermEff_Wetseason_Block <-aggregate(Termite.effect~Season+Region+Site+Landuse+Block, RecalTermEff_Wetseason, mean)
+write.csv(write.csv(RecalTermEff_Wetseason_Block,file="Termites/RecalTermEff_Wetseason_Block.csv"))
+
 
 #BARPLOTTING - three own grafs for each Landuse####
 #Creating a fill factor:
@@ -1035,47 +1041,301 @@ LabileMain$Region <- droplevels(as.factor(LabileMain$Region))
 LabileMain$Plot <- as.factor(LabileMain$Plot)
 levels(LabileMain$Plot)
 
-#Labile Models - general massloss across season and landuse
+#Labile Models - general massloss across season and landuse####
 
 #Labile Model 1 - No moisture, no rain.
 #Have to reduce the amount of predictors in model for dredging.
-LabileMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^2+
-                                         Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+Region:Landuse:Treatment-
-                                         C.N:Temp-C.N:Sand-Temp:Sand+
+GlobalLabileMainMod <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^2+
+                              Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+Region:Landuse:Treatment-
+                              C.N:Temp-C.N:Sand-Temp:Sand+
                          (1|Site/Blockcode/Plot), na.action=na.omit,REML = F,data=LabileMain)
-summary(LabileMainMod1)
 
-#DREDGING
-#Need to use na.action=na.fail, therfore removing Na's from data set:
-#Removing rows which consist of NAs in all variable used in model:
-LabileMain_NA_filtered <- LabileMain[complete.cases(LabileMain$Massloss.per,LabileMain$C.N,LabileMain$Sand,LabileMain$Temp),]
-summary(LabileMain_NA_filtered)
-which(is.na(LabileMain_NA_filtered$Massloss.per))
-#Changed data file to NA_filtered in LabileMainMod1 and set na.action=na.fail, and REML=F to use dredging.
-# LabileMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^3-C.N:Temp:Sand+
+summary(GlobalLabileMainMod)
+anova(GlobalLabileMainMod) 
+AIC(GlobalLabileMainMod) #5003.159
+drop1(GlobalLabileMainMod,test="Chisq") #
+
+# Season:Region:Landuse     2 5012.9 13.773  0.001021 ** K 
+# Season:Region:Treatment   2 5003.7  4.563  0.102152 R  
+# Season:Landuse:Treatment  2 5000.0  0.848  0.654428  R  
+# Region:Landuse:Treatment  2 4999.2  0.057  0.971705 R
+
+LabileMainMod1 <- update(GlobalLabileMainMod, .~. -Region:Landuse:Treatment-Season:Landuse:Treatment-Season:Region:Treatment)
+anova(LabileMainMod1) 
+AIC(LabileMainMod1) #4996.243
+drop1(LabileMainMod1,test="Chisq")
+#Season:Region:Landuse  2 5005.8 13.513  0.001163 ** Keep, but remove now to test other 2-way factors
+LabileMainMod2 <- update(LabileMainMod1, .~. -Season:Region:Landuse)
+AIC(LabileMainMod2) #5005.757 #REMEMBER I REMOVED A SIGN 3WAY.
+drop1(LabileMainMod2,test="Chisq")
+# Season:Region      2 5299.6 297.832 < 2.2e-16 *** #KEEP
+#   Season:Landuse     2 5045.7  43.933 2.885e-10 ***#KEEP
+#   Season:Treatment   1 5004.6   0.880 0.3483138    
+# Season:C.N         1 5003.8   0.006 0.9364322    KEEP due to sign threeway
+# Season:Temp        1 5004.1   0.331 0.5649130    KEEP due to sign threeway
+# Season:Sand        1 5098.4  94.659 < 2.2e-16 *** #KEEP
+#   Region:Landuse     2 5013.6  11.823 0.0027075 ** #KEEP
+#   Region:Treatment   2 5001.9   0.134 0.9351854    
+# Region:C.N         2 5002.5   0.792 0.6731375    KEEP due to sign threeway
+# Region:Temp        2 5007.6   5.887 0.0526865 .  #KEEP
+# Region:Sand        2 5002.0   0.250 0.8825828    KEEP due to sign threeway
+# Landuse:Treatment  2 5002.8   1.053 0.5907519    
+# Landuse:C.N        2 5028.4  26.644 1.638e-06 *** #KEEP
+#   Landuse:Temp       2 5017.4  15.678 0.0003942 ***#KEEP
+#   Landuse:Sand       2 5004.0   2.273 0.3209287  KEEP due to sign threeway  
+# Treatment:C.N      1 5004.2   0.444 0.5051996    
+# Treatment:Temp     1 5003.8   0.001 0.9791816    
+# Treatment:Sand     1 5003.8   0.006 0.9402220  
+LabileMainMod3 <- update(LabileMainMod2, .~. -Treatment:Sand-Treatment:Temp-Treatment:C.N-Landuse:Treatment-
+                           Region:Treatment-Season:Treatment)
+AIC(LabileMainMod3) #4992.419 #REMEMBER I REMOVED A SIGN 3WAY.
+drop1(LabileMainMod3,test="Chisq")
+LabileMainMod3a <- update(LabileMainMod3, .~. +Season:Region:Landuse) #Adding SIGN 3Way
+AIC(LabileMainMod3a) #Global: 4983.039 #SIGN 3way added.
+drop1(LabileMainMod3a,test="Chisq")
+
+# Treatment              1 4981.1  0.038  0.846216    #REMOVE
+# Season:C.N             1 4981.2  0.145  0.703130    
+# Season:Temp            1 4986.1  5.036  0.024829 *  
+#   Season:Sand            1 5069.5 88.438 < 2.2e-16 ***
+#   Region:C.N             2 4979.5  0.419  0.810876    
+# Region:Temp            2 4988.1  9.080  0.010676 *  
+#   Region:Sand            2 4979.2  0.118  0.942564    
+# Landuse:C.N            2 5010.9 31.815 1.234e-07 ***
+#   Landuse:Temp           2 4988.8  9.763  0.007586 ** 
+#   Landuse:Sand           2 4981.2  2.173  0.337337    
+# Season:Region:Landuse  2 4992.4 13.380  0.001243 ** 
+
+LabileMainMod4a <- update(LabileMainMod3a, .~. -Treatment)
+AIC(LabileMainMod4a)#4981.077
+drop1(LabileMainMod4a,test="Chisq")
+# Season:C.N             1 4979.2  0.146  0.702359    #Remove
+# Season:Temp            1 4984.1  5.042  0.024741 *  
+#   Season:Sand            1 5067.5 88.450 < 2.2e-16 ***
+#   Region:C.N             2 4977.5  0.419  0.810884    #Remove
+# Region:Temp            2 4986.2  9.079  0.010676 *  
+#   Region:Sand            2 4977.2  0.118  0.942607    #Remove
+# Landuse:C.N            2 5008.9 31.814 1.235e-07 ***
+#   Landuse:Temp           2 4986.8  9.763  0.007586 ** 
+#   Landuse:Sand           2 4979.3  2.173  0.337378    #Remove
+# Season:Region:Landuse  2 4990.5 13.391  0.001236 ** 
+
+LabileMainMod5a <- update(LabileMainMod4a, .~. -Season:C.N-Region:C.N-Region:Sand-Landuse:Sand)
+AIC(LabileMainMod5a)#4970.082
+drop1(LabileMainMod5a,test="Chisq")# All sign, so now need to get P-values for the single terms.
+#But first, want to add some terms first to check:
+LabileMainMod6a <- update(LabileMainMod5a, .~. +C.N:Temp)
+anova(LabileMainMod6a,LabileMainMod5a) #C.N:Temp NS
+LabileMainMod7a <- update(LabileMainMod5a, .~. +C.N:Sand)
+anova(LabileMainMod7a,LabileMainMod5a) #C.N:Sand NS
+LabileMainMod8a <- update(LabileMainMod5a, .~. +Temp:Sand)
+anova(LabileMainMod8a,LabileMainMod5a) #Temp:Sand NS
+LabileMainMod9a <- update(LabileMainMod5a, .~. +Landuse:Sand)
+anova(LabileMainMod9a,LabileMainMod5a) # Landuse:Sand NS
+LabileMainMod10a <- update(LabileMainMod5a, .~. +Treatment)
+anova(LabileMainMod10a,LabileMainMod5a) # Treatment NS
+
+
+#Generating P-values from best model
+LabileMainMod5aA<- update(LabileMainMod5a, .~. -Season:Region:Landuse)
+LabileMainMod5ab <- update(LabileMainMod5aA, .~.-Landuse:Temp)
+LabileMainMod5ac <- update(LabileMainMod5aA, .~.-Landuse:C.N)
+LabileMainMod5ad <- update(LabileMainMod5aA, .~.-Region:Temp)
+LabileMainMod5ae <- update(LabileMainMod5aA, .~.-Region:Landuse)
+LabileMainMod5af <- update(LabileMainMod5aA, .~.-Season:Sand)
+LabileMainMod5ag <- update(LabileMainMod5aA, .~.-Season:Temp)
+LabileMainMod5ah <- update(LabileMainMod5aA, .~.-Season:Landuse)
+LabileMainMod5ai <- update(LabileMainMod5aA, .~.-Season:Region)
+LabileMainMod5aJ <- update(LabileMainMod5aA, .~.-Landuse:Temp-Landuse:C.N-Region:Temp-
+                             Region:Landuse-Season:Sand-Season:Temp-Season:Landuse-Season:Region)
+LabileMainMod5ak <- update(LabileMainMod5aJ, .~.-Sand)
+LabileMainMod5al <- update(LabileMainMod5aJ, .~.-Temp)
+LabileMainMod5am <- update(LabileMainMod5aJ, .~.-C.N)
+LabileMainMod5an <- update(LabileMainMod5aJ, .~.-Landuse)
+LabileMainMod5ao <- update(LabileMainMod5aJ, .~.-Region)
+LabileMainMod5ap <- update(LabileMainMod5aJ, .~.-Season)
+
+anova(LabileMainMod5aA,LabileMainMod5a)  #0.0009554 *** #Season:Region:Landuse
+anova(LabileMainMod5ab,LabileMainMod5aA) #6.059e-05 ***#Landuse:Temp
+anova(LabileMainMod5ac,LabileMainMod5aA) #2.337e-09 *** Landuse:C.N
+anova(LabileMainMod5ad,LabileMainMod5aA) #0.1076 . Region:Temp #NS - But important for the model (See drop1 output)
+anova(LabileMainMod5ae,LabileMainMod5aA) #0.002427 ** **Region:Landuse
+anova(LabileMainMod5af,LabileMainMod5aA) #2.2e-16 ***Season:Sand
+anova(LabileMainMod5ag,LabileMainMod5aA) #0.3997 Season:Temp - NS, but need this to have the threeway
+anova(LabileMainMod5ah,LabileMainMod5aA) #1.304e-10 *** Season:Landuse
+anova(LabileMainMod5ai,LabileMainMod5aA) #1 Season:Region - NS, but need this to have the threeway
+anova(LabileMainMod5ak,LabileMainMod5aJ) # 2.2e-16 *** Sand
+anova(LabileMainMod5al,LabileMainMod5aJ) # 2.2e-16 *** Temp
+anova(LabileMainMod5am,LabileMainMod5aJ) # 1.913e-07 *** C.N
+anova(LabileMainMod5an,LabileMainMod5aJ) # 0.01129 * Landuse
+anova(LabileMainMod5ao,LabileMainMod5aJ) # 1.391e-05 *** Region
+anova(LabileMainMod5ap,LabileMainMod5aJ) # 2.2e-16 *** Season
+
+
+LabileMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse+Season:Temp+Season:Sand+
+                             Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
+                             Season:Region:Landuse+
+                             (1|Site/Blockcode/Plot), na.action=na.omit,REML = T,data=LabileMain)
+
+summary(LabileMainModFINAL)
+
+#Inspect chosen model for homogeneity:
+E1 <- resid(LabileMainModFINAL, type ="pearson")
+F1 <- fitted(LabileMainModFINAL)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5) #Looks OK
+plot(x = F1, 
+     y = E1,
+     xlab = "Fitted values",
+     ylab = "Residuals")
+abline(v = 0, lwd = 2, col = 2)
+abline(h = 0, lty = 2, col = 1)
+
+hist(E1, nclass = 30) #OK
+
+
+
+#Checking for non linearity
+xyplot(E1 ~ C.N | Landuse+Season,
+       data = LabileMain, ylab = "Residuals",
+       xlab = "Landuse",
+       panel = function(x,y){
+         panel.grid(h = -1, v = 2)
+         panel.points(x, y, col = 1)
+         panel.loess(x, y, span = 0.5, col = 1,lwd=2)})
+
+xyplot(E1 ~ Sand | Landuse+Season,
+       data = LabileMain, ylab = "Residuals",
+       xlab = "Landuse",
+       panel = function(x,y){
+         panel.grid(h = -1, v = 2)
+         panel.points(x, y, col = 1)
+         panel.loess(x, y, span = 0.5, col = 1,lwd=2)})
+
+xyplot(E1 ~ Temp | Landuse+Season,
+       data = LabileMain, ylab = "Residuals",
+       xlab = "Landuse",
+       panel = function(x,y){
+         panel.grid(h = -1, v = 2)
+         panel.points(x, y, col = 1)
+         panel.loess(x, y, span = 0.5, col = 1,lwd=2)})
+
+#Here we see that the line is not entirely straight - So the linear mixed effect is wrong, i.e effect of C.N,Sand and Temp is not linear
+
+library(itsadug)
+plot(acf_resid(LabileMainModFINAL), type="b",alpha=0.05)
+abline(c(0,0), lty = 2, col = 1)
+
+install.packages("mgcv")
+
+
+library(mgcv)
+M1 <- gamm(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse+Season:Temp+Season:Sand+
+             Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
+             Season:Region:Landuse+
+             (1|Site/Blockcode/Plot),
+             random = list(Site/Blockcode/Plot =~ 1), data = LabileMain)
+
+# #DREDGING
+# #Need to use na.action=na.fail, therfore removing Na's from data set:
+# #Removing rows which consist of NAs in all variable used in model:
+# LabileMain_NA_filtered <- LabileMain[complete.cases(LabileMain$Massloss.per,LabileMain$C.N,LabileMain$Sand,LabileMain$Temp),]
+# summary(LabileMain_NA_filtered)
+# which(is.na(LabileMain_NA_filtered$Massloss.per))
+# #Changed data file to NA_filtered in LabileMainMod1 and set na.action=na.fail, and REML=F to use dredging.
+# # LabileMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^3-C.N:Temp:Sand+
+# #                          (1|Site/Blockcode/Plot), na.action=na.fail,REML = F,data=LabileMain_NA_filtered)
+# LabileMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^2+
+#                          Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+Region:Landuse:Treatment-
+#                          C.N:Temp-C.N:Sand-Temp:Sand+
 #                          (1|Site/Blockcode/Plot), na.action=na.fail,REML = F,data=LabileMain_NA_filtered)
-LabileMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^2+
-                         Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+Region:Landuse:Treatment-
-                         C.N:Temp-C.N:Sand-Temp:Sand+
-                         (1|Site/Blockcode/Plot), na.action=na.fail,REML = F,data=LabileMain_NA_filtered)
-
-modsetlmer_LabileMainMod1 <- dredge(LabileMainMod1,trace=2) #,fixed=c("Season","Region","Landuse","Treatment","C.N","Temp","Sand")) 
-model.sel(LabileMainMod1) #Model selection table giving AIC, deltaAIC and weighting
-modavglmer_LabileMainMod1<-model.avg(modsetlmer_LabileMainMod1) #Averages coefficient estimates across multiple models according to the weigthing from above
-importance(modavglmer_LabileMainMod1)#Importance of each variable
-write.table(importance(modavglmer_LabileMainMod1),file="Termites/Importance_LabileMain1.txt")
-summarymodmodavglmer_LabileMain1 <- summary(modavglmer_LabileMainMod1)#Estimated coefficients given weighting
-write.table(summary(modavglmer_LabileMainMod1)$coefmat.subset,file="Termites/SumCoef_LabileMain1.txt")
+# 
+# #modsetlmer_LabileMainMod1 <- dredge(LabileMainMod1,trace=2) #,fixed=c("Season","Region","Landuse","Treatment","C.N","Temp","Sand")) 
+# model.sel(LabileMainMod1) #Model selection table giving AIC, deltaAIC and weighting
+# modavglmer_LabileMainMod1<-model.avg(modsetlmer_LabileMainMod1) #Averages coefficient estimates across multiple models according to the weigthing from above
+# importance(modavglmer_LabileMainMod1)#Importance of each variable
+# write.table(importance(modavglmer_LabileMainMod1),file="Termites/Importance_LabileMain1.txt")
+# summarymodmodavglmer_LabileMain1 <- summary(modavglmer_LabileMainMod1)#Estimated coefficients given weighting
+# write.table(summary(modavglmer_LabileMainMod1)$coefmat.subset,file="Termites/SumCoef_LabileMain1.txt")
 
 
 #Recal Model - general massloss across season and landuse####
 #Recal Model 1 - No moisture, no rain.
-#Have to reduce the amount of predictors in model for dredging.
-RecalMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^2+
-                        Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+Region:Landuse:Treatment-
-                        C.N:Temp-C.N:Sand-Temp:Sand+
-                         (1|Site/Blockcode/Plot), na.action=na.omit,REML = F,data=RecalMain)
-summary(RecalMainMod1)
+GlobalRecalMainMod <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^2+
+                              Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+Region:Landuse:Treatment-
+                              C.N:Temp-C.N:Sand-Temp:Sand+
+                             (1|Site/Blockcode/Plot), na.action=na.omit,REML = F,data=RecalMain)
+
+summary(GlobalRecalMainMod)
+anova(GlobalRecalMainMod) 
+AIC(GlobalRecalMainMod) #6397.122
+drop1(GlobalRecalMainMod,test="Chisq")
+# Season:Region:Landuse     2 6398.2  5.1029 0.0779695 .  #Remove 
+# Season:Region:Treatment   2 6410.7 17.5412 0.0001552 ***
+#   Season:Landuse:Treatment  2 6406.5 13.3614 0.0012549 ** 
+#   Region:Landuse:Treatment  2 6405.6 12.4441 0.0019851 ** 
+
+RecalMainMod1a <- update(GlobalRecalMainMod, .~. -Season:Region:Landuse)
+AIC(RecalMainMod1a) #6398.225
+drop1(RecalMainMod1a,test="Chisq") # All sign try to remove the two sign threeway and work from there.
+# Season:Region:Treatment   2 6411.5 17.2709 0.0001777 ***
+#   Season:Landuse:Treatment  2 6407.6 13.3923 0.0012357 ** 
+#   Region:Landuse:Treatment  2 6406.6 12.3444 0.0020866 ** 
+RecalMainMod1 <- update(RecalMainMod1a, .~. -Season:Region:Treatment-Season:Landuse:Treatment-Region:Landuse:Treatment)
+AIC(RecalMainMod1) #6421.805
+drop1(RecalMainMod1,test="Chisq")
+# Season:Region      2 6439.4 21.5744 2.066e-05 ***
+#   Season:Landuse     2 6420.8  2.9508  0.228688    #NS, BUT HAVE A THREEWAY WITH THESE, SO CANT REMOVE.
+# Season:Treatment   1 6426.4  6.6190  0.010090 *  
+#   Season:C.N         1 6423.8  4.0377  0.044495 *  
+#   Season:Temp        1 6419.9  0.1049  0.746021  #REMOVE  
+# Season:Sand        1 6425.5  5.6599  0.017357 *  
+#   Region:Landuse     2 6428.8 10.9533  0.004183 ** 
+#   Region:Treatment   2 6421.9  4.0731  0.130478    
+# Region:C.N         2 6418.6  0.8324  0.659561    #REMOVE
+# Region:Temp        2 6418.5  0.7154  0.699276    #REMOVE
+# Region:Sand        2 6418.1  0.2803  0.869231    #REMOVE
+# Landuse:Treatment  2 6418.1  0.2747  0.871676    
+# Landuse:C.N        2 6424.3  6.4849  0.039069 *  
+#   Landuse:Temp       2 6425.5  7.7407  0.020851 *  
+#   Landuse:Sand       2 6419.6  1.8000  0.406576    #REMOVE
+# Treatment:C.N      1 6423.7  3.8818  0.048811 *  
+#   Treatment:Temp     1 6420.7  0.9428  0.331550    #REMOVE
+# Treatment:Sand     1 6423.7  3.9104  0.047987 * 
+
+RecalMainMod2 <- update(RecalMainMod1, .~. -Season:Temp-Region:C.N-Region:Temp-Region:Sand-Landuse:Sand-Treatment:Temp)
+AIC(RecalMainMod2) #6406.593
+RecalMainMod2a <- update(RecalMainMod2, .~. +Season:Region:Treatment+Season:Landuse:Treatment+Region:Landuse:Treatment)
+AIC(RecalMainMod2a) #6382.536
+drop1(RecalMainMod2,test="Chisq") #Treatment:C:N now sign without threeways
+# Season:Region      2 6442.4 39.835 2.238e-09 ***
+#   Season:Landuse     2 6406.5  3.948  0.138877   #REMOVE?
+# Season:Treatment   1 6410.2  5.643  0.017521 *  
+#   Season:C.N         1 6408.7  4.063  0.043839 *  
+#   Season:Sand        1 6409.6  4.990  0.025493 *  
+#   Region:Landuse     2 6415.9 13.350  0.001262 ** 
+#   Region:Treatment   2 6406.0  3.455  0.177717   #REMOVE? 
+# Landuse:Treatment  2 6402.9  0.262  0.877150    #REMOVE?
+# Landuse:C.N        2 6408.6  6.056  0.048410 *  
+#   Landuse:Temp       2 6409.1  6.513  0.038515 *  
+#   Treatment:C.N      1 6409.1  4.510  0.033695 *  
+#   Treatment:Sand     1 6407.6  2.969  0.084888 .  
+drop1(RecalMainMod2a,test="Chisq") #Treatment:C.N could be removed, when threeways included, but first trying to remove, one fo the two-way components in the threeways (so removing twoways and threeways)
+# Season:C.N                1 6384.8  4.2206 0.0399353 *  
+#   Season:Sand               1 6385.8  5.2811 0.0215587 *  
+#   Landuse:C.N               2 6384.9  6.4062 0.0406360 *  
+#   Landuse:Temp              2 6384.9  6.3659 0.0414636 *  
+#   Treatment:C.N             1 6380.5  0.0000 0.9946324    
+# Treatment:Sand            1 6391.5 10.9537 0.0009342 ***
+#   Season:Region:Treatment   2 6395.2 16.7024 0.0002361 ***
+#   Season:Landuse:Treatment  2 6392.2 13.6436 0.0010897 ** 
+#   Region:Landuse:Treatment  2 6390.4 11.8166 0.0027168 ** 
+
+#OOPS!! CAN I REMOVE THESE TERMS LIKE I DO BELOW? REMOVING 2 threeways, but keep the last 3-way even if I'm remove 2-way terms which includes a term in the kept 3-way?
+RecalMainMod3a <- update(RecalMainMod2a, .~. -Season:Landuse-Landuse:Treatment-Season:Landuse:Treatment-Region:Landuse:Treatment)
+AIC(RecalMainMod3a)
+drop1(RecalMainMod3a,test="Chisq") #Removing two N:S two-ways, and hence coupled threeways
+
 
 #DREDGING
 #Need to use na.action=na.fail, therfore removing Na's from data set:
