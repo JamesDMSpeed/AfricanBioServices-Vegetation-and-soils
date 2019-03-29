@@ -49,7 +49,9 @@ TeaBags2<-rbind(TeaBags,LocalCG)
 # Subset teabags dataset so Roobios ONly
 TeaBags2OP<-droplevels(TeaBags2[TeaBags2$Littertype=="Rooibos" & TeaBags2$Treatment=="Open",])
 TeaBags2EX<-droplevels(TeaBags2[TeaBags2$Littertype=="Rooibos" & TeaBags2$Treatment=="Exclosed",])
-
+TeaBags2EX$blockcode<- as.factor(with(TeaBags2EX, paste(Region,Block, sep="_")))
+TeaBags2OP$blockcode<- as.factor(with(TeaBags2OP, paste(Region,Block, sep="_")))
+names(TeaBags2OP)
 # Teabag
 TeaBags2R<-merge(TeaBags2OP,TeaBags2EX,by=c("Lat","Long","blockcode", "Region","Block","Season"))
 TeaBags2R$Massloss.per<-TeaBags2R$Massloss.per.x-TeaBags2R$Massloss.per.y
@@ -72,7 +74,7 @@ TotSoil<- droplevels(TotSoil[TotSoil$blockcode!="Intermediate_2" & TotSoil$block
 # Merge datasets
 library(dplyr)
 colnames(TotSoil)[9]<-"Landuse"
-TotSoil$landuse
+TotSoil$Landuse<-TotSoil$landuse
 levels(TeaBags2$Landuse)<-c("Agriculture","Pasture","Wild","Wild" )
 TeaC<-left_join(TeaBags2,TotSoil, by =c("blockcode","Region","Landuse","Block"))
 
@@ -172,11 +174,11 @@ RooC
 
 # Dry Only
 TeaCRooibos2D<-TeaCRooibos[TeaCRooibos$Season=="Dry",]
-BlockC<-aggregate(AhorC.kg_m2~Region+Block+blockcode,na.action=na.omit,TeaCRooibos2D,mean)
-BlockCSE<-aggregate(AhorC.kg_m2~Region+Block+blockcode,TeaCRooibos2D,se)
+BlockC<-aggregate(AhorC.kg_m2~Region+Block+blockcode,na.rm=TRUE, na.action=NULL,TeaCRooibos2D,mean)
+BlockCSE<-aggregate(AhorC.kg_m2~Region+Block+blockcode,na.action=NULL,TeaCRooibos2D,se)
 
-RoobiosMass<-aggregate(Massloss.per~Region+Block+blockcode,na.action=na.omit,TeaCRooibos2D,mean)
-RoobiosMassSE<-aggregate(Massloss.per~Region+Block+blockcode,TeaCRooibos2D,se)
+RoobiosMass<-aggregate(Massloss.per~Region+Block+blockcode,na.rm=TRUE, na.action=NULL,TeaCRooibos2D,mean)
+RoobiosMassSE<-aggregate(Massloss.per~Region+Block+blockcode,na.action=NULL,TeaCRooibos2D,se)
 RainSUM<-aggregate(rain.sum..mm.~Region+Block+blockcode, TeaCRooibos2D,mean)
 
 BlockC$C.se<-BlockCSE$AhorC.kg_m2
@@ -188,6 +190,27 @@ plot(BlockC$AhorC.kg_m2~RoobiosMass$Massloss.per,col=c(RoobiosMass$Region),cex=c
 abline(lm(BlockC$AhorC.kg_m2~RoobiosMass$Massloss.per))
 summary(lm(AhorC.kg_m2~Massloss.per+Massloss.per:rain.sum..mm.,data=BlockC))  
 anova(lm(AhorC.kg_m2~Massloss.per,data=BlockC)) #NS
+
+# No Seronera - averaged over seasons
+levels(TeaCRooibos$Region)
+TeaCRooibos2D<-TeaCRooibos[TeaCRooibos$Season=="Wet" & TeaCRooibos$Region!="Intermediate",]
+BlockC<-aggregate(AhorC.kg_m2~Region+Block+blockcode,na.rm=TRUE, na.action=NULL,TeaCRooibos2D,mean)
+BlockCSE<-aggregate(AhorC.kg_m2~Region+Block+blockcode,na.action=NULL,TeaCRooibos2D,se)
+
+RoobiosMass<-aggregate(Massloss.per~Region+Block+blockcode,na.rm=TRUE, na.action=NULL,TeaCRooibos2D,mean)
+RoobiosMassSE<-aggregate(Massloss.per~Region+Block+blockcode,na.action=NULL,TeaCRooibos2D,se)
+RainSUM<-aggregate(rain.sum..mm.~Region+Block+blockcode, TeaCRooibos2D,mean)
+
+BlockC$C.se<-BlockCSE$AhorC.kg_m2
+BlockC$Massloss.per<-RoobiosMass$Massloss.per
+BlockC$Massloss.se<-RoobiosMassSE$Massloss.per
+BlockC$rain.sum..mm.<-RainSUM$rain.sum..mm.
+
+plot(BlockC$AhorC.kg_m2~RoobiosMass$Massloss.per,col=c(RoobiosMass$Region),cex=c(RainSUM$rain.sum..mm./100))
+abline(lm(BlockC$AhorC.kg_m2~RoobiosMass$Massloss.per))
+summary(lm(AhorC.kg_m2~Massloss.per+Massloss.per:rain.sum..mm.,data=BlockC))  
+anova(lm(AhorC.kg_m2~Massloss.per,data=BlockC)) #NS
+
 
 # Subset teabags dataset so Roobios ONly
 RooibosT<-droplevels(TeaBags2[TeaBags2$Littertype=="Rooibos" & TeaBags2$Treatment=="Open",])
