@@ -137,8 +137,7 @@ Ecosystem.CHerbTree <- Ecosystem.Carbon1c[,c(1:7,14:17,27,8,10:12,19:26,9,13)]
 Ecosystem.CSoilDW <- Ecosystem.Carbon2d[,c(1:7,15:18,12,19:22,24:31,8,10,13)]
 SE.Ecosystem.CSoilDW <- Ecosystem.Carbon2d[,c(1:3,9,11,14)]
 
-#### Creating a DF for the poster ####
-
+#### Creating a DF for the poster/Thesis ####
 # Belowground C 
 Belowground.C <- Ecosystem.CSoilDW
 Belowground.C$MAP <- round(Belowground.C$MAP, digits=2)
@@ -254,6 +253,15 @@ Block.Eco.C <- read.csv("Ecosystem carbon/Ecosystem.Carbon.csv", head=T)
 Belowground.full <- read.csv("Ecosystem carbon/Soil.data/Belowground.Carbon.csv", head=T)
 Above_Below.C <- read.csv("Ecosystem carbon/Above_Below.C.csv",head=T)
 
+# Create a df for carbon per landuse. 
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+landuse.C <- cbind(
+  aggregate(C.amount~Carbon.pool + landuse, mean, data= Block.Eco.C),
+  aggregate(C.amount~Carbon.pool + landuse, SE, data= Block.Eco.C)[3])
+colnames(landuse.C)[4] <- "SE.C.amount"
+landuse.C$Carbon.pool<- factor(landuse.C$Carbon.pool, levels = c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon"))
+landuse.C$landuse<- factor(landuse.C$landuse, levels = c("Wild","Pasture"))
+levels(landuse.C$landuse)<- c("PA","UPA")
 # housekeeping 
 str(Belowground.full)
 Belowground.full$Fire_frequency.2000_2017.x <- as.numeric(Belowground.full$Fire_frequency.2000_2017.x)
@@ -336,8 +344,49 @@ Lines_gone <- theme(panel.grid.major.x = element_blank(),
 
 # Point
 
+# Per carbon pool 
+Carbon.pool <- ggplot(data = landuse.C, aes(x = Carbon.pool,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, shape = landuse, colour= Carbon.pool))
+
+Carbon.pool + xlab("Carbon pool") +  ylab(expression(paste("Ecosystem Carbon (kg", m^-2,")")))  + 
+  geom_errorbar(stat = "identity",width=.4,lwd=1.1,show.legend=F, position=position_dodge(width=0.3)) +
+  geom_point(fill="white",size = 6, stroke=1.5,show.legend=T, position=position_dodge(width=0.3))  +
+  scale_shape_manual(legend_titleLAND,values=c(22,21)) +
+  scale_color_manual(legend_titleCarbon, breaks = c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon"),values=c("darkolivegreen","forestgreen","darkgoldenrod","salmon4","burlywood4")) + 
+  theme(rect = element_rect(fill ="transparent")
+      ,panel.background=element_rect(fill="transparent")
+      ,plot.background=element_rect(fill="transparent",colour=NA)
+      ,panel.grid.minor = element_blank()
+      ,panel.border = element_blank()
+      ,panel.grid.major.x = element_blank()
+      ,panel.grid.major.y = element_blank()
+      ,axis.text=element_text(size=16,color="black")
+      ,axis.title.y=element_text(size=16,color="black")
+      ,axis.title.x=element_text(size=16,color="black")
+      ,axis.text.x=element_text(size=14,color="black",
+                                margin=margin(2.5,2.5,2.5,2.5,"mm"))
+      ,axis.ticks.length=unit(-1.5, "mm") # - because we want them inwards. 
+      ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+      ,axis.text.y.right =element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+      ,axis.line.y = element_line(color="black", size = .5)
+      ,axis.line.x = element_line(color="black", size = .5)
+      ,plot.margin = unit(c(2.5,2.5,2.5,2.5), "mm")
+      ,strip.background = element_rect(fill="transparent",colour=NA)
+      ,strip.text.x = element_text(size=14,margin = margin(.5,.5,.5,.5, "mm"),hjust = .02)
+      ,strip.text.y = element_blank()
+      ,panel.spacing = unit(.1, "lines")
+      ,legend.text=element_text(size=14)
+      ,legend.title=element_text(size=15)
+      ,legend.position = "right"
+      ,legend.justification = "top"
+      ,legend.direction="vertical"
+      ,legend.key.width = unit(1.2,"cm"))
+
+ggsave("Ecosystem carbon/Figures/EcoC.Landuse.png",
+       width= 25, height = 15,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
+
 # To get different shape of point: scale_shape_manual(values=c(1,15))
-EcosystemC.plot1 <- ggplot(data = Block.Eco.C, aes(x = Region,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, group = Carbon.pool, colour= Carbon.pool))
+EcosystemC.plot1 <- ggplot(data = Block.Eco.C, aes(x = Region.x,y = C.amount, ymin=C.amount-SE.C.amount,ymax=C.amount+SE.C.amount, group = Carbon.pool, colour= Carbon.pool))
 
 EcosystemC.plot1 + xlab("Region") +  ylab(expression(paste("Ecosystem Carbon (kg", m^-2,")")))  + 
   facet_wrap(~Carbon.pool,scales = "free") +
@@ -806,23 +855,31 @@ names(Soil.Ahor)
 ModelVar<-c("CMAP.mm_yr","CSand","CFire_frequency.2000_2017","CShrubbiness","CTreeBM.kg_m2","Herbaceous","Ctot.N.kg_m2")
 
 names(Belowground.full.CnoNA)
-ModelVar2<-c("MAP.mm_yr","Sand","Fire_frequency.2000_2017.x","Shrubbiness","TreeBM.kg_m2","Herbaceous","AhorN.kg_m2","MinN.kg_m2","AhorC.kg_m2","MinC.kg_m2","livestock","wild", "Termite.effect", "Last_fire.yr")
+Model.var.full<-c("MAP.mm_yr","Sand","Clay","Fire_frequency.2000_2017.x","Shrubbiness","TreeBM.kg_m2","Herbaceous","AhorN.kg_m2","MinN.kg_m2","AhorC.kg_m2","MinC.kg_m2","Last_fire.yr")
+
+names(Total.Eco.C.CnoNA2)
+Model.var.sub<-c("MAP.mm_yr","Sand.pip.per","Clay.pip.per","Fire_frequency.2000_2017","Shrubbiness","Woody","Herbaceous","AhorN.kg_m2","MinN.kg_m2","Soil.Ahor","Soil.min","Last.fire_yr", "livestock", "wild", "Termite.effect")
 
 CandN<-c("Ctot.C.kg_m2","Ctot.N.kg_m2")
 
 # Want to get these two in one matrix. 
 pairs(Soil.Ahor[,Tree.var],lower.panel = panel.cor)
 pairs(Soil.Ahor[,ModelVar],lower.panel = panel.cor)
-pairs(Belowground.full.CnoNA[,ModelVar2],lower.panel = panel.cor)
-pairs(Total.Eco.C.CnoNA2[,ModelVar2],lower.panel = panel.cor)
+pairs(Belowground.full.CnoNA[,Model.var.full],lower.panel = panel.cor)
+pairs(Total.Eco.C.CnoNA2[,Model.var.sub],lower.panel = panel.cor)
 # If I want these values in a table:
-Model.var <- Belowground.full[,c(12,13,16,17,23,25,26,27,31,47,59,61)]
+Model.var.FULL <- Belowground.full.CnoNA[,c(13,27,25,11,12,47,61,62,15,21,20,14)]
+Model.var.SUB <- Total.Eco.C.CnoNA2[,c(5,10,8,7,15,37,36,43,44,35,24,6,46,48,49)]
 CandN.var <- Belowground.full[,c(53,56)] 
 Tree.var <- Soil.Ahor[,c(14:17,31,39)]
 
-Mycor <- rcorr(as.matrix(Model.var), type="pearson") # Use the pearson correlation (r-value)
-MycorR <- as.data.frame(round(Mycor$r, digits=3))
-write.csv(MycorR, file= "Ecosystem carbon/VariableCorrelation.csv")
+MycorFULL <- rcorr(as.matrix(Model.var.FULL), type="pearson") # Use the pearson correlation (r-value)
+MycorSUB <- rcorr(as.matrix(Model.var.SUB), type="pearson") # Use the pearson correlation (r-value)
+MycorFULL <- as.data.frame(round(MycorFULL$r, digits=3))
+MycorSUB <- as.data.frame(round(MycorSUB$r, digits=3))
+write.csv(MycorFULL, file= "Ecosystem carbon/VariableCorrelationFULL.csv")
+write.csv(MycorSUB, file= "Ecosystem carbon/VariableCorrelationSUB.csv")
+
 MycorP <- as.data.frame(round(Mycor$P, digits=3))
 
 # The values here is pearson correlation coeficients - in other words, the r value (between -1 and 1 where 0 is no correlation). 
@@ -1006,6 +1063,8 @@ Belowground.full$Ctot.N.kg_m2 <- as.numeric(scale(Belowground.full$tot.N.kg_m2))
 Belowground.full$CShrubbiness <- as.numeric(scale(Belowground.full$Shrubbiness))
 Belowground.full$CTreeBM.kg_m2 <- as.numeric(scale(Belowground.full$TreeBM.kg_m2))
 Belowground.full$Ctot.C.kg_m2 <- as.numeric(scale(Belowground.full$tot.C.kg_m2)) 
+Belowground.full$Clivestock <- as.numeric(scale(Belowground.full$livestock)) 
+Belowground.full$Cwild <- as.numeric(scale(Belowground.full$wild)) 
 #### BELOWGROUND CARBON #### 
 # Look at belowground C first (A + Min)
 # Run a full model of all my fixed factors interactions with belowground C 
@@ -1370,7 +1429,7 @@ Above <- Aboveground.C[,c(1,24,35,36)]
 Belowground.full <- left_join(Belowground.full,Above, by="Block.ID")
 Belowground.full$CHerb.C <- as.numeric(scale(Belowground.full$Herbaceous))
 # Add termites 
-Termites <- read.csv("Termites/RecalTermEff_Dryseason_Block.csv", head=T)
+Termites <- read.csv("Termites/RecalTermEff_Wetseason_Block.csv", head=T)
 Termites <- Termites[Termites$Landuse!="Agriculture",]
 Termites <- Termites[c(4,6,7)]
 Termites <- Termites[Termites$Site!="Seronera",]
@@ -2049,12 +2108,13 @@ Modlist1 <-   psem(
   lme(Woody~ CFire_frequency.2000_2017 + Clivestock, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(DW~  Herbaceous,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(Herbaceous ~CFire_frequency.2000_2017,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(Soil.Ahor~ Clivestock + Cwild , random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(Soil.Ahor~ Clivestock + Cwild, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(Soil.min~ Soil.Ahor , random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CShrubbiness~  CFire_frequency.2000_2017 , random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(AhorN.kg_m2~ CSand + CMAP.mm_yr, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(MinN.kg_m2~ CSand, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CTermites~Cwild + MinN.kg_m2, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CTermites~ Cwild, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(Cwild~ Clivestock + CMAP.mm_yr, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   CShrubbiness%~~% Woody, 
   Soil.Ahor%~~%MinN.kg_m2, # We know these are highly correlated, but no path.. 
   Soil.min%~~%MinN.kg_m2, 
@@ -2066,23 +2126,27 @@ summary(Modlist1,Total.Eco.C.CnoNA2)
 SEM.dung <- summary(Modlist1,Total.Eco.C.CnoNA2)  # Good fit
 write.csv(SEM.dung$coefficients, file = "Ecosystem carbon/SEMdung.csv")
 
-# Run a SEM with dung included FULL 
+# Run a SEM with dung and termites included FULL Not possible to get a good fit!! 
 summary(Belowground.full.CnoNA2)
 Modlist2 <-   psem(
-  lme(Woody~ CFire_frequency.2000_2017 + livestock, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(DW~  landuse, random= ~ 1|Region,na.action=na.pass, data=Belowground.full.CnoNA),
-  lme(Herbaceous ~  CFire_frequency.2000_2017 + CShrubbiness,random= ~ 1|Region, na.action=na.pass, data=Belowground.full.CnoNA),
-  lme(AhorC.kg_m2~ livestock + wild, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(MinC.kg_m2~ AhorC.kg_m2, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(CShrubbiness~livestock + wild +CFire_frequency.2000_2017, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(Ctot.N.kg_m2~ livestock, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(Woody~ CFire_frequency.2000_2017 + CSand, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA2),
+  #lme(DW~  Clivestock + Woody, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA2),
+  lme(Herbaceous ~  CFire_frequency.2000_2017,random= ~ 1|Region, na.action=na.pass, data=Belowground.full.CnoNA),
+  lme(AhorC.kg_m2~Clivestock + Cwild, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA2),
+  lme(MinC.kg_m2~ AhorC.kg_m2 + CSand, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA2),
+  lme(CShrubbiness~CFire_frequency.2000_2017 + CMAP.mm_yr, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA2),
+  lme(AhorN.kg_m2~Cwild + CSand, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA2),
+  lme(MinN.kg_m2~ CSand, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA2),
+  lme(CTermites~  Cwild + CFire_frequency.2000_2017, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA2),
+  lme(Cwild~ Clivestock + CShrubbiness, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA2),
+  lme(Clivestock~ CSand, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA2),
   CShrubbiness%~~% Woody, 
-  AhorC.kg_m2%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path.. 
-  MinC.kg_m2%~~%Ctot.N.kg_m2, 
-  wild%~~%CMAP.mm_yr,
-  wild%~~%CSand, 
-  livestock%~~%CSand
+  AhorC.kg_m2%~~%AhorN.kg_m2, # We know these are highly correlated, but no path.. 
+  MinC.kg_m2%~~%AhorN.kg_m2,
+  AhorC.kg_m2%~~%MinN.kg_m2, 
+  MinC.kg_m2%~~%MinN.kg_m2
 )
+
 summary(Modlist2,Belowground.full.CnoNA2)
 par(mfrow=c(1,1))
 plot(wild ~ Region, data=Belowground.full.CnoNA2 )
@@ -2112,11 +2176,11 @@ Modlist.below2 <-   psem(
   lme(Woody~ landuse + CSand, random= ~ 1|Region,na.action=na.fail, data=Belowground.full.CnoNA),
   lme(DW~ landuse,random= ~ 1|Region,na.action=na.fail, data=Belowground.full.CnoNA),
   lme(Herbaceous~ CFire_frequency.2000_2017 + CShrubbiness,random= ~ 1|Region,na.action=na.fail, data=Belowground.full.CnoNA),
-  lme(MinC.kg_m2~ AhorC.kg_m2 + CSand, random= ~ 1|Region,na.action=na.fail, data=Belowground.full.CnoNA),
+  lme(MinC.kg_m2~ AhorC.kg_m2 + CSand, random= ~ 1|Region/Block.ID,na.action=na.fail, data=Belowground.full.CnoNA),
   lme(CFire_frequency.2000_2017~ Woody + DW,random= ~ 1|Region,na.action=na.fail, data=Belowground.full.CnoNA),
   lme(CShrubbiness~ CMAP.mm_yr + CFire_frequency.2000_2017,random= ~ 1|Region,na.action=na.fail, data=Belowground.full.CnoNA),
-  lme(AhorN.kg_m2~ CSand + CMAP.mm_yr,random= ~ 1|Region,na.action=na.fail, data=Belowground.full.CnoNA),
-  lme(MinN.kg_m2~ CSand,random= ~ 1|Region,na.action=na.fail, data=Belowground.full.CnoNA),
+  lme(AhorN.kg_m2~ CSand + CMAP.mm_yr,random= ~ 1|Region/Block.ID,na.action=na.fail, data=Belowground.full.CnoNA),
+  lme(MinN.kg_m2~ CSand,random= ~ 1|Region/Block.ID,na.action=na.fail, data=Belowground.full.CnoNA),
   landuse%~~%CMAP.mm_yr, # I know these are not correlated
   landuse%~~%CSand, # I know these are not correlated 
   CShrubbiness%~~% Woody,

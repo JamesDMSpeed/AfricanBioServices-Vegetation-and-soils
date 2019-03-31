@@ -36,7 +36,9 @@ Soil.texture$Region <- factor(Soil.texture$Region,levels = c("Makao","Maswa","Mw
 levels(Soil.texture$Region)
 
 levels(Soil.texture$Landuse)
-Soil.texture$Landuse <- factor(Soil.texture$Landuse,levels = c("Pasture","Wild"))
+Soil.texture$Landuse <- factor(Soil.texture$Landuse,levels = c("Wild","Pasture"))
+levels(Soil.texture$Landuse) <- c("PA","UPA")
+
 #pt.col<-as.numeric(Rootex$Area)
 #pt.col
 
@@ -50,7 +52,7 @@ my.text<-data.frame(Soil.texture$Region,Soil.texture$Clay.pip.per,Soil.texture$S
 
 # Points for landuse
 pt.landuse<- nlevels(Soil.texture$Landuse) # 2 landuses
-pt.to.landuse <- c(0,19)
+pt.to.landuse <- c(21,22) # or 0,19?
 my.text$pt.pch<-pt.to.landuse [Soil.texture$Landuse]
 my.text$pt.pch
 
@@ -102,7 +104,7 @@ legend (x= 98,  y= 100, legend=levels(my.text$REGION),  pch=19,
 #       bty= "n")
 
 # Legend for landuse 
-legend (x= 98,  y= 40, legend=levels(Soil.texture$Landuse),pch=c(19,0), 
+legend (x= 98,  y= 40, legend=levels(Soil.texture$Landuse),pch=c(21,22), 
         cex =1.2, pt.cex=2, y.intersp =.5,x.intersp =.8, text.col="black", col="gray21",bty= "n")
 
 # Quick linear model to see if differences in Area by Clay %
