@@ -21,7 +21,33 @@ library(MuMIn) #for mod.sel()
 Biomass <- read.csv("Moveable exclosures/Biomass.csv", header=T,sep=",")
 tail(Biomass)
 
-Nuts <- read.csv("Moveable exclosures/Nutrients.csv", header=T,sep=",")
+#Stacking target and other underneath each other
+#Getting long format 
+Biomass.stack <- gather(Biomass,pool,biomass.sp, 37:38, factor_key=TRUE)
+levels(Biomass.stack$pool)<-c("target","other")
+stackB <- gather(Biomass,pool,prodsp,40,42,factor_key=TRUE)
+levels(stackB$pool)<-c("target","other")
+stackC <- gather(Biomass,pool,conssp,41,43,factor_key=TRUE)
+levels(stackC$pool)<-c("target","other")
+stackD <- gather(Biomass,pool,prodsp.per,47,49,factor_key=TRUE)
+levels(stackD$pool)<-c("target","other")
+stackE <- gather(Biomass,pool,conssp.per,48,50,factor_key=TRUE)
+levels(stackE$pool)<-c("target","other")
+
+
+#Adding new variables to Biomass.stack
+Biomass.stack <- cbind(Biomass.stack,stackB[,"prodsp",drop=FALSE])
+Biomass.stack <- cbind(Biomass.stack,stackC[,"conssp",drop=FALSE])
+Biomass.stack <- cbind(Biomass.stack,stackD[,"prodsp.per",drop=FALSE])
+Biomass.stack <- cbind(Biomass.stack,stackE[,"conssp.per",drop=FALSE])
+
+#Removing the old variables
+Biomass.stack <- Biomass.stack[,-c(38:41,44:48)]
+
+write.csv(Biomass.stack,'Moveable exclosures/BiomassStacked2.csv')
+Databiom <- read.csv("Moveable exclosures/BiomassStacked2.csv",header=T) #712 obs
+
+Nuts <- read.csv("Moveable exclosures/Nutrients.csv", header=T,sep=";")
 Datanuts <- Nuts[Nuts$treatment!="EX2",] #Removing Mesh exclosures  #300 obs
 Datanuts <- Datanuts[Datanuts$harvest!="H0",] #removing H0                #280 obs
 Datanuts <- droplevels(Datanuts)
@@ -38,12 +64,10 @@ Datanuts <- droplevels(Datanuts)
 
 #### Housekeeping ####
 # Removing Ex2 - separate analysis
-Databiom <- Biomass[Biomass$treatment!="EX2",] #Removing Mesh exclosures  #300 obs
-Databiom <- Databiom[Databiom$harvest!="H0",] #removing H0                #280 obs
+Databiom <- Databiom[Databiom$treatment!="EX2",] #Removing Mesh exclosures  #600 obs
+Databiom <- Databiom[Databiom$harvest!="H0",] #removing H0                #560 obs
 Databiom <- droplevels(Databiom)
 
-#attach(Databiom)
-#detach(Databiom)
 # Creating factor variables
 Databiom$landuse<-as.factor(Databiom$landuse)
 Databiom$region<-as.factor(Databiom$region)
@@ -54,21 +78,26 @@ Databiom$harvest<-as.factor(Databiom$harvest)
 Databiom$site.id <- as.factor(Databiom$site.id)
 Databiom$block.id.harvest <- as.factor(Databiom$block.id.harvest)
 
-#Renaming productivity and consumption columns
-colnames(Databiom)[colnames(Databiom)=="productivity.target.g.m2.day"] <- "prodtarg"
-colnames(Databiom)[colnames(Databiom)=="consumption.target.g.m2.day"] <- "constarg"
+#Renaming total productivity and consumption columns
 colnames(Databiom)[colnames(Databiom)=="productivity.total.g.m2.day"] <- "prodtot"
+colnames(Databiom)[colnames(Databiom)=="productivity.total.g.m2.dayWEIGHTED"] <- "prodtot.per"
+
 colnames(Databiom)[colnames(Databiom)=="consumption.total.g.m2.day"] <- "constot"
-colnames(Databiom)[colnames(Databiom)=="productivity.other.g.m2.day"] <- "prodoth"
-colnames(Databiom)[colnames(Databiom)=="consumption.other.g.m2.day"] <- "consoth"
+colnames(Databiom)[colnames(Databiom)=="consumption.total.g.m2.dayWEIGHTED"] <- "constot.per"
+
 
 #Productivity and consumptions per harvest period
-Databiom$prodtargsum <- Databiom$prodtarg*Databiom$growth.period
-Databiom$constargsum <- Databiom$constarg*Databiom$growth.period
-Databiom$prodothsum <- Databiom$prodoth*Databiom$growth.period
-Databiom$consothsum <- Databiom$consoth*Databiom$growth.period
-Databiom$prodtotsum <- Databiom$prodtot*Databiom$growth.period
-Databiom$constotsum <- Databiom$constot*Databiom$growth.period
+Databiom$prodsp.sum <- Databiom$prodsp*Databiom$growth.period
+Databiom$conssp.sum <- Databiom$conssp*Databiom$growth.period
+
+Databiom$prodspper.sum <- Databiom$prodsp.per*Databiom$growth.period
+Databiom$consspper.sum <- Databiom$conssp.per*Databiom$growth.period
+
+Databiom$prodtot.sum <- Databiom$prodtot*Databiom$growth.period
+Databiom$constot.sum <- Databiom$constot*Databiom$growth.period
+Databiom$prodtotper.sum <- Databiom$prodtot.per*Databiom$growth.period
+Databiom$constotper.sum <- Databiom$constot.per*Databiom$growth.period
+
 
 colnames(Databiom)[colnames(Databiom)=="sand.per"] <- "sand"
 
@@ -103,11 +132,9 @@ levels(Databiom$plot.code) #40 levels
 
 #### New Y variables for hypotheses ####
 # Adding new columns NAP-cons
-Databiom$difftarget <- Databiom$prodtarg-Databiom$constarg
+Databiom$diffsp <- Databiom$prodsp-Databiom$conssp
 Databiom$difftotal <- Databiom$prodtot-Databiom$constot
 
-# Target fraction in relation to community NAP target/total productivity
-Databiom$prodtargfrac <- Databiom$prodtarg/Databiom$prodtot
 
 # Adding new column with % NAP consumed 
 Databiom$consper <- Databiom$constot/Databiom$prodtot*100
@@ -1827,7 +1854,7 @@ annual
 ####VEGETATION COVER ####
 
 ##Harvest covers##
-Speciesh <- read.csv("Species.cover.harvest.csv", header=T)
+Speciesh <- read.csv("Moveable exclosures/Species.cover.harvest.csv", header=T)
 # Removing Ex2 and H0
 Speciesh <- Speciesh[Speciesh$treatment!="EX2",] #Removing Mesh exclosures
 Speciesh <- Speciesh[Speciesh$harvest!="H0",] #removing H0    
@@ -1997,7 +2024,7 @@ MyData <- expand.grid(landuse=levels(Dataprod$landuse),treatment=levels(Dataprod
                       rain.sum=seq(min(Dataprod$rain.sum), max(Dataprod$rain.sum), length = 25),sand=seq(min(Dataprod$sand),max(Dataprod$sand),length.out = 25)) 
 
 ####Biomass stacked - target and other species connected in one column #### 
-Stacked <- read.csv("Biomass.Stacked.csv", header=T,sep=",")
+Stacked <- read.csv("Moveable exclosures/Biomass.Stacked.csv", header=T,sep=",")
 
 Stacked <- Stacked[Stacked$treatment!="EX2",] #Removing Mesh exclosures  #300 obs
 Stacked <- Stacked[Stacked$harvest!="H0",] #removing H0                #280 obs
