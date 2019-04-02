@@ -1585,10 +1585,10 @@ summary(RecalMainModFINAL)
 coef(summary(RecalMainModFINAL))
 
 #Inspect chosen model for homogeneity:
-E1 <- resid(LabileMainModFINAL, type ="pearson")
-F1 <- fitted(LabileMainModFINAL)
+E1 <- resid(RecalMainModFINAL, type ="pearson")
+F1 <- fitted(RecalMainModFINAL)
 
-par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5) #Looks OK
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
 plot(x = F1, 
      y = E1,
      xlab = "Fitted values",
@@ -1596,7 +1596,7 @@ plot(x = F1,
 abline(v = 0, lwd = 2, col = 2)
 abline(h = 0, lty = 2, col = 1)
 
-hist(E1, nclass = 30) #OK
+hist(E1, nclass = 30) 
 
 
 
