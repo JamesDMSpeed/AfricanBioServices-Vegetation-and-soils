@@ -1707,13 +1707,13 @@ RecalMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+S
                         (1|Site/Blockcode/Plot), na.action=na.fail,REML = F,data=RecalMain_NA_filtered)
 
 
-modsetlmer_RecalMainMod1 <- dredge(RecalMainMod1,trace=2) #,fixed=c("Season","Region","Landuse","Treatment","C.N","Temp","Sand")) 
-model.sel(RecalMainMod1) #Model selection table giving AIC, deltaAIC and weighting
-modavglmer_RecalMainMod1<-model.avg(modsetlmer_RecalMainMod1) #Averages coefficient estimates across multiple models according to the weigthing from above
-importance(modavglmer_RecalMainMod1)#Importance of each variable
-write.table(importance(modavglmer_RecalMainMod1),file="Termites/Importance_RecalMain1.txt")
-summarymodmodavglmer_RecalMain1 <- summary(modavglmer_RecalMainMod1)#Estimated coefficients given weighting
-write.table(summary(modavglmer_RecalMainMod1)$coefmat.subset,file="Termites/SumCoef_RecalMain1.txt")
+#modsetlmer_RecalMainMod1 <- dredge(RecalMainMod1,trace=2) #,fixed=c("Season","Region","Landuse","Treatment","C.N","Temp","Sand")) 
+# model.sel(RecalMainMod1) #Model selection table giving AIC, deltaAIC and weighting
+# modavglmer_RecalMainMod1<-model.avg(modsetlmer_RecalMainMod1) #Averages coefficient estimates across multiple models according to the weigthing from above
+# importance(modavglmer_RecalMainMod1)#Importance of each variable
+# write.table(importance(modavglmer_RecalMainMod1),file="Termites/Importance_RecalMain1.txt")
+# summarymodmodavglmer_RecalMain1 <- summary(modavglmer_RecalMainMod1)#Estimated coefficients given weighting
+# write.table(summary(modavglmer_RecalMainMod1)$coefmat.subset,file="Termites/SumCoef_RecalMain1.txt")
 
 #Termite effect models, using the difference between treatment (op-excl)####
 ####Preliminary dataprocessing####
@@ -1838,73 +1838,148 @@ colnames(DataMCG)[(names(DataMCG)== "Rain.sum.x")] <- "Rain"
 RecalDataMCG <- droplevels(DataMCG[DataMCG$Littertype =="Rooibos",])
 LabileDataMCG <- droplevels(DataMCG[DataMCG$Littertype =="Green",])
 
-#Block needs to be a unique number - not repeated 
-# LabileDataMCG$blockdesign.num<-as.factor(with(LabileDataMCG, paste(Season,Blockcode,Treatment, sep="")))
-# LabileDataMCG$blockdesign.num<-as.numeric(LabileDataMCG$blockdesign.num)
-# LabileDataMCG$blockdesign.num<-as.factor(LabileDataMCG$blockdesign.num)
-# table(LabileDataMCG$Site.ID, LabileDataMCG$Landuse)
-# 
-# RecalDataMCG$blockdesign.num<-as.factor(with(RecalDataMCG, paste(Season,Treatment,Blockcode, sep="")))
-# RecalDataMCG$blockdesign.num<-as.numeric(RecalDataMCG$blockdesign.num)
-# RecalDataMCG$blockdesign.num<-as.factor(RecalDataMCG$blockdesign.num)
-# table(RecalDataMCG$Site.ID, RecalDataMCG$Landuse)
+#Ensuring factors are factors:
+RecalDataMCG$Season <- as.factor(RecalDataMCG$Season)
+RecalDataMCG$Region <- as.factor(RecalDataMCG$Region)
+RecalDataMCG$Landuse <- as.factor(RecalDataMCG$Landuse)
+RecalDataMCG$Treatment <- as.factor(RecalDataMCG$Treatment)
+LabileDataMCG$Season <- as.factor(LabileDataMCG$Season)
+LabileDataMCG$Region <- as.factor(LabileDataMCG$Region)
+LabileDataMCG$Landuse <- as.factor(LabileDataMCG$Landuse)
+LabileDataMCG$Treatment <- as.factor(LabileDataMCG$Treatment)
+
 #COMMON GARDEN MODELLING####
 #Labilemodel analysis####
-
-#Using Tempdiff instead of Temp variable
-#Using Sand and not Clay
-#First, writing up all possibl important combinations ,
-GlobalLabileMCGMod <- lmer(MainCGdiff ~ (Season+Region+Landuse+Treatment+Temp+Sand+C.N)^2
-                           +Season:Landuse:Treatment+Season:Landuse:Region+Landuse:Region:Treatment+
+GlobalLabileMCGMod <- lmer(MainCGdiff ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^2
+                           +Season:Landuse:Treatment+Season:Landuse:Region+
+                             Landuse:Region:Treatment+Season:Region:Treatment+
                              (1|Site/Blockcode), na.action=na.omit, REML=F, data =LabileDataMCG)
 summary(GlobalLabileMCGMod)                         
-AIC(GlobalLabileMCGMod)# 770.9838
+AIC(GlobalLabileMCGMod)# 773.2234
 drop1(GlobalLabileMCGMod,test="Chisq")
-# Season:Temp               1 769.01  0.0300 0.8623957    
-# Season:Sand               1 782.70 13.7150 0.0002128 ***
-#   Season:C.N                1 769.40  0.4183 0.5177701    
-# Region:Temp               1 782.35 13.3695 0.0002558 ***
-#   Region:Sand               1 769.01  0.0220 0.8821932    
-# Region:C.N                1 769.43  0.4462 0.5041427    
-# Landuse:Temp              2 781.23 14.2420 0.0008080 ***
-#   Landuse:Sand              2 773.81  6.8250 0.0329581 *  
-#   Landuse:C.N               2 767.07  0.0844 0.9586892    
-# Treatment:Temp            1 769.01  0.0269 0.8697423    
-# Treatment:Sand            1 769.04  0.0591 0.8079727    
-# Treatment:C.N             1 769.20  0.2123 0.6449950    
-# Temp:Sand                 1 774.44  5.4551 0.0195111 *  
-#   Temp:C.N                  1 770.05  1.0701 0.3009120    
-# Sand:C.N                  1 769.10  0.1177 0.7315485    
-# Season:Landuse:Treatment  2 767.17  0.1824 0.9128526    #REMOVE
-# Season:Region:Landuse     2 768.88  1.8985 0.3870272    #REMOVE
-# Region:Landuse:Treatment  2 768.16  1.1744 0.5558900   #REMOVE
+# Season:C.N                1 771.65  0.4279 0.5130239    
+# Season:Temp               1 771.25  0.0227 0.8802988    
+# Season:Sand               1 785.24 14.0178 0.0001811 ***
+#   Region:C.N                1 771.67  0.4515 0.5016040    
+# Region:Temp               1 784.74 13.5163 0.0002365 ***
+#   Region:Sand               1 771.24  0.0156 0.9005052    
+# Landuse:C.N               2 769.31  0.0882 0.9568677    
+# Landuse:Temp              2 783.76 14.5378 0.0006969 ***
+#   Landuse:Sand              2 776.00  6.7753 0.0337878 *  
+#   Treatment:C.N             1 771.38  0.1544 0.6943222    
+# Treatment:Temp            1 771.28  0.0595 0.8072838    
+# Treatment:Sand            1 771.28  0.0612 0.8046842    
+# C.N:Temp                  1 772.29  1.0634 0.3024423    
+# C.N:Sand                  1 771.36  0.1334 0.7148878    
+# Temp:Sand                 1 776.66  5.4405 0.0196751 *  
+#   Season:Landuse:Treatment  2 769.39  0.1657 0.9205081  #REMOVE  
+# Season:Region:Landuse     2 771.18  1.9539 0.3764606    #REMOVE
+# Region:Landuse:Treatment  2 770.28  1.0575 0.5893542    #REMOVE
+# Season:Region:Treatment   2 770.98  1.7604 0.4146967 #REMOVE
 LabileMCGMod1 <- update(GlobalLabileMCGMod, .~. -Season:Landuse:Treatment-Season:Region:Landuse-
-                          Region:Landuse:Treatment)
+                          Region:Landuse:Treatment-Season:Region:Treatment)
 AIC(LabileMCGMod1)# 762.1489
 drop1(LabileMCGMod1,test="Chisq")
+# Season:Region      1 825.73 65.582 5.574e-16 ***
+#   Season:Landuse     2 759.51  1.358   0.50703    #REMOVE
+# Season:Treatment   1 765.91  5.756   0.01643 *  
+#   Season:Temp        1 760.70  0.550   0.45829    #REMOVE
+# Season:Sand        1 786.38 26.230 3.032e-07 ***
+#   Season:C.N         1 760.28  0.133   0.71547    #REMOVE
+# Region:Landuse     2 777.82 19.675 5.342e-05 ***
+#   Region:Treatment   2 758.74  0.592   0.74377    #REMOVE
+# Region:Temp        1 776.68 16.527 4.796e-05 ***
+#   Region:Sand        1 760.68  0.528   0.46757    #REMOVE
+# Region:C.N         1 760.42  0.273   0.60129    #REMOVE
+# Landuse:Treatment  2 758.25  0.097   0.95285    #REMOVE
+# Landuse:Temp       2 776.62 18.475 9.732e-05 ***
+#   Landuse:Sand       2 766.35  8.200   0.01657 *  
+#   Landuse:C.N        2 758.63  0.481   0.78627   #REMOVE 
+# Treatment:Temp     1 760.59  0.437   0.50877    #REMOVE
+# Treatment:Sand     1 760.18  0.032   0.85815    #REMOVE
+# Treatment:C.N      1 760.55  0.405   0.52470    #REMOVE
+# Temp:Sand          1 766.18  6.027   0.01408 *  
+#   Temp:C.N           1 761.76  1.611   0.20437    #REMOVE
+# Sand:C.N           1 760.15  0.000   0.98268 #REMOVE
 
-#Checking distrubution of the modelled data. Problem: I dont know how to interpret this:
-E1 <- resid(Alt1LabileMCGMod, type ="pearson")  #THIS IS FOR lme4..NOT lme, in lme = "type = "n"
-F1 <- fitted(Alt1LabileMCGMod)
+LabileMCGMod2 <- update(LabileMCGMod1, .~. -Sand:C.N-Temp:C.N-Treatment:C.N-Treatment:Sand-Treatment:Temp-
+                          Landuse:C.N-Landuse:Treatment-Region:C.N-Region:Sand-Region:Treatment-
+                          Season:C.N-Season:Temp-Season:Landuse)
+AIC(LabileMCGMod2)# 735.2236
+drop1(LabileMCGMod2,test="Chisq")
+# C.N               1 733.64   0.418  0.517979   #REMOVE 
+# Season:Region     1 849.00 115.774 < 2.2e-16 ***
+#   Season:Treatment  1 738.99   5.771  0.016294 *  
+#   Season:Sand       1 772.24  39.020 4.195e-10 ***
+#   Region:Landuse    2 761.72  30.492 2.392e-07 ***
+#   Region:Temp       1 773.27  40.046 2.481e-10 ***
+#   Landuse:Temp      2 782.13  50.910 8.812e-12 ***
+#   Landuse:Sand      2 739.94   8.713  0.012821 *  
+#   Temp:Sand         1 742.55   9.329  0.002255 ** 
+LabileMCGMod3 <- update(LabileMCGMod2, .~. -C.N)
+AIC(LabileMCGMod3)# 733.6415
+drop1(LabileMCGMod3,test="Chisq") #All sign, but still rank deficient
+summary(LabileMCGMod3)
+
+#Exctract P-values from best model for all terms:
+LabileMCGMod3a <- update(LabileMCGMod3, .~. -Season:Region)
+LabileMCGMod3b <- update(LabileMCGMod3, .~. -Season:Treatment )
+LabileMCGMod3c <- update(LabileMCGMod3, .~. -Season:Sand )
+LabileMCGMod3d <- update(LabileMCGMod3, .~. -Region:Landuse)
+LabileMCGMod3e <- update(LabileMCGMod3, .~. -Region:Temp)
+LabileMCGMod3f <- update(LabileMCGMod3, .~. -Landuse:Temp)
+LabileMCGMod3g <- update(LabileMCGMod3, .~. -Landuse:Sand)
+LabileMCGMod3h <- update(LabileMCGMod3, .~. -Temp:Sand)
+LabileMCGMod3I <- update(LabileMCGMod3, .~. -Season:Region-Season:Treatment-Season:Sand-Region:Landuse-
+                           Region:Temp-Landuse:Temp-Landuse:Sand-Temp:Sand) #REMOVE ALL 2ways
+LabileMCGMod3j <- update(LabileMCGMod3I, .~. -Season)
+LabileMCGMod3k <- update(LabileMCGMod3I, .~. -Region)
+LabileMCGMod3l <- update(LabileMCGMod3I, .~. -Landuse)
+LabileMCGMod3m <- update(LabileMCGMod3I, .~. -Treatment)
+LabileMCGMod3n <- update(LabileMCGMod3I, .~. -Temp)
+LabileMCGMod3o <- update(LabileMCGMod3I, .~. -Sand)
+
+anova(LabileMCGMod3a,LabileMCGMod3) #Season:Region 2.2e-16 ***
+anova(LabileMCGMod3b,LabileMCGMod3) #Season:Treatment 0.01675 *
+anova(LabileMCGMod3c,LabileMCGMod3) #Season:Sand 2.31e-10 ***
+anova(LabileMCGMod3d,LabileMCGMod3) #Region:Landuse 4.574e-08 ***
+anova(LabileMCGMod3e,LabileMCGMod3) #Region:Temp 3.653e-11 ***
+anova(LabileMCGMod3f,LabileMCGMod3) #Landuse:Temp 9.561e-13 ***
+anova(LabileMCGMod3g,LabileMCGMod3) #Landuse:Sand 0.008727 **
+anova(LabileMCGMod3h,LabileMCGMod3) #Temp:Sand 0.000803 ***
+anova(LabileMCGMod3j,LabileMCGMod3I) #Season 3.279e-15 ***
+anova(LabileMCGMod3k,LabileMCGMod3I) #Region 2.787e-05 ***
+anova(LabileMCGMod3l,LabileMCGMod3I) #Landuse 0.03737 *
+anova(LabileMCGMod3m,LabileMCGMod3I) #Treatment 0.5615
+anova(LabileMCGMod3n,LabileMCGMod3I) #Temp 0.007109 **
+anova(LabileMCGMod3o,LabileMCGMod3I) #Sand 0.0008505 ***
+
+#See here that Treatment is not significant, can try and remove the sign two way and then treatment.
+# LabileMCGMod4 <- update(LabileMCGMod3, .~. -Season:Treatment)
+# AIC(LabileMCGMod4)# 737.3641
+# drop1(LabileMCGMod4,test="Chisq") #
+# LabileMCGMod5 <- update(LabileMCGMod4, .~. -Treatment)
+# AIC(LabileMCGMod5)# 738.2697 - NOPE NOT BETTER THEN PREVIUOS
+
+#Final Model
+LabileMCGModFINAL <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+Sand+
+                            Season:Region+Season:Treatment+Season:Sand+Region:Landuse+
+                            Region:Temp+Landuse:Temp+Landuse:Sand+Temp:Sand+
+                            (1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)
+summary()
+#Inspect chosen model for homogeneity:
+E1 <- resid(LabileMCGModFINAL, type ="pearson")
+F1 <- fitted(LabileMCGModFINAL)
 
 par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
 plot(x = F1, 
      y = E1,
      xlab = "Fitted values",
      ylab = "Residuals")
-abline(v = 0, lwd = 2, col = 2) # Several of the fitted values <0 #PROBLEM???
+abline(v = 0, lwd = 2, col = 2)
 abline(h = 0, lty = 2, col = 1)
-
-#Getting parameter estimates directly:
-Alt1LabileMCGModA <- lmer(MainCGdiff ~ -1+Season + Landuse + Sand + Rain + Season:Landuse + 
-                            Season:Sand + Landuse:Sand + 
-                            (1| Site.ID),REML=T,data=LabileDataMCG)
-
-summary(Alt1LabileMCGMod)
-
-#Should also try and add back some variables to test.
-####
-
+#identify(F1, E1)
+hist(E1, nclass = 25) 
 
 #Recalcitrantmodel analysis####
 names(LabileDataMCG)
