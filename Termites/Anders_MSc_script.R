@@ -1573,6 +1573,9 @@ anova(RecalMainMod1av,RecalMainMod1aO)# 0.001984 ** Temp
 anova(RecalMainMod1aw,RecalMainMod1aO)# 0.0003581 *** Sand
 
 #FINAL model:
+RecalMain$Site<-as.factor(RecalMain$Site)
+RecalMain$Blockcode<-as.factor(RecalMain$Blockcode)
+RecalMain$Plot<-as.factor(RecalMain$Plot)
 RecalMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+
                             Treatment:Sand+Treatment:C.N+Landuse:Temp+
                             Landuse:C.N+Landuse:Treatment+Region:Treatment+
@@ -1582,11 +1585,91 @@ RecalMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+
                              (1|Site/Blockcode/Plot), na.action=na.omit,REML = T, data=RecalMain)
 
 summary(RecalMainModFINAL)
+anova(RecalMainModFINAL)
 coef(summary(RecalMainModFINAL))
 
 #Inspect chosen model for homogeneity:
 E1 <- resid(RecalMainModFINAL, type ="pearson")
 F1 <- fitted(RecalMainModFINAL)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F1, 
+     y = E1,
+     xlab = "Fitted values",
+     ylab = "Residuals")
+abline(v = 0, lwd = 2, col = 2)
+abline(h = 0, lty = 2, col = 1)
+
+hist(E1, nclass = 30) 
+
+#### Standadrized temp, C:N and Sand  variables -  remove resdiual negative slope #####
+RecalMain$Temp.std <- (RecalMain$Temp - mean(RecalMain$Temp, na.rm=T)) / sd(RecalMain$Temp,na.rm=T)
+RecalMain$Sand.std <- (RecalMain$Sand - mean(RecalMain$Sand, na.rm=T)) / sd(RecalMain$Sand,na.rm=T)
+RecalMain$C.N.std <- (RecalMain$C.N - mean(RecalMain$C.N,na.rm=T)) / sd(RecalMain$C.N, na.rm=T)
+
+RecalMainModFINAL2 <- lmer(Massloss.per ~ Season+Region+Landuse+C.N.std +Temp.std +Sand.std +
+                            Treatment:Sand.std +Treatment:C.N.std +Landuse:Temp.std +
+                            Landuse:C.N.std +Landuse:Treatment+Region:Treatment+
+                            +Region:Landuse+Season:Treatment+Season:Landuse+
+                            Season:Region+
+                            Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+
+                            (1|Site/Blockcode/Plot), na.action=na.omit,REML = T, data=RecalMain)
+
+summary(RecalMainModFINAL2)
+anova(RecalMainModFINAL2)
+
+#Inspect chosen model for homogeneity:
+E1 <- resid(RecalMainModFINAL2, type ="pearson")
+F1 <- fitted(RecalMainModFINAL2)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F1, 
+     y = E1,
+     xlab = "Fitted values",
+     ylab = "Residuals")
+abline(v = 0, lwd = 2, col = 2)
+abline(h = 0, lty = 2, col = 1)
+
+#### GLMM with Beta distribution ####
+# Ensure mass loss values are between 0 and 1 (cannot be exactly zero and one so 0.01 and 99.99)
+RecalMain$Massloss.per[RecalMain$Massloss.per>99.99]<-99.99
+RecalMain$Massloss.per[RecalMain$Massloss.per<0.01]<-0.01
+RecalMain$Massloss.perB<-RecalMain$Massloss.per/100
+#### GLMM - glmmADMB pacakge #### Can also used glmmTMB
+library(glmmADMB)
+
+RecalMain2<-RecalMain[!is.na(RecalMain$Massloss.per),]
+RecalMain2$Massloss.per
+
+RecalMain2$Site<-as.factor(RecalMain2$Site)
+RecalMain2$Blockcode<-as.factor(RecalMain2$Blockcode)
+RecalMain2$Plot<-as.factor(RecalMain2$Plot)
+
+
+min(RecalMain2$Massloss.perB)
+max(RecalMain2$Massloss.perB)
+RecalMainModFINAL2 <- glmmadmb(Massloss.perB ~ Season+Region+Landuse+C.N+Temp+Sand+
+                            Treatment:Sand+Treatment:C.N+Landuse:Temp+
+                            Landuse:C.N+Landuse:Treatment+Region:Treatment+
+                            #+Region:Landuse+Season:Treatment+Season:Landuse+
+                           # Season:Region+
+                          #  Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+
+                            (1|Site/Blockcode/Plot), 
+                           # admbControl(shess=FALSE,noinit=FALSE, impSamp=200,maxfn=1000,imaxfn=500,maxph=5),
+                            family="beta", data=RecalMain2)
+
+
+#RecalMainModFINAL2 <-glmmTMB(Massloss.perB ~ Season+Region+Landuse+C.N+Temp+Sand+
+#                               (1|Site/Blockcode/Plot),
+#                family=list(family="beta",link="logit"),
+#                data = RecalMain2)
+
+summary(RecalMainModFINAL2)
+
+
+#Inspect chosen model for homogeneity:
+E1 <- resid(RecalMainModFINAL2, type ="pearson")
+F1 <- fitted(RecalMainModFINAL2)
 
 par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
 plot(x = F1, 
