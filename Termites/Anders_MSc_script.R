@@ -643,6 +643,7 @@ LabileTermEff <- GreenOpEx
 #Setting all negative values below zero:
 LabileTermEff$Termite.effect[LabileTermEff$Termite.effect < 0] <- 0
 
+
 #For red littertype dataset
 length(Redop$Massloss.per)#440
 length(Redex$Massloss.per)#440
@@ -675,6 +676,119 @@ RecalTermEff_Wetseason_Block <-aggregate(Termite.effect~Season+Region+Site+Landu
 write.csv(write.csv(RecalTermEff_Wetseason_Block,file="Termites/RecalTermEff_Wetseason_Block.csv"))
 
 
+
+#Setting all negative values below zero (did this previously for Vilde data, but do it again to create my own data):
+RedOpEx$Termite.effect[RedOpEx$Termite.effect < 0] <- 0
+GreenOpEx$Termite.effect[GreenOpEx$Termite.effect < 0] <- 0
+
+#Create microbe effect variable for green:
+GreenOpEx$Microbe.effect <- (GreenOpEx$Open.Massloss)
+#Create microbe effect variable for red:
+Microbe.effect.Red <- RedOpEx$Microbe.effect <- (RedOpEx$Open.Massloss)
+
+#Agregatin the 4 varialbes
+#MICROBE GREEN
+SUM.Microbe.effect.green<-aggregate(Microbe.effect~Season+Region+Landuse,GreenOpEx,mean)
+SUM.Microbe.effect.greenSE<-aggregate(Microbe.effect~Season+Region+Landuse,GreenOpEx,se)
+SUM.Microbe.effect.green$SE<-SUM.Microbe.effect.greenSE$Microbe.effect
+SUM.Microbe.effect.green$Decomposer <- "Microbe"
+SUM.Microbe.effect.green$LD <- "Labile Microbe"
+SUM.Microbe.effect.green$Littertype <- "Labile"
+colnames(SUM.Microbe.effect.green)[(names(SUM.Microbe.effect.green)== "Microbe.effect")] <- "Massloss.per"
+#MICROBE RED
+SUM.Microbe.effect.red<-aggregate(Microbe.effect~Season+Region+Landuse,RedOpEx,mean)
+SUM.Microbe.effect.redSE<-aggregate(Microbe.effect~Season+Region+Landuse,RedOpEx,se)
+SUM.Microbe.effect.red$SE<-SUM.Microbe.effect.redSE$Microbe.effect
+SUM.Microbe.effect.red$Decomposer <- "Microbe"
+SUM.Microbe.effect.red$LD <- "Recalcitrant Microbe"
+SUM.Microbe.effect.red$Littertype <- "Recalcitrant"
+colnames(SUM.Microbe.effect.red)[(names(SUM.Microbe.effect.red)== "Microbe.effect")] <- "Massloss.per"
+
+#TERMITE GREEN
+SUM.Termite.effect.green<-aggregate(Termite.effect~Season+Region+Landuse,GreenOpEx,mean)
+SUM.Termite.effect.greenSE<-aggregate(Termite.effect~Season+Region+Landuse,GreenOpEx,se)
+SUM.Termite.effect.green$SE<-SUM.Termite.effect.greenSE$Termite.effect
+SUM.Termite.effect.green$Decomposer <- "Termite"
+SUM.Termite.effect.green$LD <- "Labile Termite"
+SUM.Termite.effect.green$Littertype <- "Labile"
+colnames(SUM.Termite.effect.green)[(names(SUM.Termite.effect.green)== "Termite.effect")] <- "Massloss.per"
+#TERMITE RED
+SUM.Termite.effect.red<-aggregate(Termite.effect~Season+Region+Landuse,RedOpEx,mean)
+SUM.Termite.effect.redSE<-aggregate(Termite.effect~Season+Region+Landuse,RedOpEx,se)
+SUM.Termite.effect.red$SE<-SUM.Termite.effect.redSE$Termite.effect
+SUM.Termite.effect.red$Decomposer <- "Termite"
+SUM.Termite.effect.red$LD <- "Recalcitrant Termite"
+SUM.Termite.effect.red$Littertype <- "Recalcitrant"
+colnames(SUM.Termite.effect.red)[(names(SUM.Termite.effect.red)== "Termite.effect")] <- "Massloss.per"
+#Need to rbind the 4 variables to plot them:
+TM.effect <- rbind(SUM.Microbe.effect.green,SUM.Microbe.effect.red,
+                       SUM.Termite.effect.green,SUM.Termite.effect.red)
+
+#GRAPH SIMPLIFIED TERMITE EFFECT (SEASON & LANDUSE)####
+#First, just excude Seronera:
+TM.effectMain <- droplevels(TM.effect[TM.effect$Region!="Intermediate",])
+
+#Legend title:
+TitleDecomp<-"Decomposer"
+TitleLitter <- "Litter Quality"
+TM.effectMain$LD <- factor(TM.effectMain$LD,levels=c("Labile Microbe", "Recalcitrant Microbe","Labile Termite","Recalcitrant Termite"))
+levels(TM.effectMain$LD)
+
+#Housekeeping
+TM.effectMain$Season <- as.factor(TM.effectMain$Season)
+levels(TM.effectMain$Season)
+levels(TM.effectMain$Landuse)
+TM.effectMain$Decomposer <- as.factor(TM.effectMain$Decomposer)
+levels(TM.effectMain$Decomposer)
+TM.effectMain$Littertype <- as.factor(TM.effectMain$Littertype)
+levels(TM.effectMain$Littertype)
+TM.effectMain$Region <- as.factor(TM.effectMain$Region)
+levels(TM.effectMain$Region)
+
+#Adjusting the upper SE for error bars for stacked barplot:
+TM.effectMain$SE.up <- TM.effectMain$SE
+TM.effectMain$SE.up[TM.effectMain$LD == "Labile Microbe"] <- with(TM.effectMain,SE[LD == "Labile Microbe"]+
+                                                                    Massloss.per[LD=="Labile Termite"])
+
+TM.effectMain$SE.up[TM.effectMain$LD == "Recalcitrant Microbe"] <- with(TM.effectMain,SE[LD == "Recalcitrant Microbe"]+
+                                                                   Massloss.per[LD=="Recalcitrant Termite"])
+#Adjusting the lower SE for error bars (I want the lower to be same as the mean value)
+TM.effectMain$Mass.stop <- TM.effectMain$Massloss.per
+TM.effectMain$Mass.stop[TM.effectMain$LD == "Labile Microbe"] <- with(TM.effectMain,Massloss.per[LD == "Labile Microbe"]+
+                                                      Massloss.per[LD=="Labile Termite"])
+
+TM.effectMain$Mass.stop[TM.effectMain$LD == "Recalcitrant Microbe"] <- with(TM.effectMain,Massloss.per[LD == "Recalcitrant Microbe"]+
+                                                            +Massloss.per[LD=="Recalcitrant Termite"])
+
+#Plotting
+TM.effectMainP <- ggplot(data=TM.effectMain,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE.up,ymin=Mass.stop))+
+  #geom_errorbar(position="identity",width=NA,lwd=1)+
+  geom_bar(stat="identity",width=0.9)+
+  facet_wrap(Region~Season+Landuse,nrow=2)+
+  scale_fill_manual(TitleLitter,values=c("Green4","Orangered3","Green4","Orangered3"))+
+  scale_alpha_discrete(TitleDecomp,range=c(0.3,1,0.3,1))+
+  xlab("")+ylab("Mass loss (%)")+
+  theme_bw()+
+  theme(
+    rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
+    ,panel.background=element_rect(fill="transparent")
+    ,plot.background=element_rect(fill="transparent",colour=NA)
+    ,panel.grid.minor = element_blank() # Removing all grids and borders
+    ,panel.border = element_blank()
+    ,panel.grid.major.x = element_blank()
+    ,panel.grid.major.y = element_blank()
+    ,axis.text.x = element_blank()
+    ,axis.ticks.x = element_blank()
+    ,legend.background = element_rect(fill="transparent")
+    ,legend.text = element_text(size=12,color="black")
+    ,legend.title = element_text(size=14,color="black")
+    ,axis.title.y=element_text(size=16,color="black", margin = margin(t = 0, r = 10, b = 0, l = 0))
+  )
+TM.effectMainP <-TM.effectMainP + scale_y_continuous(limits=c(0,100), breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100), expand=c(0,0))
+TM.effectMainP <- TM.effectMainP+guides(alpha=F, fill=guide_legend(override.aes =list(size=6,fill=c("Green4","Orangered3","Green4","Orangered3"), alpha=c(0.3,0.3,1,1))))
+
+TM.effectMainP
+
 #BARPLOTTING - three own grafs for each Landuse####
 #Creating a fill factor:
 TMMasslossMain$LD<-as.factor(with(TMMasslossMain, paste(Decomposer, Littertype, sep=" ")))
@@ -704,8 +818,8 @@ Agri$SE.up[Agri$LD == "Labile Microbe"] <- with(Agri,SE[LD == "Labile Microbe"]+
                                                Massloss.per[LD=="Labile Termite"])
 
 Agri$SE.up[Agri$LD == "Recalcitrant Microbe"] <- with(Agri,SE[LD == "Recalcitrant Microbe"]+
-                                                  #SE[LD == "Recalcitrant Termite"]
-                                                  +Massloss.per[LD=="Recalcitrant Termite"])
+                                                  #SE[LD == "Recalcitrant Termite"]+
+                                                  Massloss.per[LD=="Recalcitrant Termite"])
 #Adjusting the lower SE for error bars (I want the lower to be same as the mean value)
 Agri$Mass.stop <- Agri$Massloss.per
 Agri$Mass.stop[Agri$LD == "Labile Microbe"] <- with(Agri,Massloss.per[LD == "Labile Microbe"]+
@@ -1178,6 +1292,7 @@ LabileMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Se
                              (1|Site/Blockcode/Plot), na.action=na.omit,REML = T,data=LabileMain)
 
 summary(LabileMainModFINAL)
+coef(summary(LabileMainModFINAL))
 
 #Inspect chosen model for homogeneity:
 E1 <- resid(LabileMainModFINAL, type ="pearson")
@@ -1226,7 +1341,7 @@ library(itsadug)
 plot(acf_resid(LabileMainModFINAL), type="b",alpha=0.05)
 abline(c(0,0), lty = 2, col = 1)
 
-install.packages("mgcv")
+
 
 
 library(mgcv)
@@ -1261,82 +1376,237 @@ M1 <- gamm(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Seas
 
 #Recal Model - general massloss across season and landuse####
 #Recal Model 1 - No moisture, no rain.
+summary(RecalMain)
+table(RecalMain$Massloss.per)
+hist(RecalMain$Massloss.per)
+
 GlobalRecalMainMod <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^2+
-                              Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+Region:Landuse:Treatment-
+                              Season:Region:Landuse+
+                             Season:Region:Treatment+ #Runs without this
+                             Season:Landuse:Treatment+ 
+                             Region:Landuse:Treatment- #Runs without this
                               C.N:Temp-C.N:Sand-Temp:Sand+
                              (1|Site/Blockcode/Plot), na.action=na.omit,REML = F,data=RecalMain)
+#Data is not enough to handle four three-ways with REML. So removing one of the two possible threeways.
+GlobalRecalMainMod1 <- update(GlobalRecalMainMod, .~. -Region:Landuse:Treatment)
+GlobalRecalMainMod2 <- update(GlobalRecalMainMod, .~. -Season:Region:Treatment)
+anova(GlobalRecalMainMod1,GlobalRecalMainMod) #0.001985 **
+anova(GlobalRecalMainMod2,GlobalRecalMainMod) #0.0001552 ***
+AIC(GlobalRecalMainMod1)# 6405.566
+AIC(GlobalRecalMainMod2)# 6410.663
+#Choosing to remove Region:Landuse:Treatmentfrom model based on P-value and AIC, and start selection from there:
 
-summary(GlobalRecalMainMod)
-anova(GlobalRecalMainMod) 
-AIC(GlobalRecalMainMod) #6397.122
-drop1(GlobalRecalMainMod,test="Chisq")
-# Season:Region:Landuse     2 6398.2  5.1029 0.0779695 .  #Remove 
-# Season:Region:Treatment   2 6410.7 17.5412 0.0001552 ***
-#   Season:Landuse:Treatment  2 6406.5 13.3614 0.0012549 ** 
-#   Region:Landuse:Treatment  2 6405.6 12.4441 0.0019851 ** 
+drop1(GlobalRecalMainMod1,test="Chisq")
+# Season:C.N                1 6405.0  1.4596 0.2269975    #REMOVE
+# Season:Temp               1 6404.9  1.3005 0.2541247    #REMOVE
+# Season:Sand               1 6403.9  0.3022 0.5824758    #REMOVE
+# Region:C.N                2 6402.6  1.0735 0.5846583    #REMOVE
+# Region:Temp               2 6402.2  0.6778 0.7125380    #REMOVE
+# Region:Sand               2 6402.1  0.5184 0.7716693    #REMOVE
+# Landuse:C.N               2 6406.7  5.1091 0.0777254 .  
+# Landuse:Temp              2 6410.7  9.1429 0.0103427 *  
+#   Landuse:Sand              2 6402.2  0.6806 0.7115675    #REMOVE
+# Treatment:C.N             1 6406.3  2.7767 0.0956448 .  
+# Treatment:Temp            1 6403.6  0.0585 0.8088799    #REMOVE
+# Treatment:Sand            1 6406.4  2.8293 0.0925592 .  
+# Season:Region:Landuse     2 6406.6  5.0031 0.0819560 .  #Try to remove this? START HERE <- 
+# Season:Region:Treatment   2 6416.8 15.2771 0.0004815 ***
+#   Season:Landuse:Treatment  2 6412.7 11.1200 0.0038487 ** 
 
-RecalMainMod1a <- update(GlobalRecalMainMod, .~. -Season:Region:Landuse)
-AIC(RecalMainMod1a) #6398.225
-drop1(RecalMainMod1a,test="Chisq") # All sign try to remove the two sign threeway and work from there.
-# Season:Region:Treatment   2 6411.5 17.2709 0.0001777 ***
-#   Season:Landuse:Treatment  2 6407.6 13.3923 0.0012357 ** 
-#   Region:Landuse:Treatment  2 6406.6 12.3444 0.0020866 ** 
-RecalMainMod1 <- update(RecalMainMod1a, .~. -Season:Region:Treatment-Season:Landuse:Treatment-Region:Landuse:Treatment)
-AIC(RecalMainMod1) #6421.805
-drop1(RecalMainMod1,test="Chisq")
-# Season:Region      2 6439.4 21.5744 2.066e-05 ***
-#   Season:Landuse     2 6420.8  2.9508  0.228688    #NS, BUT HAVE A THREEWAY WITH THESE, SO CANT REMOVE.
-# Season:Treatment   1 6426.4  6.6190  0.010090 *  
-#   Season:C.N         1 6423.8  4.0377  0.044495 *  
-#   Season:Temp        1 6419.9  0.1049  0.746021  #REMOVE  
-# Season:Sand        1 6425.5  5.6599  0.017357 *  
-#   Region:Landuse     2 6428.8 10.9533  0.004183 ** 
-#   Region:Treatment   2 6421.9  4.0731  0.130478    
-# Region:C.N         2 6418.6  0.8324  0.659561    #REMOVE
-# Region:Temp        2 6418.5  0.7154  0.699276    #REMOVE
-# Region:Sand        2 6418.1  0.2803  0.869231    #REMOVE
-# Landuse:Treatment  2 6418.1  0.2747  0.871676    
-# Landuse:C.N        2 6424.3  6.4849  0.039069 *  
-#   Landuse:Temp       2 6425.5  7.7407  0.020851 *  
-#   Landuse:Sand       2 6419.6  1.8000  0.406576    #REMOVE
-# Treatment:C.N      1 6423.7  3.8818  0.048811 *  
-#   Treatment:Temp     1 6420.7  0.9428  0.331550    #REMOVE
-# Treatment:Sand     1 6423.7  3.9104  0.047987 * 
+RecalMainMod1a <- update(GlobalRecalMainMod1, .~. -Treatment:Temp -Landuse:Sand-
+                           Region:Sand-Region:Temp-Region:C.N-Season:Sand-
+                           Season:Temp-Season:C.N)
+AIC(RecalMainMod1a) #6388.1
+drop1(RecalMainMod1a,test="Chisq") #All values that could be removed are significant.
+# Landuse:C.N               2 6390.9  6.7905 0.0335326 *  
+#   Landuse:Temp              2 6391.1  6.9662 0.0307116 *  
+#   Treatment:C.N             1 6389.1  2.9951 0.0835154 .  #Could remove, but does not improve AIC
+# Treatment:Sand            1 6389.1  2.9647 0.0851015 .  #Could remove, but does not improve AIC
+# Season:Region:Landuse     2 6397.1 13.0190 0.0014892 ** 
+#   Season:Region:Treatment   2 6400.4 16.2858 0.0002908 ***
+#   Season:Landuse:Treatment  2 6395.1 11.0180 0.0040501 ** 
 
-RecalMainMod2 <- update(RecalMainMod1, .~. -Season:Temp-Region:C.N-Region:Temp-Region:Sand-Landuse:Sand-Treatment:Temp)
-AIC(RecalMainMod2) #6406.593
-RecalMainMod2a <- update(RecalMainMod2, .~. +Season:Region:Treatment+Season:Landuse:Treatment+Region:Landuse:Treatment)
-AIC(RecalMainMod2a) #6382.536
-drop1(RecalMainMod2,test="Chisq") #Treatment:C:N now sign without threeways
-# Season:Region      2 6442.4 39.835 2.238e-09 ***
-#   Season:Landuse     2 6406.5  3.948  0.138877   #REMOVE?
-# Season:Treatment   1 6410.2  5.643  0.017521 *  
-#   Season:C.N         1 6408.7  4.063  0.043839 *  
-#   Season:Sand        1 6409.6  4.990  0.025493 *  
-#   Region:Landuse     2 6415.9 13.350  0.001262 ** 
-#   Region:Treatment   2 6406.0  3.455  0.177717   #REMOVE? 
-# Landuse:Treatment  2 6402.9  0.262  0.877150    #REMOVE?
-# Landuse:C.N        2 6408.6  6.056  0.048410 *  
-#   Landuse:Temp       2 6409.1  6.513  0.038515 *  
-#   Treatment:C.N      1 6409.1  4.510  0.033695 *  
-#   Treatment:Sand     1 6407.6  2.969  0.084888 .  
-drop1(RecalMainMod2a,test="Chisq") #Treatment:C.N could be removed, when threeways included, but first trying to remove, one fo the two-way components in the threeways (so removing twoways and threeways)
-# Season:C.N                1 6384.8  4.2206 0.0399353 *  
-#   Season:Sand               1 6385.8  5.2811 0.0215587 *  
-#   Landuse:C.N               2 6384.9  6.4062 0.0406360 *  
-#   Landuse:Temp              2 6384.9  6.3659 0.0414636 *  
-#   Treatment:C.N             1 6380.5  0.0000 0.9946324    
-# Treatment:Sand            1 6391.5 10.9537 0.0009342 ***
-#   Season:Region:Treatment   2 6395.2 16.7024 0.0002361 ***
-#   Season:Landuse:Treatment  2 6392.2 13.6436 0.0010897 ** 
-#   Region:Landuse:Treatment  2 6390.4 11.8166 0.0027168 ** 
-
-#OOPS!! CAN I REMOVE THESE TERMS LIKE I DO BELOW? REMOVING 2 threeways, but keep the last 3-way even if I'm remove 2-way terms which includes a term in the kept 3-way?
-RecalMainMod3a <- update(RecalMainMod2a, .~. -Season:Landuse-Landuse:Treatment-Season:Landuse:Treatment-Region:Landuse:Treatment)
-AIC(RecalMainMod3a)
-drop1(RecalMainMod3a,test="Chisq") #Removing two N:S two-ways, and hence coupled threeways
+#Trying to remove the non sign at 0.05 and see if model improves:
+RecalMainMod2a <- update(RecalMainMod1a, .~. -Treatment:Sand-Treatment:C.N)
+AIC(RecalMainMod2a) #6389.681 - NOT IMPROVED OVER PREVIOUs MODEL
+drop1(RecalMainMod2a,test="Chisq")
+# Sand                      1 6397.3  9.6387 0.0019052 ** 
+#   Landuse:C.N               2 6392.3  6.6486 0.0359985 *  
+#   Landuse:Temp              2 6392.6  6.9081 0.0316166 *  
+#   Season:Region:Landuse     2 6398.6 12.8947 0.0015847 ** 
+#   Season:Region:Treatment   2 6401.8 16.1353 0.0003135 ***
+#   Season:Landuse:Treatment  2 6398.7 13.0649 0.0014554 ** 
 
 
+#Testing if adding back some variables I think could be important are now sign or not:
+RecalMainMod1a1 <- update(RecalMainMod1a, .~. +C.N:Temp)
+anova(RecalMainMod1a1,RecalMainMod1a) #C.N:Temp NS
+RecalMainMod1a2 <- update(RecalMainMod1a, .~. +C.N:Sand)
+anova(RecalMainMod1a2,RecalMainMod1a) #C.N:Sand NS
+RecalMainMod1a3 <- update(RecalMainMod1a, .~. +Temp:Sand)
+anova(RecalMainMod1a3,RecalMainMod1a) #Temp:Sand NS
+RecalMainMod1a4 <- update(RecalMainMod1a, .~. +Treatment:C.N)
+anova(RecalMainMod1a4,RecalMainMod1a) #Treatment:C.N NS
+RecalMainMod1a5 <- update(RecalMainMod1a, .~. +Treatment:Temp)
+anova(RecalMainMod1a5,RecalMainMod1a) #Treatment:Temp NS
+#Testing if adding back some variables I think could be important are now sign or not:
+RecalMainMod2a1 <- update(RecalMainMod2a, .~. +C.N:Temp)
+anova(RecalMainMod1a1,RecalMainMod2a) #C.N:Temp BORDERLINE
+RecalMainMod2a2 <- update(RecalMainMod2a, .~. +C.N:Sand)
+anova(RecalMainMod1a2,RecalMainMod2a) #C.N:Sand NS
+RecalMainMod2a3 <- update(RecalMainMod2a, .~. +Temp:Sand)
+anova(RecalMainMod1a3,RecalMainMod2a) #Temp:Sand NS BORDERLINE
+RecalMainMod2a4 <- update(RecalMainMod2a, .~. +Treatment:C.N)
+anova(RecalMainMod1a4,RecalMainMod2a) #Treatment:C.N NS BORDERLINE
+RecalMainMod2a5 <- update(RecalMainMod2a, .~. +Treatment:Temp)
+anova(RecalMainMod2a5,RecalMainMod2a) #Treatment:Temp NS
+
+#TRYING TO INCREASE BEST MODEL OF THE MODEL 2a:
+RecalMainMod2a6 <- update(RecalMainMod2a, .~. +C.N:Temp+Treatment:Temp)
+AIC(RecalMainMod2a6) #6391.879 - EVEN WORSE...OK GOING BACK TO MODEL 1a
+drop1(RecalMainMod2a6,test="Chisq") #NOPE, the additioning of the two terms, not better for model
+
+#Going back to GlobalRecalMainMod1 and trying to remove the borderline NS threeway and test from there:
+RecalMainMod3a <- update(GlobalRecalMainMod1, .~. -Season:Region:Landuse)
+AIC(RecalMainMod3a) #6406.569
+drop1(RecalMainMod3a,test="Chisq")
+# Season:C.N                1 6408.8  4.2214 0.0399174 *  
+#   Season:Temp               1 6404.7  0.1157 0.7336918    
+# Season:Sand               1 6410.4  5.8748 0.0153589 *  
+#   Region:Landuse            2 6413.3 10.7154 0.0047117 ** 
+#   Region:C.N                2 6403.4  0.8604 0.6503679    
+# Region:Temp               2 6403.2  0.6168 0.7346225    
+# Region:Sand               2 6402.9  0.2816 0.8686498    
+# Landuse:C.N               2 6409.0  6.4353 0.0400495 *  
+#   Landuse:Temp              2 6410.2  7.6117 0.0222406 *  
+#   Landuse:Sand              2 6404.3  1.7118 0.4248908    
+# Treatment:C.N             1 6407.3  2.7570 0.0968304 .  
+# Treatment:Temp            1 6404.6  0.0697 0.7917725    
+# Treatment:Sand            1 6407.4  2.8264 0.0927280 .  
+# Season:Region:Treatment   2 6417.6 15.0550 0.0005381 ***
+#   Season:Landuse:Treatment  2 6413.7 11.1544 0.0037831 ** 
+RecalMainMod3a1 <- update(RecalMainMod3a, .~. -Treatment:Temp-Landuse:Sand-Region:Sand-Region:Temp-Region:C.N-
+                            Season:Temp)
+AIC(RecalMainMod3a1) #6390.352
+drop1(RecalMainMod3a1, test="Chisq")
+# Season:C.N                1 6392.5  4.1905 0.0406508 *  
+#   Season:Sand               1 6393.6  5.2528 0.0219109 *  
+#   Region:Landuse            2 6399.7 13.3391 0.0012690 ** 
+#   Landuse:C.N               2 6392.5  6.1611 0.0459342 *  
+#   Landuse:Temp              2 6392.8  6.4170 0.0404177 *  
+#   Treatment:C.N             1 6391.3  2.9855 0.0840117 .  
+# Treatment:Sand            1 6391.3  2.9202 0.0874795 .  
+# Season:Region:Treatment   2 6402.5 16.1277 0.0003147 ***
+#   Season:Landuse:Treatment  2 6397.5 11.1542 0.0037835 ** 
+RecalMainMod3a2 <- update(RecalMainMod3a1, .~. -Treatment:C.N-Treatment:Sand)
+AIC(RecalMainMod3a2) #6391.883
+drop1(RecalMainMod3a2, test="Chisq")
+# Season:C.N                1 6394.1  4.1927 0.0405983 *  
+#   Season:Sand               1 6395.1  5.1882 0.0227401 *  
+#   Region:Landuse            2 6401.2 13.3169 0.0012831 ** 
+#   Landuse:C.N               2 6393.9  5.9794 0.0503021 .  
+# Landuse:Temp              2 6394.2  6.3595 0.0415957 *  
+#   Season:Region:Treatment   2 6403.9 15.9816 0.0003386 ***
+#   Season:Landuse:Treatment  2 6401.1 13.2113 0.0013527 ** 
+RecalMainMod3a3 <- update(RecalMainMod3a2, .~. -Landuse:C.N)
+AIC(RecalMainMod3a3) #6393.862
+drop1(RecalMainMod3a3, test="Chisq") #All significant, but not a better model than previous.
+# Season:C.N                1 6399.5  7.6462 0.0056892 ** 
+#   Season:Sand               1 6397.4  5.5466 0.0185165 *  
+#   Region:Landuse            2 6402.7 12.7974 0.0016637 ** 
+#   Landuse:Temp              2 6396.0  6.1035 0.0472752 *  
+#   Season:Region:Treatment   2 6405.7 15.8640 0.0003591 ***
+#   Season:Landuse:Treatment  2 6403.1 13.2040 0.0013576 ** 
+
+
+#The best model, and generating P-values:
+RecalMainMod1ab <- update(RecalMainMod1a, .~. -Season:Landuse:Treatment)
+RecalMainMod1ac <- update(RecalMainMod1a, .~. -Season:Region:Treatment)
+RecalMainMod1ad <- update(RecalMainMod1a, .~. -Season:Region:Landuse)
+RecalMainMod1aE <- update(RecalMainMod1a, .~. -Season:Landuse:Treatment-
+                            Season:Region:Treatment-Season:Region:Landuse)
+RecalMainMod1af <- update(RecalMainMod1aE, .~. -Treatment:Sand)
+RecalMainMod1ag <- update(RecalMainMod1aE, .~. -Treatment:C.N)
+RecalMainMod1ah <- update(RecalMainMod1aE, .~. - Landuse:Temp)
+RecalMainMod1ai <- update(RecalMainMod1aE, .~. - Landuse:C.N)
+RecalMainMod1aj <- update(RecalMainMod1aE, .~. - Landuse:Treatment)
+RecalMainMod1ak <- update(RecalMainMod1aE, .~. - Region:Treatment)
+RecalMainMod1al <- update(RecalMainMod1aE, .~. - Region:Landuse)
+RecalMainMod1am <- update(RecalMainMod1aE, .~. - Season:Treatment)
+RecalMainMod1an <- update(RecalMainMod1aE, .~. - Season:Landuse)
+RecalMainMod1ao <- update(RecalMainMod1aE, .~. - Season:Region)
+RecalMainMod1aP <- update(RecalMainMod1aE, .~. - Treatment:Sand-Treatment:C.N-Landuse:Temp-
+                            Landuse:C.N-Landuse:Treatment- Region:Treatment-
+                            -Region:Landuse-Season:Treatment-Season:Landuse-
+                            Season:Region)
+RecalMainMod1aq <- update(RecalMainMod1aP, .~. -  Season)
+RecalMainMod1ar <- update(RecalMainMod1aP, .~. -  Region)
+RecalMainMod1as <- update(RecalMainMod1aP, .~. -  Landuse)
+RecalMainMod1at <- update(RecalMainMod1aP, .~. -  Treatment)
+RecalMainMod1au <- update(RecalMainMod1aP, .~. -  C.N)
+RecalMainMod1av <- update(RecalMainMod1aP, .~. -  Temp)
+RecalMainMod1aw <- update(RecalMainMod1aP, .~. -  Sand)
+
+
+
+
+anova(RecalMainMod1ab,RecalMainMod1a)# 0.08352 . Region:Landuse:Treatment 
+anova(RecalMainMod1ab,RecalMainMod1a)# 0.00405 ** Season:Landuse:Treatment
+anova(RecalMainMod1ac,RecalMainMod1a)# 0.0002908 *** Season:Region:Treatment
+anova(RecalMainMod1ad,RecalMainMod1a)# 0.00142 ** Season:Region:Landuse
+anova(RecalMainMod1af,RecalMainMod1aE)# 0.114 Treatment:Sand    NS - Effect not sign, but important for model
+anova(RecalMainMod1ag,RecalMainMod1aE) # Treatment.C.N
+anova(RecalMainMod1ah,RecalMainMod1aE)# 0.2135 Landuse:Temp     NS - Effect not sign, but important for model
+anova(RecalMainMod1ai,RecalMainMod1aE)# 0.007353 ** Landuse:C.N
+anova(RecalMainMod1aj,RecalMainMod1aE)# 0.6537 Landuse:Treatment  NS  - Needed for threeway
+anova(RecalMainMod1ak,RecalMainMod1aE)# 0.2952 Region:Treatment   NS   - Needed for threeway
+anova(RecalMainMod1al,RecalMainMod1aE)# 0.008902 ** Region:Landuse
+anova(RecalMainMod1am,RecalMainMod1aE)# 0.03941 * Season:Treatment
+anova(RecalMainMod1an,RecalMainMod1aE)# 0.2596 Season:Landuse     NS   - Needed for threeway
+anova(RecalMainMod1ao,RecalMainMod1aE)# 2.141e-12 *** Season:Region
+anova(RecalMainMod1aq,RecalMainMod1aP)# 2.748e-08 *** Season
+anova(RecalMainMod1ar,RecalMainMod1aO)# 2.2e-16 *** Region
+anova(RecalMainMod1as,RecalMainMod1aO)# 1 Landuse               NS   - Needed for two- and threeway
+anova(RecalMainMod1at,RecalMainMod1aO)# 2.2e-16 *** Treatment
+anova(RecalMainMod1au,RecalMainMod1aO)# 0.7847 C.N              NS  -   - Needed for sign twoway
+anova(RecalMainMod1av,RecalMainMod1aO)# 0.001984 ** Temp
+anova(RecalMainMod1aw,RecalMainMod1aO)# 0.0003581 *** Sand
+
+#FINAL model:
+RecalMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+
+                            Treatment:Sand+Treatment:C.N+Landuse:Temp+
+                            Landuse:C.N+Landuse:Treatment+Region:Treatment+
+                            +Region:Landuse+Season:Treatment+Season:Landuse+
+                            Season:Region+
+                            Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+
+                             (1|Site/Blockcode/Plot), na.action=na.omit,REML = T, data=RecalMain)
+
+summary(RecalMainModFINAL)
+coef(summary(RecalMainModFINAL))
+
+#Inspect chosen model for homogeneity:
+E1 <- resid(LabileMainModFINAL, type ="pearson")
+F1 <- fitted(LabileMainModFINAL)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5) #Looks OK
+plot(x = F1, 
+     y = E1,
+     xlab = "Fitted values",
+     ylab = "Residuals")
+abline(v = 0, lwd = 2, col = 2)
+abline(h = 0, lty = 2, col = 1)
+
+hist(E1, nclass = 30) #OK
+
+
+
+#Checking for non linearity
+
+
+
+
+
+ 
 #DREDGING
 #Need to use na.action=na.fail, therfore removing Na's from data set:
 #Removing rows which consist of NAs in all variable used in model:
