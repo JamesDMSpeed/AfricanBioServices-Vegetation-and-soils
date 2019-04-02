@@ -1777,12 +1777,24 @@ RecalT.E.Mod <- lmer(Termite.effect~Season+Landuse+Region+Sand+Rain+Temp+
 #Dataprocessing - getting data ready for modelling####
 DataCG<-droplevels(Fulldata[Fulldata$Experiment=="CG",]) # Only commongarden data
 DataMain<-droplevels(Fulldata[Fulldata$Experiment=="Main",]) #Only landuse experiement data
-LocalCGsoil <- DataCG[DataCG$Site=="Seronera",]
+LocalCGsoil3 <- DataCG[DataCG$Site=="Seronera",]
+#Removing 4-block design into 1 block with 4 replicates in Seronera local soil:
+LocalCGsoil3$Block <- 1
+LocalCGsoil3$Blockcode <- "Int_W1"
+
+DataCGexLocal<-droplevels(DataCG[DataCG$Site!="Seronera",]) # Only commongarden data without local soil
 
 #Add local soil from CG to Main experiment:
-DataMain <- rbind.fill(DataMain,LocalCGsoil)
+DataMain <- rbind.fill(DataMain,LocalCGsoil3)
+#Add adjusted blockcode naming in local soil to CG:
+DataCG <- rbind.fill(DataCGexLocal,LocalCGsoil3)
+#Checking factor levels of the added blockcode:
+DataCG$Blockcode <- as.factor(DataCG$Blockcode)
+levels(DataCG$Blockcode) #OK
+DataMain$Blockcode <- as.factor(DataMain$Blockcode)
+levels(DataMain$Blockcode) #OK
 
-write.csv(write.csv(DataMain,file="Termites/Maindata.csv"))
+write.csv(write.csv(DataMain,file="Termites/Maindata.csv")) #Main with Seronera
 write.csv(write.csv(DataCG,file="Termites/CGdata.csv"))
 
 #Then, want to combine the two data set by left_join.
@@ -1793,7 +1805,7 @@ se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Stand
 DataMainSummary<-aggregate(cbind(Massloss.per,Massloss..g.,Moisture..,Temperature..C.,Rain.sum, C.N, Sandcorr, Claycorr)~Season+Landuse+Region+Blockcode+Treatment+Littertype,DataMain,mean)
 #DataMainSummaryse <- aggregate(cbind(Massloss.per,Massloss..g.,Moisture..,Temperature..C.,Rain.sum, C.N, Sandcorr, Claycorr)~Season+Landuse+Region+Blockcode+Treatment+Littertype,DataMain, se)
 #DataMainSummary$SE <- DataMainSummaryse$
-length(DataMainSummary$Massloss.per) #224
+length(DataMainSummary$Massloss.per) #200
 
 Regionlvl <-  levels(DataCG$Region) #Adjusting correct factor level order
 levels(DataMain$Region) <- Regionlvl #Adjusting correct level order
@@ -1813,11 +1825,11 @@ DataMCG$Moistdiff <- DataMCG$Moisture...x -DataMCG$Moisture...y
 DataMCG$Tempdiff <- DataMCG$Temperature..C..x -DataMCG$Temperature..C..y
 #Renaming some columns:
 names(DataMCG)
-colnames(DataMCG)[(names(DataMCG) == "C.N.x")] <-"CN"
+colnames(DataMCG)[(names(DataMCG) == "C.N.x")] <-"C.N"
 colnames(DataMCG)[(names(DataMCG)== "Sandcorr.x")] <- "Sand"
 colnames(DataMCG)[(names(DataMCG)== "Claycorr.x")] <- "Clay"
-#colnames(DataMCG)[(names(DataMCG)== "Moisture...x")] <- "Moisture"
-#colnames(DataMCG)[(names(DataMCG)== "Temperature..C..x")] <- "Temp"
+colnames(DataMCG)[(names(DataMCG)== "Moisture...x")] <- "Moisture"
+colnames(DataMCG)[(names(DataMCG)== "Temperature..C..x")] <- "Temp"
 colnames(DataMCG)[(names(DataMCG)== "Landuse.x")] <- "Landuse"
 colnames(DataMCG)[(names(DataMCG)== "Region.x")] <- "Region"
 colnames(DataMCG)[(names(DataMCG)== "Rain.sum.x")] <- "Rain"
@@ -1827,275 +1839,49 @@ RecalDataMCG <- droplevels(DataMCG[DataMCG$Littertype =="Rooibos",])
 LabileDataMCG <- droplevels(DataMCG[DataMCG$Littertype =="Green",])
 
 #Block needs to be a unique number - not repeated 
-LabileDataMCG$blockdesign.num<-as.factor(with(LabileDataMCG, paste(Season,Blockcode,Treatment, sep="")))
-LabileDataMCG$blockdesign.num<-as.numeric(LabileDataMCG$blockdesign.num)
-LabileDataMCG$blockdesign.num<-as.factor(LabileDataMCG$blockdesign.num)
-table(LabileDataMCG$Site.ID, LabileDataMCG$Landuse)
-
-RecalDataMCG$blockdesign.num<-as.factor(with(RecalDataMCG, paste(Season,Treatment,Blockcode, sep="")))
-RecalDataMCG$blockdesign.num<-as.numeric(RecalDataMCG$blockdesign.num)
-RecalDataMCG$blockdesign.num<-as.factor(RecalDataMCG$blockdesign.num)
-table(RecalDataMCG$Site.ID, RecalDataMCG$Landuse)
+# LabileDataMCG$blockdesign.num<-as.factor(with(LabileDataMCG, paste(Season,Blockcode,Treatment, sep="")))
+# LabileDataMCG$blockdesign.num<-as.numeric(LabileDataMCG$blockdesign.num)
+# LabileDataMCG$blockdesign.num<-as.factor(LabileDataMCG$blockdesign.num)
+# table(LabileDataMCG$Site.ID, LabileDataMCG$Landuse)
+# 
+# RecalDataMCG$blockdesign.num<-as.factor(with(RecalDataMCG, paste(Season,Treatment,Blockcode, sep="")))
+# RecalDataMCG$blockdesign.num<-as.numeric(RecalDataMCG$blockdesign.num)
+# RecalDataMCG$blockdesign.num<-as.factor(RecalDataMCG$blockdesign.num)
+# table(RecalDataMCG$Site.ID, RecalDataMCG$Landuse)
 #COMMON GARDEN MODELLING####
 #Labilemodel analysis####
-names(LabileDataMCG)
-levels(LabileDataMCG$Site.ID)
+
 #Using Tempdiff instead of Temp variable
 #Using Sand and not Clay
-#First, writing up all combinations, then excluding first the ones that does not make sense to include (in interactions)
-LabileFullMCGMod <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Tempdiff+Sand+CN+Rain+
-                             #Season:Landuse+Season:Treatment+Season:Tempdiff+Season:Sand+Season:CN+Season:Rain+
-                             #Treatment:Landuse+Treatment:Tempdiff+Treatment:Sand+Treatment:CN+
-                             #Landuse:Treatment+Landuse:Tempdiff+Landuse:Sand+Landuse:CN+#Landuse:Rain+
-                             #Tempdiff:Sand+Tempdiff:CN+Tempdiff:Rain+
-                             #Sand:CN+#Sand:Rain+
-                             #Season:Landuse:Treatment+Season:Landuse:Tempdiff+Season:Landuse:CN+#Season:Landuse:Sand+#Season:Landuse:Rain+
-                             #Landuse:Treatment:Tempdiff+Landuse:Treatment:Sand+Landuse:Treatment:CN+#Landuse:Treatment:Rain+
-                             #Treatment:Tempdiff:Sand+#Treatment:Tempdiff:CN+Treatment:Tempdiff:Rain+
-                             #Tempdiff:Sand:CN+Tempdiff:Sand:Rain+
-                             #Sand:CN:Rain+
-                             (1|Site), na.action=na.omit, REML=F, data =LabileDataMCG)
-
-LabileMCGMod <- lmer(MainCGdiff ~ Season+Landuse+Treatment+Tempdiff+Sand+CN+Rain+
-                         Season:Landuse+Season:Treatment+Season:Tempdiff+
-                       Season:Sand+Season:CN+Season:Rain+
-                         Treatment:Landuse+Treatment:Tempdiff+Treatment:Sand+
-                       Treatment:CN+
-                         Landuse:Treatment+Landuse:Tempdiff+
-                       Landuse:Sand+Landuse:CN+Landuse:Rain+
-                         Tempdiff:Sand+Tempdiff:CN+Tempdiff:Rain+
-                         Sand:CN+Sand:Rain+
-                         #Season:Landuse:Treatment+
-                   Season:Landuse:Tempdiff+
-                     #Season:Landuse:CN+#
-                     Season:Landuse:Sand+
-                     Season:Landuse:Rain+
-                         #Landuse:Treatment:Tempdiff+
-                    #Landuse:Treatment:Sand+Landuse:Treatment:CN+Landuse:Treatment:Rain+
-                        # Treatment:Tempdiff:Sand+Treatment:Tempdiff:CN+Treatment:Tempdiff:Rain+
-                         #Tempdiff:Sand:CN+
-                     Tempdiff:Sand:Rain+
-                         Sand:CN:Rain+
-                         (1|Site), na.action=na.omit, REML=F, data =LabileDataMCG)
-
-
-summary(LabileMCGMod)
-anova(LabileMCGMod) 
-AIC(LabileMCGMod)# Orig (All possble interactions): 790.2116, new:767.9645 
-drop1(LabileMCGMod,test="Chisq")
-#How the selection scenario was done:
-#First of all: I get warning of Singular fit and consider rescaling. But keep going anyway:
-#Step 1 - Running full model and Drop1:
-#Model:
-# MainCGdiff ~ Season + Landuse + Treatment + Tempdiff + Sand + 
-#   CN + Rain + Season:Landuse + Season:Treatment + Season:Tempdiff + 
-#   Season:Sand + Season:CN + Season:Rain + Treatment:Landuse + 
-#   Treatment:Tempdiff + Treatment:Sand + Treatment:CN + Landuse:Treatment + 
-#   Landuse:Tempdiff + Landuse:Sand + Landuse:CN + Landuse:Rain + 
-#   Tempdiff:Sand + Tempdiff:CN + Tempdiff:Rain + Sand:CN + Sand:Rain + 
-#   Season:Landuse:Treatment + Season:Landuse:Tempdiff + Season:Landuse:CN + 
-#   Season:Landuse:Sand + Season:Landuse:Rain + Landuse:Treatment:Tempdiff + 
-#   Landuse:Treatment:Sand + Landuse:Treatment:CN + Landuse:Treatment:Rain + 
-#   Treatment:Tempdiff:Sand + Treatment:Tempdiff:CN + Treatment:Tempdiff:Rain + 
-#   Tempdiff:Sand:CN + Tempdiff:Sand:Rain + Sand:CN:Rain + (1 | 
-#                                                             Site.ID)
-# Df    AIC     LRT   Pr(Chi)    
-# <none>                        790.21                      
-# Season:Landuse:Treatment    2 786.28  0.0645 0.9682651 -->Remove
-# Season:Landuse:Tempdiff     2 802.22 16.0127 0.0003333 ***
-#   Season:Landuse:CN           2 787.67  1.4630 0.4811823  -->Remove  
-# Season:Landuse:Sand         2 793.00  6.7928 0.0334944 *  
-#   Season:Landuse:Rain         2 798.37 12.1622 0.0022856 ** 
-#   Landuse:Treatment:Tempdiff  2 788.63  2.4209 0.2980687  -->Remove  
-# Landuse:Treatment:Sand      2 786.38  0.1703 0.9183592  -->Remove  
-# Landuse:Treatment:CN        2 786.51  0.3000 0.8607008  -->Remove  
-# Landuse:Treatment:Rain      3 785.92  1.7127 0.6341079  -->Remove  
-# Treatment:Tempdiff:Sand     1 788.51  0.2995 0.5841925  -->Remove  
-# Treatment:Tempdiff:CN       1 790.61  2.3953 0.1217034  -->Remove  
-# Treatment:Tempdiff:Rain     1 788.21  0.0009 0.9758912  -->Remove  
-# Tempdiff:Sand:CN            1 788.23  0.0176 0.8945908  -->Remove  
-# Tempdiff:Sand:Rain          1 802.54 14.3329 0.0001532 ***
-#   Sand:CN:Rain                1 800.72 12.5107 0.0004046 ***
-
-#Step 2: Remove N.S and run drop1 again:
-
-
-
-
-#2. All threeways N.S:
-#                         Df    AIC    LRT  Pr(Chi)
-# Season:Landuse:Tempdiff  3 809.30 4.5446 0.208348   -->Remove
-# Season:Landuse:CN        3 809.85 5.0996 0.164650   
-# Landuse:Treatment:Sand   3 809.03 4.2825 0.232533  -->Remove
-#
-#3. Last threeway somewhat sign. AIC:
-#                     Df    AIC    LRT  Pr(Chi)
-# Season:Treatment    1 807.32 2.1224 0.14516  
-# Season:Tempdiff     1 805.68 0.4774 0.48961  
-# Season:Sand         1 808.28 3.0769 0.07941 .
-# Season:Rain         1 805.22 0.0224 0.88093  
-# Landuse:Treatment   3 802.47 1.2748 0.73513  
-# Treatment:Tempdiff  1 807.44 2.2450 0.13405  
-# Treatment:Sand      1 805.28 0.0827 0.77362  
-# Treatment:CN        1 808.38 3.1783 0.07462 .
-# Landuse:Tempdiff    3 808.52 7.3186 0.06241 .
-# Landuse:Sand        3 804.34 3.1412 0.37036  
-# Tempdiff:Sand       1 806.62 1.4206 0.23331  
-# Tempdiff:CN         1 807.96 2.7600 0.09665 .
-# Tempdiff:Rain       1 806.36 1.1608 0.28129  
-# Sand:CN             1 805.31 0.1124 0.73739  
-# Season:Landuse:CN   3 807.71 6.5068 0.08940 .
-#--> Removing threeway to test twoway interactions
-# 
-#4. AIC:
-#                     Df    AIC    LRT  Pr(Chi)
-# Season:Landuse      3 814.46 12.7511 0.005207 **
-# Season:Treatment    1 807.75  2.0399 0.153222   
-# Season:Tempdiff     1 805.78  0.0776 0.780518   
-# Season:Sand         1 814.63  8.9188 0.002823 **
-# Season:CN           1 805.75  0.0388 0.843853    --> Remove
-# Season:Rain         1 805.71  0.0010 0.974976    --> Remove
-# Landuse:Treatment   3 802.93  1.2209 0.747984    --> Remove
-# Treatment:Tempdiff  1 807.86  2.1579 0.141841    --> Remove
-# Treatment:Sand      1 805.79  0.0789 0.778796    --> Remove
-# Treatment:CN        1 808.77  3.0613 0.080178 . 
-# Landuse:Tempdiff    3 804.60  2.8945 0.408184   --> Remove 
-# Landuse:Sand        3 809.30  7.5947 0.055175 . 
-# Landuse:CN          3 805.40  3.6955 0.296279  --> Remove  
-# Tempdiff:Sand       1 806.46  0.7566 0.384405  --> Remove  
-# Tempdiff:CN         1 807.25  1.5390 0.214761  --> Remove  
-# Tempdiff:Rain       1 805.71  0.0041 0.948778 --> Remove   
-# Sand:CN             1 805.73  0.0188 0.890984 --> Remove
-# 
-#5.Removed N.S two-ways, better AIC:790.8469. When I added three-way AIC: 800 and threeway was N.S. So removed:
-#                     Df    AIC    LRT  Pr(Chi)
-#Season:Landuse    3 796.76 11.9174 0.007671 **
-# Season:Treatment  1 791.05  2.1989 0.138109   
-# Season:Tempdiff   1 789.89  1.0480 0.305968   --> Remove
-# Season:Sand       1 797.46  8.6130 0.003338 **
-# Season:CN         1 789.09  0.2438 0.621440   --> Remove
-# Season:Rain       1 789.70  0.8570 0.354567   --> Remove
-# Treatment:CN      1 790.78  1.9281 0.164966   
-# Landuse:Sand      3 795.73 10.8820 0.012381 * 
-#--> Removing the most N.S, above P=20.
-#
-#6.AIC: 786.4553
-#                   Df    AIC    LRT  Pr(Chi)
-# Tempdiff          1 788.05   3.592 0.0580646 .  
-# Rain              1 909.37 124.912 < 2.2e-16 ***
-# Season:Landuse    3 797.51  17.057 0.0006880 ***
-# Season:Treatment  1 786.65   2.194 0.1385375    --> Remove
-# Season:Sand       1 799.57  15.111 0.0001014 ***
-# Treatment:CN      1 786.38   1.924 0.1654536    --> Remove
-# Landuse:Sand      3 791.79  11.338 0.0100296 *  
-
-# 7. AIC: 787.1119
-#                Df    AIC     LRT   Pr(Chi)    
-# <none>            787.11                      
-# Treatment       1 786.65   1.542  0.214331    --> Remove
-# Tempdiff        1 788.64   3.532  0.060186 .  
-# CN              1 786.18   1.066  0.301758    --> Remove
-# Rain            1 907.02 121.907 < 2.2e-16 ***
-# Season:Landuse  3 797.59  16.475  0.000906 ***
-# Season:Sand     1 799.56  14.449  0.000144 ***
-# Landuse:Sand    3 791.62  10.506  0.014719 * 
-
-#6. Significant twoways, and some N.S covariates.
-#Trying update() to see significance of these when a twoway are removed
-
-LabileMCGMod1 <- update(LabileMCGMod, .~. -Season:Landuse)
-LabileMCGMod2 <- update(LabileMCGMod, .~. -Season:Sand)
-LabileMCGMod3 <- update(LabileMCGMod, .~. -Landuse:Sand) 
-
-LabileMCGMod1a <- update(LabileMCGMod1,.~.-Treatment)
-LabileMCGMod1b <- update(LabileMCGMod1,.~.-Tempdiff)
-LabileMCGMod1c <- update(LabileMCGMod1,.~.-CN)
-LabileMCGMod1d <- update(LabileMCGMod1,.~.-Rain)
-
-LabileMCGMod2a <- update(LabileMCGMod2,.~.-Treatment)
-LabileMCGMod2b <- update(LabileMCGMod2,.~.-Tempdiff)
-LabileMCGMod2c <- update(LabileMCGMod2,.~.-CN)
-LabileMCGMod2d <- update(LabileMCGMod2,.~.-Rain)
-
-LabileMCGMod3a <- update(LabileMCGMod3,.~.-Treatment)
-LabileMCGMod3b <- update(LabileMCGMod3,.~.-Tempdiff)
-LabileMCGMod3c <- update(LabileMCGMod3,.~.-CN)
-LabileMCGMod3d <- update(LabileMCGMod3,.~.-Rain)
-
-#Significance of covariates when Season:Landuse removed:
-anova(LabileMCGMod1,LabileMCGMod1a) #Treatment N.S --> Remove
-anova(LabileMCGMod1,LabileMCGMod1b) #Tempdiff N.S 
-anova(LabileMCGMod1,LabileMCGMod1c) #CN N.S --> Remove
-anova(LabileMCGMod1,LabileMCGMod1d) #Rain Sign
-#Significance of covariates when Season:Sand removed:
-anova(LabileMCGMod2,LabileMCGMod2a) #Treatment  N.S --> Remove
-anova(LabileMCGMod2,LabileMCGMod2b) #Tempdiff N.S 
-anova(LabileMCGMod2,LabileMCGMod2c) #CN N.S --> Remove
-anova(LabileMCGMod2,LabileMCGMod2d) #Rain Sign
-#Significance of covariates when Landuse:Sand removed:
-anova(LabileMCGMod3,LabileMCGMod3a) #Treatment N.S --> Remove
-anova(LabileMCGMod3,LabileMCGMod3b) #Tempdiff Sign #SHould I remove the twoway or does this mean that the twoway has an interaction on this, so keep the two way?
-anova(LabileMCGMod3,LabileMCGMod3c) #CN N.S --> Remove
-anova(LabileMCGMod3,LabileMCGMod3d) #Rain Sign 
-
-
-#New alternative selected models:
-Alt1LabileMCGMod <- lmer(MainCGdiff ~ Season+Landuse+#Treatment
-                           #Tempdiff
-                           Sand+#CN+
-                           Rain+
-                       Season:Landuse+Season:Sand+Landuse:Sand+
-                       (1|Site.ID), na.action=na.omit, REML=F, data =LabileDataMCG)
-
-summary(Alt1LabileMCGMod)
-anova(Alt1LabileMCGMod) 
-AIC(Alt1LabileMCGMod)# Orig: 785.6975, new: 786.957, 
-drop1(Alt1LabileMCGMod,test="Chisq")
-#               Df    AIC     LRT   Pr(Chi)    
-# <none>            785.70                      
-# Tempdiff        1 786.96   3.260 0.0710100 .  --> Remove/Or change Temdiff to Temp variable
-# Rain            1 903.60 119.906 < 2.2e-16 ***
-# Season:Landuse  3 796.45  16.748 0.0007962 ***
-# Season:Sand     1 797.64  13.943 0.0001885 ***
-# Landuse:Sand    3 788.96   9.265 0.0259699 * 
-#
-#Using Temp variable instead, not better model:
-#                   Df    AIC     LRT   Pr(Chi)    
-# <none>               786.39                      
-# Temperature..C..x  1 786.96   2.570 0.1089035    
-# Rain               1 900.52 116.130 < 2.2e-16 ***
-# Season:Landuse     3 796.48  16.093 0.0010851 ** 
-# Season:Sand        1 798.76  14.369 0.0001502 ***
-# Landuse:Sand       3 792.72  12.337 0.0063150 ** 
-#---> Swithcing back to Tempdiff variable, but trying now to remove it.
-#
-#New model without Tempdiff. AIC: 786.957
-# #Model:
-# MainCGdiff ~ Season + Landuse + Sand + Rain + Season:Landuse + 
-# Season:Sand + Landuse:Sand + (1 | Site.ID)
-# Df    AIC     LRT   Pr(Chi)    
-# <none>            786.96                      
-# Rain            1 907.62 122.661 < 2.2e-16 ***
-# Season:Landuse  3 794.48  13.524 0.0036298 ** 
-# Season:Sand     1 797.73  12.773 0.0003516 ***
-# Landuse:Sand    3 793.06  12.100 0.0070499 ** 
-#
-#Adding CN back into model, as I think it should be important:
-#AIC=788.1711
-# Model:
-# MainCGdiff ~ Season + Landuse + Sand + CN + Rain + Season:Landuse + 
-# Season:Sand + Landuse:Sand + (1 | Site.ID)
-#                 Df    AIC     LRT   Pr(Chi)    
-# <none>            788.17                      
-# CN              1 786.96   0.786 0.3753433    --> Still not sign, Remove
-# Rain            1 909.60 123.430 < 2.2e-16 ***
-# Season:Landuse  3 795.01  12.834 0.0050098 ** 
-# Season:Sand     1 799.17  12.996 0.0003122 ***
-# Landuse:Sand    3 795.05  12.881 0.0049013 ** 
-#
-#Doing update again, to get p-vaues for all covariates. Problem: unsure how to get corect p-values
-#when multiple interactions are signigifant.
-
+#First, writing up all possibl important combinations ,
+GlobalLabileMCGMod <- lmer(MainCGdiff ~ (Season+Region+Landuse+Treatment+Temp+Sand+C.N)^2
+                           +Season:Landuse:Treatment+Season:Landuse:Region+Landuse:Region:Treatment+
+                             (1|Site/Blockcode), na.action=na.omit, REML=F, data =LabileDataMCG)
+summary(GlobalLabileMCGMod)                         
+AIC(GlobalLabileMCGMod)# 770.9838
+drop1(GlobalLabileMCGMod,test="Chisq")
+# Season:Temp               1 769.01  0.0300 0.8623957    
+# Season:Sand               1 782.70 13.7150 0.0002128 ***
+#   Season:C.N                1 769.40  0.4183 0.5177701    
+# Region:Temp               1 782.35 13.3695 0.0002558 ***
+#   Region:Sand               1 769.01  0.0220 0.8821932    
+# Region:C.N                1 769.43  0.4462 0.5041427    
+# Landuse:Temp              2 781.23 14.2420 0.0008080 ***
+#   Landuse:Sand              2 773.81  6.8250 0.0329581 *  
+#   Landuse:C.N               2 767.07  0.0844 0.9586892    
+# Treatment:Temp            1 769.01  0.0269 0.8697423    
+# Treatment:Sand            1 769.04  0.0591 0.8079727    
+# Treatment:C.N             1 769.20  0.2123 0.6449950    
+# Temp:Sand                 1 774.44  5.4551 0.0195111 *  
+#   Temp:C.N                  1 770.05  1.0701 0.3009120    
+# Sand:C.N                  1 769.10  0.1177 0.7315485    
+# Season:Landuse:Treatment  2 767.17  0.1824 0.9128526    #REMOVE
+# Season:Region:Landuse     2 768.88  1.8985 0.3870272    #REMOVE
+# Region:Landuse:Treatment  2 768.16  1.1744 0.5558900   #REMOVE
+LabileMCGMod1 <- update(GlobalLabileMCGMod, .~. -Season:Landuse:Treatment-Season:Region:Landuse-
+                          Region:Landuse:Treatment)
+AIC(LabileMCGMod1)# 762.1489
+drop1(LabileMCGMod1,test="Chisq")
 
 #Checking distrubution of the modelled data. Problem: I dont know how to interpret this:
 E1 <- resid(Alt1LabileMCGMod, type ="pearson")  #THIS IS FOR lme4..NOT lme, in lme = "type = "n"
@@ -2111,13 +1897,14 @@ abline(h = 0, lty = 2, col = 1)
 
 #Getting parameter estimates directly:
 Alt1LabileMCGModA <- lmer(MainCGdiff ~ -1+Season + Landuse + Sand + Rain + Season:Landuse + 
-                           Season:Sand + Landuse:Sand + 
-                           (1| Site.ID),REML=T,data=LabileDataMCG)
+                            Season:Sand + Landuse:Sand + 
+                            (1| Site.ID),REML=T,data=LabileDataMCG)
 
 summary(Alt1LabileMCGMod)
 
 #Should also try and add back some variables to test.
 ####
+
 
 #Recalcitrantmodel analysis####
 names(LabileDataMCG)
