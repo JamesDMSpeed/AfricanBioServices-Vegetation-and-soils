@@ -2010,6 +2010,13 @@ abline(h = 0, lty = 2, col = 1)
 hist(E1, nclass = 25) 
 
 #Strange that there are a lot of neg values and that treatment:Season is significant
+
+# Interaction plot
+with(LabileDataMCG, {interaction.plot(Season,Treatment,MainCGdiff,
+                                         xlab = "Season",
+                                         ylab = "Mass loss difference",
+                                         fun=mean)})
+
 #Why is treatment.season sign for labile litter?
 histogram(~  MainCGdiff| Season+Treatment, data = LabileDataMCG)
 boxplot(Treatment~Season, data = LabileDataMCG)
