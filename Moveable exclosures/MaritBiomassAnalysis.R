@@ -23,29 +23,29 @@ tail(Biomass)
 
 #Stacking target and other underneath each other
 #Getting long format 
-Biomass.stack <- gather(Biomass,pool,biomass.sp, 37:38, factor_key=TRUE)
-levels(Biomass.stack$pool)<-c("target","other")
-stackB <- gather(Biomass,pool,prodsp,40,42,factor_key=TRUE)
-levels(stackB$pool)<-c("target","other")
-stackC <- gather(Biomass,pool,conssp,41,43,factor_key=TRUE)
-levels(stackC$pool)<-c("target","other")
-stackD <- gather(Biomass,pool,prodsp.per,47,49,factor_key=TRUE)
-levels(stackD$pool)<-c("target","other")
-stackE <- gather(Biomass,pool,conssp.per,48,50,factor_key=TRUE)
-levels(stackE$pool)<-c("target","other")
+#Biomass.stack <- gather(Biomass,pool,biomass.sp, 37:38, factor_key=TRUE)
+# levels(Biomass.stack$pool)<-c("target","other")
+# stackB <- gather(Biomass,pool,prodsp,40,42,factor_key=TRUE)
+# levels(stackB$pool)<-c("target","other")
+# stackC <- gather(Biomass,pool,conssp,41,43,factor_key=TRUE)
+# levels(stackC$pool)<-c("target","other")
+# stackD <- gather(Biomass,pool,prodsp.per,47,49,factor_key=TRUE)
+# levels(stackD$pool)<-c("target","other")
+# stackE <- gather(Biomass,pool,conssp.per,48,50,factor_key=TRUE)
+# levels(stackE$pool)<-c("target","other")
+# 
+# 
+# #Adding new variables to Biomass.stack
+# Biomass.stack <- cbind(Biomass.stack,stackB[,"prodsp",drop=FALSE])
+# Biomass.stack <- cbind(Biomass.stack,stackC[,"conssp",drop=FALSE])
+# Biomass.stack <- cbind(Biomass.stack,stackD[,"prodsp.per",drop=FALSE])
+# Biomass.stack <- cbind(Biomass.stack,stackE[,"conssp.per",drop=FALSE])
+# 
+# #Removing the old variables
+# Biomass.stack <- Biomass.stack[,-c(38:41,44:48)]
 
-
-#Adding new variables to Biomass.stack
-Biomass.stack <- cbind(Biomass.stack,stackB[,"prodsp",drop=FALSE])
-Biomass.stack <- cbind(Biomass.stack,stackC[,"conssp",drop=FALSE])
-Biomass.stack <- cbind(Biomass.stack,stackD[,"prodsp.per",drop=FALSE])
-Biomass.stack <- cbind(Biomass.stack,stackE[,"conssp.per",drop=FALSE])
-
-#Removing the old variables
-Biomass.stack <- Biomass.stack[,-c(38:41,44:48)]
-
-write.csv(Biomass.stack,'Moveable exclosures/BiomassStacked2.csv')
-Databiom <- read.csv("Moveable exclosures/BiomassStacked2.csv",header=T) #712 obs
+#write.csv(Biomass.stack,'Moveable exclosures/BiomassStacked2.csv')
+#Databiom <- read.csv("Moveable exclosures/BiomassStacked2.csv",header=T) #712 obs
 
 Nuts <- read.csv("Moveable exclosures/Nutrients.csv", header=T,sep=";")
 Datanuts <- Nuts[Nuts$treatment!="EX2",] #Removing Mesh exclosures  #300 obs
@@ -64,8 +64,8 @@ Datanuts <- droplevels(Datanuts)
 
 #### Housekeeping ####
 # Removing Ex2 - separate analysis
-Databiom <- Databiom[Databiom$treatment!="EX2",] #Removing Mesh exclosures  #600 obs
-Databiom <- Databiom[Databiom$harvest!="H0",] #removing H0                #560 obs
+Databiom <- Biomass[Biomass$treatment!="EX2",] #Removing Mesh exclosures  #300 obs
+Databiom <- Databiom[Databiom$harvest!="H0",] #removing H0                #280 obs
 Databiom <- droplevels(Databiom)
 
 # Creating factor variables
@@ -79,19 +79,25 @@ Databiom$site.id <- as.factor(Databiom$site.id)
 Databiom$block.id.harvest <- as.factor(Databiom$block.id.harvest)
 
 #Renaming total productivity and consumption columns
+colnames(Databiom)[colnames(Databiom)=="productivity.target.g.m2.day"] <- "prodtarg"
+colnames(Databiom)[colnames(Databiom)=="productivity.target.g.m2.dayWEIGHTED"] <- "prodtarg.per"
+
 colnames(Databiom)[colnames(Databiom)=="productivity.total.g.m2.day"] <- "prodtot"
 colnames(Databiom)[colnames(Databiom)=="productivity.total.g.m2.dayWEIGHTED"] <- "prodtot.per"
+
+colnames(Databiom)[colnames(Databiom)=="consumption.target.g.m2.day"] <- "constarg"
+colnames(Databiom)[colnames(Databiom)=="consumption.target.g.m2.day.WEIGHTED"] <- "constarg.per"
 
 colnames(Databiom)[colnames(Databiom)=="consumption.total.g.m2.day"] <- "constot"
 colnames(Databiom)[colnames(Databiom)=="consumption.total.g.m2.dayWEIGHTED"] <- "constot.per"
 
 
 #Productivity and consumptions per harvest period
-Databiom$prodsp.sum <- Databiom$prodsp*Databiom$growth.period
-Databiom$conssp.sum <- Databiom$conssp*Databiom$growth.period
+Databiom$prodtarg.sum <- Databiom$prodtarg*Databiom$growth.period
+Databiom$constarg.sum <- Databiom$constarg*Databiom$growth.period
 
-Databiom$prodspper.sum <- Databiom$prodsp.per*Databiom$growth.period
-Databiom$consspper.sum <- Databiom$conssp.per*Databiom$growth.period
+Databiom$prodtargper.sum <- Databiom$prodtarg.per*Databiom$growth.period
+Databiom$constargper.sum <- Databiom$constarg.per*Databiom$growth.period
 
 Databiom$prodtot.sum <- Databiom$prodtot*Databiom$growth.period
 Databiom$constot.sum <- Databiom$constot*Databiom$growth.period
@@ -132,13 +138,13 @@ levels(Databiom$plot.code) #40 levels
 
 #### New Y variables for hypotheses ####
 # Adding new columns NAP-cons
-Databiom$diffsp <- Databiom$prodsp-Databiom$conssp
+Databiom$difftarg <- Databiom$prodtarg-Databiom$constarg
 Databiom$difftotal <- Databiom$prodtot-Databiom$constot
 
 
 # Adding new column with % NAP consumed 
 Databiom$consper <- Databiom$constot/Databiom$prodtot*100
-Databiom$constargper <- Databiom$constarg/Databiom$prodtarg*100
+Databiom$constargfrac <- Databiom$constarg/Databiom$prodtarg*100
 
 # Getting N total in Datanuts
 Datanuts$N.target.biom <- Datanuts$N.target*Datanuts$biomass.target.sp./100
@@ -161,12 +167,12 @@ DataOp <- Databiom[Databiom$treatment!="exclosed",] #Removing Exclosure
 DataOp <- DataOp[order(DataOp[,3],DataOp[,9],DataOp[,12]),]
 DataOp$Rdate <- as.character(DataOp$Rdate)
 
-Exmean <- aggregate.data.frame(DataEx[,c(18,19,21,26:33,40:52,57:65)], list(as.factor(DataEx$YrMonth), DataEx$site.id, DataEx$landuse), mean, na.rm=TRUE,na.action="na.pass")
+Exmean <- aggregate.data.frame(DataEx[,c(18,19,21,26:33,40:61,66:73)], list(as.factor(DataEx$YrMonth), DataEx$site.id, DataEx$landuse), mean, na.rm=TRUE,na.action="na.pass")
 Exmean$treatment <- "exclosed"
 Exmean$treatment <- factor(Exmean$treatment)
 Exmean$Rdate <- as.character(Exmean$Rdate)
 
-Opmean <- aggregate.data.frame(DataOp[,c(18,19,21,26:33,40:52,57:65)], list(as.factor(DataOp$YrMonth), DataOp$site.id, DataOp$landuse), mean, na.rm=TRUE, na.action="na.pass")
+Opmean <- aggregate.data.frame(DataOp[,c(18,19,21,26:33,40:61,66:73)], list(as.factor(DataOp$YrMonth), DataOp$site.id, DataOp$landuse), mean, na.rm=TRUE, na.action="na.pass")
 Opmean$treatment <- "open"
 Opmean$treatment <- factor(Opmean$treatment)
 Opmean$Rdate <- as.character(Opmean$Rdate)
@@ -177,71 +183,93 @@ colnames(Datamean)[2] <- "site.id"
 colnames(Datamean)[3] <- "landuse"
 
 #### Cumulative production, consumption, rainfall and N contents for aggregated data #### 
-Datamean$Cum_prod<-c(cumsum(Datamean[1:7,25]),cumsum(Datamean[8:14,25]),cumsum(Datamean[15:21,25]),cumsum(Datamean[22:28,25]),cumsum(Datamean[29:35,25]),cumsum(Datamean[36:42,25]),cumsum(Datamean[43:49,25]),cumsum(Datamean[50:56,25]),cumsum(Datamean[57:63,25]),cumsum(Datamean[64:70,25]))
+Datamean$Cum_prod<-c(cumsum(Datamean[1:7,"prodtot.sum"]),cumsum(Datamean[8:14,"prodtot.sum"]),cumsum(Datamean[15:21,"prodtot.sum"]),cumsum(Datamean[22:28,"prodtot.sum"]),cumsum(Datamean[29:35,"prodtot.sum"]),cumsum(Datamean[36:42,"prodtot.sum"]),cumsum(Datamean[43:49,"prodtot.sum"]),cumsum(Datamean[50:56,"prodtot.sum"]),cumsum(Datamean[57:63,"prodtot.sum"]),cumsum(Datamean[64:70,"prodtot.sum"]))
 
-Datamean$Cum_cons<-c(cumsum(Datamean[1:7,26]),cumsum(Datamean[8:14,26]),cumsum(Datamean[15:21,26]),cumsum(Datamean[22:28,26]),cumsum(Datamean[29:35,26]),cumsum(Datamean[36:42,26]),cumsum(Datamean[43:49,26]),cumsum(Datamean[50:56,26]),cumsum(Datamean[57:63,26]),cumsum(Datamean[64:70,26]))
+Datamean$Cum_prod2<-c(cumsum(Datamean[1:7,"prodtotper.sum"]),cumsum(Datamean[8:14,"prodtotper.sum"]),cumsum(Datamean[15:21,"prodtotper.sum"]),cumsum(Datamean[22:28,"prodtotper.sum"]),cumsum(Datamean[29:35,"prodtotper.sum"]),cumsum(Datamean[36:42,"prodtotper.sum"]),cumsum(Datamean[43:49,"prodtotper.sum"]),cumsum(Datamean[50:56,"prodtotper.sum"]),cumsum(Datamean[57:63,"prodtotper.sum"]),cumsum(Datamean[64:70,"prodtotper.sum"]))
 
-Datamean$Cum_prodtarg<-c(cumsum(Datamean[1:7,21]),cumsum(Datamean[8:14,21]),cumsum(Datamean[15:21,21]),cumsum(Datamean[22:28,21]),cumsum(Datamean[29:35,21]),cumsum(Datamean[36:42,21]),cumsum(Datamean[43:49,21]),cumsum(Datamean[50:56,21]),cumsum(Datamean[57:63,21]),cumsum(Datamean[64:70,21]))
+Datamean$Cum_cons<-c(cumsum(Datamean[1:7,"constot.sum"]),cumsum(Datamean[8:14,"constot.sum"]),cumsum(Datamean[15:21,"constot.sum"]),cumsum(Datamean[22:28,"constot.sum"]),cumsum(Datamean[29:35,"constot.sum"]),cumsum(Datamean[36:42,"constot.sum"]),cumsum(Datamean[43:49,"constot.sum"]),cumsum(Datamean[50:56,"constot.sum"]),cumsum(Datamean[57:63,"constot.sum"]),cumsum(Datamean[64:70,"constot.sum"]))
 
-Datamean$Cum_constarg<-c(cumsum(Datamean[1:7,22]),cumsum(Datamean[8:14,22]),cumsum(Datamean[15:22,22]),cumsum(Datamean[23:28,22]),cumsum(Datamean[29:35,22]),cumsum(Datamean[36:42,22]),cumsum(Datamean[43:49,22]),cumsum(Datamean[50:56,22]),cumsum(Datamean[57:63,22]),cumsum(Datamean[64:70,22]))
+Datamean$Cum_cons2<-c(cumsum(Datamean[1:7,"constotper.sum"]),cumsum(Datamean[8:14,"constotper.sum"]),cumsum(Datamean[15:21,"constotper.sum"]),cumsum(Datamean[22:28,"constotper.sum"]),cumsum(Datamean[29:35,"constotper.sum"]),cumsum(Datamean[36:42,"constotper.sum"]),cumsum(Datamean[43:49,"constotper.sum"]),cumsum(Datamean[50:56,"constotper.sum"]),cumsum(Datamean[57:63,"constotper.sum"]),cumsum(Datamean[64:70,"constotper.sum"]))
+
+Datamean$Cum_prodtarg<-c(cumsum(Datamean[1:7,"prodtarg.sum"]),cumsum(Datamean[8:14,"prodtarg.sum"]),cumsum(Datamean[15:21,"prodtarg.sum"]),cumsum(Datamean[22:28,"prodtarg.sum"]),cumsum(Datamean[29:35,"prodtarg.sum"]),cumsum(Datamean[36:42,"prodtarg.sum"]),cumsum(Datamean[43:49,"prodtarg.sum"]),cumsum(Datamean[50:56,"prodtarg.sum"]),cumsum(Datamean[57:63,"prodtarg.sum"]),cumsum(Datamean[64:70,"prodtarg.sum"]))
+
+Datamean$Cum_prodtarg2<-c(cumsum(Datamean[1:7,"prodtargper.sum"]),cumsum(Datamean[8:14,"prodtargper.sum"]),cumsum(Datamean[15:21,"prodtargper.sum"]),cumsum(Datamean[22:28,"prodtargper.sum"]),cumsum(Datamean[29:35,"prodtargper.sum"]),cumsum(Datamean[36:42,"prodtargper.sum"]),cumsum(Datamean[43:49,"prodtargper.sum"]),cumsum(Datamean[50:56,"prodtargper.sum"]),cumsum(Datamean[57:63,"prodtargper.sum"]),cumsum(Datamean[64:70,"prodtargper.sum"]))
+
+Datamean$Cum_constarg<-c(cumsum(Datamean[1:7,"constarg.sum"]),cumsum(Datamean[8:14,"constarg.sum"]),cumsum(Datamean[15:22,"constarg.sum"]),cumsum(Datamean[23:28,"constarg.sum"]),cumsum(Datamean[29:35,"constarg.sum"]),cumsum(Datamean[36:42,"constarg.sum"]),cumsum(Datamean[43:49,"constarg.sum"]),cumsum(Datamean[50:56,"constarg.sum"]),cumsum(Datamean[57:63,"constarg.sum"]),cumsum(Datamean[64:70,"constarg.sum"]))
+
+Datamean$Cum_constarg2<-c(cumsum(Datamean[1:7,"constargper.sum"]),cumsum(Datamean[8:14,"constargper.sum"]),cumsum(Datamean[15:22,"constargper.sum"]),cumsum(Datamean[23:28,"constargper.sum"]),cumsum(Datamean[29:35,"constargper.sum"]),cumsum(Datamean[36:42,"constargper.sum"]),cumsum(Datamean[43:49,"constargper.sum"]),cumsum(Datamean[50:56,"constargper.sum"]),cumsum(Datamean[57:63,"constargper.sum"]),cumsum(Datamean[64:70,"constargper.sum"]))
 
 Datamean$Cum_rain<-c(cumsum(Datamean[1:7,5]),cumsum(Datamean[8:14,5]),cumsum(Datamean[15:21,5]),cumsum(Datamean[22:28,5]),cumsum(Datamean[29:35,5]),cumsum(Datamean[36:42,5]),cumsum(Datamean[43:49,5]),cumsum(Datamean[50:56,5]),cumsum(Datamean[57:63,5]),cumsum(Datamean[64:70,5]))
 
-Datamean$Cum_N.targ<-c(cumsum(Datamean[1:7,33]),cumsum(Datamean[8:14,33]),cumsum(Datamean[15:21,33]),cumsum(Datamean[22:28,33]),cumsum(Datamean[29:35,33]),cumsum(Datamean[36:42,33]),cumsum(Datamean[43:49,33]),cumsum(Datamean[50:56,33]),cumsum(Datamean[57:63,33]),cumsum(Datamean[64:70,33]))
+Datamean$Cum_N.targ<-c(cumsum(Datamean[1:7,"N.target"]),cumsum(Datamean[8:14,"N.target"]),cumsum(Datamean[15:21,"N.target"]),cumsum(Datamean[22:28,"N.target"]),cumsum(Datamean[29:35,"N.target"]),cumsum(Datamean[36:42,"N.target"]),cumsum(Datamean[43:49,"N.target"]),cumsum(Datamean[50:56,"N.target"]),cumsum(Datamean[57:63,"N.target"]),cumsum(Datamean[64:70,"N.target"]))
 
-Datamean$Cum_N.tot<-c(cumsum(Datamean[1:7,35]),cumsum(Datamean[8:14,35]),cumsum(Datamean[15:21,35]),cumsum(Datamean[22:28,35]),cumsum(Datamean[29:35,35]),cumsum(Datamean[36:42,35]),cumsum(Datamean[43:49,35]),cumsum(Datamean[50:56,35]),cumsum(Datamean[57:63,35]),cumsum(Datamean[64:70,35]))
+Datamean$Cum_N.tot<-c(cumsum(Datamean[1:7,"N.total"]),cumsum(Datamean[8:14,"N.total"]),cumsum(Datamean[15:21,"N.total"]),cumsum(Datamean[22:28,"N.total"]),cumsum(Datamean[29:35,"N.total"]),cumsum(Datamean[36:42,"N.total"]),cumsum(Datamean[43:49,"N.total"]),cumsum(Datamean[50:56,"N.total"]),cumsum(Datamean[57:63,"N.total"]),cumsum(Datamean[64:70,"N.total"]))
 
 # % production consumed 
 Datamean$Cum_perc_cons<-Datamean$Cum_cons/Datamean$Cum_prod*100
 
 #### Cumulative production, consumption, rainfall and N contents for non-aggregated data ####
 ##DataEx 
-DataEx$Cum_prod<-c(cumsum(DataEx[1:7,50]),cumsum(DataEx[8:14,50]),cumsum(DataEx[15:21,50]),cumsum(DataEx[22:28,50]),cumsum(DataEx[29:35,50]),cumsum(DataEx[36:42,50]),cumsum(DataEx[43:49,50]),cumsum(DataEx[50:56,50]),cumsum(DataEx[57:63,50]),cumsum(DataEx[64:70,50]),cumsum(DataEx[71:77,50]),cumsum(DataEx[78:84,50]),cumsum(DataEx[85:91,50]),cumsum(DataEx[92:98,50]),cumsum(DataEx[99:105,50]),cumsum(DataEx[106:112,50]),cumsum(DataEx[113:119,50]),cumsum(DataEx[120:126,50]),cumsum(DataEx[127:133,50]),cumsum(DataEx[134:140,50]))
+DataEx$Cum_prod<-c(cumsum(DataEx[1:7,"prodtot.sum"]),cumsum(DataEx[8:14,"prodtot.sum"]),cumsum(DataEx[15:21,"prodtot.sum"]),cumsum(DataEx[22:28,"prodtot.sum"]),cumsum(DataEx[29:35,"prodtot.sum"]),cumsum(DataEx[36:42,"prodtot.sum"]),cumsum(DataEx[43:49,"prodtot.sum"]),cumsum(DataEx[50:56,"prodtot.sum"]),cumsum(DataEx[57:63,"prodtot.sum"]),cumsum(DataEx[64:70,"prodtot.sum"]),cumsum(DataEx[71:77,"prodtot.sum"]),cumsum(DataEx[78:84,"prodtot.sum"]),cumsum(DataEx[85:91,"prodtot.sum"]),cumsum(DataEx[92:98,"prodtot.sum"]),cumsum(DataEx[99:105,"prodtot.sum"]),cumsum(DataEx[106:112,"prodtot.sum"]),cumsum(DataEx[113:119,"prodtot.sum"]),cumsum(DataEx[120:126,"prodtot.sum"]),cumsum(DataEx[127:133,"prodtot.sum"]),cumsum(DataEx[134:140,"prodtot.sum"]))
 
-DataEx$Cum_cons<-c(cumsum(DataEx[1:7,51]),cumsum(DataEx[8:14,51]),cumsum(DataEx[15:21,51]),cumsum(DataEx[22:28,51]),cumsum(DataEx[29:35,51]),cumsum(DataEx[36:42,51]),cumsum(DataEx[43:49,51]),cumsum(DataEx[50:56,51]),cumsum(DataEx[57:63,51]),cumsum(DataEx[64:70,51]),cumsum(DataEx[71:77,51]),cumsum(DataEx[78:84,51]),cumsum(DataEx[85:91,51]),cumsum(DataEx[92:98,51]),cumsum(DataEx[99:105,51]),cumsum(DataEx[106:112,51]),cumsum(DataEx[113:119,51]),cumsum(DataEx[120:126,51]),cumsum(DataEx[127:133,51]),cumsum(DataEx[134:140,51]))
+DataEx$Cum_prod2<-c(cumsum(DataEx[1:7,"prodtotper.sum"]),cumsum(DataEx[8:14,"prodtotper.sum"]),cumsum(DataEx[15:21,"prodtotper.sum"]),cumsum(DataEx[22:28,"prodtotper.sum"]),cumsum(DataEx[29:35,"prodtotper.sum"]),cumsum(DataEx[36:42,"prodtotper.sum"]),cumsum(DataEx[43:49,"prodtotper.sum"]),cumsum(DataEx[50:56,"prodtotper.sum"]),cumsum(DataEx[57:63,"prodtotper.sum"]),cumsum(DataEx[64:70,"prodtotper.sum"]),cumsum(DataEx[71:77,"prodtotper.sum"]),cumsum(DataEx[78:84,"prodtotper.sum"]),cumsum(DataEx[85:91,"prodtotper.sum"]),cumsum(DataEx[92:98,"prodtotper.sum"]),cumsum(DataEx[99:105,"prodtotper.sum"]),cumsum(DataEx[106:112,"prodtotper.sum"]),cumsum(DataEx[113:119,"prodtotper.sum"]),cumsum(DataEx[120:126,"prodtotper.sum"]),cumsum(DataEx[127:133,"prodtotper.sum"]),cumsum(DataEx[134:140,"prodtotper.sum"]))
 
-DataEx$Cum_prodtarg<-c(cumsum(DataEx[1:7,46]),cumsum(DataEx[8:14,46]),cumsum(DataEx[15:21,46]),cumsum(DataEx[22:28,46]),cumsum(DataEx[29:35,46]),cumsum(DataEx[36:42,46]),cumsum(DataEx[43:49,46]),cumsum(DataEx[50:56,46]),cumsum(DataEx[57:63,46]),cumsum(DataEx[64:70,46]),cumsum(DataEx[71:77,46]),cumsum(DataEx[78:84,46]),cumsum(DataEx[85:91,46]),cumsum(DataEx[92:98,46]),cumsum(DataEx[99:105,46]),cumsum(DataEx[106:112,46]),cumsum(DataEx[113:119,46]),cumsum(DataEx[120:126,46]),cumsum(DataEx[127:133,46]),cumsum(DataEx[134:140,46]))
+DataEx$Cum_cons<-c(cumsum(DataEx[1:7,"constot.sum"]),cumsum(DataEx[8:14,"constot.sum"]),cumsum(DataEx[15:21,"constot.sum"]),cumsum(DataEx[22:28,"constot.sum"]),cumsum(DataEx[29:35,"constot.sum"]),cumsum(DataEx[36:42,"constot.sum"]),cumsum(DataEx[43:49,"constot.sum"]),cumsum(DataEx[50:56,"constot.sum"]),cumsum(DataEx[57:63,"constot.sum"]),cumsum(DataEx[64:70,"constot.sum"]),cumsum(DataEx[71:77,"constot.sum"]),cumsum(DataEx[78:84,"constot.sum"]),cumsum(DataEx[85:91,"constot.sum"]),cumsum(DataEx[92:98,"constot.sum"]),cumsum(DataEx[99:105,"constot.sum"]),cumsum(DataEx[106:112,"constot.sum"]),cumsum(DataEx[113:119,"constot.sum"]),cumsum(DataEx[120:126,"constot.sum"]),cumsum(DataEx[127:133,"constot.sum"]),cumsum(DataEx[134:140,"constot.sum"]))
 
-DataEx$Cum_constarg<-c(cumsum(DataEx[1:7,47]),cumsum(DataEx[8:14,47]),cumsum(DataEx[15:21,47]),cumsum(DataEx[22:28,47]),cumsum(DataEx[29:35,47]),cumsum(DataEx[36:42,47]),cumsum(DataEx[43:49,47]),cumsum(DataEx[50:56,47]),cumsum(DataEx[57:63,47]),cumsum(DataEx[64:70,47]),cumsum(DataEx[71:77,47]),cumsum(DataEx[78:84,47]),cumsum(DataEx[85:91,47]),cumsum(DataEx[92:98,47]),cumsum(DataEx[99:105,47]),cumsum(DataEx[106:112,47]),cumsum(DataEx[113:119,47]),cumsum(DataEx[120:126,47]),cumsum(DataEx[127:133,47]),cumsum(DataEx[134:140,47]))
+DataEx$Cum_cons2<-c(cumsum(DataEx[1:7,"constotper.sum"]),cumsum(DataEx[8:14,"constotper.sum"]),cumsum(DataEx[15:21,"constotper.sum"]),cumsum(DataEx[22:28,"constotper.sum"]),cumsum(DataEx[29:35,"constotper.sum"]),cumsum(DataEx[36:42,"constotper.sum"]),cumsum(DataEx[43:49,"constotper.sum"]),cumsum(DataEx[50:56,"constotper.sum"]),cumsum(DataEx[57:63,"constotper.sum"]),cumsum(DataEx[64:70,"constotper.sum"]),cumsum(DataEx[71:77,"constotper.sum"]),cumsum(DataEx[78:84,"constotper.sum"]),cumsum(DataEx[85:91,"constotper.sum"]),cumsum(DataEx[92:98,"constotper.sum"]),cumsum(DataEx[99:105,"constotper.sum"]),cumsum(DataEx[106:112,"constotper.sum"]),cumsum(DataEx[113:119,"constotper.sum"]),cumsum(DataEx[120:126,"constotper.sum"]),cumsum(DataEx[127:133,"constotper.sum"]),cumsum(DataEx[134:140,"constotper.sum"]))
 
-DataEx$Cum_N.tot<-c(cumsum(DataEx[1:7,64]),cumsum(DataEx[8:14,64]),cumsum(DataEx[15:21,64]),cumsum(DataEx[22:28,64]),cumsum(DataEx[29:35,64]),cumsum(DataEx[36:42,64]),cumsum(DataEx[43:49,64]),cumsum(DataEx[50:56,64]),cumsum(DataEx[57:63,64]),cumsum(DataEx[64:70,64]),cumsum(DataEx[71:77,64]),cumsum(DataEx[78:84,64]),cumsum(DataEx[85:91,64]),cumsum(DataEx[92:98,64]),cumsum(DataEx[99:105,64]),cumsum(DataEx[106:112,64]),cumsum(DataEx[113:119,64]),cumsum(DataEx[120:126,64]),cumsum(DataEx[127:133,64]),cumsum(DataEx[134:140,64]))
+DataEx$Cum_prodtarg<-c(cumsum(DataEx[1:7,"prodtarg.sum"]),cumsum(DataEx[8:14,"prodtarg.sum"]),cumsum(DataEx[15:21,"prodtarg.sum"]),cumsum(DataEx[22:28,"prodtarg.sum"]),cumsum(DataEx[29:35,"prodtarg.sum"]),cumsum(DataEx[36:42,"prodtarg.sum"]),cumsum(DataEx[43:49,"prodtarg.sum"]),cumsum(DataEx[50:56,"prodtarg.sum"]),cumsum(DataEx[57:63,"prodtarg.sum"]),cumsum(DataEx[64:70,"prodtarg.sum"]),cumsum(DataEx[71:77,"prodtarg.sum"]),cumsum(DataEx[78:84,"prodtarg.sum"]),cumsum(DataEx[85:91,"prodtarg.sum"]),cumsum(DataEx[92:98,"prodtarg.sum"]),cumsum(DataEx[99:105,"prodtarg.sum"]),cumsum(DataEx[106:112,"prodtarg.sum"]),cumsum(DataEx[113:119,"prodtarg.sum"]),cumsum(DataEx[120:126,"prodtarg.sum"]),cumsum(DataEx[127:133,"prodtarg.sum"]),cumsum(DataEx[134:140,"prodtarg.sum"]))
 
-DataEx$Cum_prod<-c(cumsum(DataEx[1:7,50]),cumsum(DataEx[8:14,50]),cumsum(DataEx[15:21,50]),cumsum(DataEx[22:28,50]),cumsum(DataEx[29:35,50]),cumsum(DataEx[36:42,50]),cumsum(DataEx[43:49,50]),cumsum(DataEx[50:56,50]),cumsum(DataEx[57:63,50]),cumsum(DataEx[64:70,50]),cumsum(DataEx[71:77,50]),cumsum(DataEx[78:84,50]),cumsum(DataEx[85:91,50]),cumsum(DataEx[92:98,50]),cumsum(DataEx[99:105,50]),cumsum(DataEx[106:112,50]),cumsum(DataEx[113:119,50]),cumsum(DataEx[120:126,50]),cumsum(DataEx[127:133,50]),cumsum(DataEx[134:140,50]))
+DataEx$Cum_prodtarg2<-c(cumsum(DataEx[1:7,"prodtargper.sum"]),cumsum(DataEx[8:14,"prodtargper.sum"]),cumsum(DataEx[15:21,"prodtargper.sum"]),cumsum(DataEx[22:28,"prodtargper.sum"]),cumsum(DataEx[29:35,"prodtargper.sum"]),cumsum(DataEx[36:42,"prodtargper.sum"]),cumsum(DataEx[43:49,"prodtargper.sum"]),cumsum(DataEx[50:56,"prodtargper.sum"]),cumsum(DataEx[57:63,"prodtargper.sum"]),cumsum(DataEx[64:70,"prodtargper.sum"]),cumsum(DataEx[71:77,"prodtargper.sum"]),cumsum(DataEx[78:84,"prodtargper.sum"]),cumsum(DataEx[85:91,"prodtargper.sum"]),cumsum(DataEx[92:98,"prodtargper.sum"]),cumsum(DataEx[99:105,"prodtargper.sum"]),cumsum(DataEx[106:112,"prodtargper.sum"]),cumsum(DataEx[113:119,"prodtargper.sum"]),cumsum(DataEx[120:126,"prodtargper.sum"]),cumsum(DataEx[127:133,"prodtargper.sum"]),cumsum(DataEx[134:140,"prodtargper.sum"]))
 
-DataEx$Cum_cons<-c(cumsum(DataEx[1:7,51]),cumsum(DataEx[8:14,51]),cumsum(DataEx[15:21,51]),cumsum(DataEx[22:28,51]),cumsum(DataEx[29:35,51]),cumsum(DataEx[36:42,51]),cumsum(DataEx[43:49,51]),cumsum(DataEx[50:56,51]),cumsum(DataEx[57:63,51]),cumsum(DataEx[64:70,51]),cumsum(DataEx[71:77,51]),cumsum(DataEx[78:84,51]),cumsum(DataEx[85:91,51]),cumsum(DataEx[92:98,51]),cumsum(DataEx[99:105,51]),cumsum(DataEx[106:112,51]),cumsum(DataEx[113:119,51]),cumsum(DataEx[120:126,51]),cumsum(DataEx[127:133,51]),cumsum(DataEx[134:140,51]))
+DataEx$Cum_constarg<-c(cumsum(DataEx[1:7,"constarg.sum"]),cumsum(DataEx[8:14,"constarg.sum"]),cumsum(DataEx[15:21,"constarg.sum"]),cumsum(DataEx[22:28,"constarg.sum"]),cumsum(DataEx[29:35,"constarg.sum"]),cumsum(DataEx[36:42,"constarg.sum"]),cumsum(DataEx[43:49,"constarg.sum"]),cumsum(DataEx[50:56,"constarg.sum"]),cumsum(DataEx[57:63,"constarg.sum"]),cumsum(DataEx[64:70,"constarg.sum"]),cumsum(DataEx[71:77,"constarg.sum"]),cumsum(DataEx[78:84,"constarg.sum"]),cumsum(DataEx[85:91,"constarg.sum"]),cumsum(DataEx[92:98,"constarg.sum"]),cumsum(DataEx[99:105,"constarg.sum"]),cumsum(DataEx[106:112,"constarg.sum"]),cumsum(DataEx[113:119,"constarg.sum"]),cumsum(DataEx[120:126,"constarg.sum"]),cumsum(DataEx[127:133,"constarg.sum"]),cumsum(DataEx[134:140,"constarg.sum"]))
+
+DataEx$Cum_constarg2<-c(cumsum(DataEx[1:7,"constargper.sum"]),cumsum(DataEx[8:14,"constargper.sum"]),cumsum(DataEx[15:21,"constargper.sum"]),cumsum(DataEx[22:28,"constargper.sum"]),cumsum(DataEx[29:35,"constargper.sum"]),cumsum(DataEx[36:42,"constargper.sum"]),cumsum(DataEx[43:49,"constargper.sum"]),cumsum(DataEx[50:56,"constargper.sum"]),cumsum(DataEx[57:63,"constargper.sum"]),cumsum(DataEx[64:70,"constargper.sum"]),cumsum(DataEx[71:77,"constargper.sum"]),cumsum(DataEx[78:84,"constargper.sum"]),cumsum(DataEx[85:91,"constargper.sum"]),cumsum(DataEx[92:98,"constargper.sum"]),cumsum(DataEx[99:105,"constargper.sum"]),cumsum(DataEx[106:112,"constargper.sum"]),cumsum(DataEx[113:119,"constargper.sum"]),cumsum(DataEx[120:126,"constargper.sum"]),cumsum(DataEx[127:133,"constargper.sum"]),cumsum(DataEx[134:140,"constargper.sum"]))
+
+DataEx$Cum_N.tot<-c(cumsum(DataEx[1:7,"N.total"]),cumsum(DataEx[8:14,"N.total"]),cumsum(DataEx[15:21,"N.total"]),cumsum(DataEx[22:28,"N.total"]),cumsum(DataEx[29:35,"N.total"]),cumsum(DataEx[36:42,"N.total"]),cumsum(DataEx[43:49,"N.total"]),cumsum(DataEx[50:56,"N.total"]),cumsum(DataEx[57:63,"N.total"]),cumsum(DataEx[64:70,"N.total"]),cumsum(DataEx[71:77,"N.total"]),cumsum(DataEx[78:84,"N.total"]),cumsum(DataEx[85:91,"N.total"]),cumsum(DataEx[92:98,"N.total"]),cumsum(DataEx[99:105,"N.total"]),cumsum(DataEx[106:112,"N.total"]),cumsum(DataEx[113:119,"N.total"]),cumsum(DataEx[120:126,"N.total"]),cumsum(DataEx[127:133,"N.total"]),cumsum(DataEx[134:140,"N.total"]))
+
+# DataEx$Cum_prod<-c(cumsum(DataEx[1:7,50]),cumsum(DataEx[8:14,50]),cumsum(DataEx[15:21,50]),cumsum(DataEx[22:28,50]),cumsum(DataEx[29:35,50]),cumsum(DataEx[36:42,50]),cumsum(DataEx[43:49,50]),cumsum(DataEx[50:56,50]),cumsum(DataEx[57:63,50]),cumsum(DataEx[64:70,50]),cumsum(DataEx[71:77,50]),cumsum(DataEx[78:84,50]),cumsum(DataEx[85:91,50]),cumsum(DataEx[92:98,50]),cumsum(DataEx[99:105,50]),cumsum(DataEx[106:112,50]),cumsum(DataEx[113:119,50]),cumsum(DataEx[120:126,50]),cumsum(DataEx[127:133,50]),cumsum(DataEx[134:140,50]))
+# 
+# DataEx$Cum_cons<-c(cumsum(DataEx[1:7,51]),cumsum(DataEx[8:14,51]),cumsum(DataEx[15:21,51]),cumsum(DataEx[22:28,51]),cumsum(DataEx[29:35,51]),cumsum(DataEx[36:42,51]),cumsum(DataEx[43:49,51]),cumsum(DataEx[50:56,51]),cumsum(DataEx[57:63,51]),cumsum(DataEx[64:70,51]),cumsum(DataEx[71:77,51]),cumsum(DataEx[78:84,51]),cumsum(DataEx[85:91,51]),cumsum(DataEx[92:98,51]),cumsum(DataEx[99:105,51]),cumsum(DataEx[106:112,51]),cumsum(DataEx[113:119,51]),cumsum(DataEx[120:126,51]),cumsum(DataEx[127:133,51]),cumsum(DataEx[134:140,51]))
 
 ###DataOp
-DataOp$Cum_prod<-c(cumsum(DataOp[1:7,50]),cumsum(DataOp[8:14,50]),cumsum(DataOp[15:21,50]),cumsum(DataOp[22:28,50]),cumsum(DataOp[29:35,50]),cumsum(DataOp[36:42,50]),cumsum(DataOp[43:49,50]),cumsum(DataOp[50:56,50]),cumsum(DataOp[57:63,50]),cumsum(DataOp[64:70,50]),cumsum(DataOp[71:77,50]),cumsum(DataOp[78:84,50]),cumsum(DataOp[85:91,50]),cumsum(DataOp[92:98,50]),cumsum(DataOp[99:105,50]),cumsum(DataOp[106:112,50]),cumsum(DataOp[113:119,50]),cumsum(DataOp[120:126,50]),cumsum(DataOp[127:133,50]),cumsum(DataOp[134:140,50]))
+DataOp$Cum_prod<-c(cumsum(DataOp[1:7,"prodtot.sum"]),cumsum(DataOp[8:14,"prodtot.sum"]),cumsum(DataOp[15:21,"prodtot.sum"]),cumsum(DataOp[22:28,"prodtot.sum"]),cumsum(DataOp[29:35,"prodtot.sum"]),cumsum(DataOp[36:42,"prodtot.sum"]),cumsum(DataOp[43:49,"prodtot.sum"]),cumsum(DataOp[50:56,"prodtot.sum"]),cumsum(DataOp[57:63,"prodtot.sum"]),cumsum(DataOp[64:70,"prodtot.sum"]),cumsum(DataOp[71:77,"prodtot.sum"]),cumsum(DataOp[78:84,"prodtot.sum"]),cumsum(DataOp[85:91,"prodtot.sum"]),cumsum(DataOp[92:98,"prodtot.sum"]),cumsum(DataOp[99:105,"prodtot.sum"]),cumsum(DataOp[106:112,"prodtot.sum"]),cumsum(DataOp[113:119,"prodtot.sum"]),cumsum(DataOp[120:126,"prodtot.sum"]),cumsum(DataOp[127:133,"prodtot.sum"]),cumsum(DataOp[134:140,"prodtot.sum"]))
 
-DataOp$Cum_cons<-c(cumsum(DataOp[1:7,51]),cumsum(DataOp[8:14,51]),cumsum(DataOp[15:21,51]),cumsum(DataOp[22:28,51]),cumsum(DataOp[29:35,51]),cumsum(DataOp[36:42,51]),cumsum(DataOp[43:49,51]),cumsum(DataOp[50:56,51]),cumsum(DataOp[57:63,51]),cumsum(DataOp[64:70,51]),cumsum(DataOp[71:77,51]),cumsum(DataOp[78:84,51]),cumsum(DataOp[85:91,51]),cumsum(DataOp[92:98,51]),cumsum(DataOp[99:105,51]),cumsum(DataOp[106:112,51]),cumsum(DataOp[113:119,51]),cumsum(DataOp[120:126,51]),cumsum(DataOp[127:133,51]),cumsum(DataOp[134:140,51]))
+DataOp$Cum_prod2<-c(cumsum(DataOp[1:7,"prodtotper.sum"]),cumsum(DataOp[8:14,"prodtotper.sum"]),cumsum(DataOp[15:21,"prodtotper.sum"]),cumsum(DataOp[22:28,"prodtotper.sum"]),cumsum(DataOp[29:35,"prodtotper.sum"]),cumsum(DataOp[36:42,"prodtotper.sum"]),cumsum(DataOp[43:49,"prodtotper.sum"]),cumsum(DataOp[50:56,"prodtotper.sum"]),cumsum(DataOp[57:63,"prodtotper.sum"]),cumsum(DataOp[64:70,"prodtotper.sum"]),cumsum(DataOp[71:77,"prodtotper.sum"]),cumsum(DataOp[78:84,"prodtotper.sum"]),cumsum(DataOp[85:91,"prodtotper.sum"]),cumsum(DataOp[92:98,"prodtotper.sum"]),cumsum(DataOp[99:105,"prodtotper.sum"]),cumsum(DataOp[106:112,"prodtotper.sum"]),cumsum(DataOp[113:119,"prodtotper.sum"]),cumsum(DataOp[120:126,"prodtotper.sum"]),cumsum(DataOp[127:133,"prodtotper.sum"]),cumsum(DataOp[134:140,"prodtotper.sum"]))
 
-DataOp$Cum_prodtarg<-c(cumsum(DataOp[1:7,46]),cumsum(DataOp[8:14,46]),cumsum(DataOp[15:21,46]),cumsum(DataOp[22:28,46]),cumsum(DataOp[29:35,46]),cumsum(DataOp[36:42,46]),cumsum(DataOp[43:49,46]),cumsum(DataOp[50:56,46]),cumsum(DataOp[57:63,46]),cumsum(DataOp[64:70,46]),cumsum(DataOp[71:77,46]),cumsum(DataOp[78:84,46]),cumsum(DataOp[85:91,46]),cumsum(DataOp[92:98,46]),cumsum(DataOp[99:105,46]),cumsum(DataOp[106:112,46]),cumsum(DataOp[113:119,46]),cumsum(DataOp[120:126,46]),cumsum(DataOp[127:133,46]),cumsum(DataOp[134:140,46]))
+DataOp$Cum_cons<-c(cumsum(DataOp[1:7,"constot.sum"]),cumsum(DataOp[8:14,"constot.sum"]),cumsum(DataOp[15:21,"constot.sum"]),cumsum(DataOp[22:28,"constot.sum"]),cumsum(DataOp[29:35,"constot.sum"]),cumsum(DataOp[36:42,"constot.sum"]),cumsum(DataOp[43:49,"constot.sum"]),cumsum(DataOp[50:56,"constot.sum"]),cumsum(DataOp[57:63,"constot.sum"]),cumsum(DataOp[64:70,"constot.sum"]),cumsum(DataOp[71:77,"constot.sum"]),cumsum(DataOp[78:84,"constot.sum"]),cumsum(DataOp[85:91,"constot.sum"]),cumsum(DataOp[92:98,"constot.sum"]),cumsum(DataOp[99:105,"constot.sum"]),cumsum(DataOp[106:112,"constot.sum"]),cumsum(DataOp[113:119,"constot.sum"]),cumsum(DataOp[120:126,"constot.sum"]),cumsum(DataOp[127:133,"constot.sum"]),cumsum(DataOp[134:140,"constot.sum"]))
 
-DataOp$Cum_constarg<-c(cumsum(DataOp[1:7,47]),cumsum(DataOp[8:14,47]),cumsum(DataOp[15:21,47]),cumsum(DataOp[22:28,47]),cumsum(DataOp[29:35,47]),cumsum(DataOp[36:42,47]),cumsum(DataOp[43:49,47]),cumsum(DataOp[50:56,47]),cumsum(DataOp[57:63,47]),cumsum(DataOp[64:70,47]),cumsum(DataOp[71:77,47]),cumsum(DataOp[78:84,47]),cumsum(DataOp[85:91,47]),cumsum(DataOp[92:98,47]),cumsum(DataOp[99:105,47]),cumsum(DataOp[106:112,47]),cumsum(DataOp[113:119,47]),cumsum(DataOp[120:126,47]),cumsum(DataOp[127:133,47]),cumsum(DataOp[134:140,47]))
+DataOp$Cum_cons2<-c(cumsum(DataOp[1:7,"constotper.sum"]),cumsum(DataOp[8:14,"constotper.sum"]),cumsum(DataOp[15:21,"constotper.sum"]),cumsum(DataOp[22:28,"constotper.sum"]),cumsum(DataOp[29:35,"constotper.sum"]),cumsum(DataOp[36:42,"constotper.sum"]),cumsum(DataOp[43:49,"constotper.sum"]),cumsum(DataOp[50:56,"constotper.sum"]),cumsum(DataOp[57:63,"constotper.sum"]),cumsum(DataOp[64:70,"constotper.sum"]),cumsum(DataOp[71:77,"constotper.sum"]),cumsum(DataOp[78:84,"constotper.sum"]),cumsum(DataOp[85:91,"constotper.sum"]),cumsum(DataOp[92:98,"constotper.sum"]),cumsum(DataOp[99:105,"constotper.sum"]),cumsum(DataOp[106:112,"constotper.sum"]),cumsum(DataOp[113:119,"constotper.sum"]),cumsum(DataOp[120:126,"constotper.sum"]),cumsum(DataOp[127:133,"constotper.sum"]),cumsum(DataOp[134:140,"constotper.sum"]))
 
-DataOp$Cum_N.tot<-c(cumsum(DataOp[1:7,64]),cumsum(DataOp[8:14,64]),cumsum(DataOp[15:21,64]),cumsum(DataOp[22:28,64]),cumsum(DataOp[29:35,64]),cumsum(DataOp[36:42,64]),cumsum(DataOp[43:49,64]),cumsum(DataOp[50:56,64]),cumsum(DataOp[57:63,64]),cumsum(DataOp[64:70,64]),cumsum(DataOp[71:77,64]),cumsum(DataOp[78:84,64]),cumsum(DataOp[85:91,64]),cumsum(DataOp[92:98,64]),cumsum(DataOp[99:105,64]),cumsum(DataOp[106:112,64]),cumsum(DataOp[113:119,64]),cumsum(DataOp[120:126,64]),cumsum(DataOp[127:133,64]),cumsum(DataOp[134:140,64]))
+DataOp$Cum_prodtarg<-c(cumsum(DataOp[1:7,"prodtarg.sum"]),cumsum(DataOp[8:14,"prodtarg.sum"]),cumsum(DataOp[15:21,"prodtarg.sum"]),cumsum(DataOp[22:28,"prodtarg.sum"]),cumsum(DataOp[29:35,"prodtarg.sum"]),cumsum(DataOp[36:42,"prodtarg.sum"]),cumsum(DataOp[43:49,"prodtarg.sum"]),cumsum(DataOp[50:56,"prodtarg.sum"]),cumsum(DataOp[57:63,"prodtarg.sum"]),cumsum(DataOp[64:70,"prodtarg.sum"]),cumsum(DataOp[71:77,"prodtarg.sum"]),cumsum(DataOp[78:84,"prodtarg.sum"]),cumsum(DataOp[85:91,"prodtarg.sum"]),cumsum(DataOp[92:98,"prodtarg.sum"]),cumsum(DataOp[99:105,"prodtarg.sum"]),cumsum(DataOp[106:112,"prodtarg.sum"]),cumsum(DataOp[113:119,"prodtarg.sum"]),cumsum(DataOp[120:126,"prodtarg.sum"]),cumsum(DataOp[127:133,"prodtarg.sum"]),cumsum(DataOp[134:140,"prodtarg.sum"]))
 
+DataOp$Cum_prodtarg2<-c(cumsum(DataOp[1:7,"prodtargper.sum"]),cumsum(DataOp[8:14,"prodtargper.sum"]),cumsum(DataOp[15:21,"prodtargper.sum"]),cumsum(DataOp[22:28,"prodtargper.sum"]),cumsum(DataOp[29:35,"prodtargper.sum"]),cumsum(DataOp[36:42,"prodtargper.sum"]),cumsum(DataOp[43:49,"prodtargper.sum"]),cumsum(DataOp[50:56,"prodtargper.sum"]),cumsum(DataOp[57:63,"prodtargper.sum"]),cumsum(DataOp[64:70,"prodtargper.sum"]),cumsum(DataOp[71:77,"prodtargper.sum"]),cumsum(DataOp[78:84,"prodtargper.sum"]),cumsum(DataOp[85:91,"prodtargper.sum"]),cumsum(DataOp[92:98,"prodtargper.sum"]),cumsum(DataOp[99:105,"prodtargper.sum"]),cumsum(DataOp[106:112,"prodtargper.sum"]),cumsum(DataOp[113:119,"prodtargper.sum"]),cumsum(DataOp[120:126,"prodtargper.sum"]),cumsum(DataOp[127:133,"prodtargper.sum"]),cumsum(DataOp[134:140,"prodtargper.sum"]))
+
+DataOp$Cum_constarg<-c(cumsum(DataOp[1:7,"constarg.sum"]),cumsum(DataOp[8:14,"constarg.sum"]),cumsum(DataOp[15:21,"constarg.sum"]),cumsum(DataOp[22:28,"constarg.sum"]),cumsum(DataOp[29:35,"constarg.sum"]),cumsum(DataOp[36:42,"constarg.sum"]),cumsum(DataOp[43:49,"constarg.sum"]),cumsum(DataOp[50:56,"constarg.sum"]),cumsum(DataOp[57:63,"constarg.sum"]),cumsum(DataOp[64:70,"constarg.sum"]),cumsum(DataOp[71:77,"constarg.sum"]),cumsum(DataOp[78:84,"constarg.sum"]),cumsum(DataOp[85:91,"constarg.sum"]),cumsum(DataOp[92:98,"constarg.sum"]),cumsum(DataOp[99:105,"constarg.sum"]),cumsum(DataOp[106:112,"constarg.sum"]),cumsum(DataOp[113:119,"constarg.sum"]),cumsum(DataOp[120:126,"constarg.sum"]),cumsum(DataOp[127:133,"constarg.sum"]),cumsum(DataOp[134:140,"constarg.sum"]))
+
+DataOp$Cum_constarg2<-c(cumsum(DataOp[1:7,"constargper.sum"]),cumsum(DataOp[8:14,"constargper.sum"]),cumsum(DataOp[15:21,"constargper.sum"]),cumsum(DataOp[22:28,"constargper.sum"]),cumsum(DataOp[29:35,"constargper.sum"]),cumsum(DataOp[36:42,"constargper.sum"]),cumsum(DataOp[43:49,"constargper.sum"]),cumsum(DataOp[50:56,"constargper.sum"]),cumsum(DataOp[57:63,"constargper.sum"]),cumsum(DataOp[64:70,"constargper.sum"]),cumsum(DataOp[71:77,"constargper.sum"]),cumsum(DataOp[78:84,"constargper.sum"]),cumsum(DataOp[85:91,"constargper.sum"]),cumsum(DataOp[92:98,"constargper.sum"]),cumsum(DataOp[99:105,"constargper.sum"]),cumsum(DataOp[106:112,"constargper.sum"]),cumsum(DataOp[113:119,"constargper.sum"]),cumsum(DataOp[120:126,"constargper.sum"]),cumsum(DataOp[127:133,"constargper.sum"]),cumsum(DataOp[134:140,"constargper.sum"]))
+
+DataOp$Cum_N.tot<-c(cumsum(DataOp[1:7,"N.total"]),cumsum(DataOp[8:14,"N.total"]),cumsum(DataOp[15:21,"N.total"]),cumsum(DataOp[22:28,"N.total"]),cumsum(DataOp[29:35,"N.total"]),cumsum(DataOp[36:42,"N.total"]),cumsum(DataOp[43:49,"N.total"]),cumsum(DataOp[50:56,"N.total"]),cumsum(DataOp[57:63,"N.total"]),cumsum(DataOp[64:70,"N.total"]),cumsum(DataOp[71:77,"N.total"]),cumsum(DataOp[78:84,"N.total"]),cumsum(DataOp[85:91,"N.total"]),cumsum(DataOp[92:98,"N.total"]),cumsum(DataOp[99:105,"N.total"]),cumsum(DataOp[106:112,"N.total"]),cumsum(DataOp[113:119,"N.total"]),cumsum(DataOp[120:126,"N.total"]),cumsum(DataOp[127:133,"N.total"]),cumsum(DataOp[134:140,"N.total"]))
 
 #### Dataframes for modelling ####
 # Dataframe total productivity
 Dataprod <- Databiom[complete.cases(Databiom[c("prodtot")]),]   #271 obs
   #Replacing neg values with 0
-  Dataprod0 <- Dataprod
-  Dataprod0[,c(40:65)] <- replace(Dataprod[,c(40:65)], Dataprod[,c(40:65)] < 0, 0)
+  #Dataprod0 <- Dataprod
+  #Dataprod0[,c(40:65)] <- replace(Dataprod[,c(40:65)], Dataprod[,c(40:65)] < 0, 0)
 
 # Dataframe total consumption
 Datacons <- Databiom[complete.cases(Databiom[c("constot")]),]   #135 obs
 Datacons <- Datacons[complete.cases(Datacons[c("N.total")]),]   #105 obs
 Datacons <- Datacons[complete.cases(Datacons[c("prodtot")]),]   #104 obs
   #Replacing neg values with 0
-Datacons0 <- Datacons
-Datacons0[,c(40:65)] <- replace(Datacons[,c(40:65)], Datacons[,c(40:65)] < 0, 0)
+#Datacons0 <- Datacons
+#Datacons0[,c(40:65)] <- replace(Datacons[,c(40:65)], Datacons[,c(40:65)] < 0, 0)
 
 # Combine again DataEx and DataOp. Getting accumulated values on block level
 Databiom2 <- bind_rows(DataEx,DataOp) 
 
-# Dataframe NAPtarget in proportion to NAPtotal
-hist(Dataprod$prodtargfrac)
+#Dataframe NAPtarget in proportion to NAPtotal
 Datatarg <- Dataprod[complete.cases(Dataprod[c("prodtargfrac")]),]   #250 obs
 plot(Datatarg$prodtargfrac) 
 #identify(Datatarg$prodtargfrac) # 223
@@ -482,6 +510,11 @@ hist(Databiom$constot) # as much neg.values as pos! Mean cons. ~0...
 hist(Databiom$prodtarg) # most around +/-1, one outlier -4
 hist(Databiom$constarg) #one value above 3
 
+hist(Databiom$prodtot.per) # Good spread <-5,10>
+hist(Databiom$constot.per) # Outlier ~6? 
+hist(Databiom$prodtarg.per) # Skewed! Four values below -10!
+hist(Databiom$constarg.per) # Most around zero, +-0.5, outliers -1 and ~+2
+
 #### Outliers ####
 # Using boxplot to visualize mean and spread of data (lower and upper end of box is 25% and 75% quantile)
 
@@ -500,6 +533,13 @@ plot(Databiom$constarg)
 
 # 25 is outlier in both prodtot and constot   #Large biomass! ~109g, due to underneath tree?
 
+plot(Databiom$prodtot.per) 
+plot(Databiom$prodtarg.per)
+#identify(Databiom$prodtarg.per) #  9 111 145 275
+plot(Databiom$constot.per) 
+#identify(Databiom$constot) # 25 273
+plot(Databiom$constarg.per) 
+
 #Looking at specific rows with the outliers
 Databiom[c(25,37,243,247),]  #49, 63, 311, 315
 #All >7, exclosed, H1/H1/H7/H7, dry/int/wet/wet, Makao/Seronera/Hand/Hand
@@ -509,6 +549,8 @@ Databiom[c(25,273),]
 #Both ex, Dry_p_1 and se_1, H1/H7 4.59 and -2.79
 Databiom[c(45),"constarg"]
 #Handajega Ex H2  3.35
+
+Databiom[c(9,111,145,275),]
 
 #Plotting difftarget and difftotal
 plot(Databiom$difftarget~Databiom$rain.sum)
@@ -575,6 +617,42 @@ Avgprod$YrMonth<-as.Date(paste(Avgprod$YrMonth,"-01",sep=""))#Adding day (first 
 
 # Redo code to include differences in pool - linetype
 Avgprod$site.id<-as.factor(with(Avgprod, paste(region,landuse,treatment,pool, sep="_")))
+
+#### Average NAP, weighted ####
+TotprodW <- aggregate(prodtot.per~region+landuse+site.id+YrMonth+treatment,na.rm=T,Databiom,mean)
+TotprodW$prodtot.per<- round(TotprodW$prodtot.per, digits=2)
+colnames(TotprodW)[6]<-"Productivity"
+TotprodW$pool<-"total" #Tagging these data with total productivity - combining later
+
+TarprodW<-aggregate(prodtarg.per~region+landuse+site.id+YrMonth+treatment,na.rm=T,Databiom,mean)
+TarprodW$prodtarg.per<-round(TarprodW$prodtarg.per,digits=2)  
+colnames(TarprodW)[6]<-"Productivity"
+TarprodW$pool<-"target"
+
+# Average total and target productivity, in one dataframe
+AvgprodW<-rbind(TotprodW,TarprodW)
+
+#Then making dataframes for total and target SEs --> combining them in one frame, then adding them to the average dataframe Avgprod
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+TotprodWSE <- aggregate(prodtot.per~region+landuse+site.id+YrMonth+treatment,Databiom,SE)
+TotprodWSE$prodtot.per<-round(TotprodWSE$prodtot.per,digits=2)
+colnames(TotprodWSE)[6]<-"SE"
+TotprodWSE$pool<-"total"
+
+TarprodWSE <- aggregate(prodtarg.per~region+landuse+site.id+YrMonth+treatment,Databiom,SE)
+TarprodWSE$prodtarg.per<-round(TarprodWSE$prodtarg.per,digits=2)
+colnames(TarprodWSE)[6]<-"SE"
+TarprodWSE$pool<-"target"
+
+SeprodW<-rbind(TotprodWSE,TarprodWSE)
+AvgprodW$SE<-SeprodW$SE
+
+# Convert to date
+AvgprodW$YrMonth<-as.Date(paste(AvgprodW$YrMonth,"-01",sep=""))#Adding day (first of month)
+
+# Redo code to include differences in pool - linetype
+AvgprodW$site.id<-as.factor(with(AvgprodW, paste(region,landuse,treatment,pool, sep="_")))
+
 #### Average CONS ####
 # Average of each site per harvest
 Totcons <- aggregate(constot~region+landuse+site.id+YrMonth,na.rm=T,Databiom,mean)
@@ -612,6 +690,42 @@ Avgcons$YrMonth<-as.Date(paste(Avgcons$YrMonth,"-01",sep=""))
 # Redo code to include differences in pool - linetype
 Avgcons$site.id<-as.factor(with(Avgcons, paste(region,landuse,pool, sep="_")))
 
+#### Average CONS WEIGHTED ####
+# Average of each site per harvest
+TotconsW <- aggregate(constot.per~region+landuse+site.id+YrMonth,na.rm=T,Databiom,mean)
+TotconsW$constot.per<- round(TotconsW$constot.per, digits=2)
+colnames(TotconsW)[5]<-"Consumption"
+TotconsW$pool<-"total" #Tagging these data with total productivity - combining later
+
+TarconsW<-aggregate(constarg.per~region+landuse+site.id+YrMonth,na.rm=T,Databiom,mean)
+TarconsW$constarg.per<-round(TarconsW$constarg.per,digits=2)  
+colnames(TarconsW)[5]<-"Consumption"
+TarconsW$pool<-"target"
+
+# Average total and target CONS, in one dataframe
+AvgconsW<-rbind(TotconsW,TarconsW)
+
+#Then making dataframes for total and target SEs --> combining them in one frame, then adding them to the average dataframe Avgcons
+TotconsWSE <- aggregate(constot.per~region+landuse+site.id+YrMonth,Databiom,SE)
+TotconsWSE$constot.per<-round(TotconsWSE$constot.per,digits=2)
+colnames(TotconsWSE)[5]<-"SE"
+TotconsWSE$pool<-"total"
+
+TarconsWSE <- aggregate(constarg.per~region+landuse+site.id+YrMonth,Databiom,SE)
+TarconsWSE$constarg.per<-round(TarconsWSE$constarg.per,digits=2)
+colnames(TarconsWSE)[5]<-"SE"
+TarconsWSE$pool<-"target"
+
+#Including SE in the averagecons frame
+SeconsW<-rbind(TotconsWSE,TarconsWSE)
+AvgconsW$SE<-SeconsW$SE
+
+# Convert to date
+AvgconsW$YrMonth<-as.Date(paste(AvgconsW$YrMonth,"-01",sep=""))
+
+# Redo code to include differences in pool - linetype
+AvgconsW$site.id<-as.factor(with(AvgconsW, paste(region,landuse,pool, sep="_")))
+
 #### Aggregating rainfall per region #### 
 # Averaging rainfall data and getting SE by region # To be included in the NAP aggregated dataframes per site
 #per rainfall region (WET, SE , DRY)
@@ -631,8 +745,15 @@ RainregionX$YrMonth<-as.Date(paste(RainregionX$YrMonth,"-01",sep=""))
 
 #### Adding NAP AND rainfall to aggregated dataframes ####
 # using left join.
-Avgprod3<-left_join(Avgprod,RainregionX, by=c("region","YrMonth"),drop=F)
-names(Avgprod3)
+Avgprod<-left_join(Avgprod,RainregionX, by=c("region","YrMonth"),drop=F)
+names(Avgprod)
+AvgprodW <- left_join(AvgprodW,RainregionX, by=c("region","YrMonth"),drop=F)
+names(AvgprodW)
+
+Avgcons<-left_join(Avgcons,RainregionX, by=c("region","YrMonth"),drop=F)
+names(Avgcons)
+AvgconsW <- left_join(AvgconsW,RainregionX, by=c("region","YrMonth"),drop=F)
+names(AvgconsW)
 
 ## Set values <0 to zero
 #AvgProd3$Productivity[AvgProd3$Productivity<0.01]<-0
@@ -649,9 +770,9 @@ names(Avgprod3)
 #rain <- ggplot( data = avgRain, aes( x=YrMonth, y=rain.sum,colour="dark blue" )) + geom_line()
 
 ####OVERVIEW dataframes ####
-#Avgprod - 138 obs, 8 var
+#Avgprod - 138 obs, Joined with RainRegionX
 #Avgprod2 - 
-#Avgprod3 - From Avgprod, joined with RainregionX
+#Avgprod3 - 
 #Avgprod4 - From Avgprod3, without target
 #Avgprod5 - From Avgprod4 without Seronera
 #Avgprod6 - From Avgprod5, without Seronera and open
@@ -672,7 +793,7 @@ legend_title2<-"treatment"
 nap <- ggplot(Avgprod, aes(x=YrMonth, y=Productivity, colour=landuse,shape=treatment,
                            group=site.id))
 nap<-nap+geom_line(size=1.2, alpha=.5, show.legend=F)
-nap<-nap+geom_errorbar(aes(ymin=Productivity-SE, ymax=Productivity+SE),width=.2,lwd=1.1,show.legend=F)
+nap<-nap+geom_errorbar(aes(ymin=Productivity-SE.y, ymax=Productivity+SE.y),width=.2,lwd=1.1,show.legend=F)
 nap<-nap+geom_point(size=4, fill="white", stroke=2)
 nap<-nap+facet_wrap(~region+pool,ncol=2,scales='fixed')
 nap<-nap+ scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(min(Avgprod$YrMonth),max=max(Avgprod$YrMonth))) 
@@ -709,7 +830,7 @@ nap
 
 #### NAP with Seronera ####
 # Remove target species
-Avgprod4 <- Avgprod3[Avgprod3$pool!="target",]
+Avgprod4 <- Avgprod[Avgprod$pool!="target",]
 Avgprod4<-droplevels(Avgprod4)
 legend_title<-"land-use"
 legend_title2<-"treatment"
@@ -825,7 +946,7 @@ cons<-cons+geom_line(size=1.2, alpha=.5, show.legend=F)
 cons<-cons+geom_errorbar(aes(ymin=Consumption-SE, ymax=Consumption+SE),width=.2,lwd=1.1,show.legend=F)
 cons<-cons+geom_point(size=4, fill="white", stroke=2)
 cons<-cons+facet_wrap(~pool+region,ncol=2,scales='fixed')
-cons<-cons+scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(min(AvgProd$YrMonth),max=max(AvgProd$YrMonth))) 
+cons<-cons+scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(min(Avgprod$YrMonth),max=max(Avgprod$YrMonth))) 
 #cons<-cons+scale_fill_manual(values=c("white","white"),show.legend=F)
 cons<-cons+scale_colour_manual(legend_title, values=c( "tan3","turquoise3"))
 cons<-cons+xlab("Time (month|year)") + ylab(expression(paste("Net Aboveground Productivity(g ",m^-2," ",day^-1,")")))
@@ -833,10 +954,10 @@ cons
 
 ### CONS plot ####
 # Adding avg rainfall to the avgcons dataframe
-Avgcons3 <- left_join(Avgcons,RainregionX, by=c("region","YrMonth"),drop=F)
+Avgcons <- left_join(Avgcons,RainregionX, by=c("region","YrMonth"),drop=F)
 
 # Removing target species
-Avgcons4 <- Avgcons3[Avgcons3$pool!="target",]
+Avgcons4 <- Avgcons[Avgcons$pool!="target",]
 Avgcons4 <- droplevels(Avgcons4)
 
 legend_title<-"land-use"
@@ -876,7 +997,6 @@ cons2<-cons2+ theme_bw() +
   theme(axis.line = element_line(color = 'black'))
 cons2<-cons2+  annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
 #cons2<-cons2+ annotate(geom="text",x=as.Date("2017-02-28"), y=3.5, label=c("(b)",""),color="black",fontface="bold", size=6)
-
 cons2
 
 #### Avg NAP+CONS in one dataframe ####
@@ -1030,6 +1150,11 @@ napconsb
 
 #### NAP+CONS plot with Seronera ####
 #prod6b cons4
+#Weighted by cover: 
+AvgprodTot <- AvgprodW[AvgprodW$pool!="target",]
+AvgconsTot <- AvgconsW[AvgconsW$pool!="target",]
+AvgprodconsW <- left_join(AvgprodTot,AvgconsTot,by=c("region","landuse","YrMonth","pool","rain.sum"),drop=F)
+AvgprodconsW$Biomass_change<-c("Productivity","Consumption")
 
 # Plot without intermediate and then add intermediate later
 Avgprodcons2I<-droplevels(Avgprodcons2[Avgprodcons2$region=="Intermediate Region",])
@@ -1040,7 +1165,8 @@ Avgprodcons2$region <-factor (Avgprodcons2$region,levels=c("Dry Region","Wet Reg
 
 
 legend_title<-"land-use"
-napcons2<- ggplot(Avgprodcons2, aes(x=YrMonth, y=Productivity, colour=landuse,fill=landuse,shape=Biomass_change,
+napcons2<- ggplot(AvgprodconsW, aes(x=YrMonth, y=Productivity, colour=landuse,fill=landuse,
+                                    #shape=Biomass_change,
                                     group=site.id.y))
 napcons2<-napcons2+geom_hline(yintercept = 0, size =1, linetype="dotted", colour="grey")
 napcons2<-napcons2+geom_line(aes(y = Consumption), linetype=2,size=1.2,show.legend=F)
@@ -1095,6 +1221,61 @@ napcons2b
 #  width= 26, height = 18,units ="cm",
 # dpi = 600, limitsize = TRUE)
 
+#### Target NAP + CONS #### 
+AvgprodTarg <- AvgprodW[AvgprodW$pool!="total",]
+AvgconsTarg <- AvgconsW[AvgconsW$pool!="total",]
+AvgprodconsTarg <- left_join(AvgprodTarg,AvgconsTarg,by=c("region","landuse","YrMonth","pool","rain.sum"),drop=F)
+AvgprodconsTarg$Biomass_change<-c("Productivity","Consumption")
+
+legend_title<-"land-use"
+napcons3<- ggplot(AvgprodconsTarg, aes(x=YrMonth, y=Productivity, colour=landuse,fill=landuse,shape=Biomass_change, group=site.id.y))
+napcons3<-napcons3+geom_hline(yintercept = 0, size =1, linetype="dotted", colour="grey")
+napcons3<-napcons3+geom_line(aes(y = Consumption), linetype=2,size=1.2,show.legend=F)
+napcons3<-napcons3+geom_point(aes(y = Consumption), shape =21,size=4,show.legend=F)
+napcons3<-napcons3+geom_errorbar(aes(ymin=Consumption-SE.x.y, ymax=Consumption+SE.x.x),width=.2,lwd=1.1,show.legend=F)
+napcons3<-napcons3+scale_fill_manual(values=c(pasture = "tan3",wild = "turquoise3"))
+napcons3<-napcons3+geom_line(linetype=1,size=1.2, alpha=1, show.legend=F)
+napcons3<-napcons3+geom_errorbar(aes(ymin=Productivity-SE.x.x, ymax=Productivity+SE.x.x),width=.2,lwd=1.1,show.legend=F)
+napcons3<-napcons3+geom_point(shape=22,size=4, fill="white", stroke=2,show.legend=F)
+napcons3<-napcons3+facet_wrap(~landuse+region,ncol=2,scales='fixed')
+napcons3<-napcons3+scale_y_continuous(limits=c(-1.5,8),sec.axis = sec_axis(~ . *70, breaks = c(0,100,200,300,400,500), labels = c(0,100,200,300,400,500), name = "Precipitation (mm)"))
+napcons3<-napcons3+geom_line(aes(y = rain.sum/70),colour="dark blue",linetype=1,size=1, alpha=0.5)
+#napcons3<-napcons3+geom_point(aes(y = rain.sum/70),colour="dark blue",fill="dark blue",size=.9,alpha=.2)
+napcons3<-napcons3+scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(as.Date("2017-02-10"),max=as.Date("2018-05-31")), expand=c(0,0)) 
+napcons3<-napcons3+scale_colour_manual(legend_title, values=c(pasture = "tan3", wild = "turquoise3"))
+#napcons3<-napcons3+scale_linetype_manual(values = c(wild = "solid", pasture = "dashed"))
+napcons3<-napcons3+xlab("Time (month|year)") + ylab(expression(paste("Productivity and consumption dominant sp. (g ",m^-2," ",day^-1,")")))
+napcons3<-napcons3+ theme_bw() +
+  theme(plot.background = element_blank()
+        #,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank() 
+        ,axis.text=element_text(size=12)
+        ,axis.text.x=element_text(size=10,angle=35, hjust=1)
+        ,axis.line=element_line( size=.5)
+        ,axis.title=element_text(size=14)
+        ,legend.text=element_text(size=12)
+        ,legend.title=element_text(size=14)
+        #,legend.position = c(0.25, 0.82)
+        ,plot.margin = unit(c(5,5,7,5), "mm")
+        ,strip.background = element_blank()
+        ,strip.text = element_blank()
+        ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
+  theme(axis.line = element_line(color = 'black'))
+napcons3<-napcons3+ annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
+napcons3<-napcons3+annotate(geom="text",x=as.Date("2017-10-01"), y=8, label=c("Dry Region","Wet Region","Dry Region","Wet Region", "Intermediate Region"),color="black", size=5)
+napcons3<-napcons3+guides(shape=F, fill=F,colour = guide_legend(override.aes = list(shape=c(21, 21),
+                                                                                    size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),nrow=2,byrow=TRUE))
+napcons3<-napcons3+ guides(colour=F, fill=F,shape = guide_legend("Biomass change",override.aes = list(shape=c(21, 22),
+                                                                                                      size=5,fill=c("gray50","white"),col="gray50", stroke=2),nrow=2,byrow=TRUE))
+
+napcons3b <-napcons3+geom_point(data =Avgprodcons2, aes(size=landuse, shape = NA), colour = "grey50")
+napcons3b<-napcons3b+ guides(size=guide_legend("Land-use", override.aes=list(shape=c(21, 21), size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),
+                                               nrow=2,byrow=TRUE),legend.margin=margin(0,0,0,0))
+napcons3b <- napcons3b+theme(panel.spacing.x=unit(2, "lines"),panel.spacing.y=unit(1, "lines"))
+napcons3b
 
 ####|####
 #### ANALYSIS ####
@@ -1253,10 +1434,13 @@ lineplot.CI(factor(fertil[subset=-c(6,19,29)]), yield[subset=-c(6,19,29)], xlab 
 #c.Making autocorrelation matrix
 #d.Including autocorr in the mixed model
 
-#### Total NAP periodic lme #### 
 #Dataframe without the Handajega H7 values
-Dataprod1 <- Dataprod[!(Dataprod$site.name=="Handajega" & Dataprod$harvest=="H7"),] 
+Dataprod1 <- Dataprod[!(Dataprod$site.name=="Handajega" & Dataprod$harvest=="H7"),]
+DataprodEx <- Dataprod[Dataprod$treatment!="open",] #135 obs
+DataprodEx <- DataprodEx[complete.cases(DataprodEx[c("prodtot.per")]),] # without WET_P_3, DRY_W_3 --> 133 obs
+DataprodEx1 <- DataprodEx[!(DataprodEx$site.name=="Handajega" & DataprodEx$harvest=="H7"),]
 
+#### Total NAP periodic lme #### 
 # Linear model
 napmod <- lm(prodtot~landuse+treatment+poly(rain.sum,2)+sand+
                landuse:poly(rain.sum,2),data=Dataprod)
@@ -1357,6 +1541,7 @@ drop1(NAPfull2.2,test="Chisq") #dropping if not significant term
 AIC(NAPfull2.2) #1026.974
 P2.2 <- NAPfull2.2
 anova(P2.2)
+summary(P2.2) #Parameter estimates
 
 #Model averaging: All possible models from the global P2
   #P2dredge <- dredge(P2,trace=T,rank="AICc",REML=F) #No doubt in keeping all variables from this one. All other have deltaAIC >2
@@ -1406,7 +1591,155 @@ drop1(NAPfull2.3,test="Chisq") #dropping if not significant term
 AIC(NAPfull2.3) #
 P2.3 <- NAPfull2.3
 anova(P2.3)
+summary(P2.3)
   #P2.3dredge <- dredge(P2.3,trace=T,rank="AICc",REML=F)
+
+# Updating the model - generating p-values for each term (with ML)
+# landuse + treatment + poly(rain.day,2) + land:rain
+P2b <- update(P2.3,  .~. -landuse:poly(rain.day,2))
+P2c <- update(P2b, .~. -landuse)
+P2d <- update(P2b, .~. -treatment)
+P2e <- update(P2b, .~. -poly(rain.day,2))
+
+anova(P2.3,P2b) #landuse:poly(rain.day,2)   p-value: 0.04
+anova(P2b,P2c) #landuse             p-value: NS (.41)
+anova(P2b,P2d) #treatment           p-value: <.001
+anova(P2b,P2e) #rain                p-value <.0001
+
+#### Total NAP EX ONLy #### 
+# Linear model
+plot(DataprodEx$prodtot)
+napmod <- lm(prodtot~landuse+poly(rain.sum,2)+sand+
+               landuse:poly(rain.sum,2),data=DataprodEx)
+summary(napmod)
+plot(resid(napmod)~DataprodEx$landuse,xlab="landuse",ylab="residuals")
+#identify(resid(napmod)~DataprodEx$landuse,xlab="landuse",ylab="residuals") #12 13 17
+plot(resid(napmod)~DataprodEx$rain.sum,xlab="rainfall",ylab="residuals")
+par(mfrow=c(1,1))
+
+#Plotting residuals against time (YrMonthNumber)
+plot(resid(napmod)~DataprodEx$YrMonthNumber,xlab="YrMonth",ylab="residuals") #not evenly distributed, so there is a pattern
+
+#a.Extracting residuals from lm
+E <- residuals(napmod,type="pearson")
+I1 <- !is.na(DataprodEx$prodtot)
+Efull <- vector(length=length(DataprodEx$prodtot))
+Efull <- NA
+Efull[I1]<- E
+Efull
+
+#b.time auto-correlated
+acf(Efull, na.action=na.pass,main="Auto-correlation plot for residuals") #again, there is a pattern
+xyplot(Efull~YrMonthNumber|site.name, col=1,ylab="Residuals",data=DataprodEx)
+
+#Implementing the AR-1 autocorrelation
+cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|site.name/block.id/plot.code) # AR matrix needs to be unique
+cs1AR1. <- Initialize(cs1AR1, data = DataprodEx)
+corMatrix(cs1AR1.) #What does this give? 
+
+#LME with temporal auto-correlation (using nlme package)
+NAP.lme <- lme(prodtot~landuse+sand+rain.sum+
+                 landuse:rain.sum+
+                 landuse:sand+
+                 rain.sum:sand, 
+               random=~1|site.name/block.id, method="REML",correlation=cs1AR1,data=DataprodEx)
+summary(NAP.lme)#for parameter estimates, don't use the p-values
+anova(NAP.lme) #get F statistics and P-values
+AIC(NAP.lme) #1185.861
+
+# Checking the temporal autocorrelation
+# Extracting residuals from mixed model
+E2 <- resid(NAP.lme, type ="n")  # nlme: type = "n" , lme4: type= "pearson"
+F2 <- fitted(NAP.lme)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F2, 
+     y = E2,
+     xlab = "Fitted values",
+     ylab = "Residuals",main="Residuals NAP.lme")
+abline(v = 0, lwd = 2, col = 2) 
+abline(h = 0, lty = 2, col = 1)
+
+# Time auto-correlated
+acf(E2, na.action=na.pass,main="Auto-correlation plot for residuals") # Temproal correlation
+
+#Selecting fixed structure using ML. Simplifying with drop1
+#Rain.sum non-transformed
+NAPfull1 <- lme(prodtot~rain.sum,
+                  #landuse:rain.sum+
+                  #landuse:sand+
+                  #rain.sum:sand,
+                random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx)
+drop1(NAPfull1,test="Chisq") #dropping if not significant term
+AIC(NAPfull1) #1094.439
+P1 <- NAPfull1
+anova(P1)
+
+#Poly(rain.sum,2) 
+# As we expect effect size to level off at certain threshold
+NAPfull2 <- lme(prodtot~landuse+sand+poly(rain.sum,2)+
+                  landuse:poly(rain.sum,2)+
+                  #landuse:sand+
+                  poly(rain.sum,2):sand,
+                random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx)
+drop1(NAPfull2,test="Chisq") #dropping if not significant term
+AIC(NAPfull2) #1032.561
+P2 <- NAPfull2
+anova(P2)
+
+#Poly(rain.day,2)
+NAPfull2.2 <- lme(prodtot~-1+landuse+poly(rain.day,2)+
+                    landuse:poly(rain.day,2),
+                    #landuse:sand+
+                    #poly(rain.day,2):sand, 
+                  random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx)
+drop1(NAPfull2.2,test="Chisq") #dropping if not significant term
+AIC(NAPfull2.2) #1026.974
+P2.2 <- NAPfull2.2
+anova(P2.2)
+summary(P2.2) #Parameter estimates
+
+model.sel(P1,P2,P2.2) #P2.2 is by far better
+
+#Model averaging: All possible models from the global P2
+#P2dredge <- dredge(P2,trace=T,rank="AICc",REML=F) #No doubt in keeping all variables from this one. All other have deltaAIC >2
+
+# Updating the model - generating p-values for each term (with ML)
+# landuse + treatment + poly(rain.day,2) + land:rain
+P2b <- update(P2.2,  .~. -landuse:poly(rain.day,2))
+P2c <- update(P2b, .~. -landuse)
+P2d <- update(P2b, .~. -poly(rain.day,2))
+
+anova(P2,P2b) #landuse:poly(rain.day,2)   p-value: 17.44524  0.0037
+anova(P2b,P2c) #landuse             p-value: 0.1616744  0.6876
+anova(P2b,P2d) #rain                 p-value: 32.5699  <.0001
+
+#Log(rain.sum)
+NAPfull3 <- lme(prodtot~landuse+sand+poly(rain.sum,2)+
+                  landuse:poly(rain.sum,2)+
+                  #landuse:sand+
+                  poly(rain.sum,2):sand, 
+                random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx)
+drop1(NAPfull3,test="Chisq") #dropping if not significant term
+AIC(NAPfull3) #1075.48
+P3 <- NAPfull3
+anova(P3)
+model.sel(P1,P2,P2.2,P3) #P2.2 seems best fit based on AIC (poly(rain.day,2))
+
+#### Model without Handajega H7
+plot(DataprodEx$prodtot~DataprodEx$harvest) #The H7 Handajega not so problematic when weighted by cover
+#Poly(rain.day,2)
+NAPfull2.3 <- lme(prodtot~landuse+sand+poly(rain.sum,2)+
+                    landuse:poly(rain.sum,2)+
+                    landuse:sand+
+                    poly(rain.sum,2):sand, 
+                  random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx1)
+drop1(NAPfull2.3,test="Chisq") #dropping if not significant term
+AIC(NAPfull2.3) #
+P2.3 <- NAPfull2.3
+anova(P2.3)
+summary(P2.3)
+#P2.3dredge <- dredge(P2.3,trace=T,rank="AICc",REML=F)
 
 # Updating the model - generating p-values for each term (with ML)
 # landuse + treatment + poly(rain.day,2) + land:rain
@@ -1491,8 +1824,8 @@ plot(difftotal~landuse,data=Dataprod)
 str(Dataprod)
 
 #A:Specify covariate values for predictions
-MyData <- expand.grid(landuse=levels(Dataprod1$landuse),treatment=levels(Dataprod1$treatment),
-                      rain.day=seq(min(Dataprod1$rain.day), max(Dataprod1$rain.day), length = 25)) #Length of rain.sum estimates 25 random numbers between the min and max for every other category (if just landuse in the model, then it would estimate 50 random points  - 25 for pasture/ 25 for wild)
+MyData <- expand.grid(landuse=levels(Dataprod$landuse),treatment=levels(Dataprod$treatment),
+                      rain.day=seq(min(Dataprod$rain.day), max(Dataprod$rain.day), length = 25)) #Length of rain.sum estimates 25 random numbers between the min and max for every other category (if just landuse in the model, then it would estimate 50 random points  - 25 for pasture/ 25 for wild)
 #B. Create X matrix with expand.grid
 X <- model.matrix(~landuse+treatment+poly(rain.day,2)+
                     landuse:poly(rain.day,2),data=MyData)
@@ -1502,14 +1835,14 @@ head(X)
 #NewData$Pred <- predict(M4, NewData, level = 0)
 #The level = 0 ensure that we fit the fixed effects
 #Or:
-MyData$Pred <- X %*% fixef(P2.3)  # = X * beta
+MyData$Pred <- X %*% fixef(P2.2)  # = X * beta
 
 #D. Calculate standard errors (SE) for predicted values
 #   SE of fitted values are given by the square root of
 #   the diagonal elements of: X * cov(betas) * t(X)  
 #   Take this for granted!
 
-MyData$SE <- sqrt(  diag(X %*% vcov(P2.3) %*% t(X))  )
+MyData$SE <- sqrt(  diag(X %*% vcov(P2.2) %*% t(X))  )
 
 #And using the Pred and SE values, we can calculate
 #a 95% confidence interval
@@ -1521,7 +1854,7 @@ names(MyData)
 colnames(MyData)[4]<-"prodtot"
 
 library(tidybayes)
-#### Plotting observed data versus prediction #####
+#### Plotting observed data versus prediction ####
 # Scatter plot with community NAP and rainfall
 NAPpred<-ggplot(data=Dataprod,aes(x=rain.day, y=prodtot)) #observed
 NAPpred<-NAPpred+geom_ribbon(data=MyData,aes(ymin=SeUp, ymax=SeLo),fill="springgreen4",colour="springgreen4",alpha=.65,lwd=NA,show.legend=F)
@@ -1556,6 +1889,10 @@ NAPpred<-NAPpred+theme_bw()+
 NAPpred<-NAPpred+annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = 0, xend = 0, size = 1) 
 NAPpred<-NAPpred+annotate(geom = 'segment', y = 0, yend = 0, color = 'black', x = -Inf, xend = Inf, size = 0.5) 
 NAPpred
+
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPpredicted.png",
+ #width= 26, height = 18,units ="cm",
+ #dpi = 600, limitsize = TRUE)
 
 
 #### Total CONS, periodic lme ####
@@ -1670,7 +2007,8 @@ AIC(C2.3)
 
 model.sel(C2.1,C2.2,C2.3)
 
-# DREDGING - THREE VERY SIMILAR MODELS
+#### DREDGING - THREE VERY SIMILAR MODELS ####
+#Anders model
 LabileMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^2+
                          Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+Region:Landuse:Treatment-
                          C.N:Temp-C.N:Sand-Temp:Sand+
@@ -1879,12 +2217,17 @@ colnames(Speciesh)[colnames(Speciesh)=="sum.sp.harvest"] <- "sum.sp"
 #Getting long format 
 Speciesh_long <- gather(Speciesh, sp.abb, cover, 21:108, factor_key=TRUE)
 Speciesh_long$setup.harvest <- "harvest"
+Speciesh_long$sp.abb <- as.factor(Speciesh_long$sp.abb)
+levels(Speciesh_long$sp.abb)
+Speciesh_long <- droplevels(Speciesh_long)
+
+
 
 #Removing NAs in cover column
 Speciesh_long <- na.omit(Speciesh_long, cols="cover")
 
 ##SETUP covers ##
-SpeciesS <- read.csv("Species.cover.setup.csv", header=T,sep=";")
+SpeciesS <- read.csv("Moveable exclosures/Species.cover.setup.csv", header=T,sep=";")
 
 # Removing Ex2 and H0
 SpeciesS <- SpeciesS[SpeciesS$treatment!="EX2",] #Removing Mesh exclosures
@@ -1917,6 +2260,7 @@ SpeciesS_long$sp.cover[is.na(SpeciesS_long$sp.cover)]<-0
 SpeciesS_long$sp.cover[SpeciesS_long$sp.cover<5]<-0
 
 SpeciesS_long$setup.harvest <- "setup"
+levels(SpeciesS_long$sp.abb)
 
 #### Aggregated sp.covers per site ####
 AvgSpecies <- aggregate(sp.cover~sp.abb+site.name,SpeciesS_long, mean) #580
