@@ -1819,10 +1819,38 @@ levels(DataMainSummary$Blockcode) <- Blockcodelvl
 
 DataMCG <- left_join(DataMainSummary,DataCG,by=c("Season","Treatment","Littertype","Blockcode"))
 
-#Creating variables for difference between CG (y) and Main (x):
+#Creating variables for difference between Main (x) and CG (y):
 DataMCG$MainCGdiff <- DataMCG$Massloss.per.x-DataMCG$Massloss.per.y
 DataMCG$Moistdiff <- DataMCG$Moisture...x -DataMCG$Moisture...y
 DataMCG$Tempdiff <- DataMCG$Temperature..C..x -DataMCG$Temperature..C..y
+#range0to1 <- function(x){(x-min(x))/(max(x)-min(x))}
+#DataMCG$Massloss.per.xratio <- range0to1(DataMCG$Massloss.per.x)
+#DataMCG$Massloss.per.yratio <- range0to1(DataMCG$Massloss.per.y)
+DataMCG$MainCGratio <- DataMCG$Massloss.per.x-DataMCG$Massloss.per.y
+
+#hist(DataMCG$Massloss.per.xratio)
+#hist(DataMCG$Massloss.per.yratio)
+#plot(DataMCG$Massloss.per.yratio)
+
+#Checking the distribution of massloss in Main and CG
+par(mfrow=c(1,1))
+qplot(DataMCG$Season,DataMCG$Massloss.per.x) #Main
+qplot(DataMCG$Season,DataMCG$Massloss.per.y) #CG
+qplot(DataMCG$Season,DataMCG$MainCGdiff)
+qplot(DataMCG$Season,DataMCG$MainCGratio)
+
+histogram(~  Massloss.per.x| Season+Littertype, data = DataMCG,xlab="Main experiment")
+histogram(~  Massloss.per.y| Season+Littertype, data = DataMCG, xlab="Common Garden")
+
+histogram(~  Massloss.per.x| Season+Treatment, data = DataMCG,xlab="Main experiment")
+histogram(~  Massloss.per.y| Season+Treatment, data = DataMCG, xlab="Common Garden")
+
+
+summary(DataMCG)
+
+histogram(~  Massloss.per.x+Massloss.per.y| Season, data = LabileDataMCG)
+histogram(~  Massloss.per.x+Massloss.per.y| Season, data = RecalDataMCG)
+
 #Renaming some columns:
 names(DataMCG)
 colnames(DataMCG)[(names(DataMCG) == "C.N.x")] <-"C.N"
@@ -1966,7 +1994,7 @@ LabileMCGModFINAL <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+Sand
                             Season:Region+Season:Treatment+Season:Sand+Region:Landuse+
                             Region:Temp+Landuse:Temp+Landuse:Sand+Temp:Sand+
                             (1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)
-summary()
+summary(LabileMCGModFINAL)
 #Inspect chosen model for homogeneity:
 E1 <- resid(LabileMCGModFINAL, type ="pearson")
 F1 <- fitted(LabileMCGModFINAL)
@@ -1981,249 +2009,58 @@ abline(h = 0, lty = 2, col = 1)
 #identify(F1, E1)
 hist(E1, nclass = 25) 
 
+#Strange that there are a lot of neg values and that treatment:Season is significant
+#Why is treatment.season sign for labile litter?
+histogram(~  MainCGdiff| Season+Treatment, data = LabileDataMCG)
+boxplot(Treatment~Season, data = LabileDataMCG)
+boxplot(MainCGdiff ~Season:Treatment, 
+         data = LabileDataMCG,ylab="MainCGdiff mass loss",
+        main="Data fed into the model") #Same #No clear effect of season on the treatment.
+#Strange...there should be no effect of Treatment across season
+#What is the model predicting?
+boxplot(predict(LabileMCGModFINAL) ~ Season:Treatment,
+        data = LabileDataMCG, ylab="MainCGdiff mass loss",main="Predicted from model") #Same
+
+dotchart(LabileDataMCG$MainCGdiff)
+plot(LabileDataMCG$MainCGdiff)
+identify(LabileDataMCG$MainCGdiff)
+LabileDataMCG[101,] # Does not look strange...
+
+
+
+
 #Recalcitrantmodel analysis####
-names(LabileDataMCG)
-levels(LabileDataMCG$Site.ID)
-#Using Tempdiff instead of Temp variable
-#Using Sand and not Clay
-#First, writing up all combinations, then excluding first the ones that does not make sense to include (in interactions)
-RecalFullMCGMod <- lmer(MainCGdiff ~ Season+Landuse+Treatment+Tempdiff+Sand+CN+Rain+
-                           Season:Landuse+Season:Treatment+Season:Tempdiff+Season:Sand+Season:CN+#Season:Rain+
-                           Treatment:Landuse+Treatment:Tempdiff+Treatment:Sand+Treatment:CN+
-                          Landuse:Treatment+Landuse:Tempdiff+Landuse:Sand+Landuse:CN+#Landuse:Rain+
-                          Tempdiff:Sand+Tempdiff:CN+Tempdiff:Rain+
-                          Sand:CN+#Sand:Rain+
-                          Season:Landuse:Treatment+Season:Landuse:Tempdiff+Season:Landuse:CN+
-                          #Season:Landuse:Sand+#Season:Landuse:Rain+
-                          Landuse:Treatment:Tempdiff+Landuse:Treatment:Sand+Landuse:Treatment:CN+
-                          #Landuse:Treatment:Rain+
-                          #Treatment:Tempdiff:Sand+#Treatment:Tempdiff:CN+Treatment:Tempdiff:Rain+
-                          #Tempdiff:Sand:CN+Tempdiff:Sand:Rain+
-                          #Sand:CN:Rain+
-                           (1|Site.ID), na.action=na.omit, REML=F, data =RecalDataMCG)
-RecalMCGMod <- lmer(MainCGdiff ~ #Season+#Landuse+
-                      Treatment+#Tempdiff+
-                      Sand+#CN+
-                      Rain+
-                          #Season:Landuse+#Season:Treatment+#Season:Tempdiff+
-                      #Season:Sand+#Season:CN+#Season:Rain+
-                          #Treatment:Landuse+#Treatment:Tempdiff+
-                      #Treatment:Sand+
-                     # Treatment:CN+
-                          #Landuse:Treatment+#Landuse:Tempdiff+#Landuse:Sand+
-                     # Landuse:CN+#Landuse:Rain+
-                          #Tempdiff:Sand+Tempdiff:CN+Tempdiff:Rain+
-                          #Sand:CN+#Sand:Rain+
-                          #Season:Landuse:Treatment+Season:Landuse:Tempdiff+
-                          #Season:Landuse:CN+
-                          #Season:Landuse:Sand+#Season:Landuse:Rain+
-                          #Landuse:Treatment:Tempdiff+Landuse:Treatment:Sand+Landuse:Treatment:CN+
-                          #Landuse:Treatment:Rain+
-                          #Treatment:Tempdiff:Sand+#Treatment:Tempdiff:CN+Treatment:Tempdiff:Rain+
-                          #Tempdiff:Sand:CN+Tempdiff:Sand:Rain+
-                          #Sand:CN:Rain+
-                          (1|Site.ID), na.action=na.omit, REML=F, data =RecalDataMCG)
 
+GlobalRecalMCGMod <- lmer(MainCGdiff ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^2
+                           +Season:Landuse:Treatment+Season:Landuse:Region+
+                             Landuse:Region:Treatment+Season:Region:Treatment+
+                             (1|Site/Blockcode), na.action=na.omit, REML=F, data =RecalDataMCG)
+summary(GlobalRecalMCGMod)                         
+AIC(GlobalRecalMCGMod)# 1034.525
+drop1(GlobalRecalMCGMod,test="Chisq")
+# Season:Landuse:Treatment  2 1030.7  0.1874 0.9105547  #REMOVE  
+# Season:Region:Landuse     2 1038.4  7.8421 0.0198204 *  
+# Region:Landuse:Treatment  2 1033.0  2.4495 0.2938287    #REMOVE
+# Season:Region:Treatment   2 1031.1  0.5450 0.7614901   #REMOVE
+RecalMCGMod1a <- update(GlobalRecalMCGMod, .~. -Season:Landuse:Treatment-
+                          Region:Landuse:Treatment-Season:Region:Treatment)
 
-summary(RecalMCGMod) #Oops singular fit, not good. Need to reduce or adjust the model until singular fit is removed
-AIC(RecalMCGMod)# Orig: 1042 New: 1021.285
-drop1(RecalMCGMod,test="Chisq")
-# Model:
-#   MainCGdiff ~ Season + Landuse + Treatment + Tempdiff + Sand + 
-#   CN + Rain + Season:Landuse + Season:Treatment + Season:Tempdiff + 
-#   Season:Sand + Season:CN + Treatment:Landuse + Treatment:Tempdiff + 
-#   Treatment:Sand + Treatment:CN + Landuse:Treatment + Landuse:Tempdiff + 
-#   Landuse:Sand + Landuse:CN + Tempdiff:Sand + Tempdiff:CN + 
-#   Tempdiff:Rain + Sand:CN + Season:Landuse:Treatment + Season:Landuse:Tempdiff + 
-#   Season:Landuse:CN + Landuse:Treatment:Tempdiff + Landuse:Treatment:Sand + 
-#   Landuse:Treatment:CN + (1 | Site.ID)
-#                             Df    AIC    LRT Pr(Chi)  
-# <none>                        1043.0                 
-# Season:Sand                 1 1047.5 6.5855 0.01028 *
-#   Tempdiff:Sand               1 1041.5 0.5128 0.47394  
-# Tempdiff:CN                 1 1042.2 1.2845 0.25707  
-# Tempdiff:Rain               1 1042.4 1.4482 0.22881  
-# Sand:CN                     1 1041.2 0.2200 0.63903  
-# Season:Landuse:Treatment    2 1042.0 2.9902 0.22422  --> Remove
-# Season:Landuse:Tempdiff     2 1042.1 3.1385 0.20820  --> Remove
-# Season:Landuse:CN           2 1044.8 5.8871 0.05268 .
-# Landuse:Treatment:Tempdiff  2 1040.3 1.3616 0.50622  --> Remove
-# Landuse:Treatment:Sand      2 1039.5 0.5886 0.74506  --> Remove
-# Landuse:Treatment:CN        2 1039.2 0.2064 0.90193  --> Remove
-
-#Drop1 again:
-#
-#Model:
-# MainCGdiff ~ Season + Landuse + Treatment + Tempdiff + Sand + 
-#   CN + Rain + Season:Landuse + Season:Treatment + Season:Tempdiff + 
-#   Season:Sand + Season:CN + Treatment:Landuse + Treatment:Tempdiff + 
-#   Treatment:Sand + Treatment:CN + Landuse:Treatment + Landuse:Tempdiff + 
-#   Landuse:Sand + Landuse:CN + Tempdiff:Sand + Tempdiff:CN + 
-#   Tempdiff:Rain + Sand:CN + Season:Landuse:CN + (1 | Site.ID)
-# Df    AIC    LRT  Pr(Chi)   
-# <none>                1032.4                   
-# Season:Treatment    1 1032.9 2.4901 0.114561   
-# Season:Tempdiff     1 1031.8 1.4233 0.232853   
-# Season:Sand         1 1037.2 6.7288 0.009487 **
-#   Landuse:Treatment   2 1033.1 4.6607 0.097261 . 
-# Treatment:Tempdiff  1 1031.2 0.7919 0.373524   
-# Treatment:Sand      1 1034.5 4.1165 0.042466 * 
-#   Treatment:CN        1 1033.7 3.2358 0.072045 . 
-# Landuse:Tempdiff    2 1034.4 5.9532 0.050965 . 
-# Landuse:Sand        2 1031.8 3.4179 0.181058   
-# Tempdiff:Sand       1 1030.9 0.4425 0.505905   
-# Tempdiff:CN         1 1031.3 0.8392 0.359632   
-# Tempdiff:Rain       1 1030.6 0.1601 0.689049   
-# Sand:CN             1 1030.8 0.3851 0.534910   
-# Season:Landuse:CN   2 1034.2 5.8244 0.054355 . 
-#--> Need to use update() to remove threeway and look at twoway significance:
-#
-#After doing update() (below) the new output of Drop1 is:
-# Model:
-# MainCGdiff ~ Season + Landuse + Treatment + Tempdiff + Sand + 
-# CN + Rain + Season:Landuse + Season:Sand + Season:CN + Treatment:Landuse + 
-# Treatment:Sand + Treatment:CN + Landuse:Treatment + Landuse:Tempdiff + 
-# Landuse:CN + Season:Landuse:CN + (1 | Site.ID)
-#                   Df    AIC    LRT Pr(Chi)  
-# <none>               1029.8                 
-# Rain               1 1031.3 3.4589 0.06291 .
-# Season:Sand        1 1034.3 6.5199 0.01067 *
-# Landuse:Treatment  2 1029.7 3.9111 0.14149
-# Treatment:Sand     1 1031.0 3.2485 0.07149 .
-# Treatment:CN       1 1032.7 4.9294 0.02640 *
-# Landuse:Tempdiff   2 1029.9 4.1147 0.12780  
-# Season:Landuse:CN  2 1030.8 5.0025 0.08198 .
-
-#Doing drop1 again, without threeway Season:Landuse:CN:
-#Model:
-# MainCGdiff ~ Season + Landuse + Treatment + Tempdiff + Sand + 
-# CN + Rain + Season:Landuse + Season:Sand + Season:CN + Treatment:Landuse + 
-# Treatment:Sand + Treatment:CN + Landuse:Treatment + Landuse:Tempdiff + 
-# Landuse:CN + (1 | Site.ID)
-#                       Df    AIC    LRT Pr(Chi)  
-# <none>               1030.8                 
-# Rain               1 1032.7 3.8997 0.04829 *
-# Season:Landuse     2 1029.9 3.1187 0.21028  -->Remove
-# Season:Sand        1 1032.4 3.5712 0.05879 .
-# Season:CN          1 1029.0 0.1667 0.68303  -->Remove
-# Landuse:Treatment  2 1030.8 4.0060 0.13493  -->Remove
-# Treatment:Sand     1 1032.2 3.3730 0.06627 .
-# Treatment:CN       1 1033.8 4.9561 0.02600 *
-# Landuse:Tempdiff   2 1030.5 3.6520 0.16105  -->Remove 
-# Landuse:CN         2 1027.4 0.5788 0.74870 -->Remove
-
-# #
-# Model:
-# MainCGdiff ~ Season + Landuse + Treatment + Tempdiff + Sand + 
-# CN + Rain + Season:Sand + Treatment:Sand + Treatment:CN + 
-# (1 | Site.ID)
-#                 Df    AIC    LRT  Pr(Chi)   
-# <none>            1023.6                   
-# Landuse         2 1024.3 4.7331 0.093803 . 
-# Tempdiff        1 1023.6 2.0362 0.153595   
-# Rain            1 1028.2 6.6421 0.009959 **
-# Season:Sand     1 1023.6 2.0157 0.155674   -->Remove
-# Treatment:Sand  1 1024.4 2.8877 0.089258 . 
-# Treatment:CN    1 1024.2 2.6308 0.104806  -->Remove
-
-# Model:
-# MainCGdiff ~ Season + Landuse + Treatment + Tempdiff + Sand + 
-# CN + Rain + Treatment:Sand + (1 | Site.ID)
-#                 Df    AIC    LRT  Pr(Chi)   
-# <none>            1024.1                   
-# Season          1 1022.1 0.0000 0.999781   
-# Landuse         2 1024.7 4.6124 0.099640 . 
-# Tempdiff        1 1024.5 2.4063 0.120850   
-# CN              1 1026.4 4.3019 0.038069 * 
-# Rain            1 1030.7 8.6040 0.003354 **
-# Treatment:Sand  1 1024.4 2.2606 0.132702 --> Remove
-
-# Removing last two-way interaction:
-# Model:
-# MainCGdiff ~ Season + Landuse + Treatment + Tempdiff + Sand + 
-# CN + Rain + (1 | Site.ID)
-#           Df    AIC    LRT  Pr(Chi)   
-# <none>       1024.4                   
-# Season     1 1022.4 0.0001 0.991041   -->Remove
-# Landuse    2 1024.9 4.5167 0.104525   -->Remove
-# Treatment  1 1026.1 3.6995 0.054427 . 
-# Tempdiff   1 1024.7 2.3571 0.124711   -->Remove
-# Sand       1 1026.2 3.8133 0.050846 . 
-# CN         1 1026.5 4.1014 0.042847 * 
-# Rain       1 1030.6 8.2464 0.004083 **
-
-#
-# Model (THIS IS THE FIRST WITHOUT "SINGULAR FIT" WARNING - GOOD!):
-# MainCGdiff ~ Treatment + Sand + CN + Rain + (1 | Site.ID)
-#            Df    AIC     LRT   Pr(Chi)    
-# <none>       1021.3                      
-# Treatment  1 1023.1  3.7774   0.05195 .  
-# Sand       1 1022.5  3.1653   0.07522 .  
-# CN         1 1021.9  2.6468   0.10376    -->This is now N.S. Could be due to interaction with one of the terms that were removed?
-# Rain       1 1035.8 16.5207 4.812e-05 ***
-#--> Trying to add one each of the variables separately to see if CN changes. My bet is Landuse or Treatment that is somewhat collinear.
-# I want to test some inereraction and if its afecting covariates to be significant
-# But, for now I'll remove CN from model:
-# Model:
-# MainCGdiff ~ Treatment + Sand + Rain + (1 | Site.ID)
-#           Df    AIC     LRT  Pr(Chi)    
-# <none>       1021.9                     
-# Treatment  1 1023.7  3.7769  0.05197 .  
-# Sand       1 1023.3  3.3946  0.06541 .  
-# Rain       1 1036.6 16.7079 4.36e-05 ***
-##Tried to remove Sand - the model gets worse AIC-wise.
-#Will now try adding variable back and maybe twoway interaction that would make sense
-
-
-#Best model so far:
-#MainCGdiff ~ 
-RecalMCGModBEST <- lmer(MainCGdiff~ Treatment + Sand + CN + Rain + (1 | Site.ID), na.action=na.omit, REML=T, data =RecalDataMCG)
-summary(RecalMCGModBEST)
-
-#Checking assumptions:
-E1 <- resid(RecalMCGModBEST, type ="pearson")  #THIS IS FOR lme4..NOT lme, in lme = "type = "n"
-F1 <- fitted(RecalMCGModBEST)
+#Inspect chosen model for homogeneity:
+E1 <- resid(RecalMCGMod1a, type ="pearson")
+F1 <- fitted(RecalMCGMod1a)
 
 par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
 plot(x = F1, 
      y = E1,
      xlab = "Fitted values",
      ylab = "Residuals")
-abline(v = 0, lwd = 2, col = 2) # Several of the fitted values <0 #PROBLEM???
+abline(v = 0, lwd = 2, col = 2)
 abline(h = 0, lty = 2, col = 1)
+#identify(F1, E1)
+hist(E1, nclass = 25) 
 
 
-RecalMCGMod1 <- update(RecalMCGMod, .~. -Season:Landuse:CN)
 
-RecalMCGMod1a <- update(RecalMCGMod1,.~.-Season:Treatment)
-RecalMCGMod1b <- update(RecalMCGMod1,.~.-Season:Tempdiff)
-RecalMCGMod1c <- update(RecalMCGMod1,.~.-Season:Sand)
-RecalMCGMod1d <- update(RecalMCGMod1,.~.-Landuse:Treatment)
-RecalMCGMod1e <- update(RecalMCGMod1,.~.-Treatment:Tempdiff)
-RecalMCGMod1f <- update(RecalMCGMod1,.~.-Treatment:Sand )
-RecalMCGMod1g <- update(RecalMCGMod1,.~.-Treatment:CN)
-RecalMCGMod1h <- update(RecalMCGMod1,.~.-Landuse:Tempdiff)
-RecalMCGMod1i <- update(RecalMCGMod1,.~.-Landuse:Sand)
-RecalMCGMod1j <- update(RecalMCGMod1,.~.-Tempdiff:Sand)
-RecalMCGMod1k <- update(RecalMCGMod1,.~.-Tempdiff:CN)
-RecalMCGMod1l <- update(RecalMCGMod1,.~.-Tempdiff:Rain)
-RecalMCGMod1m <- update(RecalMCGMod1,.~.-Sand:CN)
-
-#Comparing each model when threeway removed and one two way removed:
-anova(RecalMCGMod1,RecalMCGMod1a)#Season:Treatment N.S
-anova(RecalMCGMod1,RecalMCGMod1b)#Season:Tempdiff N.S
-anova(RecalMCGMod1,RecalMCGMod1c)#Season:Sand N.S
-anova(RecalMCGMod1,RecalMCGMod1d)#Landuse:Treatment N.S
-anova(RecalMCGMod1,RecalMCGMod1e)#Treatment:Tempdiff N.S
-anova(RecalMCGMod1,RecalMCGMod1f)#Treatment:Sand N.S
-anova(RecalMCGMod1,RecalMCGMod1g)#Treatment:CN N.s 0.06
-anova(RecalMCGMod1,RecalMCGMod1h)#Landuse:Tempdiff N.S
-anova(RecalMCGMod1,RecalMCGMod1i)#Landuse:Sand N.S
-anova(RecalMCGMod1,RecalMCGMod1j)#Tempdiff:Sand N.S
-anova(RecalMCGMod1,RecalMCGMod1k)#Tempdiff:CN N.S
-anova(RecalMCGMod1,RecalMCGMod1l)#Tempdiff:Rain N.S
-anova(RecalMCGMod1,RecalMCGMod1m)#Sand:CN N.S
-#-->Removing all N.S two-ways
 
 
 #|####
