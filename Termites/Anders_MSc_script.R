@@ -1760,9 +1760,10 @@ RecalT.E.Mod <- lmer(Termite.effect~Season+Landuse+Region+Sand+Rain+Temp+
 #E. Plot predicted values
 #F. Plot predicted values +/- 	1.96 * SE
 
-LabileMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse+Season:Temp+Season:Sand+
-Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
-  Season:Region:Landuse+
+LabileMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse+
+                           #+Season:Temp+Season:Sand+
+#Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
+# Season:Region:Landuse+
   (1|Site/Blockcode/Plot), na.action=na.omit,REML = T,data=LabileMain)
 
 #A:Specify covariate values for predictions - Labile
@@ -1774,9 +1775,7 @@ Data2Labile <- expand.grid(Season=levels(LabileMain$Season), #Specify which term
                            Sand = seq(min(LabileMain$Sand), max(LabileMain$Sand), length=25))
 
 #B. Create X matrix with expand.grid
-X1 <- model.matrix(~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse+Season:Temp+Season:Sand+
-                     Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
-                     Season:Region:Landuse, data = Data2Labile)
+X1 <- model.matrix(~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse, data = Data2Labile)
 head(X1)
 
 #C. Calculate predicted values
