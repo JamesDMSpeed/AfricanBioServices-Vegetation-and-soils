@@ -1761,25 +1761,23 @@ RecalT.E.Mod <- lmer(Termite.effect~Season+Landuse+Region+Sand+Rain+Temp+
 #F. Plot predicted values +/- 	1.96 * SE
 
 #A:Specify covariate values for predictions - Labile
-Data2Labile <- expand.grid(Season=levels(LabileMain$Season),
-                            Region=levels(LabileMain$Region),
-                            Landuse=levels(LabileMain$Landuse),
-                            C.N = seq(min(LabileMain$C.N), max(LabileMain$C.N),
-                            Temp = seq(min(LabileMain$Temp), max(LabileMain$Temp),
-                            Sand = seq(min(LabileMain$Sand), max(LabileMain$Sand)))))
-
-# Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse+Season:Temp+Season:Sand+
-#   Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
-#   Season:Region:Landuse+
-#   (1|Site/Blockcode/Plot), na.action=na.omit,REML = T,data=LabileMain
+Data2Labile <- expand.grid(Season=levels(LabileMain$Season), #Specify which terms are used in the model. Specify levels for factors and min-max for numeric values. Specify length for each numeric var (how many predictions are created)
+                           Region=levels(LabileMain$Region),
+                           Landuse=levels(LabileMain$Landuse),
+                           C.N = seq(min(LabileMain$C.N), max(LabileMain$C.N), length=25),
+                           Temp = seq(min(LabileMain$Temp,na.rm=T), max(LabileMain$Temp,na.rm=T), length=25),
+                           Sand = seq(min(LabileMain$Sand), max(LabileMain$Sand), length=25))
 
 #B. Create X matrix with expand.grid
-X3 <- model.matrix(~ Season+Region+Landuse+C.N+Temp+Sand+
+X <- model.matrix(~ Season+Region+Landuse+C.N+Temp+Sand+
                      Season:Region+Season:Landuse+Season:Temp+Season:Sand+
                        Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
                        Season:Region:Landuse, data = Data2Labile)
-head(X3)
-
+head(X)
+length(X)
+length(fixef(LabileMCGModFINAL))
+#C. Calculate predicted values
+Data2Labile$Pred <- X %*% fixef(LabileMCGModFINAL) 
 
 
 
