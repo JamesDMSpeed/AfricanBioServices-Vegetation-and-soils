@@ -1351,28 +1351,6 @@ M1 <- gamm(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Seas
              (1|Site/Blockcode/Plot),
              random = list(Site/Blockcode/Plot =~ 1), data = LabileMain)
 
-# #DREDGING
-# #Need to use na.action=na.fail, therfore removing Na's from data set:
-# #Removing rows which consist of NAs in all variable used in model:
-# LabileMain_NA_filtered <- LabileMain[complete.cases(LabileMain$Massloss.per,LabileMain$C.N,LabileMain$Sand,LabileMain$Temp),]
-# summary(LabileMain_NA_filtered)
-# which(is.na(LabileMain_NA_filtered$Massloss.per))
-# #Changed data file to NA_filtered in LabileMainMod1 and set na.action=na.fail, and REML=F to use dredging.
-# # LabileMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^3-C.N:Temp:Sand+
-# #                          (1|Site/Blockcode/Plot), na.action=na.fail,REML = F,data=LabileMain_NA_filtered)
-# LabileMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^2+
-#                          Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+Region:Landuse:Treatment-
-#                          C.N:Temp-C.N:Sand-Temp:Sand+
-#                          (1|Site/Blockcode/Plot), na.action=na.fail,REML = F,data=LabileMain_NA_filtered)
-# 
-# #modsetlmer_LabileMainMod1 <- dredge(LabileMainMod1,trace=2) #,fixed=c("Season","Region","Landuse","Treatment","C.N","Temp","Sand")) 
-# model.sel(LabileMainMod1) #Model selection table giving AIC, deltaAIC and weighting
-# modavglmer_LabileMainMod1<-model.avg(modsetlmer_LabileMainMod1) #Averages coefficient estimates across multiple models according to the weigthing from above
-# importance(modavglmer_LabileMainMod1)#Importance of each variable
-# write.table(importance(modavglmer_LabileMainMod1),file="Termites/Importance_LabileMain1.txt")
-# summarymodmodavglmer_LabileMain1 <- summary(modavglmer_LabileMainMod1)#Estimated coefficients given weighting
-# write.table(summary(modavglmer_LabileMainMod1)$coefmat.subset,file="Termites/SumCoef_LabileMain1.txt")
-
 
 #Recal Model - general massloss across season and landuse####
 #Recal Model 1 - No moisture, no rain.
@@ -1772,6 +1750,40 @@ LabileT.E.Mod <- lmer(Termite.effect~Season+Landuse+Region+Sand+Rain+Temp+
 #Singular fit issue:
 RecalT.E.Mod <- lmer(Termite.effect~Season+Landuse+Region+Sand+Rain+Temp+
                        (1|Site/Blockcode/Plot),na.action=na.omit,REML = FALSE, data=RecalTermEff.Main)
+#|####
+#Predicted and observed values on graph####
+#### Sketch fitted values #
+#A. Specify covariate values for predictions
+#B. Create X matrix with expand.grid
+#C. Calculate predicted values
+#D. Calculate standard errors (SE) for predicted values
+#E. Plot predicted values
+#F. Plot predicted values +/- 	1.96 * SE
+
+#A:Specify covariate values for predictions - Labile
+Data2Labile <- expand.grid(Season=levels(LabileMain$Season),
+                            Region=levels(LabileMain$Region),
+                            Landuse=levels(LabileMain$Landuse),
+                            C.N = seq(min(LabileMain$C.N), max(LabileMain$C.N),
+                            Temp = seq(min(LabileMain$Temp), max(LabileMain$Temp),
+                            Sand = seq(min(LabileMain$Sand), max(LabileMain$Sand)))))
+
+# Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse+Season:Temp+Season:Sand+
+#   Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
+#   Season:Region:Landuse+
+#   (1|Site/Blockcode/Plot), na.action=na.omit,REML = T,data=LabileMain
+
+#B. Create X matrix with expand.grid
+X3 <- model.matrix(~ Season+Region+Landuse+C.N+Temp+Sand+
+                     Season:Region+Season:Landuse+Season:Temp+Season:Sand+
+                       Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
+                       Season:Region:Landuse, data = Data2Labile)
+head(X3)
+
+
+
+
+
 #|####
 #COMMON GARDEN EXP####
 #Dataprocessing - getting data ready for modelling####
