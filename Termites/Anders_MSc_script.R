@@ -2012,36 +2012,36 @@ hist(E1, nclass = 25)
 #Strange that there are a lot of neg values and that treatment:Season is significant
 
 # Interaction plot
+#Why is treatment.season sign for labile litter? #Looking a interacion plot below:
+#CG lost more in open than in exclosed treatment during dry season.
+#Seronera was the wettest area during dry season. So this makes sense!
+#Maybe leaching is greatest in open teabags, which could be the case when there is a lot of rain.
 with(LabileDataMCG, {interaction.plot(Season,Treatment,MainCGdiff,
                                          xlab = "Season",
                                          ylab = "Mass loss difference",
                                          fun=mean)})
 
-#Why is treatment.season sign for labile litter?
-histogram(~  MainCGdiff| Season+Treatment, data = LabileDataMCG)
-boxplot(Treatment~Season, data = LabileDataMCG)
-boxplot(MainCGdiff ~Season:Treatment, 
-         data = LabileDataMCG,ylab="MainCGdiff mass loss",
-        main="Data fed into the model") #Same #No clear effect of season on the treatment.
-#Strange...there should be no effect of Treatment across season
-#What is the model predicting?
-boxplot(predict(LabileMCGModFINAL) ~ Season:Treatment,
-        data = LabileDataMCG, ylab="MainCGdiff mass loss",main="Predicted from model") #Same
+#emmeans
+ref.gridLabileMCGModFINAL <- ref_grid(LabileMCGModFINAL)
+ref.gridLabileMCGModFINAL #See how the grid is looking. Check for correct factors and the emmeans of numerical variables. If testing between numerical variables, only the means or the low/high end of values can be specified. I.e contrasts vs trend. See emmeans vignette for more info.
+emmip(LabileMCGModFINAL, Treatment~Season|Region, type="response") #Can see here that there is an interaction effect of treatment:season
+emmeans.LabileMCGModFINAL <- emmeans(LabileMCGModFINAL, pairwise~Treatment|Season|Region,type="response") #Positive values=More main massloss means less massloss in CG
+emm.sum.LabileMCGModFINAL<- summary(emmeansLabileMCGModFINAL)
+emm.sum.LabileMCGModFINAL$contrasts #Get contrast between factors (linear). This is somewhat similar to pairs()
+emm.sum.LabileMCGModFINAL$emmeans #Get emmeans of factors.
 
-dotchart(LabileDataMCG$MainCGdiff)
-plot(LabileDataMCG$MainCGdiff)
-identify(LabileDataMCG$MainCGdiff)
-LabileDataMCG[101,] # Does not look strange...
+pairs(emmeans(LabileMCGModFINAL, ~Treatment*Season|Region),simple = "each", combine =TRUE) # Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE all contrasts are combined into one family:. The dots (.) in this result correspond to which simple effect is being displayed. 
+plot(emmeans.LabileMCGModFINAL, comparisons = TRUE) #Comparisons summarized graphically. The blue bars are confidence intervals for the EMMs, and the red arrows are for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant
 
+#Conlcusion on treatment:Season: There is an effect of treatment when season is dry. CG has higher massloss in dry season (due to more rain as seen in precip data).
 
 
 
 #Recalcitrantmodel analysis####
-
 GlobalRecalMCGMod <- lmer(MainCGdiff ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^2
-                           +Season:Landuse:Treatment+Season:Landuse:Region+
-                             Landuse:Region:Treatment+Season:Region:Treatment+
-                             (1|Site/Blockcode), na.action=na.omit, REML=F, data =RecalDataMCG)
+                          +Season:Landuse:Treatment+Season:Landuse:Region+
+                            Landuse:Region:Treatment+Season:Region:Treatment+
+                            (1|Site/Blockcode), na.action=na.omit, REML=F, data =RecalDataMCG)
 summary(GlobalRecalMCGMod)                         
 AIC(GlobalRecalMCGMod)# 1034.525
 drop1(GlobalRecalMCGMod,test="Chisq")
@@ -2051,10 +2051,130 @@ drop1(GlobalRecalMCGMod,test="Chisq")
 # Season:Region:Treatment   2 1031.1  0.5450 0.7614901   #REMOVE
 RecalMCGMod1a <- update(GlobalRecalMCGMod, .~. -Season:Landuse:Treatment-
                           Region:Landuse:Treatment-Season:Region:Treatment)
+AIC(RecalMCGMod1a)# 1026.423
+drop1(RecalMCGMod1a,test="Chisq")
+# Season:Treatment       1 1026.5  2.0325 0.153971   #REMOVE
+# Season:C.N             1 1024.5  0.0634 0.801255   #REMOVE
+# Season:Temp            1 1032.6  8.1816 0.004232 **
+#   Season:Sand            1 1025.9  1.5032 0.220174   #REMOVE
+# Region:Treatment       2 1027.3  4.8875 0.086834 . 
+# Region:C.N             1 1024.5  0.0662 0.796903   #REMOVE
+# Region:Temp            1 1024.7  0.2561 0.612809   #REMOVE
+# Region:Sand            1 1034.7 10.3016 0.001329 **
+#   Landuse:Treatment      2 1025.5  3.1111 0.211071   #REMOVE
+# Landuse:C.N            2 1022.5  0.0601 0.970379   #REMOVE
+# Landuse:Temp           2 1026.6  4.1896 0.123096   #REMOVE
+# Landuse:Sand           2 1027.3  4.9188 0.085488 . 
+# Treatment:C.N          1 1024.6  0.1812 0.670302   REMOVE
+# Treatment:Temp         1 1024.8  0.3943 0.530047   #REMOVE
+# Treatment:Sand         1 1027.9  3.4983 0.061432 . 
+# C.N:Temp               1 1024.7  0.3001 0.583813   #REMOVE
+# C.N:Sand               1 1025.6  1.1702 0.279363   #REMOVE
+# Temp:Sand              1 1028.1  3.6375 0.056493 . 
+# Season:Region:Landuse  2 1031.0  8.5478 0.013927 * 
+RecalMCGMod2a <- update(RecalMCGMod1a, .~. -Season:Treatment-Season:C.N-Season:Sand-Region:C.N-
+                          Region:Temp-Landuse:Treatment-Landuse:C.N-Landuse:Temp-Treatment:Temp-
+                          Treatment:C.N-C.N:Temp-C.N:Sand)
+AIC(RecalMCGMod2a)# 1012.718
+drop1(RecalMCGMod2a,test="Chisq")
+# C.N                    1 1011.2  0.4466 0.503963   #REMOVE
+# Season:Temp            1 1019.4  8.7207 0.003146 **
+#   Region:Treatment       2 1010.6  1.9372 0.379614 #REMOVE  
+# Region:Sand            1 1016.5  5.8019 0.016009 * 
+#   Landuse:Sand           2 1012.1  3.4278 0.180161   #REMOVE
+# Treatment:Sand         1 1012.6  1.9048 0.167537   #REMOVE
+# Temp:Sand              1 1015.2  4.4611 0.034674 * 
+#   Season:Region:Landuse  2 1022.0 13.3007 0.001294 **
+RecalMCGMod3a <- update(RecalMCGMod2a, .~. -C.N-Region:Treatment-Landuse:Sand-
+                          Treatment:Sand)
+AIC(RecalMCGMod3a)# 1006.938
+drop1(RecalMCGMod3a,test="Chisq")
+# Treatment              1 1010.7  5.7223 0.016751 * 
+#   Season:Temp            1 1012.3  7.3802 0.006595 **
+#   Region:Sand            1 1007.9  2.9673 0.084963 . 
+# Temp:Sand              1 1007.2  2.2528 0.133372   #REMOVE
+# Season:Region:Landuse  2 1015.9 12.9211 0.001564 **
+RecalMCGMod4a <- update(RecalMCGMod3a, .~. -Temp:Sand)
+AIC(RecalMCGMod4a)# 1007.191 #Worse than previous
+drop1(RecalMCGMod4a,test="Chisq")
+# Treatment              1 1010.8  5.6267 0.017689 * 
+# Season:Temp            1 1010.8  5.5873 0.018091 * 
+# Region:Sand            1 1006.0  0.7702 0.380154   #REMOVE
+# Season:Region:Landuse  2 1015.9 12.6644 0.001778 **
+RecalMCGMod5a <- update(RecalMCGMod4a, .~. -Region:Sand)
+AIC(RecalMCGMod5a)# 1005.962 #Better! Whoho!
+drop1(RecalMCGMod5a,test="Chisq")
+# Treatment              1 1009.6  5.6449 0.017506 * 
+#   Sand                   1 1005.8  1.8214 0.177141  #REMOVE 
+# Season:Temp            1 1009.7  5.7522 0.016468 * 
+#   Season:Region:Landuse  2 1014.6 12.6419 0.001798 **
+RecalMCGMod6a <- update(RecalMCGMod5a, .~. -Sand)
+AIC(RecalMCGMod6a)# 1005.783
+drop1(RecalMCGMod6a,test="Chisq") #ALL SIGN
+
+#Now, want to test better fit if including some of the removed terms:
+RecalMCGMod7a <- update(RecalMCGMod6a, .~. +Region:Treatment)
+anova(RecalMCGMod7a,RecalMCGMod6a) #Region:Treatment not sign
+AIC(RecalMCGMod7a)# Orig.Best: 1005.783. Now: 1008.773 #Not better
+
+RecalMCGMod8a <- update(RecalMCGMod6a, .~. +Sand+Region:Sand)
+anova(RecalMCGMod8a,RecalMCGMod6a) #Sand+Region:Sand not sign
+AIC(RecalMCGMod8a)# Orig.Best: 1005.783. Now: 1007.191 #Not better
+
+RecalMCGMod9a <- update(RecalMCGMod6a, .~. +Sand+Landuse:Sand)
+anova(RecalMCGMod9a,RecalMCGMod6a) #Sand+Landuse:Sand not sign
+AIC(RecalMCGMod9a)# Orig.Best: 1005.783. Now: 1009.192 #Not better
+
+RecalMCGMod10a <- update(RecalMCGMod6a, .~. +Sand+Treatment:Sand)
+anova(RecalMCGMod10a,RecalMCGMod6a) #Sand+Treatment:Sand not sign
+AIC(RecalMCGMod10a)# Orig.Best: 1005.783. Now: 1007.172 #Not better
+
+RecalMCGMod10a <- update(RecalMCGMod6a, .~. +Sand+Treatment:Sand)
+anova(RecalMCGMod10a,RecalMCGMod6a) #Sand+Treatment:Sand not sign
+AIC(RecalMCGMod10a)# Orig.Best: 1005.783. Now: 1007.172 #Not better
+
+RecalMCGMod11a <- update(RecalMCGMod6a, .~. +Sand+Temp:Sand)
+anova(RecalMCGMod11a,RecalMCGMod6a) #Sand+Temp:Sand not sign
+AIC(RecalMCGMod11a)# Orig.Best: 1005.783. Now: 1007.906 #Not better
+
+RecalMCGMod12a <- update(RecalMCGMod6a, .~. +Landuse:Treatment)
+anova(RecalMCGMod12a,RecalMCGMod6a) #SLanduse:Treatment not sign
+AIC(RecalMCGMod12a)# Orig.Best: 1005.783. Now: 1009.32 #Not better
+
+#OK, landing on the best model, and generating p-values:
+AIC(RecalMCGMod6a)
+RecalMCGMod6aB <- update(RecalMCGMod6a, .~. - Season:Region:Landuse) #Without 3ways
+RecalMCGMod6ac <- update(RecalMCGMod6aB, .~. - Region:Landuse)
+RecalMCGMod6ad <- update(RecalMCGMod6aB, .~. - Season:Temp)
+RecalMCGMod6ae <- update(RecalMCGMod6aB, .~. - Season:Landuse)
+RecalMCGMod6af <- update(RecalMCGMod6aB, .~. - Season:Region)
+RecalMCGMod6aG <- update(RecalMCGMod6aB, .~. - Region:Landuse- Season:Temp-
+                           Season:Landuse-Season:Region) #Without two ways
+RecalMCGMod6ah <- update(RecalMCGMod6aG, .~. -Temp)
+RecalMCGMod6ai <- update(RecalMCGMod6aG, .~. - Treatment)
+RecalMCGMod6aj <- update(RecalMCGMod6aG, .~. - Landuse)
+RecalMCGMod6ak <- update(RecalMCGMod6aG, .~. - Region)
+RecalMCGMod6al <- update(RecalMCGMod6aG, .~. - Season)
+
+anova(RecalMCGMod6aB,RecalMCGMod6a)# Season:Region:Landuse 0.0007802 *** 
+anova(RecalMCGMod6ac,RecalMCGMod6aB)#Region:Landuse 0.9338
+anova(RecalMCGMod6ad,RecalMCGMod6aB)# Season:Temp 0.3137
+anova(RecalMCGMod6ae,RecalMCGMod6aB)#Season:Landuse 0.274
+anova(RecalMCGMod6af,RecalMCGMod6aB)# Season:Region 0.07958 .
+anova(RecalMCGMod6ah,RecalMCGMod6aG)# Temp 0.4085
+anova(RecalMCGMod6ai,RecalMCGMod6aG)# Treatment 0.03319 *
+anova(RecalMCGMod6aj,RecalMCGMod6aG)# Landuse 0.5582
+anova(RecalMCGMod6ak,RecalMCGMod6aG)# Region 0.4597
+anova(RecalMCGMod6al,RecalMCGMod6aG)# Season 0.00675 **
+
+RecalMCGModFINAL <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+C.N+Temp+
+                      +Region:Landuse+Season:Temp+Season:Landuse+Season:Region+
+                        Season:Region:Landuse+
+                        (1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG)
 
 #Inspect chosen model for homogeneity:
-E1 <- resid(RecalMCGMod1a, type ="pearson")
-F1 <- fitted(RecalMCGMod1a)
+E1 <- resid(RecalMCGModFINAL, type ="pearson")
+F1 <- fitted(RecalMCGModFINAL)
 
 par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
 plot(x = F1, 
