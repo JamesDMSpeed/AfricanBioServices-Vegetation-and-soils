@@ -1760,6 +1760,11 @@ RecalT.E.Mod <- lmer(Termite.effect~Season+Landuse+Region+Sand+Rain+Temp+
 #E. Plot predicted values
 #F. Plot predicted values +/- 	1.96 * SE
 
+
+Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse+Season:Temp+Season:Sand+
+  Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
+  Season:Region:Landuse
+
 #A:Specify covariate values for predictions - Labile
 Data2Labile <- expand.grid(Season=levels(LabileMain$Season), #Specify which terms are used in the model. Specify levels for factors and min-max for numeric values. Specify length for each numeric var (how many predictions are created)
                            Region=levels(LabileMain$Region),
@@ -1769,16 +1774,15 @@ Data2Labile <- expand.grid(Season=levels(LabileMain$Season), #Specify which term
                            Sand = seq(min(LabileMain$Sand), max(LabileMain$Sand), length=25))
 
 #B. Create X matrix with expand.grid
-X <- model.matrix(~ Season+Region+Landuse+C.N+Temp+Sand+
-                     Season:Region+Season:Landuse+Season:Temp+Season:Sand+
-                       Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
-                       Season:Region:Landuse, data = Data2Labile)
-head(X)
-length(X)
+X1 <- model.matrix(~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse+Season:Temp+Season:Sand+
+                     Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
+                     Season:Region:Landuse, data = Data2Labile)
+head(X1)
+length(X1)
 length(fixef(LabileMCGModFINAL))
 #C. Calculate predicted values
-Data2Labile$Pred <- X %*% fixef(LabileMCGModFINAL) 
-
+Data2Labile$Pred <- X1 %*% fixef(LabileMainModFINAL) 
+summary(LabileMainModFINAL)
 
 
 
