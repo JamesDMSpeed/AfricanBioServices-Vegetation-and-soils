@@ -294,6 +294,100 @@ colnames(CumconsSE)[5]<-"Cum_consSE"
 
 Datamean$Cumprod_SE<-CumprodSE$Cum_prodSE
 Datamean$Cumcons_SE<-CumconsSE$Cum_consSE
+#### Stacked data for dominant species ####
+Datastack <- read.csv("Moveable exclosures/BiomassStacked2.csv",header=T)
+# Removing Ex2 - separate analysis
+Datastack <- Datastack[Datastack$treatment!="EX2",] #Removing Mesh exclosures  #300 obs
+Datastack <- Datastack[Datastack$harvest!="H0",] #removing H0                #280 obs
+Datastack <- droplevels(Datastack)
+
+# Creating factor variables
+Datastack$landuse<-as.factor(Datastack$landuse)
+Datastack$region<-as.factor(Datastack$region)
+Datastack$site.name <- as.factor(Datastack$site.name)
+Datastack$block<-as.factor(Datastack$block)
+Datastack$treatment<-as.factor(Datastack$treatment)
+Datastack$harvest<-as.factor(Datastack$harvest)
+Datastack$site.id <- as.factor(Datastack$site.id)
+Datastack$block.id.harvest <- as.factor(Datastack$block.id.harvest)
+
+#Renaming total productivity and consumption columns
+colnames(Datastack)[colnames(Datastack)=="productivity.total.g.m2.day"] <- "prodtot"
+colnames(Datastack)[colnames(Datastack)=="productivity.total.g.m2.dayWEIGHTED"] <- "prodtot.per"
+
+colnames(Datastack)[colnames(Datastack)=="consumption.total.g.m2.day"] <- "constot"
+colnames(Datastack)[colnames(Datastack)=="consumption.total.g.m2.dayWEIGHTED"] <- "constot.per"
+
+#Productivity and consumptions per harvest period
+Datastack$prodsp.sum <- Datastack$prodsp*Datastack$growth.period
+Datastack$conssp.sum <- Datastack$conssp*Datastack$growth.period
+
+Datastack$prodspper.sum <- Datastack$prodsp.per*Datastack$growth.period
+Datastack$consspper.sum <- Datastack$conssp.per*Datastack$growth.period
+
+Datastack$prodtot.sum <- Datastack$prodtot*Datastack$growth.period
+Datastack$constot.sum <- Datastack$constot*Datastack$growth.period
+Datastack$prodtotper.sum <- Datastack$prodtot.per*Datastack$growth.period
+Datastack$constotper.sum <- Datastack$constot.per*Datastack$growth.period
+
+colnames(Datastack)[colnames(Datastack)=="sand.per"] <- "sand"
+
+#Renaming levels in region, landuse and treatment columns
+levels(Datastack$region)<-c("Dry Region","Intermediate Region","Wet Region")
+levels(Datastack$landuse)<-c("pasture","wild")
+levels(Datastack$treatment)<-c("exclosed","open")
+
+# Adding new columns NAP-cons
+# Datastack$difftarg <- Datastack$prodtarg-Datastack$constarg
+# Datastack$difftotal <- Datastack$prodtot-Datastack$constot
+# 
+# # Adding new column with % NAP consumed 
+# Datastack$consper <- Datastack$constot/Datastack$prodtot*100
+# Datastack$constargfrac <- Datastack$constarg/Datastack$prodtarg*100
+
+# Getting N total in Datanuts
+Datanuts$N.target.biom <- Datanuts$N.target*Datanuts$biomass.target.sp./100
+Datanuts$N.other.biom <- Datanuts$N.other*Datanuts$biomass.other.sp./100
+Datanuts$N.total <- (Datanuts$N.target.biom+Datanuts$N.other.biom)/Datanuts$biomass.total.g*100
+
+# Adding nitrogen data to Datastack
+Datastack <- cbind(Datastack,Datanuts[,"N.target",drop=FALSE])
+Datastack <- cbind(Datastack,Datanuts[,"N.other",drop=FALSE])
+Datastack <- cbind(Datastack,Datanuts[,"N.total",drop=FALSE])
+
+#Rain per day for each harvest period
+Datastack$rain.day <- Datastack$rain.sum/Datastack$growth.period
+
+# Rdate create month column. default was (="%d.%m.%Y")
+Rdate<-strptime(as.character(Datastack$harvest.date),format="%m/%d/%Y",tz="Africa/Nairobi" )# East African time #USE
+class(Rdate) # [1] "POSIXlt" "POSIXt" # This format needs a lot of memory - but good
+Datastack$Rdate<-Rdate# Add to the dataframe #
+# Create a Yr-Month time value as experiment runs over 15 months - > 2 years
+# Rdate convert to Year-month
+Datastack$YrMonth<-format(as.Date(Rdate), "%Y-%m")
+
+Datastack$month<-Datastack$Rdate$mon+1
+Datastack$month <- month.abb[Datastack$month] #Changing to month name abbrevitations
+Datastack$month<-as.factor(Datastack$month)
+
+# Running numeric value for months
+# turn a date into a 'monthnumber' relative to an origin
+monnb <- function(d) { lt <- as.POSIXlt(as.Date(d, origin="1900-01-01"));  lt$year*12 + lt$mon } 
+# compute a month difference as a difference between two monnb's
+mondf <- function(d1, d2) { monnb(d2) - monnb(d1) }
+Datastack$YrMonthNumber<-mondf(c(as.POSIXlt(as.Date(Datastack$harvest.date,format="%m/%d/%Y",tz="Africa/Nairobi" ))), "2017-02-01")*-1 # Need to remove lag - 1
+
+# Plot.code to follow through time
+Datastack$plot.code <- as.factor(with(Datastack,paste(region,landuse,block,treatment,sep="_")))
+levels(Datastack$plot.code) #40 levels
+
+# Dataframe productivity
+Stackprod <- Datastack[complete.cases(Datastack[c("prodsp.per")]),]   #253 obs
+Stackprod <- Stackprod[Stackprod$treatment!="open",]  #248 obs
+# Dataframe consumption
+Stackcons <- Datastack[complete.cases(Datastack[c("conssp.per")]),]   #272 obs
+Stackcons <- Stackcons[complete.cases(Stackcons[c("N.total")]),]   #210 obs
+#Stackcons <- Datacons[complete.cases(Datacons[c("prodsp.per")]),]   #104 obs
 
 ####Functions ####
 # Loading function for determining marginal and conditional R square of mixed 
@@ -2203,7 +2297,7 @@ plot(C1,constot~fitted(.)) #Y variable vs fitted values. Should be straight line
 plot(C1,constot~resid(.),ylab="Residuals",xlab="Consumption",main="Residuals model C1")  # Observed observations vs model residuals. Should be straight line? 
 plot(predict(C1)~prodtot,data=Datacons) #Predicted(fitted) vs fixed effect
 
-#### Sketch fitted values (from chosen model) ####
+#### Sketch fitted values CONS ####
 #A:Specify covariate values for predictions
 MyData <- expand.grid(prodtot = seq(min(Datacons$prodtot), max(Datacons$prodtot), length = 25),rain.day=seq(min(Datacons$rain.day), max(Datacons$rain.day), length = 25))
 
@@ -2267,7 +2361,91 @@ CONSpred<-CONSpred+annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'bla
 CONSpred<-CONSpred+annotate(geom = 'segment', y = 0, yend = 0, color = 'black', x = -Inf, xend = Inf, size = 0.5) 
 CONSpred
 
-#### Dominant sp. NAP proportion lme ####
+#### DOMINANT sp ####
+#DFs Stackprod and Stackcons
+###NAP periodic ###
+#Excluding outliers due to unreliable productivity estimates
+Stackprod1 <- Stackprod[-c(4,58,114,201),]
+
+# Linear model
+napmod <- lm(prodsp.per~landuse+poly(rain.sum,2)+sand+pool+
+               landuse:poly(rain.sum,2)+
+                landuse:sand+
+               poly(rain.sum,2):pool+
+               sand:poly(rain.sum,2),
+                data=Stackprod1)
+summary(napmod)
+par(mfrow=c(1,1))
+plot(resid(napmod)~Stackprod1$landuse,xlab="landuse",ylab="residuals")
+plot(resid(napmod)~Stackprod1$rain.sum,xlab="rainfall",ylab="residuals")
+plot(resid(napmod)~Stackprod1$sand,xlab="sand",ylab="residuals")
+plot(resid(napmod)~Stackprod1$pool,xlab="target.other",ylab="residuals")
+#identify(resid(napmod)~Stackprod1$pool,xlab="target.other",ylab="residuals") # 4  58 114 201
+hist(Stackprod1$prodsp.per)
+
+#Plotting residuals against time (YrMonthNumber)
+plot(resid(napmod)~Dataprod$YrMonthNumber,xlab="YrMonth",ylab="residuals") #not evenly distributed, so there is a pattern
+
+#a.Extracting residuals from lm
+E <- residuals(napmod,type="pearson")
+I1 <- !is.na(Dataprod$prodtot)
+Efull <- vector(length=length(Dataprod$prodtot))
+Efull <- NA
+Efull[I1]<- E
+Efull
+
+#b.time auto-correlated
+acf(Efull, na.action=na.pass,main="Auto-correlation plot for residuals") #again, there is a pattern
+xyplot(Efull~YrMonthNumber|site.name, col=1,ylab="Residuals",data=Dataprod)
+
+#Implementing the AR-1 autocorrelation
+cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|site.name/block.id/plot.code) # AR matrix needs to be unique
+cs1AR1. <- Initialize(cs1AR1, data = Dataprod)
+corMatrix(cs1AR1.) #What does this give? 
+
+#LME with temporal auto-correlation (using nlme package)
+NAP.lme <- lme(prodtot~landuse+treatment+sand+rain.sum+
+                 landuse:treatment+
+                 landuse:rain.sum+
+                 treatment:rain.sum+
+                 landuse:sand+
+                 rain.sum:sand+
+                 landuse:treatment:rain.sum, 
+               random=~1|site.name/block.id, method="REML",correlation=cs1AR1,data=Dataprod)
+summary(NAP.lme)#for parameter estimates, don't use the p-values
+anova(NAP.lme) #get F statistics and P-values
+AIC(NAP.lme) #1185.861
+
+# Checking the temporal autocorrelation
+# Extracting residuals from mixed model
+E2 <- resid(NAP.lme, type ="n")  # nlme: type = "n" , lme4: type= "pearson"
+F2 <- fitted(NAP.lme)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F2, 
+     y = E2,
+     xlab = "Fitted values",
+     ylab = "Residuals",main="Residuals NAP.lme")
+abline(v = 0, lwd = 2, col = 2) 
+abline(h = 0, lty = 2, col = 1)
+
+# Time auto-correlated
+acf(E2, na.action=na.pass,main="Auto-correlation plot for residuals") # Temproal correlation
+
+#Selecting fixed structure using ML. Simplifying with drop1
+#Rain.sum non-transformed
+NAPfull1 <- lme(prodtot~treatment+rain.sum,
+                #landuse:treatment+
+                #landuse:rain.sum+
+                #treatment:rain.sum,
+                #landuse:sand+
+                #rain.sum:sand+
+                #landuse:treatment:rain.sum, 
+                random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Dataprod)
+drop1(NAPfull1,test="Chisq") #dropping if not significant term
+AIC(NAPfull1) #1094.439
+P1 <- NAPfull1
+anova(P1)
 
 
 
