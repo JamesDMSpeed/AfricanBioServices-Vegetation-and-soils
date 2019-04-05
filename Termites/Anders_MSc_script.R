@@ -11,8 +11,8 @@ library(MASS)
 library(ggplot2)
 library(lme4)
 library(glmmTMB)
-library(dplyr)
 library(plyr)
+library(dplyr)
 library(Hmisc)
 library(data.table)
 library(emmeans)
@@ -1266,6 +1266,139 @@ M1 <- gamm(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Seas
              (1|Site/Blockcode/Plot),
              random = list(Site/Blockcode/Plot =~ 1), data = LabileMain)
 
+#Exploring interaction levels, what drives the interactions to be significant?####
+#Interesting interactions to look at:
+#Threeway: Season:Region:Landuse
+#Twoway:Landuse:Temp, Landuse:C.N, Season:Sand
+#emmeans
+ref.grid.LabileMainModFINAL <- ref_grid(LabileMainModFINAL)
+ref.grid.LabileMainModFINAL#See how the grid is looking. Check for correct factors and the emmeans of numerical variables. If testing between numerical variables, only the means or the low/high end of values can be specified. I.e contrasts vs trend. See emmeans vignette for more info.
+#Check threeway first:
+
+emmip(LabileMainModFINAL, Season ~ Landuse | Region, type="response")#Can see here that the regional differences is greatly pronounce in dry season. And thatdry region is most different in this season. In wet season, dry and wet region is similar (following rainfall) and that wet season is the most dissimilar. 
+emmeans.LabileMainModFINAL <- emmeans(LabileMainModFINAL, pairwise~Season*Region*Landuse,type="response") #
+emm.sum.LabileMainModFINAL<- summary(emmeans.LabileMainModFINAL)
+emm.sum.LabileMainModFINAL$contrasts #Get contrast between factors (linear). This is somewhat similar to pairs()
+emm.sum.LabileMainModFINAL$emmeans #Get emmeans of factors.
+
+pairs(emmeans(LabileMainModFINAL, ~Season*Region*Landuse),simple = "each", combine =TRUE) # Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which simple effect is being displayed. 
+plot(emmeans.LabileMainModFINAL, comparisons = TRUE) #Comparisons summarized graphically. The blue bars are confidence intervals for the EMMs, and the red arrows are for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant
+
+length(emmeans.LabileMainModFINAL)
+#Working with emmeans for threeway in Labile Main model. Issue with warnings of "comparison discrepancy" when plotting the emmeans contrasts. Not sure if his is actually a problem or not.
+
+#|####
+#Predicted and observed values on graph####
+#### Sketch fitted values #
+#A. Specify covariate values for predictions
+#B. Create X matrix with expand.grid
+#C. Calculate predicted values
+#D. Calculate standard errors (SE) for predicted values
+#E. Plot predicted values
+#F. Plot predicted values +/- 	1.96 * SE
+
+LabileMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse+
+                             #+Season:Temp+Season:Sand+
+                             #Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
+                             # Season:Region:Landuse+
+                             (1|Site/Blockcode/Plot), na.action=na.omit,REML = T,data=LabileMain)
+
+#A:Specify covariate values for predictions - Labile
+Data2Labile <- expand.grid(Season=levels(LabileMain$Season), #Specify which terms are used in the model. Specify levels for factors and min-max for numeric values. Specify length for each numeric var (how many predictions are created)
+                           Region=levels(LabileMain$Region),
+                           Landuse=levels(LabileMain$Landuse),
+                           C.N = seq(min(LabileMain$C.N), max(LabileMain$C.N), length=12),
+                           Temp = seq(min(LabileMain$Temp,na.rm=T), max(LabileMain$Temp,na.rm=T), length=12),
+                           Sand = seq(min(LabileMain$Sand), max(LabileMain$Sand), length=12))
+
+#B. Create X matrix with expand.grid
+X1 <- model.matrix(~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse, data = Data2Labile)
+head(X1)
+
+#C. Calculate predicted values
+Data2Labile$Pred <- X1 %*% fixef(LabileMainModFINAL) 
+
+#D. Calculate standard errors (SE) for predicted values
+Data2Labile$SE <- sqrt(  diag(X1 %*% vcov(LabileMainModFINAL) %*% t(X1))  )
+memory.limit() #Need to allocate more memory to R to be able to do this with length of 25. Scaled down to max of 12, since only ~8gb is given.
+
+
+#And using the Pred and SE values, we can calculate
+#a 95% confidence interval
+Data2Labile$SeUp <- Data2Labile$Pred + 1.96 * Data2Labile$SE
+Data2Labile$SeLo <- Data2Labile$Pred - 1.96 * Data2Labile$SE
+
+#E. Plot predicted values
+names(Data2Labile) #NB! Some predicted values are negativ mass loss. This does not makes sense...
+colnames(Data2Labile)[3]<-"Landuse"
+colnames(Data2Labile)[7] <- "Massloss.per"
+
+#Sorting predicted data (Means, SE)
+se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Standard Error
+Data2Labile.sum <-aggregate(Massloss.per~Season+Region+Landuse, data=Data2Labile, mean)
+colnames(Data2Labile.sum)[4] <- "Massloss.per"
+Data2Labile.sum.se<-aggregate(Massloss.per~Season+Region+Landuse, data=Data2Labile, se)
+Data2Labile.sum$SE<-Data2Labile.sum.se$SE
+
+#Sorting observed data (Means, SE)
+#LabileMain.sum <- aggregate(Massloss.per~Season+Region+Landuse, data=LabileMain, mean)
+LabileMain.sum <-aggregate(cbind(Massloss.per,C.N,Temp,Sand)~Season+Region+Landuse, data=LabileMain, mean)
+LabileMain.sum.se<-aggregate(Massloss.per~Season+Region+Landuse, data=LabileMain, se)
+LabileMain.sum$SE<-LabileMain.sum.se$Massloss.per
+
+#### Plot observed data versus prediction #####
+
+Mainp <- ggplot(data=LabileMain.sum, aes(x=Landuse,y=Massloss.per))
+Mainp <- Mainp+ geom_errorbar(data=Data2Labile.sum, aes(ymin=Massloss.per-SE, ymax=Massloss.per+SE), colour="green4",width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F)
+Mainp <- Mainp+ geom_point(data=Data2Labile.sum,size=3,stroke=1.2,colour="green4",fill="green4",position=position_dodge(width=.35),show.legend=T) 
+Mainp <- Mainp+geom_errorbar(aes(ymin=Massloss.per-SE, ymax=Massloss.per+SE),width=.5,lwd=1,show.legend=F)
+Mainp <- Mainp+geom_point(position=position_dodge(width=.65),size=3)
+Mainp <- Mainp+ facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region",`Intermediate`="Intermediate Region"),Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
+Mainp <- Mainp+scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
+Mainp <- Mainp+xlab("Land-use")+ylab("Mass loss (%)")
+Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
+                     ,panel.background=element_rect(fill="transparent")
+                     ,plot.background=element_rect(fill="transparent",colour=NA)
+                     ,panel.grid.major = element_blank()
+                     ,panel.grid.minor = element_blank()
+                     ,panel.border = element_blank()
+                     ,panel.grid.major.x = element_blank()
+                     ,panel.grid.major.y = element_blank()
+                     ,axis.text=element_text(size=12,color="black")
+                     ,axis.title.y=element_text(size=14,color="black")
+                     ,axis.title.x=element_text(size=14,vjust=-.4,color="black")
+                     ,axis.text.x = element_text(size=10,color="black",
+                                                 margin=margin(2.5,2.5,2.5,2.5,"mm"))
+                     ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+                     ,axis.ticks.length=unit(-1.5, "mm")
+                     #,axis.line.y = element_blank()
+                     ,axis.line.x = element_blank()
+                     ,plot.margin = unit(c(8,50,5,5), "mm")
+                     ,strip.background = element_rect(fill="transparent",colour=NA)
+                     ,strip.text.x = element_text(size = 14,colour = "black")
+                     ,strip.text.y = element_text(size = 14,colour = "black")
+                     ,panel.spacing = unit(1, "lines")
+                     ,legend.background = element_rect(fill = "transparent")
+                     ,legend.title=element_blank()
+                     ,legend.position = c(1.3,0.5)
+                     ,legend.spacing.y = unit(-0.8, "mm")
+                     ,legend.key.height=unit(7.5,"mm")
+                     ,legend.key.width=unit(7.5,"mm")
+                     ,legend.key = element_rect(colour = NA, fill = NA)
+                     ,legend.key.size = unit(7,"mm")
+                     ,legend.text=element_text(size=12,color="black"))
+Mainp <- Mainp+
+  annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
+  annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15) +
+  annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
+  annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
+
+Mainp
+#ggsave("Termites//Main & CG experiment/Mainlabile_predvsobs.png",
+#      width= 20, height = 15,units ="cm",bg ="transparent",
+#     dpi = 600, limitsize = TRUE)
+
+
 
 #Recal Model - general massloss across season and landuse####
 #Recal Model 1 - No moisture, no rain.
@@ -1665,109 +1798,7 @@ LabileT.E.Mod <- lmer(Termite.effect~Season+Landuse+Region+Sand+Rain+Temp+
 #Singular fit issue:
 RecalT.E.Mod <- lmer(Termite.effect~Season+Landuse+Region+Sand+Rain+Temp+
                        (1|Site/Blockcode/Plot),na.action=na.omit,REML = FALSE, data=RecalTermEff.Main)
-#|####
-#Predicted and observed values on graph####
-#### Sketch fitted values #
-#A. Specify covariate values for predictions
-#B. Create X matrix with expand.grid
-#C. Calculate predicted values
-#D. Calculate standard errors (SE) for predicted values
-#E. Plot predicted values
-#F. Plot predicted values +/- 	1.96 * SE
 
-LabileMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse+
-                           #+Season:Temp+Season:Sand+
-#Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
-# Season:Region:Landuse+
-  (1|Site/Blockcode/Plot), na.action=na.omit,REML = T,data=LabileMain)
-
-#A:Specify covariate values for predictions - Labile
-Data2Labile <- expand.grid(Season=levels(LabileMain$Season), #Specify which terms are used in the model. Specify levels for factors and min-max for numeric values. Specify length for each numeric var (how many predictions are created)
-                           Region=levels(LabileMain$Region),
-                           Landuse=levels(LabileMain$Landuse),
-                           C.N = seq(min(LabileMain$C.N), max(LabileMain$C.N), length=12),
-                           Temp = seq(min(LabileMain$Temp,na.rm=T), max(LabileMain$Temp,na.rm=T), length=12),
-                           Sand = seq(min(LabileMain$Sand), max(LabileMain$Sand), length=12))
-
-#B. Create X matrix with expand.grid
-X1 <- model.matrix(~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse, data = Data2Labile)
-head(X1)
-
-#C. Calculate predicted values
-Data2Labile$Pred <- X1 %*% fixef(LabileMainModFINAL) 
-
-#D. Calculate standard errors (SE) for predicted values
-Data2Labile$SE <- sqrt(  diag(X1 %*% vcov(LabileMainModFINAL) %*% t(X1))  )
-memory.limit() #Need to allocate more memory to R to be able to do this with length of 25. Scaled down to max of 12, since only ~8gb is given.
-
-
-#And using the Pred and SE values, we can calculate
-#a 95% confidence interval
-Data2Labile$SeUp <- Data2Labile$Pred + 1.96 * Data2Labile$SE
-Data2Labile$SeLo <- Data2Labile$Pred - 1.96 * Data2Labile$SE
-
-#E. Plot predicted values
-names(Data2Labile) #NB! Some predicted values are negativ mass loss. This does not makes sense...
-colnames(Data2Labile)[3]<-"Landuse"
-colnames(Data2Labile)[7] <- "Massloss.per"
-
-#Sorting observed data (Means, SE)
-#LabileMain.sum <- aggregate(Massloss.per~Season+Region+Landuse, data=LabileMain, mean)
-LabileMain.sum <-aggregate(cbind(Massloss.per,C.N,Temp,Sand)~Season+Region+Landuse, data=LabileMain, mean)
-LabileMain.sum.se<-aggregate(Massloss.per~Season+Region+Landuse, data=LabileMain, se)
-LabileMain.sum$SE<-LabileMain.sum.se$Massloss.per
-
-#### Plot observed data versus prediction #####
-
-Mainp <- ggplot(data=LabileMain.sum, aes(x=Landuse,y=Massloss.per))
-Mainp <- Mainp+ geom_errorbar(data=Data2Labile, aes(ymin=Massloss.per-SE, ymax=Massloss.per+SE), colour="green4",width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F)
-Mainp <- Mainp+ geom_point(data=Data2Labile,size=5,stroke=1.2,colour="green4",fill="green4",position=position_dodge(width=.35),show.legend=T) 
-Mainp <- Mainp+geom_errorbar(aes(ymin=Massloss.per-SE, ymax=Massloss.per+SE),width=.5,lwd=1,show.legend=F)
-Mainp <- Mainp+geom_point(position=position_dodge(width=.65),size=5)
-Mainp <- Mainp+ facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region",`Intermediate`="Intermediate Region"),Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
-Mainp <- Mainp+scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
-Mainp <- Mainp+xlab("Land-use")+ylab("Mass loss (%)")
-Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
-        ,panel.background=element_rect(fill="transparent")
-        ,plot.background=element_rect(fill="transparent",colour=NA)
-        ,panel.grid.major = element_blank()
-        ,panel.grid.minor = element_blank()
-        ,panel.border = element_blank()
-        ,panel.grid.major.x = element_blank()
-        ,panel.grid.major.y = element_blank()
-        ,axis.text=element_text(size=12,color="black")
-        ,axis.title.y=element_text(size=14,color="black")
-        ,axis.title.x=element_text(size=14,vjust=-.4,color="black")
-        ,axis.text.x = element_text(size=10,color="black",
-                                    margin=margin(2.5,2.5,2.5,2.5,"mm"))
-        ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
-        ,axis.ticks.length=unit(-1.5, "mm")
-        #,axis.line.y = element_blank()
-        ,axis.line.x = element_blank()
-        ,plot.margin = unit(c(8,50,5,5), "mm")
-        ,strip.background = element_rect(fill="transparent",colour=NA)
-        ,strip.text.x = element_text(size = 14,colour = "black")
-        ,strip.text.y = element_text(size = 14,colour = "black")
-        ,panel.spacing = unit(1, "lines")
-        ,legend.background = element_rect(fill = "transparent")
-        ,legend.title=element_blank()
-        ,legend.position = c(1.3,0.5)
-        ,legend.spacing.y = unit(-0.8, "mm")
-        ,legend.key.height=unit(7.5,"mm")
-        ,legend.key.width=unit(7.5,"mm")
-        ,legend.key = element_rect(colour = NA, fill = NA)
-        ,legend.key.size = unit(7,"mm")
-        ,legend.text=element_text(size=12,color="black"))
-Mainp <- Mainp+
-  annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
-  annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15) +
-  annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
-  annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
-
-Mainp
-#ggsave("Termites//Main & CG experiment/Mainexp.png",
-#      width= 20, height = 15,units ="cm",bg ="transparent",
-#     dpi = 600, limitsize = TRUE)
 
 
 
