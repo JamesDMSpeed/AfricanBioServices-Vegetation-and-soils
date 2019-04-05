@@ -473,91 +473,6 @@ DataMainse1 <-aggregate(Massloss.per~fseason+fregion+ftreatment+flittertype+flan
 #Creating new column with the SE in the Mainmean dataset.
 DataMainmean1$SE <- DataMainse1$Massloss.per 
 
-
-#Graphing: Main experiment - decomposition across landuse #### 
-# Fill by termite * landuse = empty = absence, filled = prescence 
-DataMainmean1$tea.hole<-as.factor(with(DataMainmean1, paste(flittertype, ftreatment, sep=" ")))
-levels(DataMainmean1$tea.hole)
-#levels(DataMainmean$fregion)<-c("Dry region","Wet region")
-DataMainmean1$fregion <- as.factor(DataMainmean1$fregion)#Need to "re-factor" the region as levels are changed fro 3 to 2 in landuse experiment (only wet and dry).
-levels(DataMainmean1$fregion)
-levels(DataMainmean1$fseason)
-Mainexp <- DataMainmean1
-#Now, ready for graphing: Main experiment massloss against landuse
-#Want to reorder tea.hole to have a nicer legend:
-Mainexp$tea.hole <- ordered(Mainexp$tea.hole, levels=c("Green Exclosed", "Rooibos Exclosed","Green Open","Rooibos Open"))
-levels(Mainexp$tea.hole)
-
-colnames(Mainexp)[1]<-"Season"
-colnames(Mainexp)[2]<-"Region"
-names(Mainexp)
-
-#Point plot Main exp####
-Mainp <- ggplot(data=Mainexp, aes(x=flanduse,y=Massloss.per,
-                                   ymin=(Massloss.per-SE),
-                                   ymax=(Massloss.per+SE),
-                                   fill = tea.hole,
-                                   color = flittertype,
-                                   shape=flanduse)
-                 )+
-                   
-   geom_errorbar(width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F) + 
-   geom_point(size=5,stroke=1.2,position=position_dodge(width=.35),show.legend=T)+ 
-   facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region"),
-                                                                 Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))+
-   scale_color_manual(values=c("green4", "orangered3"))+
-   scale_fill_manual(values=c("green4","orangered3","white","white"))+
-   scale_shape_manual(values=c(21,23,24))+
-   guides(fill = guide_legend(override.aes=list(shape=25, color=c("green4","orangered3","green4","orangered3"))),color=F)+
-   scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))+
-   xlab("Land-use")+
-   ylab("Mass loss (%)"
-        )+
-   
-   theme(rect = element_rect(fill ="transparent")
-         ,panel.background=element_rect(fill="transparent")
-         ,plot.background=element_rect(fill="transparent",colour=NA)
-         ,panel.grid.major = element_blank()
-         ,panel.grid.minor = element_blank()
-         ,panel.border = element_blank()
-         ,panel.grid.major.x = element_blank()
-         ,panel.grid.major.y = element_blank()
-         ,axis.text=element_text(size=12,color="black")
-         ,axis.title.y=element_text(size=14,color="black")
-         ,axis.title.x=element_text(size=14,vjust=-.4,color="black")
-         ,axis.text.x = element_text(size=10,color="black",
-                                     margin=margin(2.5,2.5,2.5,2.5,"mm"))
-         ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
-         ,axis.ticks.length=unit(-1.5, "mm")
-         #,axis.line.y = element_blank()
-         ,axis.line.x = element_blank()
-         ,plot.margin = unit(c(8,50,5,5), "mm")
-         ,strip.background = element_rect(fill="transparent",colour=NA)
-         ,strip.text.x = element_text(size = 14,colour = "black")
-         ,strip.text.y = element_text(size = 14,colour = "black")
-        ,panel.spacing = unit(1, "lines")
-         ,legend.background = element_rect(fill = "transparent")
-         ,legend.title=element_blank()
-         ,legend.position = c(1.3,0.5)
-         ,legend.spacing.y = unit(-0.8, "mm")
-         ,legend.key.height=unit(7.5,"mm")
-         ,legend.key.width=unit(7.5,"mm")
-         ,legend.key = element_rect(colour = NA, fill = NA)
-         ,legend.key.size = unit(7,"mm")
-         ,legend.text=element_text(size=12,color="black")
-         
-         )+
- 
-   annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
-   annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15) +
-   annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
-   annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
- 
- Mainp
-#ggsave("Termites//Main & CG experiment/Mainexp.png",
- #      width= 20, height = 15,units ="cm",bg ="transparent",
-  #     dpi = 600, limitsize = TRUE)
-
 #CODE HERE NOT WORKING NOW.Termite effect and microbe effect variable for Main####
 Greenop<-DataMain[DataMain$Littertype=="Green" & DataMain$Treatment=="Open",] # Only Green Open data
 Greenex<-DataMain[DataMain$Littertype=="Green" & DataMain$Treatment=="Exclosed",] # Only Green Open data
@@ -1770,9 +1685,9 @@ LabileMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Se
 Data2Labile <- expand.grid(Season=levels(LabileMain$Season), #Specify which terms are used in the model. Specify levels for factors and min-max for numeric values. Specify length for each numeric var (how many predictions are created)
                            Region=levels(LabileMain$Region),
                            Landuse=levels(LabileMain$Landuse),
-                           C.N = seq(min(LabileMain$C.N), max(LabileMain$C.N), length=25),
-                           Temp = seq(min(LabileMain$Temp,na.rm=T), max(LabileMain$Temp,na.rm=T), length=25),
-                           Sand = seq(min(LabileMain$Sand), max(LabileMain$Sand), length=25))
+                           C.N = seq(min(LabileMain$C.N), max(LabileMain$C.N), length=12),
+                           Temp = seq(min(LabileMain$Temp,na.rm=T), max(LabileMain$Temp,na.rm=T), length=12),
+                           Sand = seq(min(LabileMain$Sand), max(LabileMain$Sand), length=12))
 
 #B. Create X matrix with expand.grid
 X1 <- model.matrix(~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse, data = Data2Labile)
@@ -1780,8 +1695,166 @@ head(X1)
 
 #C. Calculate predicted values
 Data2Labile$Pred <- X1 %*% fixef(LabileMainModFINAL) 
-summary(LabileMainModFINAL)
 
+#D. Calculate standard errors (SE) for predicted values
+Data2Labile$SE <- sqrt(  diag(X1 %*% vcov(LabileMainModFINAL) %*% t(X1))  )
+memory.limit() #Need to allocate more memory to R to be able to do this with length of 25. Scaled down to max of 12, since only ~8gb is given.
+
+
+#And using the Pred and SE values, we can calculate
+#a 95% confidence interval
+Data2Labile$SeUp <- Data2Labile$Pred + 1.96 * Data2Labile$SE
+Data2Labile$SeLo <- Data2Labile$Pred - 1.96 * Data2Labile$SE
+
+#E. Plot predicted values
+names(Data2Labile) #NB! Some predicted values are negativ mass loss. This does not makes sense...
+colnames(Data2Labile)[3]<-"Landuse"
+colnames(Data2Labile)[7] <- "Massloss.per"
+
+#Sorting observed data (Means, SE)
+#LabileMain.sum <- aggregate(Massloss.per~Season+Region+Landuse, data=LabileMain, mean)
+LabileMain.sum <-aggregate(cbind(Massloss.per,C.N,Temp,Sand)~Season+Region+Landuse, data=LabileMain, mean)
+LabileMain.sum.se<-aggregate(Massloss.per~Season+Region+Landuse, data=LabileMain, se)
+LabileMain.sum$SE<-LabileMain.sum.se$Massloss.per
+
+#### Plot observed data versus prediction #####
+
+Mainp <- ggplot(data=LabileMain.sum, aes(x=Landuse,y=Massloss.per))
+Mainp <- Mainp+ geom_errorbar(data=Data2Labile, aes(ymin=Massloss.per-SE, ymax=Massloss.per+SE), colour="green4",width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F)
+Mainp <- Mainp+ geom_point(data=Data2Labile,size=5,stroke=1.2,colour="green4",fill="green4",position=position_dodge(width=.35),show.legend=T) 
+Mainp <- Mainp+geom_errorbar(aes(ymin=Massloss.per-SE, ymax=Massloss.per+SE),width=.5,lwd=1,show.legend=F)
+Mainp <- Mainp+geom_point(position=position_dodge(width=.65),size=5)
+Mainp <- Mainp+ facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region",`Intermediate`="Intermediate Region"),Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
+Mainp <- Mainp+scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
+Mainp <- Mainp+xlab("Land-use")+ylab("Mass loss (%)")
+Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
+        ,panel.background=element_rect(fill="transparent")
+        ,plot.background=element_rect(fill="transparent",colour=NA)
+        ,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank()
+        ,axis.text=element_text(size=12,color="black")
+        ,axis.title.y=element_text(size=14,color="black")
+        ,axis.title.x=element_text(size=14,vjust=-.4,color="black")
+        ,axis.text.x = element_text(size=10,color="black",
+                                    margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.ticks.length=unit(-1.5, "mm")
+        #,axis.line.y = element_blank()
+        ,axis.line.x = element_blank()
+        ,plot.margin = unit(c(8,50,5,5), "mm")
+        ,strip.background = element_rect(fill="transparent",colour=NA)
+        ,strip.text.x = element_text(size = 14,colour = "black")
+        ,strip.text.y = element_text(size = 14,colour = "black")
+        ,panel.spacing = unit(1, "lines")
+        ,legend.background = element_rect(fill = "transparent")
+        ,legend.title=element_blank()
+        ,legend.position = c(1.3,0.5)
+        ,legend.spacing.y = unit(-0.8, "mm")
+        ,legend.key.height=unit(7.5,"mm")
+        ,legend.key.width=unit(7.5,"mm")
+        ,legend.key = element_rect(colour = NA, fill = NA)
+        ,legend.key.size = unit(7,"mm")
+        ,legend.text=element_text(size=12,color="black"))
+Mainp <- Mainp+
+  annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
+  annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15) +
+  annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
+  annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
+
+Mainp
+#ggsave("Termites//Main & CG experiment/Mainexp.png",
+#      width= 20, height = 15,units ="cm",bg ="transparent",
+#     dpi = 600, limitsize = TRUE)
+
+
+
+
+#Graphing: Main experiment - decomposition across landuse #### 
+# Fill by termite * landuse = empty = absence, filled = prescence 
+DataMainmean1$tea.hole<-as.factor(with(DataMainmean1, paste(flittertype, ftreatment, sep=" ")))
+levels(DataMainmean1$tea.hole)
+#levels(DataMainmean$fregion)<-c("Dry region","Wet region")
+DataMainmean1$fregion <- as.factor(DataMainmean1$fregion)#Need to "re-factor" the region as levels are changed fro 3 to 2 in landuse experiment (only wet and dry).
+levels(DataMainmean1$fregion)
+levels(DataMainmean1$fseason)
+Mainexp <- DataMainmean1
+#Now, ready for graphing: Main experiment massloss against landuse
+#Want to reorder tea.hole to have a nicer legend:
+Mainexp$tea.hole <- ordered(Mainexp$tea.hole, levels=c("Green Exclosed", "Rooibos Exclosed","Green Open","Rooibos Open"))
+levels(Mainexp$tea.hole)
+
+colnames(Mainexp)[1]<-"Season"
+colnames(Mainexp)[2]<-"Region"
+names(Mainexp)
+
+#Point plot Main exp####
+Mainp <- ggplot(data=Mainexp, aes(x=flanduse,y=Massloss.per,
+                                  ymin=(Massloss.per-SE),
+                                  ymax=(Massloss.per+SE),
+                                  fill = tea.hole,
+                                  color = flittertype,
+                                  shape=flanduse)
+)+
+  
+  geom_errorbar(width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F) + 
+  geom_point(size=5,stroke=1.2,position=position_dodge(width=.35),show.legend=T)+ 
+  facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region"),
+                                                                Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))+
+  scale_color_manual(values=c("green4", "orangered3"))+
+  scale_fill_manual(values=c("green4","orangered3","white","white"))+
+  scale_shape_manual(values=c(21,23,24))+
+  guides(fill = guide_legend(override.aes=list(shape=25, color=c("green4","orangered3","green4","orangered3"))),color=F)+
+  scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))+
+  xlab("Land-use")+
+  ylab("Mass loss (%)"
+  )+
+  
+  theme(rect = element_rect(fill ="transparent")
+        ,panel.background=element_rect(fill="transparent")
+        ,plot.background=element_rect(fill="transparent",colour=NA)
+        ,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank()
+        ,axis.text=element_text(size=12,color="black")
+        ,axis.title.y=element_text(size=14,color="black")
+        ,axis.title.x=element_text(size=14,vjust=-.4,color="black")
+        ,axis.text.x = element_text(size=10,color="black",
+                                    margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.ticks.length=unit(-1.5, "mm")
+        #,axis.line.y = element_blank()
+        ,axis.line.x = element_blank()
+        ,plot.margin = unit(c(8,50,5,5), "mm")
+        ,strip.background = element_rect(fill="transparent",colour=NA)
+        ,strip.text.x = element_text(size = 14,colour = "black")
+        ,strip.text.y = element_text(size = 14,colour = "black")
+        ,panel.spacing = unit(1, "lines")
+        ,legend.background = element_rect(fill = "transparent")
+        ,legend.title=element_blank()
+        ,legend.position = c(1.3,0.5)
+        ,legend.spacing.y = unit(-0.8, "mm")
+        ,legend.key.height=unit(7.5,"mm")
+        ,legend.key.width=unit(7.5,"mm")
+        ,legend.key = element_rect(colour = NA, fill = NA)
+        ,legend.key.size = unit(7,"mm")
+        ,legend.text=element_text(size=12,color="black")
+        
+  )+
+  
+  annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
+  annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15) +
+  annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
+  annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
+
+Mainp
+#ggsave("Termites//Main & CG experiment/Mainexp.png",
+#      width= 20, height = 15,units ="cm",bg ="transparent",
+#     dpi = 600, limitsize = TRUE)
 
 
 #|####
