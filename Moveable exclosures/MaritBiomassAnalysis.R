@@ -378,8 +378,8 @@ mondf <- function(d1, d2) { monnb(d2) - monnb(d1) }
 Datastack$YrMonthNumber<-mondf(c(as.POSIXlt(as.Date(Datastack$harvest.date,format="%m/%d/%Y",tz="Africa/Nairobi" ))), "2017-02-01")*-1 # Need to remove lag - 1
 
 # Plot.code to follow through time
-Datastack$plot.code <- as.factor(with(Datastack,paste(region,landuse,block,treatment,sep="_")))
-levels(Datastack$plot.code) #40 levels
+Datastack$plot.code <- as.factor(with(Datastack,paste(region,landuse,block,treatment,pool,sep="_")))
+levels(Datastack$plot.code) #80 levels
 
 # Dataframe productivity
 Stackprod <- Datastack[complete.cases(Datastack[c("prodsp.per")]),]   #253 obs
@@ -2363,58 +2363,58 @@ CONSpred
 
 #### DOMINANT sp ####
 #DFs Stackprod and Stackcons
-###NAP periodic ###
+### NAP periodic ###
 #Excluding outliers due to unreliable productivity estimates
 Stackprod1 <- Stackprod[-c(4,58,114,201),]
 
 # Linear model
-napmod <- lm(prodsp.per~landuse+poly(rain.sum,2)+sand+pool+
-               landuse:poly(rain.sum,2)+
+napmod <- lm(prodsp.per~landuse+poly(rain.day,2)+sand+pool+
+               landuse:poly(rain.day,2)+
                 landuse:sand+
-               poly(rain.sum,2):pool+
-               sand:poly(rain.sum,2),
+               poly(rain.day,2):pool+
+               sand:poly(rain.day,2),
                 data=Stackprod1)
 summary(napmod)
 par(mfrow=c(1,1))
 plot(resid(napmod)~Stackprod1$landuse,xlab="landuse",ylab="residuals")
-plot(resid(napmod)~Stackprod1$rain.sum,xlab="rainfall",ylab="residuals")
+plot(resid(napmod)~Stackprod1$rain.day,xlab="rainfall",ylab="residuals")
 plot(resid(napmod)~Stackprod1$sand,xlab="sand",ylab="residuals")
 plot(resid(napmod)~Stackprod1$pool,xlab="target.other",ylab="residuals")
 #identify(resid(napmod)~Stackprod1$pool,xlab="target.other",ylab="residuals") # 4  58 114 201
 hist(Stackprod1$prodsp.per)
-
+plot(Stackprod1$prodsp.per~Stackprod1$landuse+Stackprod1$harvest)
 #Plotting residuals against time (YrMonthNumber)
-plot(resid(napmod)~Dataprod$YrMonthNumber,xlab="YrMonth",ylab="residuals") #not evenly distributed, so there is a pattern
+plot(resid(napmod)~Stackprod1$YrMonthNumber,xlab="YrMonth",ylab="residuals") #not evenly distributed, so there is a pattern
 
 #a.Extracting residuals from lm
 E <- residuals(napmod,type="pearson")
-I1 <- !is.na(Dataprod$prodtot)
-Efull <- vector(length=length(Dataprod$prodtot))
+I1 <- !is.na(Stackprod1$prodsp.per)
+Efull <- vector(length=length(Stackprod1$prodsp.per))
 Efull <- NA
 Efull[I1]<- E
 Efull
 
 #b.time auto-correlated
 acf(Efull, na.action=na.pass,main="Auto-correlation plot for residuals") #again, there is a pattern
-xyplot(Efull~YrMonthNumber|site.name, col=1,ylab="Residuals",data=Dataprod)
+xyplot(Efull~YrMonthNumber|site.name, col=1,ylab="Residuals",data=Stackprod1)
 
 #Implementing the AR-1 autocorrelation
 cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|site.name/block.id/plot.code) # AR matrix needs to be unique
-cs1AR1. <- Initialize(cs1AR1, data = Dataprod)
+cs1AR1. <- Initialize(cs1AR1, data = Stackprod1)
 corMatrix(cs1AR1.) #What does this give? 
 
 #LME with temporal auto-correlation (using nlme package)
-NAP.lme <- lme(prodtot~landuse+treatment+sand+rain.sum+
-                 landuse:treatment+
-                 landuse:rain.sum+
-                 treatment:rain.sum+
+NAP.lme <- lme(prodsp.per~landuse+poly(rain.day,2)+sand+pool+
+                 landuse:poly(rain.day,2)+
                  landuse:sand+
-                 rain.sum:sand+
-                 landuse:treatment:rain.sum, 
-               random=~1|site.name/block.id, method="REML",correlation=cs1AR1,data=Dataprod)
+                 poly(rain.day,2):pool+
+                 poly(rain.day,2):sand+
+                 sand:poly(rain.day,2):landuse+
+                 landuse:poly(rain.day,2):pool, 
+               random=~1|site.name/block.id, method="REML",correlation=cs1AR1,data=Stackprod1)
 summary(NAP.lme)#for parameter estimates, don't use the p-values
 anova(NAP.lme) #get F statistics and P-values
-AIC(NAP.lme) #1185.861
+AIC(NAP.lme)
 
 # Checking the temporal autocorrelation
 # Extracting residuals from mixed model
@@ -2434,20 +2434,144 @@ acf(E2, na.action=na.pass,main="Auto-correlation plot for residuals") # Temproal
 
 #Selecting fixed structure using ML. Simplifying with drop1
 #Rain.sum non-transformed
-NAPfull1 <- lme(prodtot~treatment+rain.sum,
-                #landuse:treatment+
-                #landuse:rain.sum+
-                #treatment:rain.sum,
-                #landuse:sand+
-                #rain.sum:sand+
-                #landuse:treatment:rain.sum, 
-                random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Dataprod)
-drop1(NAPfull1,test="Chisq") #dropping if not significant term
-AIC(NAPfull1) #1094.439
-P1 <- NAPfull1
-anova(P1)
+D1 <- lme(prodsp.per~landuse+poly(rain.day,2)+sand+
+                  landuse:poly(rain.day,2)+
+                  #landuse:pool+
+                  #landuse:sand+
+                  #poly(rain.day,2):pool+
+                  poly(rain.day,2):sand,
+                  #sand:poly(rain.day,2):landuse+
+                  #landuse:poly(rain.day,2):pool, 
+       random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Stackprod1)
+drop1(D1,test="Chisq") #dropping if not significant term
+AIC(D1) #1094.439
+anova(D1)
+summary(D1)
 
+### Getting parameter estimates and p-values ### 
+summary(D1) #Parameter estimates
+anova(D1) #F statistics with p-values and df 
+r.squared.lme(D1) #To get conditional and marginal R^2 for the model
 
+#D1dredge <- dredge(D1,trace=T,rank="AICc",REML=F)
+# Updating the model - generating p-values for each term (with ML)
+# landuse + poly(rain.day,2) + land:rain
+D1a <- update(D1,  .~. -sand:poly(rain.day,2))
+D1b <- update(D1,  .~. -landuse:poly(rain.day,2))
+D1c <- update(D1b, .~. -landuse)
+D1d <- update(D1b, .~. -poly(rain.day,2))
+D1e <- update(D1b, .~. -sand)
+
+anova(D1,D1a) #sand:poly(rain.day,2)      7.139841  0.0282 
+anova(D1,D1b) #landuse:poly(rain.day,2)   13.78034   0.001
+anova(D1b,D1c) #landuse                   0.02016713  0.8871  NS 
+anova(D1b,D1d) #rain                      8.165315  0.0169
+anova(D1b,D1e) #sand                      2.49409  0.1143     NS
+
+#### Refitting with REML and validating the model ###
+D1 <- lme(prodsp.per~landuse+poly(rain.day,2)+sand+
+            landuse:poly(rain.day,2)+
+            poly(rain.day,2):sand, 
+          random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=Stackprod1)
+
+#Graphical model validation checking for homogeneity by plotting standardized residuals vs fitted values
+par(mfrow=c(1,1))
+E <- resid(D1,type="normalized")
+Fit <- fitted(D1)
+#plot(x=Fit,y=E,xlab="Fitted values",ylab="Residuals") 
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = Fit, 
+     y = E,
+     xlab = "Fitted values",
+     ylab = "Residuals",main="Residuals D1")
+abline(v = 0, lwd = 2, col = 2) #Fitted values 
+abline(h = 0, lty = 2, col = 1) 
+plot(D1)  # Get the same, residuals Vs fitted
+plot(E~landuse,data=Stackprod1,main="Landuse",ylab="Residuals") #a bit less var. for pasture
+plot(E~sand,data=Stackprod1,main="Sand",ylab="Residuals") #quite equal
+plot(x=Stackprod1$rain.sum,y=E,ylab="Residuals",xlab="Rainfall",main="Rainfall")
+hist(E) #Residuals of the model: normally distributed
+hist(Stackprod1$prodsp.per) #hist of Y-variable
+plot(D1,prodsp.per~fitted(.)) #Y variable vs fitted values 
+plot(D1,prodsp.per~resid(.))  # Y variable vs residuals
+
+par(mfrow=c(2,2))
+plot(predict(D1)~landuse+sand+rain.day+
+       sand:rain.day+
+       landuse:rain.day,data=Stackprod1)
+
+### Sketching fitted values 
+#A:Specify covariate values for predictions
+MyData <- expand.grid(landuse=levels(Stackprod1$landuse), sand=seq(min(Stackprod1$sand),max(Stackprod1$sand),length.out = 25), 
+                      rain.day=seq(min(Stackprod1$rain.day), max(Stackprod1$rain.day), length = 25)) #Length of rain estimates 25 random numbers between the min and max for every other category (if just landuse in the model, then it would estimate 50 random points  - 25 for pasture/ 25 for wild)
+#B. Create X matrix with expand.grid
+X <- model.matrix(~landuse+sand+poly(rain.day,2)+
+                    sand:poly(rain.day,2)+
+                    landuse:poly(rain.day,2),data=MyData)
+head(X)
+
+#C. Calculate predicted values
+#NewData$Pred <- predict(M4, NewData, level = 0)
+#The level = 0 ensure that we fit the fixed effects
+#Or:
+MyData$Pred <- X %*% fixef(D1)  # = X * beta
+
+#D. Calculate standard errors (SE) for predicted values
+#   SE of fitted values are given by the square root of
+#   the diagonal elements of: X * cov(betas) * t(X)  
+#   Take this for granted!
+
+MyData$SE <- sqrt(  diag(X %*% vcov(D1) %*% t(X))  )
+
+#And using the Pred and SE values, we can calculate
+#a 95% confidence interval
+MyData$SeUp <- MyData$Pred + 1.96 * MyData$SE
+MyData$SeLo <- MyData$Pred - 1.96 * MyData$SE
+
+#E. Plot predicted values
+names(MyData)
+colnames(MyData)[4]<-"prodsp.per"
+
+library(tidybayes)
+
+###Plot predicted vs observed ###
+NAPsp<-ggplot(data=Stackprod1,aes(x=rain.day, y=prodsp.per)) #observed
+NAPsp<-NAPsp+geom_ribbon(data=MyData,aes(ymin=SeUp, ymax=SeLo),fill="springgreen4",colour="springgreen4",alpha=.65,lwd=NA,show.legend=F)
+NAPsp<-NAPsp+geom_line(data=MyData,aes(ymin=SeUp, ymax=SeLo),colour="springgreen4",alpha=.9,lwd=2,show.legend=F)
+NAPsp<-NAPsp+geom_point(stats="identity",size=2.5) #observed values
+#,aes(colour=region,fill=region)
+#NAPsp <- NAPsp+scale_colour_manual(values=c("goldenrod1","dodgerblue1","deepskyblue4"))
+NAPsp<-NAPsp+facet_wrap(~landuse, scale="fixed")
+#NAPsp<-NAPsp+scale_x_continuous(limits=c(0,530), breaks = c(0,100,200,300,400,500), labels = c(0,100,200,300,400,500), expand=c(0,0))
+NAPsp<-NAPsp+scale_x_continuous(limits=c(0,8), breaks = c(0,2,4,6), labels = c(0,2,4,6), expand=c(0,0))
+NAPsp<-NAPsp+scale_y_continuous(limits=c(-4,10), breaks = c(-2,0,2,4,6,8), labels = c(-2,0,2,4,6,8), expand=c(0,0))
+NAPsp<-NAPsp+ylab(expression(paste("Productivity (g ",m^-2," ",day^-1,")")))+xlab("Periodic rainfall (mm)") # Adding x and ylabs to plot
+NAPsp<-NAPsp+theme_bw()+
+  theme(
+    rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
+    ,panel.background=element_rect(fill="transparent")
+    ,plot.background=element_rect(fill="transparent",colour=NA)
+    ,panel.grid.minor = element_blank() # Removing all grids and borders
+    ,panel.border = element_blank()
+    ,panel.grid.major.x = element_blank()
+    ,panel.grid.major.y = element_blank()
+    ,axis.line.y = element_line(color="black", size = .5) # Adding back the axis lines
+    ,axis.line.x = element_line(color="black", size = .5)
+    ,axis.title=element_text(size=12,color="black")
+    ,axis.text.x=element_text(size=11,color="black",
+                              margin=margin(2.5,2.5,2.5,2.5,"mm"))
+    ,axis.ticks.length=unit(-1.5, "mm")
+    ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+    ,plot.margin = unit(c(5,5,5,5), "mm")
+    ,strip.text.x = element_text(size = 12, hjust=0.1,colour = "black") # The text size of the strip (facet panel) titles
+    ,strip.background = element_rect(fill="transparent",colour=NA))
+NAPsp<-NAPsp+annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = 0, xend = 0, size = 1) 
+NAPsp<-NAPsp+annotate(geom = 'segment', y = 0, yend = 0, color = 'black', x = -Inf, xend = Inf, size = 0.5) 
+NAPsp
+
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPpredicted.png",
+#width= 26, height = 18,units ="cm",
+#dpi = 600, limitsize = TRUE)
 
 ####ANNUAL #### 
 # ANCOVA: Total annual production 
