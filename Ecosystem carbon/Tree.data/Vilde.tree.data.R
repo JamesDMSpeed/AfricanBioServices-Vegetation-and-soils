@@ -208,6 +208,8 @@ Tree.carbon$Region<- factor(Tree.carbon$Region, levels = c("Makao","Maswa","Mwan
 
 Vildetrees$area<- factor(Vildetrees$area, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera", "Park Nyigoti","Ikorongo"))
 
+levels(Vildetrees$landuse) <- c("UPA","PA")
+
 # Tree carbon vs LANDUSE
 plot(No.trees_m2~landuse,
      xlab = "Land Use",
@@ -382,7 +384,8 @@ Tree.biomass + geom_density(data=Vildetrees, aes(log.Biomass.kg.per.tree, fill =
   scale_x_continuous(expand=c(0,0), limits = c(0, 8))+
   scale_y_continuous(labels = c(0,5,10,15,20,25), breaks = c(0,.5,1.0,1.5,2.0,2.5), limits = c(0, 2.5), expand=c(0,0))+
   geom_vline(data=grp.mean, aes(xintercept=log.Biomass.kg.per.tree,colour = landuse,linetype = landuse),size=.75)+
-  scale_linetype_manual("Land-use",values = c(wild = "solid", pasture = "dashed"))+ 
+  #geom_vline(xintercept = log(2)) +
+  scale_linetype_manual("Land-use",values = c(PA = "solid", UPA = "dashed"))+ 
   xlab("Log tree biomass (kg)") +  ylab("Density (%)")+ 
   theme_bw() + 
   Lines_gone

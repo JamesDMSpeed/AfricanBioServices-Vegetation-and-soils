@@ -271,6 +271,7 @@ write.csv(data_long.CTreeHerb,file="Ecosystem carbon/Tree.Herb.Carbon.Block.csv"
 Block.Eco.C <- read.csv("Ecosystem carbon/Ecosystem.Carbon.csv", head=T)
 Belowground.full <- read.csv("Ecosystem carbon/Soil.data/Belowground.Carbon.csv", head=T)
 Above_Below.C <- read.csv("Ecosystem carbon/Above_Below.C.csv",head=T)
+Block.Eco.C <- Block.Eco.C[-c(76:80),]
 
 # Create a df for carbon per landuse. 
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
@@ -378,7 +379,7 @@ Carbon.pool <- ggplot(data = landuse.C, aes(x = Carbon.pool,y = mean_t, shape = 
 Carbon.pool + xlab("Carbon pool") +  ylab(expression(paste("Carbon (kg", m^-2,")")))  + 
   geom_errorbar(aes(ymin=sd_low_t,ymax=sd_up_t),stat = "identity",width=.4,lwd=1.1,show.legend=F, position=position_dodge(width=0.4)) +
   geom_point(fill="white",size = 6, stroke=1.5,show.legend=T, position=position_dodge(width=0.4))  +
-  scale_y_continuous(breaks=trans(yticks),labels=yticks,limits = c(0,NA))  +
+  scale_y_continuous(breaks=trans(yticks),labels=c(0,0.05,0.10,0.15,0.20,0.25,0.30),limits = c(0,NA))  +
   scale_shape_manual(legend_titleLAND,values=c(21,22)) +
   scale_color_manual(legend_titleCarbon, breaks = c("Herbaceous","Dead wood","Woody","Soil A-horizon","Soil Min-horizon"),values=c("forestgreen","darkgoldenrod","darkolivegreen","salmon4","burlywood4")) +
   theme(rect = element_rect(fill ="transparent")
