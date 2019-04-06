@@ -384,6 +384,8 @@ levels(Datastack$plot.code) #80 levels
 # Dataframe productivity
 Stackprod <- Datastack[complete.cases(Datastack[c("prodsp.per")]),]   #253 obs
 Stackprod <- Stackprod[Stackprod$treatment!="open",]  #248 obs
+Stackopen <-  Datastack[complete.cases(Datastack[c("prodsp")]),] 
+Stackopen <- Stackopen[Stackopen$treatment!="exclosed",] #254 obs
 # Dataframe consumption
 Stackcons <- Datastack[complete.cases(Datastack[c("conssp.per")]),]   #272 obs
 Stackcons <- Stackcons[complete.cases(Stackcons[c("N.total")]),]   #210 obs
@@ -1243,7 +1245,7 @@ napconsb
 # dpi = 600, limitsize = TRUE)
 
 #### NAP+CONS plot with Seronera ####
-#prod6b cons4
+#prod6b cons4 ---> Avgprodcons2
 #Weighted by cover: 
 AvgprodTot <- AvgprodW[AvgprodW$pool!="target",]
 AvgconsTot <- AvgconsW[AvgconsW$pool!="target",]
@@ -1251,16 +1253,23 @@ AvgprodconsW <- left_join(AvgprodTot,AvgconsTot,by=c("region","landuse","YrMonth
 AvgprodconsW$Biomass_change<-c("Productivity","Consumption")
 
 # Plot without intermediate and then add intermediate later
-Avgprodcons2I<-droplevels(Avgprodcons2[Avgprodcons2$region=="Intermediate Region",])
-Avgprodcons2excI<-droplevels(Avgprodcons2[Avgprodcons2$region!="Intermediate Region",])
+    # Avgprodcons2I<-droplevels(Avgprodcons2[Avgprodcons2$region=="Intermediate Region",])
+    # Avgprodcons2excI<-droplevels(Avgprodcons2[Avgprodcons2$region!="Intermediate Region",])
+    # 
+    # Avgprodcons2$landuse <-factor (Avgprodcons2$landuse,levels=c("UPA","PA"))
+   
 
-Avgprodcons2$landuse <-factor (Avgprodcons2$landuse,levels=c("pasture","wild"))
+Avgprodcons2<-left_join(Avgprod6b,Avgcons4, by=c("region","landuse","YrMonth","pool","rain.sum"),drop=F)
+Avgprodcons2$col<-Avgprodcons2$landuse
+levels(Avgprodcons2$col)<-c("tan","turquoise3")
+
+Avgprodcons2$Biomass_change<-c("Productivity","Consumption","Productivity","Consumption","Productivity")
+#Avgprodcons2$landuse <-factor (Avgprodcons2$landuse,levels=c("UPA","PA"))
 Avgprodcons2$region <-factor (Avgprodcons2$region,levels=c("Dry Region","Wet Region","Intermediate Region"))
 
-
 legend_title<-"land-use"
-napcons2<- ggplot(AvgprodconsW, aes(x=YrMonth, y=Productivity, colour=landuse,fill=landuse,
-                                    #shape=Biomass_change,
+napcons2<- ggplot(Avgprodcons2, aes(x=YrMonth, y=Productivity, colour=landuse,fill=landuse,
+                                    shape=Biomass_change,
                                     group=site.id.y))
 napcons2<-napcons2+geom_hline(yintercept = 0, size =1, linetype="dotted", colour="grey")
 napcons2<-napcons2+geom_line(aes(y = Consumption), linetype=2,size=1.2,show.legend=F)
@@ -1311,9 +1320,9 @@ napcons2b <- napcons2b+theme(panel.spacing.x=unit(2, "lines"),panel.spacing.y=un
 napcons2b
 #could also use the lemon package with facet_rep_wrap(), but might need to reinstall R for this to work 
 
-#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSSeronera2BEST.png",
-#  width= 26, height = 18,units ="cm",
-# dpi = 600, limitsize = TRUE)
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSseason.png",
+ #width= 26, height = 18,units ="cm",
+ #dpi = 600, limitsize = TRUE)
 
 #### Target NAP + CONS #### 
 AvgprodTarg <- AvgprodW[AvgprodW$pool!="total",]
@@ -1370,6 +1379,61 @@ napcons3b<-napcons3b+ guides(size=guide_legend("Land-use", override.aes=list(sha
                                                nrow=2,byrow=TRUE),legend.margin=margin(0,0,0,0))
 napcons3b <- napcons3b+theme(panel.spacing.x=unit(2, "lines"),panel.spacing.y=unit(1, "lines"))
 napcons3b
+
+#### Target NAP seasonal WEIGHTED #### 
+#AvgprodW
+AvgprodWT <- AvgprodW[AvgprodW$pool=="target",]
+#Removing the outliers
+AvgprodWT <- AvgprodWT[-c(3,15,32),]
+
+NAPdom<- ggplot(AvgprodWT, aes(x=YrMonth, y=Productivity, colour=landuse,
+                            group=site.id))
+NAPdom<-NAPdom+ geom_hline(yintercept = 0, size =1, linetype="dotted", colour="grey")
+NAPdom<-NAPdom+geom_line(aes(linetype=landuse),size=1.2, alpha=.5, show.legend=F)
+NAPdom<-NAPdom+geom_errorbar(aes(ymin=Productivity-SE.x, ymax=Productivity+SE.x),linetype="solid",width=.2,lwd=1.1,show.legend=F)
+NAPdom<-NAPdom+geom_point(shape=22, size=4, fill="white", stroke=2)
+NAPdom<-NAPdom+facet_wrap(~region,ncol=1,scales='fixed', drop=F)
+#NAPdom<-NAPdom+coord_capped_cart(left='both')
+NAPdom<-NAPdom+ scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(as.Date("2017-02-10"),max=as.Date("2018-05-31")), expand=c(0,0)) 
+# NAPdom<-NAPdom+scale_y_continuous(limits=c(-40,8),sec.axis = sec_axis(~ . *50, breaks = c(0,100,200,300,400,500), labels = c(0,100,200,300,400,500), name = "Precipitation (mm)"))
+# NAPdom<-NAPdom+geom_line(aes(y = rain.sum/50),colour="dark blue",linetype=1,size=1, alpha=.1)
+# NAPdom<-NAPdom+geom_point(aes(y = rain.sum/50),colour="dark blue",size=.9,alpha=.1)
+#NAPdom<-NAPdom+scale_fill_manual(values=c("white","white"),show.legend=F)
+NAPdom<-NAPdom+scale_colour_manual(legend_title, values=c( "tan3","turquoise3"))
+#NAPdom<-NAPdom+scale_shape_manual(legend_title2,values=c(22,21))
+NAPdom <- NAPdom+scale_size_manual(legend_title2,values=1)
+NAPdom<-NAPdom+scale_linetype_manual(values = c(wild = "solid", pasture = "dashed"))
+NAPdom<-NAPdom+ xlab("Month|Year") + ylab(expression(paste("Productivity (g ",m^-2," ",day^-1,")")))
+NAPdom<-NAPdom+ theme_bw() +
+  theme(plot.background = element_blank()
+        #,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank() 
+        ,axis.text.y=element_text(size=12)
+        ,axis.text.x=element_text(size=10,angle=35, hjust=1)
+        ,axis.line=element_line( size=.5)
+        ,axis.title=element_text(size=14)
+        ,legend.text=element_text(size=12)
+        ,legend.title=element_text(size=14)
+        #,legend.position = c(0.25, 0.82)
+        ,plot.margin = unit(c(5,5,7,5), "mm")
+        ,strip.background = element_blank()
+        #,strip.text = element_text(size=12)
+        ,strip.text = element_text(size=12)
+        #,axis.text.x=element_blank()
+        #,axis.ticks.x=element_blank()
+        ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
+  theme(axis.line = element_line(color = 'black'))
+#NAPdom<-NAPdom+  annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
+#NAPdom <- NAPdom+ annotate(geom="text",x=as.Date("2017-02-28"),y=8)
+#NAPdom<-NAPdom+  annotate(geom="text", x=as.Date("2017-02-28"), y=8, label=c("(a)",""),color="black",fontface="bold", size=6)
+NAPdom
+
+# ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPdomseason.png",
+# width= 26, height = 18,units ="cm",
+# dpi = 600, limitsize = TRUE)
 
 ####|####
 #### ANALYSIS ####
@@ -1720,8 +1784,8 @@ plot(resid(napmod)~DataprodEx$YrMonthNumber,xlab="YrMonth",ylab="residuals") #no
 
 #a.Extracting residuals from lm
 E <- residuals(napmod,type="pearson")
-I1 <- !is.na(DataprodEx$prodtot.per)
-Efull <- vector(length=length(DataprodEx$prodtot.per))
+I1 <- !is.na(DataprodEx$prodtot)
+Efull <- vector(length=length(DataprodEx$prodtot))
 Efull <- NA
 Efull[I1]<- E
 Efull
@@ -1736,7 +1800,7 @@ cs1AR1. <- Initialize(cs1AR1, data = DataprodEx)
 corMatrix(cs1AR1.) #What does this give? 
 
 #LME with temporal auto-correlation (using nlme package)
-NAP.lme <- lme(prodtot.per~landuse+sand+rain.sum+
+NAP.lme <- lme(prodtot~landuse+sand+rain.sum+
                  landuse:rain.sum+
                  landuse:sand+
                  rain.sum:sand, 
@@ -1763,7 +1827,7 @@ acf(E2, na.action=na.pass,main="Auto-correlation plot for residuals") # Temproal
 
 #Selecting fixed structure using ML. Simplifying with drop1
 #Rain.sum non-transformed ----> Poor fit
-NAPfull1 <- lme(prodtot.per~landuse+sand+rain.sum,
+NAPfull1 <- lme(prodtot~landuse+sand+rain.sum,
                   #landuse:rain.sum+
                   #landuse:sand+
                   #rain.sum:sand,
@@ -1775,7 +1839,7 @@ anova(P1)
 
 #Poly(rain.sum,2) 
 # As we expect effect size to level off at certain threshold
-NAPfull2 <- lme(prodtot.per~landuse+sand+poly(rain.sum,2)+
+NAPfull2 <- lme(prodtot~landuse+sand+poly(rain.sum,2)+
                   landuse:poly(rain.sum,2)+
                   #landuse:sand+
                   poly(rain.sum,2):sand,
@@ -1786,7 +1850,7 @@ P2 <- NAPfull2
 anova(P2)
 
 #Poly(rain.day,2)
-NAPfull2.2 <- lme(prodtot.per~landuse+poly(rain.day,2)+
+NAPfull2.2 <- lme(prodtot~landuse+poly(rain.day,2)+
                     landuse:poly(rain.day,2),
                     #landuse:sand+
                     #poly(rain.day,2):sand, 
@@ -2014,9 +2078,9 @@ plot(difftotal~landuse,data=DataprodEx)
 str(Dataprod)
 
 #A:Specify covariate values for predictions
-MyData <- expand.grid(landuse=levels(Dataprod$landuse),
+MyData <- expand.grid(landuse=levels(DataprodEx$landuse),
                       #treatment=levels(Dataprod$treatment),
-                      rain.day=seq(min(Dataprod$rain.day), max(Dataprod$rain.day), length = 25)) #Length of rain.sum estimates 25 random numbers between the min and max for every other category (if just landuse in the model, then it would estimate 50 random points  - 25 for pasture/ 25 for wild)
+                      rain.day=seq(min(DataprodEx$rain.day), max(Dataprod$rain.day), length = 25)) #Length of rain.sum estimates 25 random numbers between the min and max for every other category (if just landuse in the model, then it would estimate 50 random points  - 25 for pasture/ 25 for wild)
 #B. Create X matrix with expand.grid
 X <- model.matrix(~landuse+
                     #treatment+
@@ -2091,17 +2155,17 @@ library(tidybayes)
 
 #### Plotting observed data versus prediction ####
 # Scatter plot with community NAP and rainfall
-NAPpred<-ggplot(data=DataprodEx,aes(x=rain.sum, y=prodtot.per)) #observed
+NAPpred<-ggplot(data=DataprodEx,aes(x=rain.day, y=prodtot)) #observed
 NAPpred<-NAPpred+geom_ribbon(data=MyData,aes(ymin=SeUp, ymax=SeLo),fill="springgreen4",colour="springgreen4",alpha=.65,lwd=NA,show.legend=F)
 NAPpred<-NAPpred+geom_line(data=MyData,aes(ymin=SeUp, ymax=SeLo),colour="springgreen4",alpha=.9,lwd=2,show.legend=F)
 NAPpred<-NAPpred+geom_point(stats="identity",size=2.5) #observed values
   #,aes(colour=region,fill=region)
 #NAPpred <- NAPpred+scale_colour_manual(values=c("goldenrod1","dodgerblue1","deepskyblue4"))
 NAPpred<-NAPpred+facet_wrap(~landuse, scale="fixed")
-NAPpred<-NAPpred+scale_x_continuous(limits=c(0,530), breaks = c(0,100,200,300,400,500), labels = c(0,100,200,300,400,500), expand=c(0,0))
-#NAPpred<-NAPpred+scale_x_continuous(limits=c(0,8), breaks = c(0,2,4,6), labels = c(0,2,4,6), expand=c(0,0))
+#NAPpred<-NAPpred+scale_x_continuous(limits=c(0,530), breaks = c(0,100,200,300,400,500), labels = c(0,100,200,300,400,500), expand=c(0,0))
+NAPpred<-NAPpred+scale_x_continuous(limits=c(0,8), breaks = c(0,2,4,6,8), labels = c(0,2,4,6,8), expand=c(0,0))
 NAPpred<-NAPpred+scale_y_continuous(limits=c(-4,10), breaks = c(-2,0,2,4,6,8), labels = c(-2,0,2,4,6,8), expand=c(0,0))
-NAPpred<-NAPpred+ylab(expression(paste("Productivity (g ",m^-2," ",day^-1,")")))+xlab("Periodic rainfall (mm)") # Adding x and ylabs to plot
+NAPpred<-NAPpred+ylab(expression(paste("Productivity (g ",m^-2," ",day^-1,")")))+xlab("Daily rainfall (mm)") # Adding x and ylabs to plot
 NAPpred<-NAPpred+theme_bw()+
   theme(
     rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
@@ -2120,14 +2184,15 @@ NAPpred<-NAPpred+theme_bw()+
     ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
     ,plot.margin = unit(c(5,5,5,5), "mm")
     ,strip.text.x = element_text(size = 12, hjust=0.1,colour = "black") # The text size of the strip (facet panel) titles
-    ,strip.background = element_rect(fill="transparent",colour=NA))
+    ,strip.background = element_rect(fill="transparent",colour=NA)
+    ,panel.spacing = unit(2, "lines"))
 NAPpred<-NAPpred+annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = 0, xend = 0, size = 1) 
 NAPpred<-NAPpred+annotate(geom = 'segment', y = 0, yend = 0, color = 'black', x = -Inf, xend = Inf, size = 0.5) 
 NAPpred
 
-#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPpredicted.png",
- #width= 26, height = 18,units ="cm",
- #dpi = 600, limitsize = TRUE)
+# ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPpredictedEX.png",
+#  width= 26, height = 18,units ="cm",
+#  dpi = 600, limitsize = TRUE)
 
 #### Total CONS, periodic lme ####
 #Dataframe without the Handajega H7 values
@@ -2364,6 +2429,12 @@ CONSpred
 #### DOMINANT sp ####
 #DFs Stackprod and Stackcons
 ### NAP periodic ###
+# Dataframes productivity
+Stackprod <- Datastack[complete.cases(Datastack[c("prodsp.per")]),]   #253 obs
+Stackprod <- Stackprod[Stackprod$treatment!="open",]  #248 obs
+
+Stackopen <-  Datastack[complete.cases(Datastack[c("prodsp")]),] 
+Stackopen <- Stackopen[Stackopen$treatment!="exclosed",] #254 obs
 #Excluding outliers due to unreliable productivity estimates
 Stackprod1 <- Stackprod[-c(4,58,114,201),]
 #Dominant sp. only
@@ -2371,7 +2442,30 @@ Stackprod.dom <- subset(Stackprod,pool=="target")
 Stackprod.oth <- subset(Stackprod,pool=="other")
 plot(Stackprod.dom$prodsp~Stackprod.dom$harvest)
 plot(Stackprod.oth$prodsp~Stackprod.oth$harvest)
-plot(Stackprod1$prodsp.per~Stackprod1$harvest)
+plot(Stackprod$prodsp~Stackprod$harvest)
+
+plot(Stackprod.dom$prodsp.per~Stackprod.dom$rain.day)
+
+#Interaction between Dominant NAP and other NAP
+with(Stackprod, {interaction.plot(rain.day,pool,prodsp,
+                                  
+                                  xlab = "Rain",
+                                  
+                                  ylab = "Productivity",
+                                  main="Productivity exclosure",
+                                  
+                                  fun=mean)})
+
+with(Stackopen, {interaction.plot(rain.day,pool,prodsp,
+                                  
+                                  xlab = "Rain",
+                                  
+                                  ylab = "Productivity",
+                                  main="Productivity open",
+                                  
+                                  fun=mean)})
+
+
 # Linear model
 napmod <- lm(prodsp~landuse+poly(rain.day,2)+sand+pool+
                landuse:poly(rain.day,2)+
