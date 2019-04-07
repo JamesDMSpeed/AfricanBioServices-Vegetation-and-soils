@@ -228,6 +228,8 @@ DataEx$Cum_constarg2<-c(cumsum(DataEx[1:7,"constargper.sum"]),cumsum(DataEx[8:14
 
 DataEx$Cum_N.tot<-c(cumsum(DataEx[1:7,"N.total"]),cumsum(DataEx[8:14,"N.total"]),cumsum(DataEx[15:21,"N.total"]),cumsum(DataEx[22:28,"N.total"]),cumsum(DataEx[29:35,"N.total"]),cumsum(DataEx[36:42,"N.total"]),cumsum(DataEx[43:49,"N.total"]),cumsum(DataEx[50:56,"N.total"]),cumsum(DataEx[57:63,"N.total"]),cumsum(DataEx[64:70,"N.total"]),cumsum(DataEx[71:77,"N.total"]),cumsum(DataEx[78:84,"N.total"]),cumsum(DataEx[85:91,"N.total"]),cumsum(DataEx[92:98,"N.total"]),cumsum(DataEx[99:105,"N.total"]),cumsum(DataEx[106:112,"N.total"]),cumsum(DataEx[113:119,"N.total"]),cumsum(DataEx[120:126,"N.total"]),cumsum(DataEx[127:133,"N.total"]),cumsum(DataEx[134:140,"N.total"]))
 
+DataEx$Cum_rain<-c(cumsum(DataEx[1:7,"rain.sum"]),cumsum(DataEx[8:14,"rain.sum"]),cumsum(DataEx[15:21,"rain.sum"]),cumsum(DataEx[22:28,"rain.sum"]),cumsum(DataEx[29:35,"rain.sum"]),cumsum(DataEx[36:42,"rain.sum"]),cumsum(DataEx[43:49,"rain.sum"]),cumsum(DataEx[50:56,"rain.sum"]),cumsum(DataEx[57:63,"rain.sum"]),cumsum(DataEx[64:70,"rain.sum"]),cumsum(DataEx[71:77,"rain.sum"]),cumsum(DataEx[78:84,"rain.sum"]),cumsum(DataEx[85:91,"rain.sum"]),cumsum(DataEx[92:98,"rain.sum"]),cumsum(DataEx[99:105,"rain.sum"]),cumsum(DataEx[106:112,"rain.sum"]),cumsum(DataEx[113:119,"rain.sum"]),cumsum(DataEx[120:126,"rain.sum"]),cumsum(DataEx[127:133,"rain.sum"]),cumsum(DataEx[134:140,"rain.sum"]))
+
 # DataEx$Cum_prod<-c(cumsum(DataEx[1:7,50]),cumsum(DataEx[8:14,50]),cumsum(DataEx[15:21,50]),cumsum(DataEx[22:28,50]),cumsum(DataEx[29:35,50]),cumsum(DataEx[36:42,50]),cumsum(DataEx[43:49,50]),cumsum(DataEx[50:56,50]),cumsum(DataEx[57:63,50]),cumsum(DataEx[64:70,50]),cumsum(DataEx[71:77,50]),cumsum(DataEx[78:84,50]),cumsum(DataEx[85:91,50]),cumsum(DataEx[92:98,50]),cumsum(DataEx[99:105,50]),cumsum(DataEx[106:112,50]),cumsum(DataEx[113:119,50]),cumsum(DataEx[120:126,50]),cumsum(DataEx[127:133,50]),cumsum(DataEx[134:140,50]))
 # 
 # DataEx$Cum_cons<-c(cumsum(DataEx[1:7,51]),cumsum(DataEx[8:14,51]),cumsum(DataEx[15:21,51]),cumsum(DataEx[22:28,51]),cumsum(DataEx[29:35,51]),cumsum(DataEx[36:42,51]),cumsum(DataEx[43:49,51]),cumsum(DataEx[50:56,51]),cumsum(DataEx[57:63,51]),cumsum(DataEx[64:70,51]),cumsum(DataEx[71:77,51]),cumsum(DataEx[78:84,51]),cumsum(DataEx[85:91,51]),cumsum(DataEx[92:98,51]),cumsum(DataEx[99:105,51]),cumsum(DataEx[106:112,51]),cumsum(DataEx[113:119,51]),cumsum(DataEx[120:126,51]),cumsum(DataEx[127:133,51]),cumsum(DataEx[134:140,51]))
@@ -251,6 +253,8 @@ DataOp$Cum_constarg2<-c(cumsum(DataOp[1:7,"constargper.sum"]),cumsum(DataOp[8:14
 
 DataOp$Cum_N.tot<-c(cumsum(DataOp[1:7,"N.total"]),cumsum(DataOp[8:14,"N.total"]),cumsum(DataOp[15:21,"N.total"]),cumsum(DataOp[22:28,"N.total"]),cumsum(DataOp[29:35,"N.total"]),cumsum(DataOp[36:42,"N.total"]),cumsum(DataOp[43:49,"N.total"]),cumsum(DataOp[50:56,"N.total"]),cumsum(DataOp[57:63,"N.total"]),cumsum(DataOp[64:70,"N.total"]),cumsum(DataOp[71:77,"N.total"]),cumsum(DataOp[78:84,"N.total"]),cumsum(DataOp[85:91,"N.total"]),cumsum(DataOp[92:98,"N.total"]),cumsum(DataOp[99:105,"N.total"]),cumsum(DataOp[106:112,"N.total"]),cumsum(DataOp[113:119,"N.total"]),cumsum(DataOp[120:126,"N.total"]),cumsum(DataOp[127:133,"N.total"]),cumsum(DataOp[134:140,"N.total"]))
 
+DataOp$Cum_rain<-c(cumsum(DataOp[1:7,"rain.sum"]),cumsum(DataOp[8:14,"rain.sum"]),cumsum(DataOp[15:21,"rain.sum"]),cumsum(DataOp[22:28,"rain.sum"]),cumsum(DataOp[29:35,"rain.sum"]),cumsum(DataOp[36:42,"rain.sum"]),cumsum(DataOp[43:49,"rain.sum"]),cumsum(DataOp[50:56,"rain.sum"]),cumsum(DataOp[57:63,"rain.sum"]),cumsum(DataOp[64:70,"rain.sum"]),cumsum(DataOp[71:77,"rain.sum"]),cumsum(DataOp[78:84,"rain.sum"]),cumsum(DataOp[85:91,"rain.sum"]),cumsum(DataOp[92:98,"rain.sum"]),cumsum(DataOp[99:105,"rain.sum"]),cumsum(DataOp[106:112,"rain.sum"]),cumsum(DataOp[113:119,"rain.sum"]),cumsum(DataOp[120:126,"rain.sum"]),cumsum(DataOp[127:133,"rain.sum"]),cumsum(DataOp[134:140,"rain.sum"]))
+
 #### Dataframes for modelling ####
 # Dataframe total productivity
 Dataprod <- Databiom[complete.cases(Databiom[c("prodtot")]),]   #271 obs
@@ -266,9 +270,6 @@ Datacons <- Datacons[complete.cases(Datacons[c("prodtot")]),]   #104 obs
 #Datacons0 <- Datacons
 #Datacons0[,c(40:65)] <- replace(Datacons[,c(40:65)], Datacons[,c(40:65)] < 0, 0)
 
-# Combine again DataEx and DataOp. Getting accumulated values on block level
-Databiom2 <- bind_rows(DataEx,DataOp) 
-
 #Dataframe NAPtarget in proportion to NAPtotal
 Datatarg <- Dataprod[complete.cases(Dataprod[c("prodtargfrac")]),]   #250 obs
 plot(Datatarg$prodtargfrac) 
@@ -282,6 +283,9 @@ plot(Datatarg$prodtarg~Datatarg$prodtot)
 plot(Datatarg$prodtargfrac) #Mostly values in range <-5,5>
 hist(Datatarg$prodtargfrac)
 
+# Combine again DataEx and DataOp. Getting accumulated values on block level
+Databiom2 <- bind_rows(DataEx,DataOp) 
+
 #Adding SE to Datamean
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 CumprodSE <- aggregate(Cum_prod~YrMonth+site.id+landuse+treatment,Databiom2,SE)
@@ -292,8 +296,19 @@ CumconsSE <- aggregate(Cum_cons~YrMonth+site.id+landuse+treatment,Databiom2,SE)
 CumconsSE$Cum_cons<-round(CumconsSE$Cum_cons,digits=2)
 colnames(CumconsSE)[5]<-"Cum_consSE"
 
+CumprodtargSE <- aggregate(Cum_prodtarg~YrMonth+site.id+landuse+treatment,Databiom2,SE)
+CumprodtargSE$Cum_prodtarg<-round(CumprodtargSE$Cum_prodtarg,digits=2)
+colnames(CumprodtargSE)[5]<-"Cum_prodtargSE"
+
+CumconstargSE <- aggregate(Cum_constarg~YrMonth+site.id+landuse+treatment,Databiom2,SE)
+CumconstargSE$Cum_constarg<-round(CumconstargSE$Cum_constarg,digits=2)
+colnames(CumconstargSE)[5]<-"Cum_constargSE"
+
 Datamean$Cumprod_SE<-CumprodSE$Cum_prodSE
 Datamean$Cumcons_SE<-CumconsSE$Cum_consSE
+Datamean$Cumprodtarg_SE<-CumprodtargSE$Cum_prodtargSE #not working
+Datamean$Cumconstarg_SE<-CumconstargSE$Cum_constargSE
+
 #### Stacked data for dominant species ####
 Datastack <- read.csv("Moveable exclosures/BiomassStacked2.csv",header=T)
 # Removing Ex2 - separate analysis
@@ -2676,40 +2691,52 @@ NAPsp
 #dpi = 600, limitsize = TRUE)
 
 ####ANNUAL #### 
+library(reshape2)
 # ANCOVA: Total annual production 
 #Subset with last period only
-
-Meanannual <- subset(Datamean, YrMonth=="2018-05")
-Dataannual <- subset(Databiom2, YrMonth=="2018-05")
+Meanannual <- subset(Datamean, YrMonth=="2018-05")#mean per site per harvest, H7 only
+Dataannual <- subset(Databiom2, YrMonth=="2018-05") #cumulative per block, H7 only
 Dataannual <- Dataannual[complete.cases(Dataannual[c("Cum_prod")]),] #Removing DRY_P 3 and 4 and DRY_W 1 and 3
-m1<-lm(Cum_prod~treatment+landuse+poly(Cum_rain,2)+landuse:poly(Cum_rain,2),
-       Meanannual, na.action=na.omit)
+Meanannuallong <- gather(Meanannual,prodcons,value,c(46,48,50:53,57),factor_key=TRUE)
+
+#DF with exclosure only
+MeanannualEx <- Meanannual[Meanannual$treatment!="open",]
+DataannualEx <- Dataannual[Dataannual$treatment!="open",]
+
+m1<-lm(Cum_prod~landuse+poly(Cum_rain,2)+
+         landuse:poly(Cum_rain,2),
+       DataannualEx)
 summary(m1)
 anova(m1)
 shapiro.test(resid(m1)) #Normal distribution of residuals. Normally distributed if p>0.05
 library(car)
-leveneTest(resid(m1)~landuse, data=Meanannual) #Homogenous residuals. p-value >0.05 means equal  variances
+leveneTest(resid(m1)~landuse, data=DataannualEx) #Homogenous residuals. p-value >0.05 means equal  variances
 
 
-## Figure Annual NAP
-levels(Meanannual$site)<-c("Makao","Maswa","Seronera","Mwantimba","Handajega")
-levels(Meanannual$site.id)<-c("Dry \n Pasture","Dry \n Wild","Intermediate \n Wild","Wet \n Pasture","Wet \n Wild")
-levels(Meanannual$landuse)<-c("Pasture","Wild")
+## Figure Annual NAP vs CONS per site
+levels(MeanannualEx$site)<-c("Makao","Maswa","Seronera","Mwantimba","Handajega")
+levels(MeanannualEx$site.id)<-c("Dry \n Pasture","Dry \n Wild","Intermediate \n Wild","Wet \n Pasture","Wet \n Wild")
+levels(MeanannualEx$landuse)<-c("Pasture","Wild")
+MeanannualEx$Biomass_change<-c("Productivity","Consumption","Productivity","Consumption","Productivity")
 
-### Total primary production
-#getting mean obs from grassmean, and ci from standing
-cum_prod<-tapply(Meanannual$Cum_prod,list(Meanannual$treatment, Meanannual$site.id),mean) 
-cum_prod.ci<-tapply(Dataannual$Cum_prod,list(Dataannual$treatment, Dataannual$site.id),sd) 
+### Total NAP per site ####
+#getting mean obs from Meanannual(grassmean), and ci from Dataannual (standing)
+cum_prod<-tapply(MeanannualEx$Cum_prod,list(MeanannualEx$site.id),mean) 
+cum_prod.ci<-tapply(DataannualEx$Cum_prod,list(DataannualEx$site.id),sd) 
+cum_cons <- tapply(MeanannualEx$Cum_cons,list(MeanannualEx$site.id),mean)
+cum_cons.ci <- tapply(DataannualEx$Cum_cons,list(DataannualEx$site.id),sd) 
 
-#Plot annual NAP
-legend_title<-"landuse"
-annual <- ggplot(Meanannual, aes(x=site.id, y=Cum_prod, colour=landuse,fill=landuse, group=treatment))
-annual <- annual+geom_errorbar(aes(ymin=Cum_prod, ymax=Cum_prod+Cumprod_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # ymin=Cum_prod-Cumprod_SE
-annual <- annual+geom_col(position=position_dodge(width=.95),size=1.2, alpha=.5, show.legend=F)
-annual <- annual +scale_fill_manual(legend_title, values=c( "tan3","turquoise3"))
-annual <- annual +scale_colour_manual(legend_title, values=c( "tan3","turquoise3"))
-annual<-annual+ xlab("Site") + ylab(expression(paste("Cumulative productivity (g ",m^-2,")")))
-annual <- annual + theme_bw() +
+
+legend_title<-"Land-use"
+legend_title2 <- "Biomass change"
+NAPtot <- ggplot(MeanannualEx, aes(x=site.id, y=Cum_prod, colour=landuse,fill=landuse))
+NAPtot <- NAPtot+geom_errorbar(aes(ymin=Cum_prod, ymax=Cum_prod+Cumprod_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # ymin=Cum_prod-Cumprod_SE
+#NAPtot <- NAPtot+geom_errorbar(aes(Y=Consumption,ymin=Cum_prod, ymax=Cum_cons+Cumcons_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # Trying to get second bars with consumption
+NAPtot <- NAPtot+geom_col(position=position_dodge(width=.95),size=1.2, alpha=.5, show.legend=T)
+NAPtot <- NAPtot +scale_fill_manual(legend_title, values=c( "tan3","turquoise3"))
+NAPtot <- NAPtot +scale_colour_manual(legend_title, values=c( "tan3","turquoise3"))
+NAPtot<-NAPtot+ xlab("Site") + ylab(expression(paste("Total productivity (g ",m^-2,")")))
+NAPtot <- NAPtot + theme_bw() +
   theme(plot.background = element_blank()
         ,panel.grid.minor = element_blank()
         ,panel.border = element_blank()
@@ -2730,7 +2757,211 @@ annual <- annual + theme_bw() +
         #,axis.ticks.x=element_blank()
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
-annual
+NAPtot
+# ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPsite.png",
+# width= 26, height = 18,units ="cm",
+# dpi = 600, limitsize = TRUE)
+
+### Total NAP and CONS per site ####
+Meanannuallong1 <- Meanannuallong[Meanannuallong$treatment!="open",]
+Meanannuallong1 <- Meanannuallong1[Meanannuallong1$prodcons!="Cum_prodtarg",]
+Meanannuallong1 <- Meanannuallong1[Meanannuallong1$prodcons!="Cum_constarg",]
+Meanannuallong1 <- Meanannuallong1[Meanannuallong1$prodcons!="Cum_prodtarg2",]
+Meanannuallong1 <- Meanannuallong1[Meanannuallong1$prodcons!="Cum_perc_cons",]
+Meanannuallong1 <- droplevels(Meanannuallong1)
+
+levels(Meanannuallong1$site.id)<-c("Dry \n Pasture","Dry \n Wild","Intermediate \n Wild","Wet \n Pasture","Wet \n Wild")
+levels(Meanannuallong1$prodcons)<-c("Production","Consumtption")
+
+legend_title2<-"Land-use"
+legend_title <- "Biomass change"
+NAPtot <- ggplot(Meanannuallong1, aes(x=site.id, y=value, colour=landuse,fill=prodcons, group=prodcons))
+NAPtot <- NAPtot+geom_errorbar(aes(ymin=value, ymax=value+Cumprod_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # ymin=Cum_prod-Cumprod_SE
+#NAPtot <- NAPtot+geom_errorbar(aes(Y=Consumption,ymin=Cum_prod, ymax=Cum_cons+Cumcons_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # Trying to get second bars with consumption
+NAPtot <- NAPtot+geom_col(position=position_dodge(width=.95),size=1.2, alpha=.5, show.legend=T)
+NAPtot <- NAPtot +scale_fill_manual(legend_title, values=c( "black","grey"))
+NAPtot <- NAPtot +scale_colour_manual(legend_title2, values=c( "tan3","turquoise3"))
+#NAPtot <- NAPtot +scale_fill_manual(legend_title2, values=c( "tan3","turquoise3"))
+NAPtot<-NAPtot+ xlab("Site") + ylab(expression(paste("Total NAP and consumption (g ",m^-2,")")))
+NAPtot <- NAPtot + theme_bw() +
+  theme(plot.background = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank() 
+        ,axis.text.y=element_text(size=12)
+        ,axis.text.x=element_text(size=12)
+        ,axis.line=element_line( size=.5)
+        ,axis.title=element_text(size=14)
+        ,legend.text=element_text(size=12)
+        ,legend.title=element_text(size=14)
+        #,legend.position = c(0.25, 0.82)
+        ,plot.margin = unit(c(5,5,7,5), "mm")
+        ,strip.background = element_blank()
+        #,strip.text = element_text(size=12)
+        ,strip.text = element_text(size=12)
+        #,axis.text.x=element_blank()
+        #,axis.ticks.x=element_blank()
+        ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
+  theme(axis.line = element_line(color = 'black'))
+NAPtot
+ # ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSsite.png",
+ # width= 26, height = 18,units ="cm",
+ # dpi = 600, limitsize = TRUE)
+
+####Dominant NAP per site  #### 
+legend_title<-"Land-use"
+legend_title2 <- "Biomass change"
+NAPD <- ggplot(MeanannualEx, aes(x=site.id, y=Cum_prodtarg, colour=landuse,fill=landuse))
+#NAPD <- NAPD+geom_errorbar(aes(ymin=Cum_prodtarg, ymax=Cum_prodtarg+Cumprodtarg_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # ymin=Cum_prod-Cumprod_SE
+#NAPD <- NAPD+geom_errorbar(aes(Y=Consumption,ymin=Cum_prod, ymax=Cum_cons+Cumcons_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # Trying to get second bars with consumption
+NAPD <- NAPD+geom_col(position=position_dodge(width=.95),size=1.2, alpha=.5, show.legend=T)
+NAPD <- NAPD +scale_fill_manual(legend_title, values=c( "tan3","turquoise3"))
+NAPD <- NAPD +scale_colour_manual(legend_title, values=c( "tan3","turquoise3"))
+NAPD<-NAPD+ xlab("Site") + ylab(expression(paste("Total NAP dominant sp. (g ",m^-2,")")))
+NAPD <- NAPD + theme_bw() +
+  theme(plot.background = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank() 
+        ,axis.text.y=element_text(size=12)
+        ,axis.text.x=element_text(size=12)
+        ,axis.line=element_line( size=.5)
+        ,axis.title=element_text(size=14)
+        ,legend.text=element_text(size=12)
+        ,legend.title=element_text(size=14)
+        #,legend.position = c(0.25, 0.82)
+        ,plot.margin = unit(c(5,5,7,5), "mm")
+        ,strip.background = element_blank()
+        #,strip.text = element_text(size=12)
+        ,strip.text = element_text(size=12)
+        #,axis.text.x=element_blank()
+        #,axis.ticks.x=element_blank()
+        ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
+  theme(axis.line = element_line(color = 'black'))
+NAPD
+# ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPDsite.png",
+# width= 26, height = 18,units ="cm",
+#   dpi = 600, limitsize = TRUE)
+
+
+#### Total CONS per site ####
+legend_title<-"Land-use"
+legend_title2 <- "Biomass change"
+CONStot <- ggplot(MeanannualEx, aes(x=site.id, y=Cum_cons, colour=landuse,fill=landuse))
+CONStot <- CONStot+geom_errorbar(aes(ymin=Cum_cons, ymax=Cum_cons+Cumcons_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # ymin=Cum_prod-Cumprod_SE
+#CONStot <- CONStot+geom_errorbar(aes(Y=Consumption,ymin=Cum_prod, ymax=Cum_cons+Cumcons_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # Trying to get second bars with consumption
+CONStot <- CONStot+geom_col(position=position_dodge(width=.95),size=1.2, alpha=.5, show.legend=T)
+CONStot <- CONStot +scale_fill_manual(legend_title, values=c( "tan3","turquoise3"))
+CONStot <- CONStot +scale_colour_manual(legend_title, values=c( "tan3","turquoise3"))
+CONStot<-CONStot+ xlab("Site") + ylab(expression(paste("Total consumption (g ",m^-2,")")))
+CONStot <- CONStot + theme_bw() +
+  theme(plot.background = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank() 
+        ,axis.text.y=element_text(size=12)
+        ,axis.text.x=element_text(size=12)
+        ,axis.line=element_line( size=.5)
+        ,axis.title=element_text(size=14)
+        ,legend.text=element_text(size=12)
+        ,legend.title=element_text(size=14)
+        #,legend.position = c(0.25, 0.82)
+        ,plot.margin = unit(c(5,5,7,5), "mm")
+        ,strip.background = element_blank()
+        #,strip.text = element_text(size=12)
+        ,strip.text = element_text(size=12)
+        #,axis.text.x=element_blank()
+        #,axis.ticks.x=element_blank()
+        ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
+  theme(axis.line = element_line(color = 'black'))
+CONStot
+ # ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/CONSsite.png",
+ # width= 26, height = 18,units ="cm",
+ # dpi = 600, limitsize = TRUE)
+
+#### % CONS per site ####
+legend_title<-"Land-use"
+#legend_title2 <- "Biomass change"
+CONSper <- ggplot(MeanannualEx, aes(x=site.id, y=Cum_perc_cons, colour=landuse,fill=landuse))
+#CONSper <- CONSper+geom_errorbar(aes(ymin=Cum_cons, ymax=Cum_cons+Cumcons_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # ymin=Cum_prod-Cumprod_SE
+#CONSper <- CONSper+geom_errorbar(aes(Y=Consumption,ymin=Cum_prod, ymax=Cum_cons+Cumcons_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # Trying to get second bars with consumption
+CONSper <- CONSper+geom_col(position=position_dodge(width=.95),size=1.2, alpha=.5, show.legend=T)
+CONSper <- CONSper +scale_fill_manual(legend_title, values=c( "tan3","turquoise3"))
+CONSper <- CONSper +scale_colour_manual(legend_title, values=c( "tan3","turquoise3"))
+CONSper<-CONSper+ xlab("Site") + ylab(expression(paste("Percentage consumed (%)")))
+CONSper <- CONSper + theme_bw() +
+  theme(plot.background = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank() 
+        ,axis.text.y=element_text(size=12)
+        ,axis.text.x=element_text(size=12)
+        ,axis.line=element_line( size=.5)
+        ,axis.title=element_text(size=14)
+        ,legend.text=element_text(size=12)
+        ,legend.title=element_text(size=14)
+        #,legend.position = c(0.25, 0.82)
+        ,plot.margin = unit(c(5,5,7,5), "mm")
+        ,strip.background = element_blank()
+        #,strip.text = element_text(size=12)
+        ,strip.text = element_text(size=12)
+        #,axis.text.x=element_blank()
+        #,axis.ticks.x=element_blank()
+        ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
+  theme(axis.line = element_line(color = 'black'))
+CONSper
+ # ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/CONSper.png",
+ # width= 26, height = 18,units ="cm",
+ # dpi = 600, limitsize = TRUE)
+
+####Dominant CONS per site  #### 
+legend_title<-"Land-use"
+#legend_title2 <- "Biomass change"
+CONSD <- ggplot(MeanannualEx, aes(x=site.id, y=Cum_constarg, colour=landuse,fill=landuse))
+CONSD <- CONSD+geom_errorbar(aes(ymin=Cum_constarg, ymax=Cum_constarg+Cumconstarg_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # ymin=Cum_prod-Cumprod_SE
+#CONSD <- CONSD+geom_errorbar(aes(Y=Consumption,ymin=Cum_prod, ymax=Cum_cons+Cumcons_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # Trying to get second bars with consumption
+CONSD <- CONSD+geom_col(position=position_dodge(width=.95),size=1.2, alpha=.5, show.legend=T)
+CONSD <- CONSD +scale_fill_manual(legend_title, values=c( "tan3","turquoise3"))
+CONSD <- CONSD +scale_colour_manual(legend_title, values=c( "tan3","turquoise3"))
+CONSD<-CONSD+ xlab("Site") + ylab(expression(paste("Total consumption dominant sp. (g ",m^-2,")")))
+CONSD <- CONSD + theme_bw() +
+  theme(plot.background = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank() 
+        ,axis.text.y=element_text(size=12)
+        ,axis.text.x=element_text(size=12)
+        ,axis.line=element_line( size=.5)
+        ,axis.title=element_text(size=14)
+        ,legend.text=element_text(size=12)
+        ,legend.title=element_text(size=14)
+        #,legend.position = c(0.25, 0.82)
+        ,plot.margin = unit(c(5,5,7,5), "mm")
+        ,strip.background = element_blank()
+        #,strip.text = element_text(size=12)
+        ,strip.text = element_text(size=12)
+        #,axis.text.x=element_blank()
+        #,axis.ticks.x=element_blank()
+        ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
+  theme(axis.line = element_line(color = 'black'))
+CONSD
+  # ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/CONSDsite.png",
+  # width= 26, height = 18,units ="cm",
+  #  dpi = 600, limitsize = TRUE)
+
+####Seasonal NAP and CONS, facet by landuse ####
+#Y=prodtot and constot per harvest per landuse (from Datamean?), x=harvest/YrMonth
+
+#### Total NAP vs dominant NAP, per site #### 
+# Q: How does dominant sp. perform in relation to entire community? Hyp: proportionally higher NAP in pastures
+
+
+
 
 ####|####
 ####VEGETATION COVER ####
