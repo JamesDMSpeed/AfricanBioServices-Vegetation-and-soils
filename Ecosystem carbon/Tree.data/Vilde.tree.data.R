@@ -54,6 +54,9 @@ levels(PhiltreesDEC$area)
 
 table(PhiltreesDEC$area)
 table(PhiltreesMAY$area)
+
+levels(PhiltreesDEC$species)
+table(PhiltreesDEC$species, PhiltreesDEC$area)
       
 Vildetrees <- PhiltreesDEC[,c(1:4,6,7,9,12,25,26,28,30:33)]
 str(Vildetrees)
@@ -124,12 +127,12 @@ Tree.carbon$TreeBM.kg_m2 <- Tree.carbon$TreeBM.kg_block/Tree.carbon$Block.area_m
 Tree.carbon$No.trees_m2 <- Tree.carbon$No.trees/Tree.carbon$Block.area_m2
 #Tree.carbon$Woody.cover <- Tree.carbon$No_trees * Tree.carbon$Median.Tree.BM_g
 #Tree.carbon$Woody.cover_m2 <- Tree.carbon$Woody.cover/Tree.carbon$Block_area.m2
-Tree.carbon$Shrubbiness <- as.numeric(Tree.carbon$No.trees)/as.numeric(Tree.carbon$Median.TreeBM.kg_block)
+Tree.carbon$Shrubbiness2 <- as.numeric(Tree.carbon$No.trees_m2)/as.numeric(Tree.carbon$Median.TreeBM.kg_block)
 str(Tree.carbon)
 levels(Tree.carbon$Region)
 
 # Missing one row for Seronera - want to add this as a NA row. 
-New.row <- c(4,"Seronera",2500,NA,NA,NA,NA,NA,NA,NA,855.6199,NA,NA,NA,NA,NA,NA,NA,NA)
+New.row <- c(4,"Seronera",2500,NA,NA,NA,NA,NA,NA,NA,855.6199,NA,NA,NA,NA,NA,NA,NA,NA,NA)
 Tree.carbon <- InsertRow(Tree.carbon,New.row,20)
 
 # adding a collumn of landuse
@@ -139,7 +142,7 @@ Tree.carbon$landuse <- as.factor(c("Pasture","Pasture","Pasture","Pasture","Wild
 Tree.carbon$Vilde.block <- as.numeric(c(3,1,2,4,3,4,1,2,1,4,3,2,3,4,1,2,1,2,3,4,1,2,3,4,1,2,3,4))
 names(Tree.carbon)
 
-Tree.carbon.Vilde <- Tree.carbon[,c(2,21,20,3,11:13,4:10,14:19)]
+Tree.carbon.Vilde <- Tree.carbon[,c(2,22,21,3,11:13,4:10,14:20)]
 names(Tree.carbon.Vilde)
 # Order the dataset so my block id is increasing
 Tree.carbon.Vilde <- Tree.carbon.Vilde[
@@ -168,28 +171,20 @@ Tree.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.Carbon.Vilde.csv",
 levels(Tree.carbon$Region)# Remember wrong order of regions.. 
 
 #Relevel
-Tree.carbon$Region<- factor(Tree.carbon$Region, levels = c("Makao","Maswa","Mwantimba","SNP handejega","Seronera", "Park Nyigoti","Ikorongo"))
+Tree.carbon$Region<- factor(Tree.carbon$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera", "Park Nyigoti","Ikorongo"))
 
 levels(Tree.carbon$Region) # Releveled
 names(Tree.carbon)
 
+Tree.carbon <- Tree.carbon[-16,]
+
 # Making a table for Tree Carbon per region 
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 
-TreeC.Region <- cbind((aggregate(TreeC.kg_m2~Region, Tree.carbon,mean)),
-                      (aggregate(TreeC.kg_m2~Region, Tree.carbon,SE))[2],
-                      (aggregate(No.trees_m2~Region, Tree.carbon,mean))[2],
-                      (aggregate(No.trees_m2~Region, Tree.carbon,SE))[2],
-                      (aggregate(TreeBM.kg_m2~Region,Tree.carbon,mean))[2],
-                      (aggregate(TreeBM.kg_m2~Region,Tree.carbon,SE))[2],
-                      (aggregate(Total.basal.area_m2~Region,Tree.carbon,mean))[2],
-                      (aggregate(Total.basal.area_m2~Region,Tree.carbon,SE))[2],
-                      (aggregate(MAP.mm_yr~Region,Tree.carbon,mean))[2],
-                      (aggregate(MAP.mm_yr~Region,Tree.carbon,SE))[2],
-                      (aggregate(Fire_frequency.2000_2017~Region,Tree.carbon,mean))[2],
-                      (aggregate(Fire_frequency.2000_2017~Region,Tree.carbon,SE))[2],
-                      (aggregate(Last.fire_yr~Region,Tree.carbon,mean))[2],
-                      (aggregate(Last.fire_yr~Region,Tree.carbon,SE))[2])
+TreeC.Region <- cbind((aggregate(TreeBM.kg_block~Region, Tree.carbon,sum)),
+                      (aggregate(No.trees~Region, Tree.carbon,sum))[2],
+                      (aggregate(Shrubbiness2~Region,Tree.carbon,mean))[2],
+                      (aggregate(Shrubbiness2~Region,Tree.carbon,SE))[2])
                       
 
 colnames(TreeC.Region) <- c("Region","TreeC.kg_m2","SE.TreeC.kg_m2","No_trees.m2","SE.No_trees.m2","TreeBM.kg_m2","SE.TreeBM.kg_m2","TreeBasalA.m2","SE.TreeBasalA.m2","MAP.mm_yr","SE.MAP.mm_yr","Fire_frequency.2000_2017","SE.Fire_frequency.2000_2017","Last_fire.yr","SE.Last_fire.yr")

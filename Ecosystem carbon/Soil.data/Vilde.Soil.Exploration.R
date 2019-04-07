@@ -13,6 +13,21 @@ Dung.counts1 <- read.csv("Permanent exclosures/Herbivore dung/Sero.prod.dungFULL
 Soil.texture <- read.csv(file="Ecosystem Carbon/Soil.data/Soil.texture.Tot_Hor.csv",head=T)
 
 total.soil.data$Region<- factor(total.soil.data$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
+
+# Look at data per Region 
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+P <- cbind(aggregate(P.g_kg~Region, mean, data=total.soil.data),
+           aggregate(P.g_kg~Region, SE, data=total.soil.data)[2])
+BD <- cbind(aggregate(BD_fine_earth_air_dry~Region, mean, data=total.soil.data),
+           aggregate(BD_fine_earth_air_dry~Region, SE, data=total.soil.data)[2])
+InorgC <- cbind(aggregate(fraction_inorg_C~Region, mean, data=total.soil.data),
+            aggregate(fraction_inorg_C~Region, SE, data=total.soil.data)[2])
+OrgC <- cbind(aggregate(fraction_org_C~Region, mean, data=total.soil.data),
+             aggregate(fraction_org_C~Region, SE, data=total.soil.data)[2])
+pH <- cbind(aggregate(pH~Region, mean, data=total.soil.data),
+              aggregate(pH~Region, SE, data=total.soil.data)[2])
+
+
 Metabolic.rate$Region<- factor(Metabolic.rate$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
 levels(Soil.texture$Region)
