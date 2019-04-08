@@ -2259,6 +2259,24 @@ plot(emmeans.LabileMCGModFINAL, comparisons = TRUE) #Comparisons summarized grap
 #Conlcusion on treatment:Season: There is an effect of treatment when season is dry. CG has higher massloss in dry season (due to more rain as seen in precip data).
 
 
+#MODELL AVERAGING
+LabileDataMCG_NA_filtered <- LabileDataMCG[complete.cases(LabileDataMCG$Massloss.per,LabileDataMCG$C.N,LabileDataMCG$Sand,LabileDataMCG$Temp),]
+#Final Model
+LabileMCGModFINAL2 <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+Sand+
+                            Season:Region+Season:Treatment+Season:Sand+Region:Landuse+
+                            Region:Temp+Landuse:Temp+Landuse:Sand+Temp:Sand+
+                            (1|Site/Blockcode), na.action=na.fail, REML=T, data =LabileDataMCG_NA_filtered)
+
+modsetlmer_LabileMCGModFINAL <- dredge(LabileMCGModFINAL2,trace=2) #,fixed=c("Season","Region","Landuse","Treatment","C.N","Temp","Sand")) 
+model.sel(LabileMCGModFINAL2) #Model selection table giving AIC, deltaAIC and weighting
+modavglmer_LabileMCGModFINAL2<-model.avg(modsetlmer_LabileMCGModFINAL) #Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavglmer_LabileMCGModFINAL2)#Importance of each variable
+# write.table(importance(modavglmer_RecalMainMod1),file="Termites/Importance_RecalMain1.txt")
+# summarymodmodavglmer_RecalMain1 <- summary(modavglmer_RecalMainMod1)#Estimated coefficients given weighting
+# write.table(summary(modavglmer_RecalMainMod1)$coefmat.subset,file="Termites/SumCoef_RecalMain1.txt")
+
+
+
 
 #Recalcitrantmodel analysis####
 GlobalRecalMCGMod <- lmer(MainCGdiff ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^2
