@@ -2205,6 +2205,43 @@ anova(LabileMCGMod3m,LabileMCGMod3I) #Treatment 0.5615
 anova(LabileMCGMod3n,LabileMCGMod3I) #Temp 0.007109 **
 anova(LabileMCGMod3o,LabileMCGMod3I) #Sand 0.0008505 ***
 
+#### Approach one - BAD!
+#LabileCG<-r.squaredGLMM(LabileMCGMod3) # R2c 0.9253769
+#LabileCGI<-r.squaredGLMM(LabileMCGMod3I)
+#LabileCGr2<-rbind(LabileCG-r.squaredGLMM(LabileMCGMod3a), 
+#r.squaredGLMM(LabileMCGMod3b)-LabileCG, 
+#LabileCG-r.squaredGLMM(LabileMCGMod3c) ,
+#LabileCG-r.squaredGLMM(LabileMCGMod3d) ,
+#LabileCG-r.squaredGLMM(LabileMCGMod3e) ,
+#LabileCG-r.squaredGLMM(LabileMCGMod3f),
+#LabileCG-r.squaredGLMM(LabileMCGMod3g),
+#LabileCG-r.squaredGLMM(LabileMCGMod3h),
+#LabileCGI-r.squaredGLMM(LabileMCGMod3j))
+#LabileCGr2<-as.data.frame(LabileCGr2)
+
+#LabileCGr2$terms<-c("Season:Region","Season:Treatment","Season:Sand",
+#                    "Region:landuse","Region:Temp","Land:Temp","Landuse:Sand","Temp:Sand", "Season")
+#LabileCGr2$terms<- factor(LabileCGr2$terms, levels = LabileCGr2$terms[order(LabileCGr2$R2c)])
+#ggplot(LabileCGr2, aes(y=terms, x=R2c))+geom_point()
+
+#### Apporach 2 ####
+#### Extracting R2 from lmer model for each individual compared to full model ####
+
+LabileCGr2<-rbind(LabileCG<-r.squaredGLMM(LabileMCGMod3),
+  r.squaredGLMM(lmer(MainCGdiff ~ Season +(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)), 
+                  r.squaredGLMM(lmer(MainCGdiff ~ Region+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)), 
+                  r.squaredGLMM(lmer(MainCGdiff ~ Landuse+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)), 
+                  r.squaredGLMM(lmer(MainCGdiff ~ Treatment+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)), 
+                  r.squaredGLMM(lmer(MainCGdiff ~ Temp+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)), 
+                  r.squaredGLMM(lmer(MainCGdiff ~ Sand+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)))
+
+LabileCGr2<-as.data.frame(LabileCGr2)
+
+
+LabileCGr2$terms<-c("Full Model","Season","Region","Landuse", "Treatment","Temp","Sand")
+LabileCGr2$terms<- factor(LabileCGr2$terms, levels = LabileCGr2$terms[order(LabileCGr2$R2c)])
+ggplot(LabileCGr2, aes(y=terms, x=R2c))+geom_point()
+
 #See here that Treatment is not significant, can try and remove the sign two way and then treatment.
 # LabileMCGMod4 <- update(LabileMCGMod3, .~. -Season:Treatment)
 # AIC(LabileMCGMod4)# 737.3641
