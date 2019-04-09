@@ -269,7 +269,7 @@ DataprodEx <- Dataprod[Dataprod$treatment!="open",] #135 obs
 DataprodEx1 <- DataprodEx[!(DataprodEx$site.name=="Handajega" & DataprodEx$harvest=="H7"),]
 #DF WEIGHTED 
 DataprodW <- DataprodEx[complete.cases(DataprodEx[c("prodtot.per")]),] # without WET_P_3, DRY_W_3 --> 133 obs
-DataprodW <- DataprodW[!(DataprodW$site.name=="Handajega" & DataprodW$harvest=="H7"),]
+DataprodW1 <- DataprodW[!(DataprodW$site.name=="Handajega" & DataprodW$harvest=="H7"),]
 
 #### DF CONS season ####
 Datacons <- Databiom[complete.cases(Databiom[c("constot")]),]   #135 obs
@@ -394,13 +394,20 @@ Datastack$plot.code <- as.factor(with(Datastack,paste(region,landuse,block,treat
 levels(Datastack$plot.code) #80 levels
 
 # Dataframe productivity
-Stackprod <- Datastack[complete.cases(Datastack[c("prodsp.per")]),]   #253 obs
-Stackprod <- Stackprod[Stackprod$treatment!="open",]  #248 obs
+Stackprod <- Datastack[complete.cases(Datastack[c("prodsp")]),]   #515 obs
+Stackprod <- Stackprod[Stackprod$treatment!="open",]              #261 obs
+StackprodW <- Datastack[complete.cases(Datastack[c("prodsp.per")]),]   #253 obs
+StackprodW <- StackprodW[StackprodW$treatment!="open",]                 #248 obs
+
 Stackopen <-  Datastack[complete.cases(Datastack[c("prodsp")]),] 
 Stackopen <- Stackopen[Stackopen$treatment!="exclosed",] #254 obs
+
 # Dataframe consumption
-Stackcons <- Datastack[complete.cases(Datastack[c("conssp.per")]),]   #272 obs
-Stackcons <- Stackcons[complete.cases(Stackcons[c("N.total")]),]   #210 obs
+Stackcons <- Datastack[complete.cases(Datastack[c("conssp")]),]   #271 obs
+Stackcons <- Stackcons[complete.cases(Stackcons[c("N.total")]),]   #209 obs
+
+StackconsW <- Datastack[complete.cases(Datastack[c("conssp.per")]),]   #272 obs
+StackconsW <- StackconsW[complete.cases(Stackcons[c("N.total")]),]   #210 obs
 #Stackcons <- Datacons[complete.cases(Datacons[c("prodsp.per")]),]   #104 obs
 
 ####Functions ####
@@ -1854,14 +1861,13 @@ P2 <- NAPfull2
 anova(P2)
 
 #Poly(rain.day,2)
-NAPfull2.2 <- lme(prodtot~landuse+poly(rain.day,2)+
+P2.2 <- lme(prodtot~landuse+poly(rain.day,2)+
                     landuse:poly(rain.day,2),
                     #landuse:sand+
-                    #poly(rain.day,2):sand, 
+                    #poly(rain.day,2):sand,
                   random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx)
-drop1(NAPfull2.2,test="Chisq") #dropping if not significant term
-AIC(NAPfull2.2) #1026.974
-P2.2 <- NAPfull2.2
+drop1(P2.2,test="Chisq") #dropping if not significant term
+AIC(P2.2) #1026.974
 anova(P2.2)
 summary(P2.2) #Parameter estimates
 
@@ -1879,48 +1885,110 @@ anova(P2b,P2d) #rain                 p-value: 32.5699  <.0001
 
 #Estimates and Rsquared
 summary(P2.2) #Parameter estimates
-anova(P2.2) #F statistics with p-values and df 
 r.squared.lme(P2.2) #To get conditional and marginal R^2 for the model
 r.squaredGLMM(P2.2)
-#Log(rain.sum) --> poor
-NAPfull3 <- lme(prodtot~landuse+sand+log(rain.sum,2),
-                  #landuse:log(rain.sum,2)+
-                  #landuse:sand+
-                  #log(rain.sum,2):sand, 
-                random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx)
-drop1(NAPfull3,test="Chisq") #dropping if not significant term
-AIC(NAPfull3) #1075.48
-P3 <- NAPfull3
-anova(P3)
-model.sel(P2,P2.2,P3) #P2.2 seems best fit based on AIC (poly(rain.day,2))
 
-#### Total NAP without the H7 ####
-#Poly(rain.day,2)
-NAPfull2.2<- lme(prodtot~landuse+sand+poly(rain.day,2)+
-                    landuse:poly(rain.day,2)+
-                    landuse:sand+
-                    poly(rain.day,2):sand, 
-                  random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx1)
-drop1(NAPfull2.3,test="Chisq") #dropping if not significant term
-AIC(NAPfull2.3) #
-P2.3 <- NAPfull2.3
-anova(P2.3)
-summary(P2.3)
-#P2.3dredge <- dredge(P2.3,trace=T,rank="AICc",REML=F)
+#### Importance total NAP ####
+#Dredging - getting the relative importance of each variable (RIV)
+#Full model again
+NAPfull2.2<- lme(prodtot~landuse+poly(rain.day,2)+sand+
+              landuse:poly(rain.day,2)+
+              landuse:sand+
+              poly(rain.day,2):sand,
+            random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx)
+
+modsetlmer_PRODlme <- dredge(NAPfull2.2,trace=2) 
+model.sel(NAPfull2.2) #Model selection table giving AIC, deltaAIC and weighting
+modavglmer_PRODlme<-model.avg(modsetlmer_PRODlme) #Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modsetlmer_PRODlme)#Importance of each variable
+write.table(importance(modavglmer_PRODlme),file="Moveable exclosures/Importance_PRODlme.txt")
+summarymodavglmer_PRODlme <- summary(modavglmer_PRODlme)#Estimated coefficients given weighting
+write.table(summary(modavglmer_PRODlme)$coefmat.subset,file="Moveable exclosures/SumCoef_PRODlme.txt")
+
+#Plotting 
+importance.PROD<- read.table("Moveable exclosures/Importance_PRODlme.txt")
+colnames(importance.PROD)<- 'PROD'
+rownames(importance.PROD) <- (c("Rainfall","Land-use","Land-use:Rainfall","Sand","Land-use:Sand","Rainfall:Sand"))
+col.PROD <- c("deepskyblue4","darkgoldenrod1","salmon","burlywood3","seagreen4","skyblue4")
+png(filename = "Moveable exclosures/imp.PROD.png")
+par(mar=c(5,15,1,2))
+barplot(t(as.matrix(importance.PROD)), horiz=T,las=1,xlab='Relative variable importance',main='Periodic production \n community',axisname=T,col=col.PROD,beside=T,cex.main = 1,cex.axis=2,cex.lab=1,cex.names=2)
+dev.off()
+
+####Model with N.total####
+DataprodExN <- droplevels(subset(DataprodEx,!is.na(N.total)))
+NAPN <- lme(prodtot~-1+landuse+poly(rain.day,2)+
+                    #N.total+sand+
+                    landuse:poly(rain.day,2),
+                    #landuse:N.total+
+                    #poly(rain.day,2):N.total+
+                    #sand:N.total+
+                    #landuse:sand+
+                    #poly(rain.day,2):sand,
+                  random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodExN)
+drop1(NAPN,test="Chisq") #dropping if not significant term
+AIC(NAPN) #1026.974
+anova(NAPN)
+summary(NAPN) #Parameter estimates
+r.squared.lme(NAPN) 
 
 # Updating the model - generating p-values for each term (with ML)
-# landuse + treatment + poly(rain.day,2) + land:rain
-P2b <- update(P2.3,  .~. -landuse:poly(rain.day,2))
-P2c <- update(P2b, .~. -landuse)
-P2d <- update(P2b, .~. -treatment)
-P2e <- update(P2b, .~. -poly(rain.day,2))
+# landuse + poly(rain.day,2) + land:rain
+NAPNb <- update(NAPN,  .~. -landuse:poly(rain.day,2))
+NAPNc <- update(NAPNb, .~. -landuse)
+NAPNd <- update(NAPNb, .~. -poly(rain.day,2))
 
-anova(P2.3,P2b) #landuse:poly(rain.day,2)   p-value: 0.04
-anova(P2b,P2c) #landuse             p-value: NS (.41)
-anova(P2b,P2d) #treatment           p-value: <.001
-anova(P2b,P2e) #rain                p-value <.0001
+anova(NAPN,NAPNb) #landuse:poly(rain.day,2)   p-value: 15.35358   5e-04
+anova(NAPNb,NAPNc) #landuse             p-value: 14.3721   8e-04
+anova(NAPNb,NAPNd) #rain                 p-value: 17.89317   1e-04
 
-#### Total NAP Weighted #### 
+#Dredging 
+modsetlmer_PRODNlme <- dredge(NAPN,trace=2) 
+model.sel(NAPN) #Model selection table giving AIC, deltaAIC and weighting
+modavglmer_PRODNlme<-model.avg(modsetlmer_PRODNlme) #Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modsetlmer_PRODNlme)#Importance of each variable
+write.table(importance(modavglmer_PRODNlme),file="Moveable exclosures/Importance_PRODNlme.txt")
+summarymodavglmer_PRODNlme <- summary(modavglmer_PRODNlme)#Estimated coefficients given weighting
+write.table(summary(modavglmer_PRODNlme)$coefmat.subset,file="Moveable exclosures/SumCoef_PRODNlme.txt")
+
+#Plotting
+importance.PRODN<- read.table("Moveable exclosures/Importance_PRODNlme.txt")
+colnames(importance.PRODN)<- 'PRODN'
+rownames(importance.PRODN) <- (c("Rainfall","Land-use","Land-use:Rainfall","Leaf N", "Sand","Leaf N:Rain", "Land-use:Leaf N", "Land-use:Sand","Leaf N:Sand", "Rainfall:Sand"))
+col.PRODN <- c("deepskyblue4","darkgoldenrod1","lightcoral","chartreuse3","burlywood3","mediumseagreen","yellowgreen","sandybrown","darkkhaki","skyblue4")
+png(filename = "Moveable exclosures/imp.PRODN2.png")
+par(mar=c(5,15,1,2))
+barplot(t(as.matrix(importance.PRODN)), horiz=T,las=1,xlab='Relative variable importance',main='Periodic production community',axisname=T,col=col.PRODN,beside=T,cex.main = 1.5,cex.axis=2,cex.lab=1,cex.names=2)
+dev.off()
+
+#### Total NAP without the H7, P3 ####
+#Poly(rain.day,2)
+P3<- lme(prodtot~poly(rain.day,2),
+                    #landuse:poly(rain.day,2)+
+                    #landuse:sand+
+                    #poly(rain.day,2):sand, 
+                  random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx1)
+drop1(P3,test="Chisq") #dropping if not significant term
+AIC(P3) #
+anova(P3)
+#Estimates and Rsquared
+summary(P3) #Parameter estimates
+r.squared.lme(P3) #To get conditional and marginal R^2 for the model
+
+#Checking again with the Open plots also - without Handajega H7
+Dataprod1 <- Dataprod[!(Dataprod$site.name=="Handajega" & Dataprod$harvest=="H7"),]
+NAPfull2.3 <- lme(prodtot~landuse+treatment+poly(rain.day,2)+
+                    #landuse:treatment+
+                    #landuse:sand+
+                    landuse:poly(rain.day,2),
+                  #treatment:poly(rain.day,2),
+                  #sand:poly(rain.day,2)+
+                  #landuse:treatment:poly(rain.day,2), 
+                  random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Dataprod1)
+drop1(NAPfull2.3,test="Chisq") #dropping if not significant term
+#So same results as previously. 
+
+#### Total NAP Weighted, P4 #### 
 hist(DataprodW$prodtot.per)
 # Linear model
 plot(DataprodW$prodtot.per)
@@ -1949,7 +2017,7 @@ xyplot(Efull~YrMonthNumber|site.name, col=1,ylab="Residuals",data=DataprodW)
 
 #Implementing the AR-1 autocorrelation
 cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|site.name/block.id/plot.code) # AR matrix needs to be unique
-cs1AR1. <- Initialize(cs1AR1, data = DataprodEW)
+cs1AR1. <- Initialize(cs1AR1, data = DataprodW)
 corMatrix(cs1AR1.) #What does this give? 
 
 #LME with temporal auto-correlation (using nlme package)
@@ -1992,48 +2060,73 @@ anova(P1)
 
 #Poly(rain.sum,2) 
 # As we expect effect size to level off at certain threshold
-NAPfull2 <- lme(prodtot.per~landuse+sand+poly(rain.sum,2)+
+NAPfull4 <- lme(prodtot.per~landuse+sand+poly(rain.sum,2)+
                   landuse:poly(rain.sum,2)+
                   #landuse:sand+
                   poly(rain.sum,2):sand,
                 random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodW)
-drop1(NAPfull2,test="Chisq") #dropping if not significant term
-AIC(NAPfull2) #1032.561
-P2 <- NAPfull2
+drop1(NAPfull4,test="Chisq") #dropping if not significant term
+AIC(NAPfull4) #1032.561
+P4 <- NAPfull4
 anova(P2)
 
 #Poly(rain.day,2)
-NAPfull2.2 <- lme(prodtot.per~landuse+poly(rain.day,2)+
+P4.1<- lme(prodtot.per~landuse+poly(rain.day,2)+
                     landuse:poly(rain.day,2),
                   #landuse:sand+
                   #poly(rain.day,2):sand, 
                   random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodW)
-drop1(NAPfull2.2,test="Chisq") #dropping if not significant term
-AIC(NAPfull2.2) #1026.974
-P2.2 <- NAPfull2.2
-anova(P2.2)
-summary(P2.2) #Parameter estimates
+drop1(P4.1,test="Chisq") #dropping if not significant term
+AIC(P4.1) #1026.974
+anova(P4.1)
+summary(P4.1) #Parameter estimates
 
-model.sel(P2,P2.2)
+model.sel(P4,P4.1) #using rain.sum is better based on AIC
 
 # Updating the model - generating p-values for each term (with ML)
 # landuse + poly(rain.day,2) + land:rain
-P2a <- update(P2,  .~. -sand:poly(rain.sum,2))
-P2b <- update(P2,  .~. -landuse:poly(rain.sum,2))
-P2c <- update(P2b, .~. -landuse)
-P2d <- update(P2b, .~. -poly(rain.sum,2))
-P2e <- update(P2b, .~. -sand)
+P4a <- update(P4,  .~. -sand:poly(rain.sum,2))
+P4b <- update(P4,  .~. -landuse:poly(rain.sum,2))
+P4c <- update(P4b, .~. -landuse)
+P4d <- update(P4b, .~. -poly(rain.sum,2))
+P4e <- update(P4b, .~. -sand)
 
-anova(P2,P2a) #sand:poly(rain.sum,2)
-anova(P2,P2b) #landuse:poly(rain.sum,2)   p-value: 17.44524  0.0037
-anova(P2b,P2c) #landuse             p-value: 0.1616744  0.6876
-anova(P2b,P2d) #rain                 p-value: 32.5699  <.0001
-anova(P2b,P2e) #sand
+anova(P4,P4a) #sand:poly(rain.sum,2)      p-value: 17.75897   1e-04
+anova(P4,P4b) #landuse:poly(rain.sum,2)   p-value: 20.3081  <.0001
+anova(P4b,P4c) #landuse             p-value: 1.484196  0.2231
+anova(P4b,P4d) #rain                 p-value: 8.048806  0.0179
+anova(P4b,P4e) #sand                p-value: 0.06119713  0.8046
 
 #Estimates and Rsquared
-summary(P2) #Parameter estimates
-anova(P2) #F statistics with p-values and df 
-r.squared.lme(P2) #To get conditional and marginal R^2 for the model
+summary(P4) #Parameter estimates
+anova(P4) #F statistics with p-values and df 
+r.squared.lme(P4) #To get conditional and marginal R^2 for the model
+
+#Dredging - getting the relative importance of each variable (RVI)
+#Full model again
+P4full<- lme(prodtot.per~landuse+poly(rain.sum,2)+sand+
+                   landuse:poly(rain.sum,2)+
+                   landuse:sand+
+                   poly(rain.sum,2):sand,
+                 random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodW)
+
+modsetlmer_PRODWlme <- dredge(P4full,trace=2) 
+model.sel(P4full) #Model selection table giving AIC, deltaAIC and weighting
+modavglmer_PRODWlme<-model.avg(modsetlmer_PRODWlme) #Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modsetlmer_PRODWlme)#Importance of each variable
+write.table(importance(modavglmer_PRODWlme),file="Moveable exclosures/Importance_PRODWlme.txt")
+summarymodavglmer_PRODWlme <- summary(modavglmer_PRODWlme)#Estimated coefficients given weighting
+write.table(summary(modavglmer_PRODWlme)$coefmat.subset,file="Moveable exclosures/SumCoef_PRODWlme.txt")
+
+#Plotting 
+importance.PRODW<- read.table("Moveable exclosures/Importance_PRODWlme.txt")
+colnames(importance.PRODW)<- 'PRODW'
+rownames(importance.PRODW) <- (c("Land-use","Rainfall","Land-use:Rainfall","Sand","Rainfall:Sand","Land-use:Sand"))
+col.PRODW <- c("darkgoldenrod1","deepskyblue4","salmon","burlywood3","skyblue4","seagreen4")
+png(filename = "Moveable exclosures/imp.PRODW.png")
+par(mar=c(5,15,1,2))
+barplot(t(as.matrix(importance.PRODW)), horiz=T,las=1,xlab='Relative variable importance',main='Periodic NAP weighted \n community',axisname=T,col=col.PROD,beside=T,cex.main = 1,cex.axis=2,cex.lab=1,cex.names=2)
+dev.off()
 
 ####Validating models EX and OP ####
 #Step 9 and 10 - Zuur. The aftermath
@@ -2090,12 +2183,6 @@ P2.2 <- lme(prodtot~landuse+poly(rain.day,2)+
             random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=DataprodEx)
 summary(P2.2)
 
-#Without WET_H7
-P2.3 <- lme(prodtot~landuse+treatment+poly(rain.day,2)+
-              landuse:poly(rain.day,2),
-            random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=Dataprod1)
-summary(P2.3)
-
 #Graphical model validation checking for homogeneity by plotting standardized residuals vs fitted values
 par(mfrow=c(1,1))
 E <- resid(P2.2,type="normalized")
@@ -2120,27 +2207,18 @@ par(mfrow=c(2,2))
 plot(predict(P2.2)~landuse+rain.day+
        landuse:rain.day,data=DataprodEx)
 
-####Validating models WEIGHTED ####
+####Validating model with N.total####
 #Step 9 and 10 - Zuur. The aftermath
 # Refitting with REML and validating the model
-P2.2 <- lme(prodtot.per~landuse+sand+poly(rain.sum,2)+
-              landuse:poly(rain.sum,2)+
-              sand:poly(rain.sum,2),
-            random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=DataprodEx)
-summary(P2.2)
-
-#Without WET_H7
-P2.3 <- lme(prodtot.per~landuse+sand+poly(rain.sum,2)+
-              sand:poly(rain.sum,2)+
-              landuse:poly(rain.sum,2)+
-              landuse:sand,
-            random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=DataprodEx1)
-summary(P2.3)
+NAPN<- lme(prodtot~landuse+poly(rain.day,2)+
+              landuse:poly(rain.day,2),
+            random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=DataprodExN)
+summary(NAPN)
 
 #Graphical model validation checking for homogeneity by plotting standardized residuals vs fitted values
 par(mfrow=c(1,1))
-E <- resid(P2.2,type="normalized")
-Fit <- fitted(P2.2)
+E <- resid(NAPN,type="normalized")
+Fit <- fitted(NAPN)
 #plot(x=Fit,y=E,xlab="Fitted values",ylab="Residuals") 
 par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
 plot(x = Fit, 
@@ -2150,30 +2228,50 @@ plot(x = Fit,
 abline(v = 0, lwd = 2, col = 2) #Fitted values: many below zero, and some large... bad spread? 
 abline(h = 0, lty = 2, col = 1) 
 #Alternatively: plot(P2cfinal)   Get the same, residuals Vs fitted
-plot(E~landuse,data=DataprodEx,main="Landuse",ylab="Residuals") #a bit less var. for pasture
-plot(E~sand,data=DataprodEx,main="Sand",ylab="Residuals") #quite equal
-plot(x=DataprodEx$rain.sum,y=E,ylab="Residuals",xlab="Rainfall",main="Rainfall")
+plot(E~landuse,data=DataprodExN,main="Landuse",ylab="Residuals") #a bit less var. for pasture
+plot(x=DataprodExN$rain.day,y=E,ylab="Residuals",xlab="Rainfall",main="Rainfall")
 hist(E) #Residuals of the model
-hist(DataprodEx$prodtot.per) #hist of Y-variable
-plot(P2.2,prodtot.per~fitted(.)) #Y variable vs fitted values 
-plot(P2.2,prodtot.per~resid(.))  # Y variable vs residuals
+hist(DataprodExN$prodtot) #hist of Y-variable
+plot(NAPN,prodtot~fitted(.)) #Y variable vs fitted values 
+plot(NAPN,prodtot~resid(.))  # Y variable vs residuals
 
 par(mfrow=c(2,2))
-plot(predict(P2.2)~landuse+sand+rain.sum+
-       landuse:rain.sum,data=DataprodEx)
+plot(predict(NAPN)~landuse+rain.day+
+       landuse:rain.day,data=DataprodExN)
 
-#Another way of validating the model - line should be straight!
-xyplot(E~rain.sum|treatment*landuse,
-       data=DataprodEx, ylab="Residuals", xlab="Rainfall (periodic)",
-       panel=function(x,y){
-         panel.grid(h = -1, v = 2)
-         panel.points(x, y, col = 1)
-         panel.loess(x, y, span = 0.5, col = 1,lwd=2)})
+####Validating model WEIGHTED ####
+#Step 9 and 10 - Zuur. The aftermath
+# Refitting with REML and validating the model
+P4 <- lme(prodtot.per~landuse+sand+poly(rain.sum,2)+
+              landuse:poly(rain.sum,2)+
+              sand:poly(rain.sum,2),
+            random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=DataprodW)
+summary(P4)
 
-#### Extracting estimates and F statistics ####
-summary(P2.2) #Parameter estimates
-anova(P2.2) #F statistics with p-values and df 
-r.squared.lme(P2.2) #To get conditional and marginal R^2 for the model
+#Graphical model validation checking for homogeneity by plotting standardized residuals vs fitted values
+par(mfrow=c(1,1))
+E <- resid(P4,type="normalized")
+Fit <- fitted(P4)
+#plot(x=Fit,y=E,xlab="Fitted values",ylab="Residuals") 
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = Fit, 
+     y = E,
+     xlab = "Fitted values",
+     ylab = "Residuals",main="Residuals P2.2")
+abline(v = 0, lwd = 2, col = 2) #Fitted values: many below zero, and some large... bad spread? 
+abline(h = 0, lty = 2, col = 1) 
+#Alternatively: plot(P2cfinal)   Get the same, residuals Vs fitted
+plot(E~landuse,data=DataprodW,main="Landuse",ylab="Residuals") #a bit less var. for pasture
+plot(E~sand,data=DataprodW,main="Sand",ylab="Residuals") #quite equal
+plot(x=DataprodW$rain.sum,y=E,ylab="Residuals",xlab="Rainfall",main="Rainfall")
+hist(E) #Residuals of the model
+hist(DataprodW$prodtot.per) #hist of Y-variable
+plot(P4,prodtot.per~fitted(.)) #Y variable vs fitted values 
+plot(P4,prodtot.per~resid(.))  # Y variable vs residuals
+
+par(mfrow=c(2,2))
+plot(predict(P4)~landuse+sand+rain.sum+
+       landuse:rain.sum,data=DataprodW)
 
 #### Sketch fitted values, following Stu's script ####
 #   RUN the P2.2 model first! In #Validating models EX only#
@@ -2189,7 +2287,7 @@ str(Dataprod)
 #A:Specify covariate values for predictions
 MyData <- expand.grid(landuse=levels(DataprodEx$landuse),
                       #treatment=levels(Dataprod$treatment),
-                      rain.day=seq(min(DataprodEx$rain.day), max(Dataprod$rain.day), length = 25)) #Length of rain.sum estimates 25 random numbers between the min and max for every other category (if just landuse in the model, then it would estimate 50 random points  - 25 for pasture/ 25 for wild)
+                      rain.day=seq(min(DataprodEx$rain.day), max(DataprodEx$rain.day), length = 25)) #Length of rain.sum estimates 25 random numbers between the min and max for every other category (if just landuse in the model, then it would estimate 50 random points  - 25 for pasture/ 25 for wild)
 #B. Create X matrix with expand.grid
 X <- model.matrix(~landuse+
                     #treatment+
@@ -2262,6 +2360,91 @@ NAPpred
 #  width= 26, height = 18,units ="cm",
 #  dpi = 600, limitsize = TRUE)
 
+#### Sketch fitted values, with N total ####
+#   RUN the NAPN model first! In #Validating models with N.total#
+
+#A. Specify covariate values for predictions
+#B. Create X matrix with expand.grid
+#C. Calculate predicted values
+#D. Calculate standard errors (SE) for predicted values
+#E. Plot predicted values
+#F. Plot predicted values +/- 	1.96 * SE
+
+#A:Specify covariate values for predictions
+MyData <- expand.grid(landuse=levels(DataprodExN$landuse),
+                      #treatment=levels(Dataprod$treatment),
+                      rain.day=seq(min(DataprodExN$rain.day), max(DataprodExN$rain.day), length = 25)) #Length of rain.sum estimates 25 random numbers between the min and max for every other category (if just landuse in the model, then it would estimate 50 random points  - 25 for pasture/ 25 for wild)
+#B. Create X matrix with expand.grid
+X <- model.matrix(~landuse+
+                    poly(rain.day,2)+
+                    landuse:poly(rain.day,2),data=MyData)
+head(X)
+
+#C. Calculate predicted values
+#NewData$Pred <- predict(M4, NewData, level = 0)
+#The level = 0 ensure that we fit the fixed effects
+#Or:
+MyData$Pred <- X %*% fixef(NAPN)  # = X * beta
+
+#D. Calculate standard errors (SE) for predicted values
+#   SE of fitted values are given by the square root of
+#   the diagonal elements of: X * cov(betas) * t(X)  
+#   Take this for granted!
+
+MyData$SE <- sqrt(  diag(X %*% vcov(NAPN) %*% t(X))  )
+
+#And using the Pred and SE values, we can calculate
+#a 95% confidence interval
+MyData$SeUp <- MyData$Pred + 1.96 * MyData$SE
+MyData$SeLo <- MyData$Pred - 1.96 * MyData$SE
+
+#E. Plot predicted values
+names(MyData)
+colnames(MyData)[3]<-"prodtot"
+
+library(tidybayes)
+
+#### Plotting Obs vs pred, with N total ####
+# Scatter plot with community NAP and rainfall
+NAPpred<-ggplot(data=DataprodExN,aes(x=rain.day, y=prodtot)) #observed
+NAPpred<-NAPpred+geom_ribbon(data=MyData,aes(ymin=SeUp, ymax=SeLo),fill="springgreen4",colour="springgreen4",alpha=.65,lwd=NA,show.legend=F)
+NAPpred<-NAPpred+geom_line(data=MyData,aes(ymin=SeUp, ymax=SeLo),colour="springgreen4",alpha=.9,lwd=2,show.legend=F)
+NAPpred<-NAPpred+geom_point(stats="identity",size=2.5) #observed values
+#,aes(colour=region,fill=region)
+#NAPpred <- NAPpred+scale_colour_manual(values=c("goldenrod1","dodgerblue1","deepskyblue4"))
+NAPpred<-NAPpred+facet_wrap(~landuse, scale="fixed")
+#NAPpred<-NAPpred+scale_x_continuous(limits=c(0,530), breaks = c(0,100,200,300,400,500), labels = c(0,100,200,300,400,500), expand=c(0,0))
+NAPpred<-NAPpred+scale_x_continuous(limits=c(0,8), breaks = c(0,2,4,6,8), labels = c(0,2,4,6,8), expand=c(0,0))
+NAPpred<-NAPpred+scale_y_continuous(limits=c(-4,10), breaks = c(-2,0,2,4,6,8), labels = c(-2,0,2,4,6,8), expand=c(0,0))
+NAPpred<-NAPpred+ylab(expression(paste("Productivity (g ",m^-2," ",day^-1,")")))+xlab("Daily rainfall (mm)") # Adding x and ylabs to plot
+NAPpred<-NAPpred+theme_bw()+
+  theme(
+    rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
+    ,panel.background=element_rect(fill="transparent")
+    ,plot.background=element_rect(fill="transparent",colour=NA)
+    ,panel.grid.minor = element_blank() # Removing all grids and borders
+    ,panel.border = element_blank()
+    ,panel.grid.major.x = element_blank()
+    ,panel.grid.major.y = element_blank()
+    ,axis.line.y = element_line(color="black", size = .5) # Adding back the axis lines
+    ,axis.line.x = element_line(color="black", size = .5)
+    ,axis.title=element_text(size=12,color="black")
+    ,axis.text.x=element_text(size=11,color="black",
+                              margin=margin(2.5,2.5,2.5,2.5,"mm"))
+    ,axis.ticks.length=unit(-1.5, "mm")
+    ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+    ,plot.margin = unit(c(5,5,5,5), "mm")
+    ,strip.text.x = element_text(size = 12, hjust=0.1,colour = "black") # The text size of the strip (facet panel) titles
+    ,strip.background = element_rect(fill="transparent",colour=NA)
+    ,panel.spacing = unit(2, "lines"))
+NAPpred<-NAPpred+annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = 0, xend = 0, size = 1) 
+NAPpred<-NAPpred+annotate(geom = 'segment', y = 0, yend = 0, color = 'black', x = -Inf, xend = Inf, size = 0.5) 
+NAPpred
+
+# ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPpredN.png",
+#   width= 26, height = 18,units ="cm",
+#   dpi = 600, limitsize = TRUE)
+
 #### Total CONS, periodic lme ####
 #Dataframe without the Handajega H7 values
 Datacons1 <- Datacons[!(Datacons$site.name=="Handajega" & Datacons$harvest=="H7"),]
@@ -2312,17 +2495,17 @@ acf(EC, na.action=na.pass,main="Auto-correlation plot for residuals") # Temproal
 
 #Selecting fixed structure using ML. Simplifying with drop1
 #With poly(rain.day,2)
-CONS2 <- lme(constot~prodtot+sand+N.total+poly(rain.day,2)+
-                  landuse:prodtot+
-                  landuse:sand+
-                  landuse:poly(rain.day,2)+
-                  landuse:N.total+
-                  poly(rain.day,2):sand+
-                  poly(rain.day,2):N.total+
-                  prodtot:N.total+
-                  sand:N.total+
-                prodtot:sand+
-                landuse:sand:poly(rain.day,2),
+CONS2 <- lme(constot~prodtot+N.total+
+                  #landuse:prodtot+
+                  #landuse:sand+
+                  #landuse:poly(rain.day,2)+
+                  #landuse:N.total+
+                  #poly(rain.day,2):sand+
+                  #poly(rain.day,2):N.total+
+                  prodtot:N.total,
+                  #sand:N.total+
+                #prodtot:sand+
+                #landuse:sand:poly(rain.day,2),
                 random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Datacons)
 drop1(CONS2,test="Chisq") #dropping if not significant term
 C2 <- CONS2
@@ -2338,7 +2521,6 @@ AIC(C2)
 #   sand:N.total+
 #   prodtot:sand+
 #   landuse:sand:poly(rain.day,2)
-# C2dredge <- dredge(C2,trace=T,rank="AICc",REML=F) --> This gave three best models with prod+N.tot+ prod:N.tot. The best model with prod only. Land-use and rain was not significant
 C2.1 <- lme(constot~prodtot,
             random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Datacons)
 drop1(C2.1,test="Chisq") #dropping if not significant term
@@ -2356,14 +2538,15 @@ drop1(C2.3,test="Chisq") #dropping if not significant term
 AIC(C2.3)
 
 model.sel(C2.1,C2.2,C2.3)
+C2dredge <- dredge(C2,trace=T,rank="AICc",REML=F) #  --> This gave three best models with prod+N.tot+ prod:N.tot. The best model with prod only. Land-use and rain was not significant
+write.table(dredge(C2,trace=T,rank="AICc",REML=F), file="Moveable exclosures/CONSmodelsAIC.txt")
+
+#Getting parameter estimates for C2.1 (ML)
+drop1(C2.1,test="Chisq")
+summary(C2.1) #Parameter estimates
+r.squared.lme(C2.1) 
 
 #### DREDGING - THREE VERY SIMILAR MODELS ####
-#Anders model
-LabileMainMod1 <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^2+
-                         Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+Region:Landuse:Treatment-
-                         C.N:Temp-C.N:Sand-Temp:Sand+
-                         (1|Site/Blockcode/Plot), na.action=na.fail,REML = F,data=LabileMain_NA_filtered)
-
 CONS.lme <- lme(constot~landuse+prodtot+sand+poly(rain.sum,2)+N.total+
                   landuse:prodtot+
                   landuse:sand+
@@ -2377,13 +2560,23 @@ CONS.lme <- lme(constot~landuse+prodtot+sand+poly(rain.sum,2)+N.total+
                   landuse:sand:poly(rain.sum,2), 
                 random=~1|site.name/block.id, method="ML",correlation=cs1AR1,data=Datacons)
 
-modsetlmer_CONSlme <- dredge(CONS.lme,trace=2) 
+#modsetlmer_CONSlme <- dredge(CONS.lme,trace=2) 
 model.sel(CONS.lme) #Model selection table giving AIC, deltaAIC and weighting
 modavglmer_CONSlme<-model.avg(modsetlmer_CONSlme) #Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modsetlmer_CONSlme)#Importance of each variable
 write.table(importance(modavglmer_CONSlme),file="Moveable exclosures/Importance_CONSlme.txt")
 summarymodmodavglmer_CONSlme <- summary(modavglmer_CONSlme)#Estimated coefficients given weighting
-write.table(summary(modavglmer_CONSlme)$coefmat.subset,file="Moveable exclosure/SumCoef_CONSlme.txt")
+write.table(summary(modavglmer_CONSlme)$coefmat.subset,file="Moveable exclosures/SumCoef_CONSlme.txt")
+
+#Plotting
+importance.CONS<- read.table("Moveable exclosures/Importance_CONSlme.txt")
+colnames(importance.CONS)<- 'CONS'
+rownames(importance.CONS) <- (c("Prod","Leaf N","Sand","Leaf N:Prod", "Land-use","Prod:Sand", "Leaf N:Sand", "Rain","Land-use:Prod","Land-use:leaf N","Land-use:Sand","Land-use:Rain","Leaf N:Rain","Rain:Sand","L-use:Rain:Sand"))
+col.CONS <- c("springgreen4","chartreuse3","burlywood3","chartreuse4","darkgoldenrod1","darkolivegreen","darkkhaki","deepskyblue4","olivedrab4","yellowgreen","sandybrown","lightcoral","mediumseagreen","skyblue4","gray50")
+png(filename = "Moveable exclosures/imp.CONS.png")
+par(mar=c(5,15,1,2))
+barplot(t(as.matrix(importance.CONS)), horiz=T,las=1,xlab='Relative variable importance',main='Periodic consumption community',axisname=T,col=col.CONS,beside=T,cex.main = 1.5,cex.axis=2,cex.lab=1,cex.names=2)
+dev.off()
 
 # Refitting with REML and validating the model
 C1 <- lme(constot~prodtot,
@@ -2415,24 +2608,26 @@ plot(predict(C1)~prodtot,data=Datacons) #Predicted(fitted) vs fixed effect
 
 #### Sketch fitted values CONS ####
 #A:Specify covariate values for predictions
-MyData <- expand.grid(prodtot = seq(min(Datacons$prodtot), max(Datacons$prodtot), length = 25),rain.day=seq(min(Datacons$rain.day), max(Datacons$rain.day), length = 25))
+MyData <- expand.grid(prodtot = seq(min(Datacons$prodtot), max(Datacons$prodtot) 
+                                    #length = 25),rain.day=seq(min(Datacons$rain.day), max(Datacons$rain.day), length = 25))
+))
 
 #B. Create X2 matrix with expand.grid
-X2 <- model.matrix(~ prodtot,rain.day, data = MyData)
+X2 <- model.matrix(~ prodtot, data = MyData)
 head(X2)
 
 #C. Calculate predicted values
 #NewData$Pred <- predict(M4, NewData, level = 0)
 #The level = 0 ensure that we fit the fixed effects
 #Or:
-MyData$Pred <- X2 %*% fixef(C1)  # = X * beta
+MyData$Pred <- X2 %*% fixef(C2.1)  # = X * beta
 
 #D. Calculate standard errors (SE) for predicted values
 #   SE of fitted values are given by the square root of
 #   the diagonal elements of: X * cov(betas) * t(X)  
 #   Take this for granted!
 
-MyData$SE <- sqrt(  diag(X2 %*% vcov(C1) %*% t(X2))  )
+MyData$SE <- sqrt(  diag(X2 %*% vcov(C2.1) %*% t(X2))  )
 
 #And using the Pred and SE values, we can calculate
 #a 95% confidence interval
@@ -2445,14 +2640,14 @@ colnames(MyData)[2]<-"constot"
 
 #### CONS obs VS pred #####
 # Scatter plot with community CONS and rainfall
-CONSpred<-ggplot(data=Datacons,aes(x=rain.day, y=constot)) #observed
-#CONSpred<-CONSpred+geom_ribbon(data=MyData,aes(ymin=SeUp, ymax=SeLo),fill="red",colour="red",alpha=.65,lwd=NA,show.legend=F)
-#CONSpred<-CONSpred+geom_line(data=MyData,aes(ymin=SeUp, ymax=SeLo),colour="red",alpha=.9,lwd=2,show.legend=F)
+CONSpred<-ggplot(data=Datacons,aes(x=prodtot, y=constot)) #observed
+CONSpred<-CONSpred+geom_ribbon(data=MyData,aes(ymin=SeUp, ymax=SeLo),fill="red",colour="red",alpha=.65,lwd=NA,show.legend=F)
+CONSpred<-CONSpred+geom_line(data=MyData,aes(ymin=SeUp, ymax=SeLo),colour="red",alpha=.9,lwd=2,show.legend=F)
 CONSpred<-CONSpred+geom_point(stats="identity",colour="grey50",fill="grey50",size=2.5) #observed values
-CONSpred<-CONSpred+facet_wrap(~landuse, scale="fixed")
-CONSpred<-CONSpred+scale_x_continuous(limits=c(0,8), breaks = c(0,2,4,6,8), labels = c(0,2,4,6,8), expand=c(0,0))
-CONSpred<-CONSpred+scale_y_continuous(limits=c(-3,5),breaks=c(-3,-2,-1,0,1,2,3,4,5,6), labels =c(-3,-2,-1,0,1,2,3,4,5,6),expand=c(0,0))
-CONSpred<-CONSpred+ylab(expression(paste("Consumption (g ",m^-2," ",day^-1,")")))+xlab("Daily rainfall (mm)") # Adding x and ylabs to plot
+#CONSpred<-CONSpred+facet_wrap(~landuse, scale="fixed")
+#CONSpred<-CONSpred+scale_x_continuous(limits=c(0,8), breaks = c(0,2,4,6,8), labels = c(0,2,4,6,8), expand=c(0,0))
+CONSpred<-CONSpred+scale_y_continuous(limits=c(-3,5),breaks=c(-3,-2,-1,0,1,2,3,4,5), labels =c(-3,-2,-1,0,1,2,3,4,5),expand=c(0,0))
+CONSpred<-CONSpred+ylab(expression(paste("Consumption (g ",m^-2," ",day^-1,")")))+xlab(expression(paste("Productivity(g ",m^-2," ",day^-1,")"))) # Adding x and ylabs to plot
 CONSpred<-CONSpred+theme_bw()+
   theme(
     rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
@@ -2473,21 +2668,26 @@ CONSpred<-CONSpred+theme_bw()+
     ,strip.text.x = element_text(size = 12, hjust=0.1,colour = "black") # The text size of the strip (facet panel) titles
     ,panel.spacing = unit(2,"lines")
     ,strip.background = element_rect(fill="transparent",colour=NA))
-CONSpred<-CONSpred+annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = 0, xend = 0, size = 0.5) 
-CONSpred<-CONSpred+annotate(geom = 'segment', y = 0, yend = 0, color = 'black', x = -Inf, xend = Inf, size = 0.5) 
+#CONSpred<-CONSpred+annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = 0, xend = 0, size = 0.5) 
+#CONSpred<-CONSpred+annotate(geom = 'segment', y = 0, yend = 0, color = 'black', x = -Inf, xend = Inf, size = 0.5) 
 CONSpred
+ # ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/CONSpred.png",
+ #   width= 26, height = 18,units ="cm",
+ #   dpi = 600, limitsize = TRUE)
 
 #### DOMINANT sp ####
-#DFs Stackprod and Stackcons
-### NAP periodic ###
-# Dataframes productivity
-Stackprod <- Datastack[complete.cases(Datastack[c("prodsp.per")]),]   #253 obs
-Stackprod <- Stackprod[Stackprod$treatment!="open",]  #248 obs
+### NAP periodic ####
+plot(Stackprod$prodsp)
+hist(Stackprod$prodsp)
 
-Stackopen <-  Datastack[complete.cases(Datastack[c("prodsp")]),] 
-Stackopen <- Stackopen[Stackopen$treatment!="exclosed",] #254 obs
-#Excluding outliers due to unreliable productivity estimates
-Stackprod1 <- Stackprod[-c(4,58,114,201),]
+plot(StackprodW$prodsp.per)
+#identify(StackprodW$prodsp.per)
+hist(StackprodW$prodsp.per)
+#Excluding outliers due to unreliable productivity estimates (weighted data)
+StackprodW1 <- StackprodW[-c(4,42,58,114,201),] #244 obs 
+plot(StackprodW1$prodsp.per)
+hist(StackprodW1$prodsp.per)
+
 #Dominant sp. only
 Stackprod.dom <- subset(Stackprod,pool=="target")
 Stackprod.oth <- subset(Stackprod,pool=="other")
@@ -2516,49 +2716,52 @@ with(Stackopen, {interaction.plot(rain.day,pool,prodsp,
                                   
                                   fun=mean)})
 
-
+#### domNAP weighted ####
 # Linear model
-napmod <- lm(prodsp.per~landuse+poly(rain.day,2)+sand+
-               landuse:poly(rain.day,2)+
-                landuse:sand+
-               sand:poly(rain.day,2),
-                data=Stackprod.dom)
+napmod <- lm(prodsp.per~landuse+poly(rain.day,2)+sand+pool+
+          landuse:poly(rain.day,2)+
+          landuse:sand+
+          poly(rain.day,2):pool+
+          sand:poly(rain.day,2),
+   data=StackprodW1)
 summary(napmod)
 par(mfrow=c(1,1))
-plot(resid(napmod)~Stackprod.dom$landuse,xlab="landuse",ylab="residuals")
-plot(resid(napmod)~Stackprod.dom$rain.day,xlab="rainfall",ylab="residuals")
-plot(resid(napmod)~Stackprod.dom$sand,xlab="sand",ylab="residuals")
-#identify(resid(napmod)~Stackprod$pool,xlab="target.other",ylab="residuals") # 4  58 114 201
+plot(resid(napmod)~StackprodW1$landuse,xlab="landuse",ylab="residuals")
+plot(resid(napmod)~StackprodW1$rain.day,xlab="rainfall",ylab="residuals")
+plot(resid(napmod)~StackprodW1$sand,xlab="sand",ylab="residuals")
+plot(resid(napmod)~StackprodW1$pool,xlab="pool",ylab="residuals")
+
 #Outlier 127 DRY_P_1_H1 other is high, due to very different cover of Op (40) and Ex (92)?
-hist(Stackprod.dom$prodsp.per)
-plot(Stackprod.dom$prodsp.per~Stackprod.dom$landuse+Stackprod.dom$harvest)
+
 #Plotting residuals against time (YrMonthNumber)
-plot(resid(napmod)~Stackprod.dom$YrMonthNumber,xlab="YrMonth",ylab="residuals") #not evenly distributed, so there is a pattern
+plot(resid(napmod)~StackprodW1$YrMonthNumber,xlab="YrMonth",ylab="residuals") #not so clear pattern
 
 #a.Extracting residuals from lm
 E <- residuals(napmod,type="pearson")
-I1 <- !is.na(Stackprod.dom$prodsp.per)
-Efull <- vector(length=length(Stackprod.dom$prodsp.per))
+I1 <- !is.na(StackprodW1$prodsp.per)
+Efull <- vector(length=length(StackprodW1$prodsp.per))
 Efull <- NA
 Efull[I1]<- E
 Efull
 
 #b.time auto-correlated
 acf(Efull, na.action=na.pass,main="Auto-correlation plot for residuals") #again, there is a pattern
-xyplot(Efull~YrMonthNumber|site.name, col=1,ylab="Residuals",data=Stackprod.dom)
+xyplot(Efull~YrMonthNumber|site.name, col=1,ylab="Residuals",data=StackprodW1)
 
 #Implementing the AR-1 autocorrelation
 cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|site.name/block.id/plot.code) # AR matrix needs to be unique
-cs1AR1. <- Initialize(cs1AR1, data = Stackprod.dom)
+cs1AR1. <- Initialize(cs1AR1, data = StackprodW1)
 corMatrix(cs1AR1.) #What does this give? 
 
 #LME with temporal auto-correlation (using nlme package)
-NAP.lme <- lme(prodsp.per~landuse+poly(rain.day,2)+sand+
+NAP.lme <- lme(prodsp.per~landuse+poly(rain.day,2)+sand+pool+
                  landuse:poly(rain.day,2)+
                  landuse:sand+
+                 poly(rain.day,2):pool+
                  poly(rain.day,2):sand+
-                 sand:poly(rain.day,2):landuse, 
-        random=~1|site.name/block.id, method="REML",correlation=cs1AR1,data=Stackprod.dom)
+                 sand:poly(rain.day,2):landuse+
+                 landuse:poly(rain.day,2):pool, 
+        random=~1|site.name/block.id, method="REML",correlation=cs1AR1,data=StackprodW1)
 summary(NAP.lme)#for parameter estimates, don't use the p-values
 anova(NAP.lme) #get F statistics and P-values
 AIC(NAP.lme)
@@ -2581,42 +2784,75 @@ acf(E2, na.action=na.pass,main="Auto-correlation plot for residuals") # Temproal
 
 #Selecting fixed structure using ML. Simplifying with drop1
 #Rain.sum non-transformed
-D1 <- lme(prodsp.per~landuse+poly(rain.day,2)+
-                  landuse:poly(rain.day,2)+
-                  landuse:sand+
-                  poly(rain.day,2):sand,
-       random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Stackprod.dom)
+D1 <- lme(prodsp.per~landuse+poly(rain.day,2)+sand+
+            landuse:poly(rain.day,2)+
+            #landuse:sand+
+            #poly(rain.day,2):pool+
+            poly(rain.day,2):sand,
+            #sand:poly(rain.day,2):landuse+
+            #landuse:poly(rain.day,2):pool,
+       random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=StackprodW1)
 drop1(D1,test="Chisq") #dropping if not significant term
 AIC(D1) #1094.439
 anova(D1)
-summary(D1)
 
 ### Getting parameter estimates and p-values ### 
 summary(D1) #Parameter estimates
 anova(D1) #F statistics with p-values and df 
 r.squared.lme(D1) #To get conditional and marginal R^2 for the model
 
-#D1dredge <- dredge(D1,trace=T,rank="AICc",REML=F)
 # Updating the model - generating p-values for each term (with ML)
-# landuse + poly(rain.day,2) + land:rain
-D1a <- update(D1,  .~. -pool:poly(rain.day,2))
+# landuse + poly(rain.day,2) + sand + land:rain + rain:sand
+D1a <- update(D1,  .~. -sand:poly(rain.day,2))
 D1b <- update(D1,  .~. -landuse:poly(rain.day,2))
-D1. <- update(D1b, .~. -pool:poly(rain.day,2))
+D1. <- update(D1b, .~. -sand:poly(rain.day,2))
 D1c <- update(D1., .~. -landuse)
 D1d <- update(D1., .~. -poly(rain.day,2))
-D1e <- update(D1., .~. -pool)
+D1e <- update(D1., .~. -sand)
 
-anova(D1,D1a) #pool:poly(rain.day,2)      7.139841  0.0282 
-anova(D1,D1b) #landuse:poly(rain.day,2)   13.78034   0.001
-anova(D1.,D1c) #landuse                   0.02016713  0.8871  NS 
-anova(D1.,D1d) #rain                      8.165315  0.0169
-anova(D1.,D1e) #sand                      2.49409  0.1143     NS
+anova(D1,D1a) #sand:poly(rain.day,2)      7.411446  0.0246
+anova(D1,D1b) #landuse:poly(rain.day,2)   10.97844  0.0041
+anova(D1.,D1c) #landuse                   0.0482035  0.8262 NS
+anova(D1.,D1d) #rain                      18.76669   1e-04 <.001
+anova(D1.,D1e) #sand                      2.223895  0.1359  NS 
 
-#### Refitting with REML and validating the model ###
-D1 <- lme(prodsp~landuse+poly(rain.day,2)+pool+
+#### Importance domNAP weighted ####
+#Dredging - getting the relative importance of each variable (RVI)
+#Full model again
+D1full<- lme(prodsp.per~landuse+poly(rain.day,2)+sand+pool+
+               landuse:poly(rain.day,2)+
+               landuse:sand+
+               poly(rain.day,2):pool+
+               poly(rain.day,2):sand+
+             sand:poly(rain.day,2):landuse+
+             landuse:poly(rain.day,2):pool,
+                 random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=StackprodW1)
+
+modsetlmer_PRODDlme <- dredge(D1full,trace=2) 
+model.sel(D1full) #Model selection table giving AIC, deltaAIC and weighting
+modavglmer_PRODDlme<-model.avg(modsetlmer_PRODDlme) #Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modsetlmer_PRODDlme)#Importance of each variable
+write.table(importance(modavglmer_PRODDlme),file="Moveable exclosures/Importance_PRODDlme.txt")
+summarymodavglmer_PRODDlme <- summary(modavglmer_PRODDlme)#Estimated coefficients given weighting
+write.table(summary(modavglmer_PRODDlme)$coefmat.subset,file="Moveable exclosures/SumCoef_PRODDlme.txt")
+
+#Plotting 
+importance.PRODD<- read.table("Moveable exclosures/Importance_PRODDlme.txt")
+colnames(importance.PRODD)<- 'PRODD'
+rownames(importance.PRODD) <- (c("Rainfall","Land-use","Sand","Land-use:Rainfall","Rainfall:Sand","Land-use:Sand","Pool","Rain:Pool","Land-use:Rain:sand","Land-use:Rain:Pool
+"))
+col.PRODD <- c("deepskyblue4","darkgoldenrod1","burlywood3","lightcoral","skyblue4","sandybrown","red","gray50","gray70","gray85")
+png(filename = "Moveable exclosures/imp.PRODD.png")
+par(mar=c(5,15,1,2))
+barplot(t(as.matrix(importance.PRODD)), horiz=T,las=1,xlab='Relative variable importance',main='Periodic production (dominant sp)',axisname=T,col=col.PRODD,beside=T,cex.main = 1.5,cex.axis=2,cex.lab=1,cex.names=2)
+dev.off()
+
+
+#### Validating domNAP weighted ####
+D1 <- lme(prodsp.per~landuse+poly(rain.day,2)+sand+
             landuse:poly(rain.day,2)+
-            poly(rain.day,2):pool, 
-          random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=Stackprod)
+            poly(rain.day,2):sand, 
+          random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=StackprodW1)
 
 #Graphical model validation checking for homogeneity by plotting standardized residuals vs fitted values
 par(mfrow=c(1,1))
@@ -2631,27 +2867,28 @@ plot(x = Fit,
 abline(v = 0, lwd = 2, col = 2) #Fitted values 
 abline(h = 0, lty = 2, col = 1) 
 plot(D1)  # Get the same, residuals Vs fitted
-plot(E~landuse,data=Stackprod,main="Landuse",ylab="Residuals") #a bit less var. for pasture
-plot(E~pool,data=Stackprod,main="Pool",ylab="Residuals") #quite equal
-plot(x=Stackprod$rain.sum,y=E,ylab="Residuals",xlab="Rainfall",main="Rainfall")
+plot(E~landuse,data=StackprodW1,main="Landuse",ylab="Residuals") #a bit less var. for pasture
+plot(E~pool,data=StackprodW1,main="Pool",ylab="Residuals") #quite equal
+plot(x=StackprodW1$rain.day,y=E,ylab="Residuals",xlab="Rainfall",main="Rainfall")
 hist(E) #Residuals of the model: normally distributed
-hist(Stackprod$prodsp) #hist of Y-variable
-plot(D1,prodsp~fitted(.)) #Y variable vs fitted values 
-plot(D1,prodsp~resid(.))  # Y variable vs residuals
+hist(StackprodW1$prodsp.per) #hist of Y-variable
+plot(D1,prodsp.per~fitted(.)) #Y variable vs fitted values 
+plot(D1,prodsp.per~resid(.))  # Y variable vs residuals
 
 par(mfrow=c(2,2))
-plot(predict(D1)~landuse+pool+rain.day+
+plot(predict(D1)~landuse+sand+rain.day+
        pool:rain.day+
-       landuse:rain.day,data=Stackprod)
+       landuse:rain.day,data=StackprodW1)
 
 ### Sketching fitted values 
 #A:Specify covariate values for predictions
-MyData <- expand.grid(landuse=levels(Stackprod$landuse), pool=levels(Stackprod$pool),
-                      #sand=seq(min(Stackprod1$sand),max(Stackprod1$sand),length.out = 25),
-                      rain.day=seq(min(Stackprod$rain.day), max(Stackprod$rain.day), length = 25)) #Length of rain estimates 25 random numbers between the min and max for every other category (if just landuse in the model, then it would estimate 50 random points  - 25 for pasture/ 25 for wild)
+MyData <- expand.grid(landuse=levels(StackprodW1$landuse), 
+                      #pool=levels(Stackprod$pool),
+                      sand=seq(min(StackprodW1$sand),max(StackprodW1$sand),length.out = 25),
+                      rain.day=seq(min(StackprodW1$rain.day), max(StackprodW1$rain.day), length = 25)) #Length of rain estimates 25 random numbers between the min and max for every other category (if just landuse in the model, then it would estimate 50 random points  - 25 for pasture/ 25 for wild)
 #B. Create X matrix with expand.grid
-X <- model.matrix(~landuse+pool+poly(rain.day,2)+
-                    pool:poly(rain.day,2)+
+X <- model.matrix(~landuse+sand+poly(rain.day,2)+
+                    sand:poly(rain.day,2)+
                     landuse:poly(rain.day,2),data=MyData)
 head(X)
 
@@ -2675,12 +2912,12 @@ MyData$SeLo <- MyData$Pred - 1.96 * MyData$SE
 
 #E. Plot predicted values
 names(MyData)
-colnames(MyData)[4]<-"prodsp"
+colnames(MyData)[4]<-"prodsp.per"
 
 library(tidybayes)
 
 ###Plot predicted vs observed ###
-NAPsp<-ggplot(data=Stackprod,aes(x=rain.day, y=prodsp)) #observed
+NAPsp<-ggplot(data=StackprodW1,aes(x=rain.day, y=prodsp.per)) #observed
 NAPsp<-NAPsp+geom_ribbon(data=MyData,aes(ymin=SeUp, ymax=SeLo),fill="springgreen4",colour="springgreen4",alpha=.65,lwd=NA,show.legend=F)
 NAPsp<-NAPsp+geom_line(data=MyData,aes(ymin=SeUp, ymax=SeLo),colour="springgreen4",alpha=.9,lwd=2,show.legend=F)
 NAPsp<-NAPsp+geom_point(stats="identity",size=2.5) #observed values
@@ -2690,7 +2927,7 @@ NAPsp<-NAPsp+facet_wrap(~landuse, scale="fixed")
 #NAPsp<-NAPsp+scale_x_continuous(limits=c(0,530), breaks = c(0,100,200,300,400,500), labels = c(0,100,200,300,400,500), expand=c(0,0))
 NAPsp<-NAPsp+scale_x_continuous(limits=c(0,8), breaks = c(0,2,4,6), labels = c(0,2,4,6), expand=c(0,0))
 NAPsp<-NAPsp+scale_y_continuous(limits=c(-20,20), breaks = c(-20,-10,0,10,20), labels = c(-20,-10,0,10,20), expand=c(0,0))
-NAPsp<-NAPsp+ylab(expression(paste("Productivity (g ",m^-2," ",day^-1,")")))+xlab("Periodic rainfall (mm)") # Adding x and ylabs to plot
+NAPsp<-NAPsp+ylab(expression(paste("Productivity dominant sp. (g ",m^-2," ",day^-1,")")))+xlab("Daily rainfall (mm)") # Adding x and ylabs to plot
 NAPsp<-NAPsp+theme_bw()+
   theme(
     rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
@@ -2717,6 +2954,104 @@ NAPsp
 #ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPpredicted.png",
 #width= 26, height = 18,units ="cm",
 #dpi = 600, limitsize = TRUE)
+
+#### domNAP ####
+# Linear model
+napmod <- lm(prodsp~landuse+poly(rain.day,2)+sand+pool+
+               landuse:poly(rain.day,2)+
+               landuse:sand+
+               poly(rain.day,2):pool+
+               sand:poly(rain.day,2),
+             data=Stackprod)
+summary(napmod)
+par(mfrow=c(1,1))
+plot(resid(napmod)~Stackprod$landuse,xlab="landuse",ylab="residuals")
+plot(resid(napmod)~Stackprod$rain.day,xlab="rainfall",ylab="residuals")
+plot(resid(napmod)~Stackprod$sand,xlab="sand",ylab="residuals")
+plot(resid(napmod)~Stackprod$pool,xlab="pool",ylab="residuals") #more spread out in other sp.
+
+#Plotting residuals against time (YrMonthNumber)
+plot(resid(napmod)~Stackprod$YrMonthNumber,xlab="YrMonth",ylab="residuals") #not so clear pattern
+
+#a.Extracting residuals from lm
+E <- residuals(napmod,type="pearson")
+I1 <- !is.na(Stackprod$prodsp)
+Efull <- vector(length=length(Stackprod$prodsp))
+Efull <- NA
+Efull[I1]<- E
+Efull
+
+#b.time auto-correlated
+acf(Efull, na.action=na.pass,main="Auto-correlation plot for residuals") #again, there is a pattern
+xyplot(Efull~YrMonthNumber|site.name, col=1,ylab="Residuals",data=Stackprod)
+
+#Implementing the AR-1 autocorrelation
+cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|site.name/block.id/plot.code) # AR matrix needs to be unique
+cs1AR1. <- Initialize(cs1AR1, data = Stackprod)
+corMatrix(cs1AR1.) #What does this give? 
+
+#LME with temporal auto-correlation (using nlme package)
+NAP.lme <- lme(prodsp~landuse+poly(rain.day,2)+sand+pool+
+                 landuse:poly(rain.day,2)+
+                 landuse:sand+
+                 poly(rain.day,2):pool+
+                 poly(rain.day,2):sand+
+                 sand:poly(rain.day,2):landuse+
+                 landuse:poly(rain.day,2):pool, 
+               random=~1|site.name/block.id, method="REML",correlation=cs1AR1,data=Stackprod)
+summary(NAP.lme)#for parameter estimates, don't use the p-values
+anova(NAP.lme) #get F statistics and P-values
+AIC(NAP.lme)
+
+# Checking the temporal autocorrelation
+# Extracting residuals from mixed model
+E2 <- resid(NAP.lme, type ="n")  # nlme: type = "n" , lme4: type= "pearson"
+F2 <- fitted(NAP.lme)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F2, 
+     y = E2,
+     xlab = "Fitted values",
+     ylab = "Residuals",main="Residuals NAP.lme")
+abline(v = 0, lwd = 2, col = 2) 
+abline(h = 0, lty = 2, col = 1) #Very clustered!
+
+# Time auto-correlated
+acf(E2, na.action=na.pass,main="Auto-correlation plot for residuals") # Temproal correlation
+
+#Selecting fixed structure using ML. Simplifying with drop1
+#Rain.sum non-transformed
+D2 <- lme(prodsp~landuse+poly(rain.day,2)+pool+
+            landuse:poly(rain.day,2)+
+            #landuse:sand+
+            poly(rain.day,2):pool,
+            #poly(rain.day,2):sand,
+          #sand:poly(rain.day,2):landuse+
+          #landuse:poly(rain.day,2):pool,
+          random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Stackprod)
+drop1(D2,test="Chisq") #dropping if not significant term
+AIC(D2) #1094.439
+anova(D2)
+
+### Getting parameter estimates and p-values ### 
+summary(D2) #Parameter estimates
+anova(D2) #F statistics with p-values and df 
+r.squared.lme(D2) #To get conditional and marginal R^2 for the model
+
+# Updating the model - generating p-values for each term (with ML)
+# landuse + poly(rain.day,2) + pool + land:rain + rain:pool
+D2a <- update(D2,  .~. -pool:poly(rain.day,2))
+D2b <- update(D2,  .~. -landuse:poly(rain.day,2))
+D2. <- update(D2b, .~. -pool:poly(rain.day,2))
+D2c <- update(D2., .~. -landuse)
+D2d <- update(D2., .~. -poly(rain.day,2))
+D2e <- update(D2., .~. -pool)
+
+anova(D2,D2a) #pool:poly(rain.day,2)      44.54296  <.0001
+anova(D2,D2b) #landuse:poly(rain.day,2)   16.27549   3e-04
+anova(D2.,D2c) #landuse                   0.004593862   0.946       NS
+anova(D2.,D2d) #rain                      31.10809  <.0001
+anova(D2.,D2e) #pool                      10.26988  0.0014
 
 ####|####
 ####ANNUAL #### 
