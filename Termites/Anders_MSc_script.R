@@ -1184,23 +1184,26 @@ LabileMainMod5an <- update(LabileMainMod5aJ, .~.-Landuse)
 LabileMainMod5ao <- update(LabileMainMod5aJ, .~.-Region)
 LabileMainMod5ap <- update(LabileMainMod5aJ, .~.-Season)
 
-anova(LabileMainMod5aA,LabileMainMod5a)  #0.0009554 *** #Season:Region:Landuse
-anova(LabileMainMod5ab,LabileMainMod5aA) #6.059e-05 ***#Landuse:Temp
-anova(LabileMainMod5ac,LabileMainMod5aA) #2.337e-09 *** Landuse:C.N
-anova(LabileMainMod5ad,LabileMainMod5aA) #0.1076 . Region:Temp #NS - But important for the model (See drop1 output)
-anova(LabileMainMod5ae,LabileMainMod5aA) #0.002427 ** **Region:Landuse
-anova(LabileMainMod5af,LabileMainMod5aA) #2.2e-16 ***Season:Sand
-anova(LabileMainMod5ag,LabileMainMod5aA) #0.3997 Season:Temp - NS, but need this to have the threeway
-anova(LabileMainMod5ah,LabileMainMod5aA) #1.304e-10 *** Season:Landuse
-anova(LabileMainMod5ai,LabileMainMod5aA) #1 Season:Region - NS, but need this to have the threeway
-anova(LabileMainMod5ak,LabileMainMod5aJ) # 2.2e-16 *** Sand
-anova(LabileMainMod5al,LabileMainMod5aJ) # 2.2e-16 *** Temp
-anova(LabileMainMod5am,LabileMainMod5aJ) # 1.913e-07 *** C.N
-anova(LabileMainMod5an,LabileMainMod5aJ) # 0.01129 * Landuse
-anova(LabileMainMod5ao,LabileMainMod5aJ) # 1.391e-05 *** Region
-anova(LabileMainMod5ap,LabileMainMod5aJ) # 2.2e-16 *** Season
+LabileMainModFINAL.anovaterms<- rbind(anova(LabileMainMod5aA,LabileMainMod5a)[2,],
+                                 anova(LabileMainMod5ab,LabileMainMod5aA)[2,],
+                                 anova(LabileMainMod5ac,LabileMainMod5aA)[2,],
+                                 anova(LabileMainMod5ad,LabileMainMod5aA)[2,],
+                                 anova(LabileMainMod5ae,LabileMainMod5aA)[2,],
+                                 anova(LabileMainMod5af,LabileMainMod5aA)[2,],
+                                 anova(LabileMainMod5ag,LabileMainMod5aA)[2,],
+                                 anova(LabileMainMod5ah,LabileMainMod5aA)[2,],
+                                 anova(LabileMainMod5ai,LabileMainMod5aA)[2,],
+                                 anova(LabileMainMod5ak,LabileMainMod5aJ)[2,],
+                                 anova(LabileMainMod5al,LabileMainMod5aJ)[2,],
+                                 anova(LabileMainMod5am,LabileMainMod5aJ)[2,],
+                                 anova(LabileMainMod5an,LabileMainMod5aJ)[2,],
+                                 anova(LabileMainMod5ao,LabileMainMod5aJ)[2,],
+                                 anova(LabileMainMod5ap,LabileMainMod5aJ)[2,])
+LabileMainModFINAL.anovaterms$Terms <- c("Season:Region:Landuse","Landuse:Temp","Landuse:C.N", "Region:Temp","Region:Landuse",
+                                    "Season:Sand","Season:Temp","Season:Landuse","Season.Region","Sand","Temp","C.N","Landuse","Region","Season")
+write.csv(LabileMainModFINAL.anovaterms,file="Termites/LabileMainModFINAL.anovaterms.csv")
 
-
+#FINAL model####
 LabileMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse+Season:Temp+Season:Sand+
                              Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
                              Season:Region:Landuse+
@@ -1267,6 +1270,33 @@ M1 <- gamm(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Seas
              Season:Region:Landuse+
              (1|Site/Blockcode/Plot),
              random = list(Site/Blockcode/Plot =~ 1), data = LabileMain)
+
+#### Extracting R2 from lmer model for each individual compared to full model ####
+LabileMainr2<-rbind(#LabileMain<-r.squaredGLMM(LabileMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Season +(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL), 
+  r.squaredGLMM(lmer(Massloss.per ~ Region+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL), 
+  r.squaredGLMM(lmer(Massloss.per ~ Landuse+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL), 
+  r.squaredGLMM(lmer(Massloss.per ~ Treatment+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL), 
+  r.squaredGLMM(lmer(Massloss.per ~ C.N+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Temp+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Sand+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Season:Region+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Season:Landuse+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Season:Temp+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Season:Sand+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Region:Landuse+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Region:Temp+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Landuse:C.N+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Landuse:Temp+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Season:Region:Landuse+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL))
+
+LabileMainr2<-as.data.frame(LabileMainr2)
+LabileMainr2$terms<-c("Season","Region","Landuse", "Treatment","C.N","Temp","Sand",
+                    "Season:Region","Season:Landuse","Season:Temp","Season:Sand",
+                    "Region:Landuse","Region:Temp","Landuse:C.N","Landuse:Temp","Season:Region:Landuse")
+LabileMainr2$terms<- factor(LabileMainr2$terms, levels = LabileMainr2$terms[order(LabileMainr2$R2c)])
+ggplot(LabileMainr2, aes(y=terms, x=R2c))+geom_point()
+
 
 #Exploring interaction levels, what drives the interactions to be significant?####
 #Interesting interactions to look at:
@@ -1591,29 +1621,36 @@ RecalMainMod1au <- update(RecalMainMod1aP, .~. -  C.N)
 RecalMainMod1av <- update(RecalMainMod1aP, .~. -  Temp)
 RecalMainMod1aw <- update(RecalMainMod1aP, .~. -  Sand)
 
+RecalMainModFINAL.anovaterms <- rbind(anova(RecalMainMod1ab,RecalMainMod1a)[2,],
+                                 anova(RecalMainMod1ac,RecalMainMod1a)[2,],
+                                 anova(RecalMainMod1ad,RecalMainMod1a)[2,],
+                                 anova(RecalMainMod1af,RecalMainMod1aE)[2,],
+                                 anova(RecalMainMod1ag,RecalMainMod1aE)[2,],
+                                 anova(RecalMainMod1ah,RecalMainMod1aE)[2,],
+                                 anova(RecalMainMod1ai,RecalMainMod1aE)[2,],
+                                 anova(RecalMainMod1aj,RecalMainMod1aE)[2,],
+                                 anova(RecalMainMod1ak,RecalMainMod1aE)[2,],
+                                 anova(RecalMainMod1al,RecalMainMod1aE)[2,],
+                                 anova(RecalMainMod1am,RecalMainMod1aE)[2,],
+                                 anova(RecalMainMod1an,RecalMainMod1aE)[2,],
+                                 anova(RecalMainMod1ao,RecalMainMod1aE)[2,],
+                                 anova(RecalMainMod1aq,RecalMainMod1aP)[2,],
+                                 anova(RecalMainMod1ar,RecalMainMod1aP)[2,],
+                                 anova(RecalMainMod1as,RecalMainMod1aP)[2,],
+                                 anova(RecalMainMod1at,RecalMainMod1aP)[2,],
+                                 anova(RecalMainMod1au,RecalMainMod1aP)[2,],
+                                 anova(RecalMainMod1av,RecalMainMod1aP)[2,],
+                                 anova(RecalMainMod1aw,RecalMainMod1aP)[2,])
+RecalMainModFINAL.anovaterms$Terms <- c("Season:Landuse:Treatment","Season:Region:Treatment","Season:Region:Landuse",
+                                   "Treatment:Sand","Treatment:C.N","Landuse:Temp","Landuse:C.N","Landuse:Treatment",
+                                   "Region:Treatment","Region:Landuse","Season:Treatment","Season:Landuse","Season:Region",
+                                   "Season","Region","Landuse","Treatment","C.N","Temp","Sand")
+write.csv(RecalMainModFINAL.anovaterms,file="Termites/RecalMainModFINAL.anovaterms.csv")
 
-anova(RecalMainMod1ab,RecalMainMod1a)# 0.004051 ** Season:Landuse:Treatment
-anova(RecalMainMod1ac,RecalMainMod1a)# 0.0002909 *** Season:Region:Treatment
-anova(RecalMainMod1ad,RecalMainMod1a)# 0.00149 ** Season:Region:Landuse
-anova(RecalMainMod1af,RecalMainMod1aE)# 0.08624 . Treatment:Sand    NS - Effect not sign, but important for model
-anova(RecalMainMod1ag,RecalMainMod1aE) # 0.03512 Treatment.C.N
-anova(RecalMainMod1ah,RecalMainMod1aE)# 0.2149 Landuse:Temp     NS - Effect not sign, but important for model
-anova(RecalMainMod1ai,RecalMainMod1aE)# 0.007003 ** Landuse:C.N
-anova(RecalMainMod1aj,RecalMainMod1aE)# 0.8755 Landuse:Treatment  NS  - Needed for threeway
-anova(RecalMainMod1ak,RecalMainMod1aE)# 0.1828 Region:Treatment   NS   - Needed for threeway
-anova(RecalMainMod1al,RecalMainMod1aE)# 0.009045 ** Region:Landuse  - Needed for threeway
-anova(RecalMainMod1am,RecalMainMod1aE)# 0.01887 * Season:Treatment - Needed for threeway
-anova(RecalMainMod1an,RecalMainMod1aE)# 0.2557 Season:Landuse     NS   - Needed for threeway
-anova(RecalMainMod1ao,RecalMainMod1aE)# 1.767e-12 *** Season:Region - Needed for threeway
-anova(RecalMainMod1aq,RecalMainMod1aP)# 2.747e-08 *** Season
-anova(RecalMainMod1ar,RecalMainMod1aP)# 2.2e-16 *** Region
-anova(RecalMainMod1as,RecalMainMod1aP)# 1 Landuse               NS   - Needed for two- and threeway
-anova(RecalMainMod1at,RecalMainMod1aP)# 2.2e-16 *** Treatment
-anova(RecalMainMod1au,RecalMainMod1aP)# 0.7848 C.N              NS  -   - Needed for sign twoway
-anova(RecalMainMod1av,RecalMainMod1aP)# 0.001983 ** Temp
-anova(RecalMainMod1aw,RecalMainMod1aP)# 0.000358 *** Sand
 
-#FINAL model:
+
+
+#FINAL model####
 RecalMain$Site<-as.factor(RecalMain$Site)
 RecalMain$Blockcode<-as.factor(RecalMain$Blockcode)
 RecalMain$Plot<-as.factor(RecalMain$Plot)
@@ -1644,8 +1681,52 @@ abline(v = 0, lwd = 2, col = 2)
 abline(h = 0, lty = 2, col = 1)
 
 hist(E1, nclass = 30) 
+#### Extracting R2 from lmer model for each individual compared to full model ####
+RecalMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+Treatment+C.N+Temp+Sand+
+                            Treatment:Sand+Treatment:C.N+Landuse:Temp+
+                            Landuse:C.N+Landuse:Treatment+Region:Treatment+
+                            Region:Landuse+Season:Treatment+Season:Landuse+
+                            Season:Region+
+                            Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+
+                            (1|Site/Blockcode/Plot), na.action=na.omit,REML = T, data=RecalMain)
 
-#### Standadrized temp, C:N and Sand  variables -  remove resdiual negative slope #####
+RecalMainr2<-rbind(#RecalMain<-r.squaredGLMM(RecalMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Season +(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL), 
+  r.squaredGLMM(lmer(Massloss.per ~ Region+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL), 
+  r.squaredGLMM(lmer(Massloss.per ~ Landuse+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL), 
+  r.squaredGLMM(lmer(Massloss.per ~ Treatment+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL), 
+  r.squaredGLMM(lmer(Massloss.per ~ C.N+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Temp+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Sand+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Treatment:Sand+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Treatment:C.N+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Landuse:Temp+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Landuse:C.N+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Landuse:Treatment+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Region:Treatment+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Region:Landuse+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Season:Treatment+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Season:Landuse+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Season:Region+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Season:Region:Landuse+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Season:Region:Treatment+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL),
+  r.squaredGLMM(lmer(Massloss.per ~ Season:Landuse:Treatment+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL))
+
+RecalMainr2<-as.data.frame(RecalMainr2)
+RecalMainr2$terms<-c("Season","Region","Landuse", "Treatment","C.N","Temp","Sand",
+                     "Treatment:Sand","Treatment:C.N","Landuse:Temp","Landuse:C.N","Landuse:Treatment",
+                     "Region:Treatment","Region:Landuse","Season:Treatment","Season:Landuse","Season:Region",
+                     "Season:Region:Landuse","Season:Region:Treatment","Season:Landuse:Treatment")
+RecalMainr2$terms<- factor(RecalMainr2$terms, levels = RecalMainr2$terms[order(RecalMainr2$R2c)])
+ggplot(RecalMainr2, aes(y=terms, x=R2c))+geom_point()
+
+
+
+
+
+
+
+#### Standadrized temp, C:N and Sand  variables -  remove resdiual negative slope 
 RecalMain$Temp.std <- (RecalMain$Temp - mean(RecalMain$Temp, na.rm=T)) / sd(RecalMain$Temp,na.rm=T)
 RecalMain$Sand.std <- (RecalMain$Sand - mean(RecalMain$Sand, na.rm=T)) / sd(RecalMain$Sand,na.rm=T)
 RecalMain$C.N.std <- (RecalMain$C.N - mean(RecalMain$C.N,na.rm=T)) / sd(RecalMain$C.N, na.rm=T)
@@ -1673,7 +1754,7 @@ plot(x = F1,
 abline(v = 0, lwd = 2, col = 2)
 abline(h = 0, lty = 2, col = 1)
 
-#### GLMM with Beta distribution ####
+#### GLMM with Beta distribution #
 # Ensure mass loss values are between 0 and 1 (cannot be exactly zero and one so 0.01 and 99.99)
 RecalMain$Massloss.per[RecalMain$Massloss.per>99.99]<-99.99
 RecalMain$Massloss.per[RecalMain$Massloss.per<0.01]<-0.01
@@ -2172,6 +2253,13 @@ AIC(LabileMCGMod3)# 733.6415
 drop1(LabileMCGMod3,test="Chisq") #All sign, but still rank deficient
 summary(LabileMCGMod3)
 
+#See here that Treatment is not significant, can try and remove the sign two way and then treatment.
+# LabileMCGMod4 <- update(LabileMCGMod3, .~. -Season:Treatment)
+# AIC(LabileMCGMod4)# 737.3641
+# drop1(LabileMCGMod4,test="Chisq") #
+# LabileMCGMod5 <- update(LabileMCGMod4, .~. -Treatment)
+# AIC(LabileMCGMod5)# 738.2697 - NOPE NOT BETTER THEN PREVIUOS
+
 #Exctract P-values from best model for all terms:
 LabileMCGMod3a <- update(LabileMCGMod3, .~. -Season:Region)
 LabileMCGMod3b <- update(LabileMCGMod3, .~. -Season:Treatment )
@@ -2190,22 +2278,51 @@ LabileMCGMod3m <- update(LabileMCGMod3I, .~. -Treatment)
 LabileMCGMod3n <- update(LabileMCGMod3I, .~. -Temp)
 LabileMCGMod3o <- update(LabileMCGMod3I, .~. -Sand)
 
-anova(LabileMCGMod3a,LabileMCGMod3) #Season:Region 2.2e-16 ***
-anova(LabileMCGMod3b,LabileMCGMod3) #Season:Treatment 0.01675 *
-anova(LabileMCGMod3c,LabileMCGMod3) #Season:Sand 2.31e-10 ***
-anova(LabileMCGMod3d,LabileMCGMod3) #Region:Landuse 4.574e-08 ***
-anova(LabileMCGMod3e,LabileMCGMod3) #Region:Temp 3.653e-11 ***
-anova(LabileMCGMod3f,LabileMCGMod3) #Landuse:Temp 9.561e-13 ***
-anova(LabileMCGMod3g,LabileMCGMod3) #Landuse:Sand 0.008727 **
-anova(LabileMCGMod3h,LabileMCGMod3) #Temp:Sand 0.000803 ***
-anova(LabileMCGMod3j,LabileMCGMod3I) #Season 3.279e-15 ***
-anova(LabileMCGMod3k,LabileMCGMod3I) #Region 2.787e-05 ***
-anova(LabileMCGMod3l,LabileMCGMod3I) #Landuse 0.03737 *
-anova(LabileMCGMod3m,LabileMCGMod3I) #Treatment 0.5615
-anova(LabileMCGMod3n,LabileMCGMod3I) #Temp 0.007109 **
-anova(LabileMCGMod3o,LabileMCGMod3I) #Sand 0.0008505 ***
+LabileMCGModFINAL.anovaterms <- rbind(
+anova(LabileMCGMod3a,LabileMCGMod3)[2,], #Season:Region 2.2e-16 ***
+anova(LabileMCGMod3b,LabileMCGMod3)[2,], #Season:Treatment 0.01675 *
+anova(LabileMCGMod3c,LabileMCGMod3)[2,], #Season:Sand 2.31e-10 ***
+anova(LabileMCGMod3d,LabileMCGMod3)[2,], #Region:Landuse 4.574e-08 ***
+anova(LabileMCGMod3e,LabileMCGMod3)[2,], #Region:Temp 3.653e-11 ***
+anova(LabileMCGMod3f,LabileMCGMod3)[2,], #Landuse:Temp 9.561e-13 ***
+anova(LabileMCGMod3g,LabileMCGMod3)[2,], #Landuse:Sand 0.008727 **
+anova(LabileMCGMod3h,LabileMCGMod3)[2,], #Temp:Sand 0.000803 ***
+anova(LabileMCGMod3j,LabileMCGMod3I)[2,], #Season 3.279e-15 ***
+anova(LabileMCGMod3k,LabileMCGMod3I)[2,], #Region 2.787e-05 ***
+anova(LabileMCGMod3l,LabileMCGMod3I)[2,], #Landuse 0.03737 *
+anova(LabileMCGMod3m,LabileMCGMod3I)[2,], #Treatment 0.5615
+anova(LabileMCGMod3n,LabileMCGMod3I)[2,], #Temp 0.007109 **
+anova(LabileMCGMod3o,LabileMCGMod3I)[2,]) #Sand 0.0008505 ***
+LabileMCGModFINAL.anovaterms$Terms <- c("Season:Region","Season:Treatment","Season:Sand ",
+                                        "Region:Landuse","Region:Temp","Landuse:Temp","Landuse:Sand","Temp:Sand",
+                                        "Season","Region","Landuse","Treatment","Temp","Sand")
+write.csv(LabileMCGModFINAL.anovaterms,file="Termites/LabileMCGModFINAL.anovaterms.csv")
 
-#### Approach one - BAD!
+#FINAL Model####
+LabileMCGModFINAL <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+Sand+
+                            Season:Region+Season:Treatment+Season:Sand+Region:Landuse+
+                            Region:Temp+Landuse:Temp+Landuse:Sand+Temp:Sand+
+                            (1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)
+
+summary(LabileMCGModFINAL)
+
+#Inspect chosen model for homogeneity:
+E1 <- resid(LabileMCGModFINAL, type ="pearson")
+F1 <- fitted(LabileMCGModFINAL)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F1, 
+     y = E1,
+     xlab = "Fitted values",
+     ylab = "Residuals")
+abline(v = 0, lwd = 2, col = 2)
+abline(h = 0, lty = 2, col = 1)
+#identify(F1, E1)
+hist(E1, nclass = 25) 
+
+#Strange that there are a lot of neg values and that treatment:Season is significant
+
+#### Approach one - BAD!####
 #LabileCG<-r.squaredGLMM(LabileMCGMod3) # R2c 0.9253769
 #LabileCGI<-r.squaredGLMM(LabileMCGMod3I)
 #LabileCGr2<-rbind(LabileCG-r.squaredGLMM(LabileMCGMod3a), 
@@ -2224,52 +2341,33 @@ anova(LabileMCGMod3o,LabileMCGMod3I) #Sand 0.0008505 ***
 #LabileCGr2$terms<- factor(LabileCGr2$terms, levels = LabileCGr2$terms[order(LabileCGr2$R2c)])
 #ggplot(LabileCGr2, aes(y=terms, x=R2c))+geom_point()
 
-#### Apporach 2 ####
 #### Extracting R2 from lmer model for each individual compared to full model ####
 
-LabileCGr2<-rbind(LabileCG<-r.squaredGLMM(LabileMCGMod3),
-  r.squaredGLMM(lmer(MainCGdiff ~ Season +(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)), 
-                  r.squaredGLMM(lmer(MainCGdiff ~ Region+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)), 
-                  r.squaredGLMM(lmer(MainCGdiff ~ Landuse+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)), 
-                  r.squaredGLMM(lmer(MainCGdiff ~ Treatment+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)), 
-                  r.squaredGLMM(lmer(MainCGdiff ~ Temp+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)), 
-                  r.squaredGLMM(lmer(MainCGdiff ~ Sand+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)))
+LabileCGr2<-rbind(#LabileCG<-r.squaredGLMM(LabileMCGModFINAL),
+  r.squaredGLMM(lmer(MainCGdiff ~ Season +(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL), 
+                  r.squaredGLMM(lmer(MainCGdiff ~ Region+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL), 
+                  r.squaredGLMM(lmer(MainCGdiff ~ Landuse+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL), 
+                  r.squaredGLMM(lmer(MainCGdiff ~ Treatment+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL), 
+                  r.squaredGLMM(lmer(MainCGdiff ~ Temp+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL),
+                  r.squaredGLMM(lmer(MainCGdiff ~ Sand+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL),
+                  r.squaredGLMM(lmer(MainCGdiff ~ Season:Region+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL),
+                  r.squaredGLMM(lmer(MainCGdiff ~ Season:Treatment+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL),
+                  r.squaredGLMM(lmer(MainCGdiff ~ Season:Sand+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL),
+                  r.squaredGLMM(lmer(MainCGdiff ~ Region:Landuse+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL),
+                  r.squaredGLMM(lmer(MainCGdiff ~ Region:Temp+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL),
+                  r.squaredGLMM(lmer(MainCGdiff ~ Landuse:Temp+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL),
+                  r.squaredGLMM(lmer(MainCGdiff ~ Landuse:Sand+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL),
+                  r.squaredGLMM(lmer(MainCGdiff ~ Temp:Sand+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL))
 
 LabileCGr2<-as.data.frame(LabileCGr2)
-
-
-LabileCGr2$terms<-c("Full Model","Season","Region","Landuse", "Treatment","Temp","Sand")
+LabileCGr2$terms<-c("Season","Region","Landuse", "Treatment","Temp","Sand",
+                    "Season:Region","Season:Treatment","Season:Sand","Region:Landuse","Region:Temp","Landuse:Temp","Landuse:Sand","Temp:Sand")
 LabileCGr2$terms<- factor(LabileCGr2$terms, levels = LabileCGr2$terms[order(LabileCGr2$R2c)])
 ggplot(LabileCGr2, aes(y=terms, x=R2c))+geom_point()
 
-#See here that Treatment is not significant, can try and remove the sign two way and then treatment.
-# LabileMCGMod4 <- update(LabileMCGMod3, .~. -Season:Treatment)
-# AIC(LabileMCGMod4)# 737.3641
-# drop1(LabileMCGMod4,test="Chisq") #
-# LabileMCGMod5 <- update(LabileMCGMod4, .~. -Treatment)
-# AIC(LabileMCGMod5)# 738.2697 - NOPE NOT BETTER THEN PREVIUOS
 
-#Final Model
-LabileMCGModFINAL <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+Sand+
-                            Season:Region+Season:Treatment+Season:Sand+Region:Landuse+
-                            Region:Temp+Landuse:Temp+Landuse:Sand+Temp:Sand+
-                            (1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)
-summary(LabileMCGModFINAL)
-#Inspect chosen model for homogeneity:
-E1 <- resid(LabileMCGModFINAL, type ="pearson")
-F1 <- fitted(LabileMCGModFINAL)
 
-par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
-plot(x = F1, 
-     y = E1,
-     xlab = "Fitted values",
-     ylab = "Residuals")
-abline(v = 0, lwd = 2, col = 2)
-abline(h = 0, lty = 2, col = 1)
-#identify(F1, E1)
-hist(E1, nclass = 25) 
 
-#Strange that there are a lot of neg values and that treatment:Season is significant
 
 # Interaction plot
 #Why is treatment.season sign for labile litter? #Looking a interacion plot below:
@@ -2296,18 +2394,18 @@ plot(emmeans.LabileMCGModFINAL, comparisons = TRUE) #Comparisons summarized grap
 #Conlcusion on treatment:Season: There is an effect of treatment when season is dry. CG has higher massloss in dry season (due to more rain as seen in precip data).
 
 
-#MODELL AVERAGING
-LabileDataMCG_NA_filtered <- LabileDataMCG[complete.cases(LabileDataMCG$Massloss.per,LabileDataMCG$C.N,LabileDataMCG$Sand,LabileDataMCG$Temp),]
-#Final Model
-LabileMCGModFINAL2 <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+Sand+
-                            Season:Region+Season:Treatment+Season:Sand+Region:Landuse+
-                            Region:Temp+Landuse:Temp+Landuse:Sand+Temp:Sand+
-                            (1|Site/Blockcode), na.action=na.fail, REML=T, data =LabileDataMCG_NA_filtered)
-
-modsetlmer_LabileMCGModFINAL <- dredge(LabileMCGModFINAL2,trace=2) #,fixed=c("Season","Region","Landuse","Treatment","C.N","Temp","Sand")) 
-model.sel(LabileMCGModFINAL2) #Model selection table giving AIC, deltaAIC and weighting
-modavglmer_LabileMCGModFINAL2<-model.avg(modsetlmer_LabileMCGModFINAL) #Averages coefficient estimates across multiple models according to the weigthing from above
-importance(modavglmer_LabileMCGModFINAL2)#Importance of each variable
+# #MODELL AVERAGING
+# LabileDataMCG_NA_filtered <- LabileDataMCG[complete.cases(LabileDataMCG$Massloss.per,LabileDataMCG$C.N,LabileDataMCG$Sand,LabileDataMCG$Temp),]
+# #Final Model
+# LabileMCGModFINAL2 <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+Sand+
+#                             Season:Region+Season:Treatment+Season:Sand+Region:Landuse+
+#                             Region:Temp+Landuse:Temp+Landuse:Sand+Temp:Sand+
+#                             (1|Site/Blockcode), na.action=na.fail, REML=T, data =LabileDataMCG_NA_filtered)
+# 
+# modsetlmer_LabileMCGModFINAL <- dredge(LabileMCGModFINAL2,trace=2) #,fixed=c("Season","Region","Landuse","Treatment","C.N","Temp","Sand")) 
+# model.sel(LabileMCGModFINAL2) #Model selection table giving AIC, deltaAIC and weighting
+# modavglmer_LabileMCGModFINAL2<-model.avg(modsetlmer_LabileMCGModFINAL) #Averages coefficient estimates across multiple models according to the weigthing from above
+# importance(modavglmer_LabileMCGModFINAL2)#Importance of each variable
 # write.table(importance(modavglmer_RecalMainMod1),file="Termites/Importance_RecalMain1.txt")
 # summarymodmodavglmer_RecalMain1 <- summary(modavglmer_RecalMainMod1)#Estimated coefficients given weighting
 # write.table(summary(modavglmer_RecalMainMod1)$coefmat.subset,file="Termites/SumCoef_RecalMain1.txt")
@@ -2419,37 +2517,49 @@ RecalMCGMod12a <- update(RecalMCGMod6a, .~. +Landuse:Treatment)
 anova(RecalMCGMod12a,RecalMCGMod6a) #SLanduse:Treatment not sign
 AIC(RecalMCGMod12a)# Orig.Best: 1005.783. Now: 1009.32 #Not better
 
+RecalMCGMod13a <- update(RecalMCGMod6a, .~. +Season:Treatment)
+anova(RecalMCGMod13a,RecalMCGMod6a) #Season:Treatment not sign BUT...
+AIC(RecalMCGMod13a)# Orig.Best: 1005.783. Now: 1005.125 #Better!
+
 #OK, landing on the best model, and generating p-values:
-AIC(RecalMCGMod6a)
-RecalMCGMod6aB <- update(RecalMCGMod6a, .~. - Season:Region:Landuse) #Without 3ways
-RecalMCGMod6ac <- update(RecalMCGMod6aB, .~. - Region:Landuse)
-RecalMCGMod6ad <- update(RecalMCGMod6aB, .~. - Season:Temp)
-RecalMCGMod6ae <- update(RecalMCGMod6aB, .~. - Season:Landuse)
-RecalMCGMod6af <- update(RecalMCGMod6aB, .~. - Season:Region)
-RecalMCGMod6aG <- update(RecalMCGMod6aB, .~. - Region:Landuse- Season:Temp-
-                           Season:Landuse-Season:Region) #Without two ways
-RecalMCGMod6ah <- update(RecalMCGMod6aG, .~. -Temp)
-RecalMCGMod6ai <- update(RecalMCGMod6aG, .~. - Treatment)
-RecalMCGMod6aj <- update(RecalMCGMod6aG, .~. - Landuse)
-RecalMCGMod6ak <- update(RecalMCGMod6aG, .~. - Region)
-RecalMCGMod6al <- update(RecalMCGMod6aG, .~. - Season)
+AIC(RecalMCGMod13a)
+RecalMCGMod13aB <- update(RecalMCGMod13a, .~. - Season:Region:Landuse) #Without 3ways
+RecalMCGMod13ac <- update(RecalMCGMod13aB, .~. - Region:Landuse)
+RecalMCGMod13ad <- update(RecalMCGMod13aB, .~. - Season:Temp)
+RecalMCGMod13ae <- update(RecalMCGMod13aB, .~. - Season:Landuse)
+RecalMCGMod13af <- update(RecalMCGMod13aB, .~. - Season:Region)
+RecalMCGMod13ag <- update(RecalMCGMod13aB, .~. - Season:Treatment)
+RecalMCGMod13aH <- update(RecalMCGMod13aB, .~. - Region:Landuse- Season:Temp-
+                           Season:Landuse-Season:Region-Season:Treatment) #Without two ways
+RecalMCGMod13ai <- update(RecalMCGMod13aH, .~. -Temp)
+RecalMCGMod13aj <- update(RecalMCGMod13aH, .~. - Treatment)
+RecalMCGMod13ak <- update(RecalMCGMod13aH, .~. - Landuse)
+RecalMCGMod13al <- update(RecalMCGMod13aH, .~. - Region)
+RecalMCGMod13am <- update(RecalMCGMod13aH, .~. - Season)
 
-anova(RecalMCGMod6aB,RecalMCGMod6a)# Season:Region:Landuse 0.0007802 *** 
-anova(RecalMCGMod6ac,RecalMCGMod6aB)#Region:Landuse 0.9338
-anova(RecalMCGMod6ad,RecalMCGMod6aB)# Season:Temp 0.3137
-anova(RecalMCGMod6ae,RecalMCGMod6aB)#Season:Landuse 0.274
-anova(RecalMCGMod6af,RecalMCGMod6aB)# Season:Region 0.07958 .
-anova(RecalMCGMod6ah,RecalMCGMod6aG)# Temp 0.4085
-anova(RecalMCGMod6ai,RecalMCGMod6aG)# Treatment 0.03319 *
-anova(RecalMCGMod6aj,RecalMCGMod6aG)# Landuse 0.5582
-anova(RecalMCGMod6ak,RecalMCGMod6aG)# Region 0.4597
-anova(RecalMCGMod6al,RecalMCGMod6aG)# Season 0.00675 **
+RecalMCGModFINAL.anovaterms <- rbind(
+anova(RecalMCGMod13aB,RecalMCGMod13a)[2,],# Season:Region:Landuse 0.0007068 *** 
+anova(RecalMCGMod13ac,RecalMCGMod13aB)[2,],#Region:Landuse 0.924
+anova(RecalMCGMod13ad,RecalMCGMod13aB)[2,],# Season:Temp 0.3109
+anova(RecalMCGMod13ae,RecalMCGMod13aB)[2,],#Season:Landuse 0.2652
+anova(RecalMCGMod13af,RecalMCGMod13aB)[2,],# Season:Region 0.07429 .
+anova(RecalMCGMod13ag,RecalMCGMod13aB)[2,],# Season:Treatment 0.1167
+anova(RecalMCGMod13ai,RecalMCGMod13aH)[2,],# Temp 0.4085
+anova(RecalMCGMod13aj,RecalMCGMod13aH)[2,],# Treatment 0.03319 *
+anova(RecalMCGMod13ak,RecalMCGMod13aH)[2,],# Landuse 0.5582
+anova(RecalMCGMod13al,RecalMCGMod13aH)[2,],# Region 0.4597
+anova(RecalMCGMod13am,RecalMCGMod13aH)[2,])# Season 0.00675 **
 
-RecalMCGModFINAL <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+C.N+Temp+
-                      +Region:Landuse+Season:Temp+Season:Landuse+Season:Region+
-                        Season:Region:Landuse+
-                        (1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG)
+RecalMCGModFINAL.anovaterms$Terms <- c("Season:Region:Landuse","Region:Landuse","Season:Temp","Season:Landuse","Season:Region",
+                                        "Season:Treatment","Temp","Treatment","Landuse","Region","Season")
+write.csv(RecalMCGModFINAL.anovaterms,file="Termites/RecalMCGModFINAL.anovaterms.csv")
 
+#FINAL Model####
+RecalMCGModFINAL <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+
+                           Region:Landuse+Season:Temp+Season:Landuse+Season:Region+Season:Treatment+
+                           Season:Region:Landuse+
+                           (1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG)
+summary(RecalMCGModFINAL)
 #Inspect chosen model for homogeneity:
 E1 <- resid(RecalMCGModFINAL, type ="pearson")
 F1 <- fitted(RecalMCGModFINAL)
@@ -2463,6 +2573,32 @@ abline(v = 0, lwd = 2, col = 2)
 abline(h = 0, lty = 2, col = 1)
 #identify(F1, E1)
 hist(E1, nclass = 25) 
+
+#### Extracting R2 from lmer model for each individual compared to full model ####
+
+RecalCGr2<-rbind(#RecalCG<-r.squaredGLMM(RecalMCGModFINAL), #This term is hashed to get ratio of the other terms in relation to full model
+                  r.squaredGLMM(lmer(MainCGdiff ~ Season +(1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG))/r.squaredGLMM(RecalMCGModFINAL), 
+                  r.squaredGLMM(lmer(MainCGdiff ~ Region+(1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG))/r.squaredGLMM(RecalMCGModFINAL), 
+                  r.squaredGLMM(lmer(MainCGdiff ~ Landuse+(1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG))/r.squaredGLMM(RecalMCGModFINAL), 
+                  r.squaredGLMM(lmer(MainCGdiff ~ Treatment+(1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG))/r.squaredGLMM(RecalMCGModFINAL),
+                  r.squaredGLMM(lmer(MainCGdiff ~ Temp+(1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG))/r.squaredGLMM(RecalMCGModFINAL),
+                  r.squaredGLMM(lmer(MainCGdiff ~ Season:Treatment+(1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG))/r.squaredGLMM(RecalMCGModFINAL),
+                  r.squaredGLMM(lmer(MainCGdiff ~ Season:Region+(1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG))/r.squaredGLMM(RecalMCGModFINAL),
+                  r.squaredGLMM(lmer(MainCGdiff ~ Season:Landuse+(1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG))/r.squaredGLMM(RecalMCGModFINAL),
+                  r.squaredGLMM(lmer(MainCGdiff ~ Season:Temp+(1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG))/r.squaredGLMM(RecalMCGModFINAL),
+                  r.squaredGLMM(lmer(MainCGdiff ~ Region:Landuse+(1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG))/r.squaredGLMM(RecalMCGModFINAL),
+                  r.squaredGLMM(lmer(MainCGdiff ~ Season:Region:Landuse+(1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG))/r.squaredGLMM(RecalMCGModFINAL))
+
+RecalCGr2<-as.data.frame(RecalCGr2)
+
+
+RecalCGr2$terms<-c("Season","Region","Landuse", "Treatment","Temp", "Season:Treatment","Season:Region","Season:Landuse",
+                   "Season:Temp","Region:Season","Season:Region:Landuse")
+RecalCGr2$terms<- factor(RecalCGr2$terms, levels = RecalCGr2$terms[order(RecalCGr2$R2c)])
+ggplot(RecalCGr2, aes(y=terms, x=R2c))+geom_point()
+
+
+
 
 
 #Predicted and observed values on graph####
@@ -2481,7 +2617,7 @@ LabileMCGModFINAL <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+Sand
                             Temp:Sand+
                             (1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)
 
-RecalMCGModFINAL <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+C.N+Temp+
+RecalMCGModFINAL <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+
                            #+Region:Landuse+
                            Season:Temp+
                            Season:Landuse+Season:Region+
@@ -2571,6 +2707,94 @@ RecalDataMCG.sum$SE<-RecalDataMCG.sum.se$MainCGdiff
 
 #Plot CG ####
 
+#|####
+#WRAPPING UP RESULTS####
+#Wrapping up all terms and its significance in one table####
+names(LabileMCGModFINAL.anovaterms)
+LabileMCGModFINAL.anovaterms1 <- LabileMCGModFINAL.anovaterms[,c(1,6,7,8,9)]
+RecalMCGModFINAL.anovaterms1 <- RecalMCGModFINAL.anovaterms[,c(1,6,7,8,9)]
+LabileMainModFINAL.anovaterms1 <- LabileMainModFINAL.anovaterms[,c(1,6,7,8,9)]
+RecalMainModFINAL.anovaterms1 <- RecalMainModFINAL.anovaterms[,c(1,6,7,8,9)]
+
+LabileMCGModFINAL.anovaterms1$Model <- "LabileMCG"
+RecalMCGModFINAL.anovaterms1$Model <- "RecalMCG"
+LabileMainModFINAL.anovaterms1$Model <- "LabileMain"
+RecalMainModFINAL.anovaterms1$Model <- "RecalMain"
+
+FINAL.anovaterms <- full_join(
+LabileMCGModFINAL.anovaterms1,
+RecalMCGModFINAL.anovaterms1,by="Terms")
+
+FINAL.anovaterms <- full_join(
+  FINAL.anovaterms,
+  LabileMainModFINAL.anovaterms1,by="Terms")
+FINAL.anovaterms <- full_join(
+  FINAL.anovaterms,
+  RecalMainModFINAL.anovaterms1,by="Terms")
+names(FINAL.anovaterms)
+colnames(FINAL.anovaterms) <- c("Df","F-ratio","Dfchi","P-value","Terms","Model",
+                                "Df","F-ratio","Dfchi","P-value","Model",
+                                "Df","F-ratio","Dfchi","P-value","Model",
+                                "Df","F-ratio","Dfchi","P-value","Model")
+names(FINAL.anovaterms)
+
+FINAL.anovaterms[,1] <-  as.numeric(FINAL.anovaterms[,1])
+FINAL.anovaterms[,2] <-  as.numeric(FINAL.anovaterms[,2])
+FINAL.anovaterms[,3] <-  as.numeric(FINAL.anovaterms[,3])
+FINAL.anovaterms[,4] <-  as.numeric(FINAL.anovaterms[,4])
+FINAL.anovaterms[,7] <-  as.numeric(FINAL.anovaterms[,7])
+FINAL.anovaterms[,8] <-  as.numeric(FINAL.anovaterms[,8])
+FINAL.anovaterms[,9] <-  as.numeric(FINAL.anovaterms[,9])
+FINAL.anovaterms[,10] <-  as.numeric(FINAL.anovaterms[,10])
+FINAL.anovaterms[,12] <-  as.numeric(FINAL.anovaterms[,12])
+FINAL.anovaterms[,13] <-  as.numeric(FINAL.anovaterms[,13])
+FINAL.anovaterms[,14] <-  as.numeric(FINAL.anovaterms[,14])
+FINAL.anovaterms[,15] <-  as.numeric(FINAL.anovaterms[,15])
+FINAL.anovaterms[,17] <-  as.numeric(FINAL.anovaterms[,17])
+FINAL.anovaterms[,18] <-  as.numeric(FINAL.anovaterms[,18])
+FINAL.anovaterms[,19] <-  as.numeric(FINAL.anovaterms[,19])
+FINAL.anovaterms[,20] <-  as.numeric(FINAL.anovaterms[,20])
+
+#FINAL.anovaterms[is.na(FINAL.anovaterms)] <- "" 
+
+write.csv(format(FINAL.anovaterms, digits=2), file="Termites/FINALMODELS.anovaterms.csv")
+
+#Wrapping up the R2c data into two graphs####
+#Want to have each graph comparing R2c for labile litter in Main and CG model.
+LabileMainr2A <- LabileMainr2
+RecalMainr2A <- RecalMainr2
+LabileCGr2A <- LabileCGr2
+RecalCGr2A <- RecalCGr2
+
+RecalMainr2
+
+FINAL.r2.labilemodels <- full_join(LabileMainr2,LabileCGr2,by="terms")
+colnames(FINAL.r2.labilemodels) <- c("R2m.main","R2c.main","terms","R2m.cg","R2c.cg")
+FINAL.r2.labilemodels$terms<- factor(FINAL.r2.labilemodels$terms, levels = FINAL.r2.labilemodels$terms[order(FINAL.r2.labilemodels$R2c.main)])
+
+FINAL.r2.recalmodels <- full_join(RecalMainr2,RecalCGr2,by="terms")
+colnames(FINAL.r2.recalmodels) <- c("R2m.main","R2c.main","terms","R2m.cg","R2c.cg")
+FINAL.r2.recalmodels$terms<- factor(FINAL.r2.recalmodels$terms, levels = FINAL.r2.recalmodels$terms[order(FINAL.r2.recalmodels$R2c.main)])
+
+#Plot for recal r2 models
+length(FINAL.r2.recalmodels$terms)
+r2.recalplot <- ggplot(data=FINAL.r2.recalmodels, aes(y=terms,x=R2c.main))
+r2.recalplot <- r2.recalplot+ geom_point(data=FINAL.r2.recalmodels,size=2,colour="green4",fill="green4") 
+r2.recalplot <- r2.recalplot+geom_point(data=FINAL.r2.recalmodels, aes(x=R2c.cg),size=2,color="black",fill="black",alpha=0.3)
+r2.recalplot
+ggsave(file="Termites/r2.recalplot.png",
+       width= 25, height = 12,units ="cm", bg ="transparent",
+       dpi = 600, limitsize = TRUE)
+
+#Plot for labile r2 models
+r2.labileplot <- ggplot(data=FINAL.r2.labilemodels, aes(y=terms,x=R2c.main))
+r2.labileplot <- r2.labileplot+ geom_point(data=FINAL.r2.labilemodels,size=2,colour="green4",fill="green4") 
+r2.labileplot <- r2.labileplot+geom_point(data=FINAL.r2.labilemodels, aes(x=R2c.cg),size=2,color="black",fill="black",alpha=0.3)
+r2.labileplot <- r2.labileplot+
+r2.labileplot
+ggsave(file="Termites/r2.labileplot.png",
+       width= 25, height = 12,units ="cm", bg ="transparent",
+       dpi = 600, limitsize = TRUE)
 
 
 #|####
