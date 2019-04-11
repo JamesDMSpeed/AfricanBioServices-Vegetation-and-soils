@@ -1072,11 +1072,13 @@ names(Belowground.full)
 summary(Belowground.full)
 Belowground.full$CN <- Belowground.full$tot.C.kg_m2/Belowground.full$tot.N.kg_m2
 max(Belowground.full$CN)
+Total.Eco.C$Herbaceous[Total.Eco.C$Herbaceous==0] <- NA
 # scaling tot.C to be able to compare estimates.. 
 Belowground.C$Ctot.C.kg_m2 <- as.numeric(scale(Belowground.C$tot.C.kg_m2)) 
 Aboveground.C$Ctot.C.kg_m2 <- as.numeric(scale(Aboveground.C$DW)) + as.numeric(scale(Aboveground.C$Herbaceous)) + as.numeric(scale(Aboveground.C$Woody))
 Soil.min$Ctot.C.kg_m2 <- as.numeric(scale(Soil.min$C.amount)) 
 Soil.Ahor$Ctot.C.kg_m2 <- as.numeric(scale(Soil.Ahor$C.amount))
+Herbaceous$C.amount[Herbaceous$C.amount==0] <- NA
 Herbaceous$Ctot.C.kg_m2 <- as.numeric(scale(Herbaceous$C.amount)) 
 DW$Ctot.C.kg_m2 <- as.numeric(scale(DW$C.amount)) 
 Woody$Ctot.C.kg_m2 <- as.numeric(scale(Woody$C.amount)) 
@@ -1321,12 +1323,15 @@ write.table(Minhor.dung, file="Ecosystem carbon/ConAvgMinHordung.txt")
 
 # 4. Global model for Herbs ####
 names(Herbaceous)
-Herbaceous.CnoNA<-Herbaceous[!is.na(Herbaceous$CFire_frequency.2000_2017),]
+Herbaceous.CnoNA<-Herbaceous[!is.na(Herbaceous$Ctot.C.kg_m2),]
+Herbaceous.CnoNA <- Herbaceous.CnoNA[(-20),]
 Herbaceous.CnoNA <- Herbaceous.CnoNA[(-16),]
-Herbaceous.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand + CShrubbiness2 + Ctot.N.kg_m2 + #CTreeBM.N + 
+Herbaceous.CnoNA <- droplevels(Herbaceous.CnoNA)
+summary(Herbaceous.CnoNA)
+Herbaceous.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand + CShrubbiness2 + Ctot.N.kg_m2 + 
                          CMAP.mm_yr:CSand + landuse:CMAP.mm_yr + landuse:CSand +
-                   (1|Region.x),data = Herbaceous.CnoNA, REML=F,
-                 na.action=na.fail)
+                   (1|Region.x),data = Herbaceous.CnoNA, REML=F, 
+                   na.action=na.fail)
 
 summary(Herbaceous.block)
 drop1(Herbaceous.block,test="Chisq")  
@@ -1384,7 +1389,6 @@ summary(Woody.block)
 drop1(Woody.block,test="Chisq")  
 anova(Woody.block)
 AIC(Woody.block) #75.208
-
 # Model averaging: All possible models between null and global
 modsetaboveW<-dredge(Woody.block,trace = TRUE, rank = "AICc", REML = FALSE, subset= !(Ctot.N.kg_m2 & CSand))
 modselaboveW<-model.sel(modsetaboveW) #Model selection table giving AIC, deltaAIC and weighting
@@ -1468,6 +1472,7 @@ write.table(summary(modavgtot)$coefmat.subset, file="Ecosystem carbon/con.avg.to
 names(Aboveground.C)
 Above <- Aboveground.C[,c(1,24,33,34)]
 Belowground.full <- left_join(Belowground.full,Above, by="Block.ID")
+Belowground.full$Herbaceous[Belowground.full$Herbaceous==0] <- NA
 Belowground.full$CHerb.C <- as.numeric(scale(Belowground.full$Herbaceous))
 # Add termites 
 Termites <- read.csv("Termites/RecalTermEff_Wetseason_Block.csv", head=T)
@@ -1487,6 +1492,7 @@ Belowground.full <- droplevels(Belowground.full)
 Belowground.full.CnoNA<-Belowground.full[!is.na(Belowground.full$CFire_frequency.2000_2017),]
 Belowground.full.CnoNA2<-Belowground.full.CnoNA[!is.na(Belowground.full.CnoNA$livestock),]
 names(Belowground.full.CnoNA)
+summary(Belowground.full.CnoNA)
 
 # A horizon 
 Belowground.Ahor <-lmer(AhorC.kg_m2 ~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017  + CTreeBM.kg_m2 + CSand + CShrubbiness2 + CHerb.C + CMAP.mm_yr:CSand + landuse:CMAP.mm_yr + landuse:CSand + 
@@ -1673,7 +1679,128 @@ plot(test)
 
 # Plot Livestock and wild against A-hor carbon #### 
 plot(Total.Eco.C.CnoNA2$Soil.Ahor~ Total.Eco.C.CnoNA2$livestock)
-plot(Belowground.full.CnoNA2$AhorC.kg_m2~ Belowground.full.CnoNA2$livestock)
+plot(AhorC.kg_m2~ livestock, data= Belowground.full.CnoNA2)
+plot(AhorC.kg_m2~ wild, data=Belowground.full.CnoNA2)
+
+DungC <- lme(Soil.Ahor~ livestock + wild, random= ~ 1|Region.x,na.action=na.fail, method= "REML",data=Total.Eco.C.CnoNA2)
+summary(DungC)
+
+### one way ####
+#A. Specify covariate values for predictions
+#B. Create X matrix with expand.grid
+#C. Calculate predicted values
+#D. Calculate standard errors (SE) for predicted values
+#E. Plot predicted values
+#F. Plot predicted values +/- 	1.96 * SE
+str(Belowground.full.CnoNA2)
+
+#A:Specify covariate values for predictions
+MyData <- expand.grid(livestock = seq(min(Total.Eco.C.CnoNA2$livestock), max(Total.Eco.C.CnoNA2$livestock), length = 15))
+
+X <- model.matrix(~livestock + wild, data=Total.Eco.C.CnoNA2)
+head(X)
+
+#C. Calculate predicted values
+#NewData$Pred <- predict(M4, NewData, level = 0)
+#The level = 0 ensure that we fit the fixed effects
+#Or:
+MyData$Pred <- X %*% fixef(DungC)  # = X * beta
+
+#D. Calculate standard errors (SE) for predicted values
+#   SE of fitted values are given by the square root of
+#   the diagonal elements of: X * cov(betas) * t(X)  
+#   Take this for granted!
+
+MyData$SE <- sqrt(  diag(X %*% vcov(DungC) %*% t(X))  )
+
+#And using the Pred and SE values, we can calculate
+#a 95% confidence interval
+MyData$SeUp <- MyData$Pred + 1.96 * MyData$SE
+MyData$SeLo <- MyData$Pred - 1.96 * MyData$SE
+
+#E. Plot predicted values
+names(MyData)
+colnames(MyData)[2] <- "Soil.Ahor"
+
+#### Another way ####
+# ggplot 
+# Livestock 
+names(Belowground.full.CnoNA2)
+revAhor<- rev(Total.Eco.C.CnoNA2$Soil.Ahor)
+
+Livestock <- ggplot(data = Total.Eco.C.CnoNA2)
+
+Livestock + xlab(expression(paste("Livestock dung (counts 200", m^-2,")"))) +  ylab(expression(paste("A-horizon carbon (kg", m^-2,")")))  +
+  geom_abline(slope= 0.0106,intercept = 1.3626, size=1) + 
+  geom_abline(slope= 0.0106 - 0.00314759*1.96,intercept = 1.3626 + 0.06375*1.96, linetype="dotted", size=0.95) + #upper 
+  geom_abline(slope= 0.0106 + 0.00314759*1.96,intercept = 1.3626 - 0.06375*1.96, linetype="dotted", size=0.95) + #lower
+  #scale_x_reverse() +
+  #coord_flip() +
+  geom_errorbar(aes(x = -livestock,ymin=Soil.Ahor-SE.Soil.Ahor,ymax=Soil.Ahor+SE.Soil.Ahor),stat = "identity",width=1.3,lwd=0.5,show.legend=F) +
+  geom_point(aes(x = -livestock,y = Soil.Ahor),size = 5, stroke=1.5, shape=21, fill="goldenrod3")  +
+  scale_x_continuous(breaks=c(-30,-20,-10,0),labels=c(30,20,10,0))  +
+  theme(rect = element_rect(fill ="transparent")
+        ,panel.background=element_rect(fill="transparent")
+        ,plot.background=element_rect(fill="transparent",colour=NA)
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank()
+        ,axis.text=element_text(size=16,color="black")
+        ,axis.title.y=element_text(size=16,color="black")
+        ,axis.title.x=element_text(size=16,color="black")
+        ,axis.text.x=element_text(size=14,color="black",
+                                  margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.ticks.length=unit(-1.5, "mm") # - because we want them inwards. 
+        ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.text.y.right =element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.line.y = element_line(color="black", size = .5)
+        ,axis.line.x = element_line(color="black", size = .5)
+        ,plot.margin = unit(c(2.5,2.5,2.5,2.5), "mm")
+        ,strip.background = element_rect(fill="transparent",colour=NA)
+        ,strip.text.x = element_text(size=14,margin = margin(.5,.5,.5,.5, "mm"),hjust = .02)
+        ,strip.text.y = element_blank()
+        ,panel.spacing = unit(.1, "lines"))
+
+ggsave("Ecosystem carbon/Figures/LivestockAhor.png",
+       width= 15, height = 15,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
+
+# Wild 
+Wild <- ggplot(data = Total.Eco.C.CnoNA2, aes(x = wild,y = Soil.Ahor))
+
+Wild + xlab(expression(paste("Wild dung (counts 200", m^-2,")"))) +  ylab(expression(paste("A-horizon carbon (kg", m^-2,")")))  +
+  geom_abline(slope= 0.0236,intercept = 1.3626, size=1) + 
+  geom_abline(slope= 0.0236,intercept = 1.3626 + 1.96*0.06375, linetype="dotted", size=0.95) + #upper 
+  geom_abline(slope= 0.0236,intercept = 1.3626 - 1.96*0.06375, linetype="dotted", size=0.95) + #lower
+  geom_errorbar(aes(ymin=Soil.Ahor-SE.Soil.Ahor,ymax=Soil.Ahor+SE.Soil.Ahor),stat = "identity",width=1.3,lwd=0.5,show.legend=F) +
+  geom_point(size = 5, stroke=1.5, shape=21, fill="forestgreen")  +
+  theme(rect = element_rect(fill ="transparent")
+        ,panel.background=element_rect(fill="transparent")
+        ,plot.background=element_rect(fill="transparent",colour=NA)
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank()
+        ,axis.text=element_text(size=16,color="black")
+        ,axis.title.y=element_text(size=16,color="black")
+        ,axis.title.x=element_text(size=16,color="black")
+        ,axis.text.x=element_text(size=14,color="black",
+                                  margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.ticks.length=unit(-1.5, "mm") # - because we want them inwards. 
+        ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.text.y.right =element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.line.y = element_line(color="black", size = .5)
+        ,axis.line.x = element_line(color="black", size = .5)
+        ,plot.margin = unit(c(2.5,2.5,2.5,2.5), "mm")
+        ,strip.background = element_rect(fill="transparent",colour=NA)
+        ,strip.text.x = element_text(size=14,margin = margin(.5,.5,.5,.5, "mm"),hjust = .02)
+        ,strip.text.y = element_blank()
+        ,panel.spacing = unit(.1, "lines"))
+
+ggsave("Ecosystem carbon/Figures/WildAhor.png",
+       width= 15, height = 15,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
 
 # PLOT Importance #### 
 importance.Ahor<- read.table("Ecosystem carbon/importanceAhor.txt")
@@ -2061,9 +2188,13 @@ Termites$Block.ID <- as.numeric(1:16)
 Termites <- Termites[c(3,4)]
 
 names(Belowground.full)
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 Ahor.N <- aggregate(AhorN.kg_m2~Block.ID, mean, data=Belowground.full)
 Minhor.N <- aggregate(MinN.kg_m2~Block.ID, mean, data=Belowground.full)
+SE.Soil.Ahor <- aggregate(AhorC.kg_m2~Block.ID, SE, data=Belowground.full)
+colnames(SE.Soil.Ahor)[2] <- "SE.Soil.Ahor"
 
+Total.Eco.C <- left_join(Total.Eco.C,SE.Soil.Ahor,by="Block.ID",drop=F)
 Total.Eco.C <- left_join(Total.Eco.C,Ahor.N,by="Block.ID",drop=F)
 Total.Eco.C <- left_join(Total.Eco.C,Minhor.N,by="Block.ID",drop=F)
 Total.Eco.C <- left_join(Total.Eco.C,Livestock.dung,by="Block.ID",drop=F)
@@ -2198,6 +2329,7 @@ Modlist1 <-   psem(
 summary(Modlist1,Total.Eco.C.CnoNA2)
 
 SEM.dung <- summary(Modlist1,Total.Eco.C.CnoNA2)  # Good fit
+SEM.dung$dTable
 write.csv(SEM.dung$coefficients, file = "Ecosystem carbon/SEMdung.csv")
 
 # Run a SEM with dung and termites included FULL Not possible to get a good fit!! 
@@ -2250,7 +2382,7 @@ summary(Modlist.below,Belowground.full.CnoNA) # Not a good fit, p=0
 Modlist.below2 <-   psem(
   lme(Woody~ landuse + CSand, random= ~ 1|Region,na.action=na.fail, data=Belowground.full.CnoNA),
   lme(DW~ landuse,random= ~ 1|Region,na.action=na.fail, data=Belowground.full.CnoNA),
-  lme(Herbaceous~ CFire_frequency.2000_2017,random= ~ 1|Region,na.action=na.fail, data=Belowground.full.CnoNA),
+  lme(Herbaceous~ CFire_frequency.2000_2017 + MinN.kg_m2,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
   lme(MinC.kg_m2~ AhorC.kg_m2 + CSand, random= ~ 1|Region/Block.ID,na.action=na.fail, data=Belowground.full.CnoNA),
   lme(CFire_frequency.2000_2017~ Woody + DW,random= ~ 1|Region,na.action=na.fail, data=Belowground.full.CnoNA),
   lme(CShrubbiness2~CMAP.mm_yr +CSand,random= ~ 1|Region,na.action=na.fail, data=Belowground.full.CnoNA),
