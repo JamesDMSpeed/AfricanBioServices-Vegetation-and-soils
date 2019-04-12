@@ -1476,9 +1476,14 @@ write.table(summary(modavgtot)$coefmat.subset, file="Ecosystem carbon/con.avg.to
 # Add Herbaceous biomass, dung and termites. 
 names(Aboveground.C)
 Above <- Aboveground.C[,c(1,24,33,34)]
+Above$Herbaceous[Above$Herbaceous==0] <- NA
+# Checking herbaceous biomass from Stu.
+#Above$HerbaceousStu <- c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,0.111,0.066,0.109,0.139,0.417,0.347,0.457,0.334)
+#Above$Herbaceous.test <- rowSums(Above[,c("Herbaceous","HerbaceousStu")], na.rm=TRUE)
 Belowground.full <- left_join(Belowground.full,Above, by="Block.ID")
 Belowground.full$Herbaceous[Belowground.full$Herbaceous==0] <- NA
 Belowground.full$CHerb.C <- as.numeric(scale(Belowground.full$Herbaceous))
+#Belowground.full$CHerb.test <- as.numeric(scale(Belowground.full$Herbaceous.test))
 # Add termites 
 Termites <- read.csv("Termites/RecalTermEff_Wetseason_Block.csv", head=T)
 Termites <- Termites[Termites$Landuse!="Agriculture",]
@@ -1699,7 +1704,7 @@ summary(lm(AhorC.kg_m2~ratio, data=Belowground.full.CnoNA2))
 DungC <- lme(Soil.Ahor~ livestock + wild, random= ~ 1|Region.x,na.action=na.fail, method= "REML",data=Total.Eco.C.CnoNA2)
 summary(DungC)
 
-### one way ####
+# Presiction lines: 
 #A. Specify covariate values for predictions
 #B. Create X matrix with expand.grid
 #C. Calculate predicted values
@@ -1709,9 +1714,10 @@ summary(DungC)
 str(Belowground.full.CnoNA2)
 
 #A:Specify covariate values for predictions
-MyData <- expand.grid(livestock = seq(min(Total.Eco.C.CnoNA2$livestock), max(Total.Eco.C.CnoNA2$livestock), length = 15))
+MyData <- expand.grid(livestock = seq(min(Total.Eco.C.CnoNA2$livestock), max(Total.Eco.C.CnoNA2$livestock)),
+wild = seq(min(Total.Eco.C.CnoNA2$wild), max(Total.Eco.C.CnoNA2$wild)))
 
-X <- model.matrix(~livestock + wild, data=Total.Eco.C.CnoNA2)
+X <- model.matrix(~livestock + wild, data=MyData)
 head(X)
 
 #C. Calculate predicted values
@@ -1734,24 +1740,28 @@ MyData$SeLo <- MyData$Pred - 1.96 * MyData$SE
 
 #E. Plot predicted values
 names(MyData)
-colnames(MyData)[2] <- "Soil.Ahor"
+colnames(MyData)[3] <- "Soil.Ahor"
+MyDataLiv<-cbind(aggregate(Soil.Ahor~livestock, MyData, mean),
+                 aggregate(SeLo~livestock, MyData, mean)[2],
+                 aggregate(SeUp~livestock, MyData, mean)[2])
+colnames(MyDataLiv) <- c("livestock","Soil.Ahor","SeLo","SeUp")
 
-#### Another way ####
+MyDataWild<-cbind(aggregate(Soil.Ahor~wild, MyData, mean),
+                 aggregate(SeLo~wild, MyData, mean)[2],
+                 aggregate(SeUp~wild, MyData, mean)[2])
+colnames(MyDataWild) <- c("wild","Soil.Ahor","SeLo","SeUp")
+
 # ggplot 
 # Livestock 
 names(Belowground.full.CnoNA2)
-revAhor<- rev(Total.Eco.C.CnoNA2$Soil.Ahor)
 
 Livestock <- ggplot(data = Total.Eco.C.CnoNA2)
 
 Livestock + xlab(expression(paste("Livestock dung (counts 200", m^-2,")"))) +  ylab(expression(paste("A-horizon carbon (kg", m^-2,")")))  +
-  geom_abline(slope= 0.0106,intercept = 1.3626, size=1) + 
-  geom_abline(slope= 0.0106 - 0.00314759*1.96,intercept = 1.3626, linetype="dotted", size=0.95) + #upper 
-  geom_abline(slope= 0.0106 + 0.00314759*1.96,intercept = 1.3626, linetype="dotted", size=0.95) + #lower
-  #scale_x_reverse() +
-  #coord_flip() +
+  geom_ribbon(data=MyDataLiv,aes(x=-livestock,ymin=SeLo,ymax=SeUp),fill="goldenrod3",alpha=.50,lwd=FALSE,show.legend=FALSE)+
+  geom_line(data=MyDataLiv,aes(y=Soil.Ahor,x=-livestock)) + 
   geom_errorbar(aes(x = -livestock,ymin=Soil.Ahor-SE.Soil.Ahor,ymax=Soil.Ahor+SE.Soil.Ahor),stat = "identity",width=1.3,lwd=0.5,show.legend=F) +
-  geom_point(aes(x = -livestock,y = Soil.Ahor),size = 5, stroke=1.5, shape=21, fill="goldenrod3")  +
+  geom_point(aes(x =-livestock,y = Soil.Ahor),size = 5, stroke=1.5, shape=21, fill="goldenrod3") +
   scale_x_continuous(breaks=c(-30,-20,-10,0),labels=c(30,20,10,0))  +
   theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="transparent")
@@ -1765,7 +1775,7 @@ Livestock + xlab(expression(paste("Livestock dung (counts 200", m^-2,")"))) +  y
         ,axis.title.x=element_text(size=16,color="black")
         ,axis.text.x=element_text(size=14,color="black",
                                   margin=margin(2.5,2.5,2.5,2.5,"mm"))
-        ,axis.ticks.length=unit(-1.5, "mm") # - because we want them inwards. 
+        ,axis.ticks.length=unit(-1.5, "mm")  
         ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
         ,axis.text.y.right =element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
         ,axis.line.y = element_line(color="black", size = .5)
@@ -1781,14 +1791,13 @@ ggsave("Ecosystem carbon/Figures/LivestockAhor.png",
        dpi = 600, limitsize = TRUE)
 
 # Wild 
-Wild <- ggplot(data = Total.Eco.C.CnoNA2, aes(x = wild,y = Soil.Ahor))
+Wild <- ggplot(data = Total.Eco.C.CnoNA2)
 
 Wild + xlab(expression(paste("Wild dung (counts 200", m^-2,")"))) +  ylab(expression(paste("A-horizon carbon (kg", m^-2,")")))  +
-  geom_abline(slope= 0.0236,intercept = 1.3626, size=1) + 
-  geom_abline(slope= 0.0236+0.008*1.96,intercept = 1.3626 + 1.96*0.06375, linetype="dotted", size=0.95) + #upper 
-  geom_abline(slope= 0.0236-0.008*1.96,intercept = 1.3626 - 1.96*0.06375, linetype="dotted", size=0.95) + #lower
-  geom_errorbar(aes(ymin=Soil.Ahor-SE.Soil.Ahor,ymax=Soil.Ahor+SE.Soil.Ahor),stat = "identity",width=0.5,lwd=0.5,show.legend=F) +
-  geom_point(size = 5, stroke=1.5, shape=21, fill="forestgreen")  +
+  geom_ribbon(data=MyDataWild,aes(x=wild,ymin=SeLo,ymax=SeUp),fill="forestgreen",alpha=.50,lwd=FALSE,show.legend=FALSE)+
+  geom_line(data=MyDataWild,aes(y=Soil.Ahor,x=wild)) + 
+  geom_errorbar(aes(x=wild, ymin=Soil.Ahor-SE.Soil.Ahor,ymax=Soil.Ahor+SE.Soil.Ahor),stat = "identity",width=0.5,lwd=0.5,show.legend=F) +
+  geom_point(aes(x = wild,y = Soil.Ahor),size = 5, stroke=1.5, shape=21, fill="forestgreen")  +
   theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="transparent")
         ,plot.background=element_rect(fill="transparent",colour=NA)
