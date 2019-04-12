@@ -1081,7 +1081,7 @@ LabileMainModFINAL.anovaterms<- rbind(anova(LabileMainMod5aA,LabileMainMod5a)[2,
 LabileMainModFINAL.anovaterms$Terms <- c("Season:Region:Landuse","Landuse:Temp","Landuse:C.N", "Region:Temp","Region:Landuse",
                                     "Season:Sand","Season:Temp","Season:Landuse","Season.Region","Sand","Temp","C.N","Landuse","Region","Season")
 LabileMainModFINAL.anovaterms <- as.data.frame(LabileMainModFINAL.anovaterms)
-write.csv(LabileMainModFINAL.anovaterms,file="Termites/LabileMainModFINAL.anovaterms.csv")
+#write.csv(LabileMainModFINAL.anovaterms,file="Termites/LabileMainModFINAL.anovaterms.csv")
 
 #FINAL model####
 LabileMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse+Season:Temp+Season:Sand+
@@ -1170,7 +1170,8 @@ LabileMainr2<-rbind(#LabileMain<-r.squaredGLMM(LabileMainModFINAL),
   r.squaredGLMM(lmer(Massloss.per ~ Landuse:C.N+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL),
   r.squaredGLMM(lmer(Massloss.per ~ Landuse:Temp+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL),
   r.squaredGLMM(lmer(Massloss.per ~ Season:Region:Landuse+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL))
-
+AIC(lmer(Massloss.per ~ Season:Temp+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))
+AIC(LabileMainModFINAL)
 LabileMainr2<-as.data.frame(LabileMainr2)
 LabileMainr2$terms<-c("Season","Region","Landuse", "Treatment","C.N","Temp","Sand",
                     "Season:Region","Season:Landuse","Season:Temp","Season:Sand",
@@ -1193,7 +1194,7 @@ ggplot(LabileMainr2, aes(y=terms, x=R2c))+geom_point()
 #emmeans.LabileMainModFINAL$contrasts #Get contrast between factors (linear). This is somewhat similar to pairs()
 #emmeans.LabileMainModFINAL$emmeans #Get emmeans of factors.
 #emmeans.LabileMainModFINAL.pairs <- pairs(emmeans.LabileMainModFINAL,simple = "each", combine =TRUE) # Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which simple effect is being displayed. 
-#write.csv(emmeans.LabileMainModFINAL.pairs$emmeans,file="Termites/Emmeans_contrast_Threeway_LabileMainMod.csv")
+##write.csv(emmeans.LabileMainModFINAL.pairs$emmeans,file="Termites/Emmeans_contrast_Threeway_LabileMainMod.csv")
 #plot(emmeans.LabileMainModFINAL, comparisons = FALSE) #Comparisons summarized graphically. The blue bars are confidence intervals for the EMMs, and the red arrows are for the comparisons among them ,if comparison=TRUE. If an arrow from one mean overlaps an arrow from another group, the difference is not significant
 
 #Now look at the two-way interaction Landuse:C.N. I use emmtrends here due to usage of covariate. Also cov.reduce=range is used so we'll be using not only the means (one value) of the covariate but the min and max.
@@ -1528,7 +1529,7 @@ RecalMainModFINAL.anovaterms$Terms <- c("Season:Landuse:Treatment","Season:Regio
  
                                                                      "Season","Region","Landuse","Treatment","C.N","Temp","Sand")
 RecalMainModFINAL.anovaterms <- as.data.frame(RecalMainModFINAL.anovaterms)
-write.csv(RecalMainModFINAL.anovaterms,file="Termites/RecalMainModFINAL.anovaterms.csv")
+#write.csv(RecalMainModFINAL.anovaterms,file="Termites/RecalMainModFINAL.anovaterms.csv")
 
 #FINAL model####
 RecalMain$Site<-as.factor(RecalMain$Site)
@@ -1686,7 +1687,7 @@ summary(RecalMainModFINAL2)
 #emmeans.RecalMainModFINAL$contrasts #Get contrast between factors (linear). This is somewhat similar to pairs()
 #emmeans.RecalMainModFINAL$emmeans #Get emmeans of factors.
 #emmeans.RecalMainModFINAL.pairs <- pairs(emmeans.RecalMainModFINAL,simple = "each", combine =TRUE) # Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which simple effect is being displayed. 
-#write.csv(emmeans.RecalMainModFINAL.pairs$emmeans,file="Termites/Emmeans_contrast_Threeway_RecalMainMod.csv")
+##write.csv(emmeans.RecalMainModFINAL.pairs$emmeans,file="Termites/Emmeans_contrast_Threeway_RecalMainMod.csv")
 #plot(emmeans.RecalMainModFINAL, comparisons = FALSE) #Comparisons summarized graphically. The blue bars are confidence intervals for the EMMs, and the red arrows are for the comparisons among them ,if comparison=TRUE. If an arrow from one mean overlaps an arrow from another group, the difference is not significant
 
 
@@ -1903,13 +1904,13 @@ names(Mainexp)
 
 Mainp <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=(Massloss.per-SE),ymax=(Massloss.per+SE),
                                   fill = tea.hole,color = Littertype,shape=Landuse))
-Mainp <- Mainp+geom_errorbar(width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F)
-Mainp <- Mainp+geom_point(size=5,stroke=1.2,position=position_dodge(width=.35),show.legend=T)
+Mainp <- Mainp+geom_errorbar(width=.9,lwd=1,position=position_dodge(width=.35),show.legend=F)
+Mainp <- Mainp+geom_point(size=4,stroke=1.2,position=position_dodge(width=.35),show.legend=T)
 Mainp <- Mainp+facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region"),
                                                                 Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
 Mainp <- Mainp+scale_color_manual(values=c("green4", "orangered3"))
 Mainp <- Mainp+scale_fill_manual(values=c("green4","orangered3","white","white"))
-Mainp <- Mainp+scale_shape_manual(values=c(21,23,24))
+Mainp <- Mainp+scale_shape_manual(values=c(21,22,24))
 Mainp <- Mainp+guides(fill = guide_legend(override.aes=list(shape=25, color=c("green4","orangered3","green4","orangered3"))),color=F)
 Mainp <- Mainp+scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
 Mainp <- Mainp+xlab("Land-use")+ylab("Mass loss (%)")
@@ -1953,7 +1954,7 @@ Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
   annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
 
 Mainp
-ggsave("Termites//Results/Figures/Mainexp.png",
+#ggsave("Termites//Results/Figures/Mainexp.png",
       width= 20, height = 15,units ="cm",bg ="transparent",
      dpi = 600, limitsize = TRUE)
 
@@ -1980,8 +1981,8 @@ levels(DataCG$Blockcode) #OK
 DataMain$Blockcode <- as.factor(DataMain$Blockcode)
 levels(DataMain$Blockcode) #OK
 
-write.csv(write.csv(DataMain,file="Termites/Maindata.csv")) #Main with Seronera
-write.csv(write.csv(DataCG,file="Termites/CGdata.csv"))
+#write.csv(#write.csv(DataMain,file="Termites/Maindata.csv")) #Main with Seronera
+#write.csv(write.csv(DataCG,file="Termites/CGdata.csv"))
 
 #Then, want to combine the two data set by left_join.
 #Problem: CG data has 224 obs (on block level), whilce main exp. has 1568 obs (on plot level).
@@ -2143,8 +2144,7 @@ LabileMCGMod3e <- update(LabileMCGMod3, .~. -Region:Temp)
 LabileMCGMod3f <- update(LabileMCGMod3, .~. -Landuse:Temp)
 LabileMCGMod3g <- update(LabileMCGMod3, .~. -Landuse:Sand)
 LabileMCGMod3h <- update(LabileMCGMod3, .~. -Temp:Sand)
-LabileMCGMod3I <- update(LabileMCGMod3, .~. -Season:Region-Season:Treatment-Season:Sand-Region:Landuse-
-                           Region:Temp-Landuse:Temp-Landuse:Sand-Temp:Sand) #REMOVE ALL 2ways
+LabileMCGMod3I <- update(LabileMCGMod3, .~. -Season:Region-Season:Treatment-Season:Sand-Region:Landuse-Region:Temp-Landuse:Temp-Landuse:Sand-Temp:Sand) #REMOVE ALL 2ways
 LabileMCGMod3j <- update(LabileMCGMod3I, .~. -Season)
 LabileMCGMod3k <- update(LabileMCGMod3I, .~. -Region)
 LabileMCGMod3l <- update(LabileMCGMod3I, .~. -Landuse)
@@ -2171,7 +2171,7 @@ LabileMCGModFINAL.anovaterms$Terms <- c("Season:Region","Season:Treatment","Seas
                                         "Region:Landuse","Region:Temp","Landuse:Temp","Landuse:Sand","Temp:Sand",
                                         "Season","Region","Landuse","Treatment","Temp","Sand")
 LabileMCGModFINAL.anovaterms <- as.data.frame(LabileMCGModFINAL.anovaterms)
-write.csv(LabileMCGModFINAL.anovaterms,file="Termites/LabileMCGModFINAL.anovaterms.csv")
+#write.csv(LabileMCGModFINAL.anovaterms,file="Termites/LabileMCGModFINAL.anovaterms.csv")
 
 #FINAL Model####
 LabileMCGModFINAL <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+Sand+
@@ -2281,9 +2281,9 @@ plot(emmeans.LabileMCGModFINAL, comparisons = TRUE) #Comparisons summarized grap
 # model.sel(LabileMCGModFINAL2) #Model selection table giving AIC, deltaAIC and weighting
 # modavglmer_LabileMCGModFINAL2<-model.avg(modsetlmer_LabileMCGModFINAL) #Averages coefficient estimates across multiple models according to the weigthing from above
 # importance(modavglmer_LabileMCGModFINAL2)#Importance of each variable
-# write.table(importance(modavglmer_RecalMainMod1),file="Termites/Importance_RecalMain1.txt")
+# #write.table(importance(modavglmer_RecalMainMod1),file="Termites/Importance_RecalMain1.txt")
 # summarymodmodavglmer_RecalMain1 <- summary(modavglmer_RecalMainMod1)#Estimated coefficients given weighting
-# write.table(summary(modavglmer_RecalMainMod1)$coefmat.subset,file="Termites/SumCoef_RecalMain1.txt")
+# #write.table(summary(modavglmer_RecalMainMod1)$coefmat.subset,file="Termites/SumCoef_RecalMain1.txt")
 
 
 
@@ -2429,7 +2429,7 @@ RecalMCGModFINAL.anovaterms$Terms <- c("Season:Region:Landuse","Region:Landuse",
                                         "Season:Treatment","Temp","Treatment","Landuse","Region","Season")
 RecalMCGModFINAL.anovaterms <- as.data.frame(RecalMCGModFINAL.anovaterms)
 
-write.csv(RecalMCGModFINAL.anovaterms,file="Termites/RecalMCGModFINAL.anovaterms.csv")
+#write.csv(RecalMCGModFINAL.anovaterms,file="Termites/RecalMCGModFINAL.anovaterms.csv")
 
 #FINAL Model####
 RecalMCGModFINAL <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+
@@ -2600,8 +2600,6 @@ DataMainmean2$SE <- DataMainse2$Massloss.per
 # Fill by termite * landuse = empty = absence, filled = prescence 
 DataMainmean2$tea.hole<-as.factor(with(DataMainmean2, paste(Littertype, Treatment, sep=" ")))
 levels(DataMainmean2$tea.hole)
-#levels(DataMainmean$Region)<-c("Dry region","Wet region")
-DataMainmean2$Region <- factor(DataMainmean2$Region)#Need to "re-factor" the region as levels are changed fro 3 to 2 in landuse experiment (only wet and dry).
 levels(DataMainmean2$Region)
 levels(DataMainmean2$Season)
 
@@ -2619,41 +2617,70 @@ levels(DataCGmean2$Season)
 
 #Need to add Intermediate into Maindata set. To have the local soil appear on the 1:1 line in the upcoming graph.
 IntermediateCG<-DataCGmean2[DataCGmean2$Region=="Intermediate",] #extracting rows with "intermediate" from CG dataset
+#But want the local soil in Intermediate data, or rather "Seronera" to show on wet region and dry region panels.
+#So need to:
+#1) duplicate data
+#2) one to wet region, and the other to dry instead of intermediate
+#)3 Rewrite Landuse wild to Landuse "Control". (Which is the Seronera local soil)
+#Duplicate:
+colnames(DataMainmean2)
+wetregionCG<- IntermediateCG
+wetregionCG$Region <- "Wet"
+wetregionCG$Landuse <- "Control"
+dryregionCG<- IntermediateCG
+dryregionCG$Region <- "Dry"
+dryregionCG$Landuse <- "Control"
+wetregionCG$Region <- as.factor(wetregionCG$Region)
+dryregionCG$Region <- as.factor(dryregionCG$Region)
+wetregionCG$Landuse <- as.factor(wetregionCG$Landuse)
+dryregionCG$Landuse <- as.factor(dryregionCG$Landuse)
 
-DataMainmean2<-rbind(DataMainmean2,IntermediateCG) #Putting in the intermediate data into main dataset.
+DataMainmean2<-rbind(DataMainmean2,wetregionCG,dryregionCG) #Putting in the edited intermediate data into main dataset.
 levels(DataMainmean2$Region)
+
+#For CG, need to remove intermediate and put in the edited intermediate (two) datasets.
+DataCGmean3<-droplevels(DataCGmean2[DataCGmean2$Region!="Intermediate",])
+levels(DataCGmean3$Region)
+DataCGmean3<-rbind(DataCGmean3,wetregionCG,dryregionCG)
 
 #Putting CG means and SE with Main means and Se in the same dataset
 names(DataMainmean2)
 names(DataCGmean2)
+length(DataCGmean3$Massloss.per)
+length(DataMainmean2$Massloss.per)
 #Renaming colums to restrict merging of the Massloss and SE from the two experiments, when using merge() later.
 colnames(DataMainmean2)[6]<-"massloss.perMain"
 colnames(DataMainmean2)[7]<-"SEMain"
-colnames(DataCGmean2)[6]<-"massloss.perCG"
-colnames(DataCGmean2)[7]<-"SECG"
+colnames(DataCGmean3)[6]<-"massloss.perCG"
+colnames(DataCGmean3)[7]<-"SECG"
 #Now that we have same amount of observations in both CG and Main dataset, we combine the massloss columns to create on dataset:
-MainCG <- merge(DataMainmean2,DataCGmean2)
+MainCG <- left_join(DataMainmean2,DataCGmean3)
 
-#Want to reorder tea.hole to have a nicer legend:
-MainCG$tea.hole <- ordered(MainCG$tea.hole, levels=c("Green Exclosed", "Rooibos Exclosed","Green Open","Rooibos Open"))
+#Want to reorder tea.hole to have a nicer legend and rename into Recal and labile:
+MainCG$tea.hole <- as.factor(MainCG$tea.hole)
+levels(MainCG$tea.hole) <- gsub("Green Exclosed","Labile Exclosed", levels(MainCG$tea.hole))
+levels(MainCG$tea.hole) <- gsub("Rooibos Exclosed", "Recalcitrant Exclosed", levels(MainCG$tea.hole))
+levels(MainCG$tea.hole) <- gsub("Green Open", "Labile Open", levels(MainCG$tea.hole))
+levels(MainCG$tea.hole) <- gsub("Rooibos Open", "Recalcitrant Open", levels(MainCG$tea.hole))
+MainCG$tea.hole <- ordered(MainCG$tea.hole, levels=c("Labile Exclosed", "Recalcitrant Exclosed","Labile Open","Recalcitrant Open"))
 levels(MainCG$tea.hole)
-
-#Now, ready for graphing: Main experiment vs CG
-names(MainCG)
-
+levels(MainCG$Landuse)
 colnames(MainCG)[1]<-"Season"
-MainCGp<-ggplot(MainCG, aes(x=massloss.perMain, y=massloss.perCG, fill=tea.hole,color=Littertype,shape=Landuse))
+names(MainCG)
+#Now, ready for graphing: Main experiment vs CG
+
+MainCGp <-ggplot(MainCG, aes(x=massloss.perMain, y=massloss.perCG, fill=tea.hole, color=Littertype,shape=Landuse))
 MainCGp <- MainCGp+geom_abline(slope=1, intercept=0, size =.95) 
-MainCGp <- MainCGp+  geom_errorbar(aes(ymin = massloss.perCG-SECG,ymax = massloss.perCG+SECG),show.legend=F) 
+MainCGp <- MainCGp+geom_errorbar(aes(ymin = massloss.perCG-SECG,ymax = massloss.perCG+SECG),show.legend=F) 
 MainCGp <- MainCGp+geom_errorbarh(aes(xmin = massloss.perMain-SEMain,xmax = massloss.perMain+SEMain),show.legend=F)
-MainCGp <- MainCGp+geom_point(size=4.5,stroke=1.5, show.legend=T)
-MainCGp <- MainCGp+ facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region",`Intermediate`="Intermediate Region"),
-                                                                Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
-#MainCGp <- MainCGp+ #facet_wrap(~Season, scale ="fixed", labeller=labeller(Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
+MainCGp <- MainCGp+geom_point(data=MainCG,size=4,stroke=1.5, show.legend=T)
 MainCGp <- MainCGp+ scale_color_manual(values=c("green4","orangered3"))
 MainCGp <- MainCGp+ scale_fill_manual(values=c("green4","orangered3","white","white"))
-MainCGp <- MainCGp+ scale_shape_manual(values=c(21,23,24,22))
+MainCGp <- MainCGp+ scale_shape_manual(values=c(21,22,24,23))
 MainCGp <- MainCGp+guides(fill = guide_legend(override.aes=list(shape=25, color=c("green4","orangered3","green4","orangered3"))),color=F)
+MainCGp <- MainCGp+facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region"),
+                                                                                 Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
+
 MainCGp <- MainCGp+ scale_x_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
 MainCGp <- MainCGp+ scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
 MainCGp <- MainCGp+xlab("Main experiment mass loss (%)") +  ylab("Common garden mass loss (%)")
@@ -2666,8 +2693,8 @@ MainCGp <- MainCGp+ theme(rect = element_rect(fill ="transparent")
         ,panel.grid.major.x = element_blank()
         ,panel.grid.major.y = element_blank()
         ,axis.text=element_text(size=12,color="black")
-        ,axis.title.y=element_text(size=14,color="black")
-        ,axis.title.x=element_text(size=14,vjust=-.4,color="black")
+        ,axis.title.y=element_text(size=22,color="black")
+        ,axis.title.x=element_text(size=22,vjust=-.4,color="black")
         ,axis.text.x = element_text(size=12,color="black",
                                     margin=margin(2.5,2.5,2.5,2.5,"mm"))
         ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
@@ -2676,7 +2703,8 @@ MainCGp <- MainCGp+ theme(rect = element_rect(fill ="transparent")
         ,axis.line.x = element_blank()
         ,plot.margin = unit(c(15,45,5,5), "mm")
         ,strip.background = element_rect(fill="transparent",colour=NA)
-        ,strip.text.x = element_text(size = 16,colour = "black")
+        ,strip.text.x = element_text(size = 20,colour = "black")
+        ,strip.text.y = element_text(size = 20,colour = "black")
         ,panel.spacing = unit(1.5, "lines")
         ,legend.background = element_rect(fill = "transparent")
         ,legend.title=element_blank()
@@ -2685,8 +2713,8 @@ MainCGp <- MainCGp+ theme(rect = element_rect(fill ="transparent")
         ,legend.key.height=unit(7.5,"mm")
         ,legend.key.width=unit(7.5,"mm")
         ,legend.key = element_rect(colour = NA, fill = NA)
-        ,legend.key.size = unit(7,"mm")
-        ,legend.text=element_text(size=11,color="black"))+
+        ,legend.key.size = unit(14,"mm")
+        ,legend.text=element_text(size=14,color="black"))+
   
   annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
   annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15) +
@@ -2698,8 +2726,8 @@ MainCGp <- MainCGp+ theme(rect = element_rect(fill ="transparent")
 
 
 MainCGp
-ggsave("Termites/Results/Figures/CommongardenvsMain.png",
-     width= 40, height = 30,units ="cm",bg ="transparent",
+#ggsave("Termites/Results/Figures/CommongardenvsMain.png",
+     width= 40, height = 20,units ="cm",bg ="transparent",
    dpi = 600, limitsize = TRUE)
 
 
@@ -2737,7 +2765,7 @@ FINAL.update.anovaterms <- as.data.frame(FINAL.update.anovaterms)
 FINAL.update.anovaterms<- FINAL.update.anovaterms[,c(5,1,2,3,4,6:21)]
 names(FINAL.update.anovaterms)
 
-write.csv(FINAL.update.anovaterms,na="", file="Termites/Results/FINAL.update.anovaterms.csv")
+#write.csv(FINAL.update.anovaterms,na="", file="Termites/Results/FINAL.update.anovaterms.csv")
 
 #Wrapping up the R2c data into two graphs####
 #Want to have each graph comparing R2c for labile litter in Main and CG model.
@@ -2761,30 +2789,128 @@ levels(FINAL.r2.recalmodels$experiment)
 FINAL.r2.recalmodels$terms <- as.factor(FINAL.r2.recalmodels$terms)
 
 #Plot for recal r2 models#
-FINAL.r2.recalmodels$terms<- factor(FINAL.r2.recalmodels$terms, levels = FINAL.r2.recalmodels$terms[order(FINAL.r2.recalmodels$R2c)])
-r2.recalplot <- ggplot(data=FINAL.r2.recalmodels, aes(y=terms,x=R2c,color=experiment,alpha=experiment))
+#FINAL.r2.recalmodels$terms<- factor(FINAL.r2.recalmodels$terms, levels = FINAL.r2.recalmodels$terms[order(FINAL.r2.recalmodels$R2c)])
+r2.recalplot <- ggplot(data=FINAL.r2.recalmodels, aes(y=reorder(terms,R2c),x=R2c,color=experiment,alpha=experiment))
 r2.recalplot <- r2.recalplot+ geom_point(size=2)
 r2.recalplot <- r2.recalplot+scale_color_manual(values=c("black","green4"))
 r2.recalplot <- r2.recalplot+scale_alpha_manual(values=c(0.3,1))
 r2.recalplot <- r2.recalplot+xlab("R2c Recalcitrant")+ylab("Terms")
 r2.recalplot <- r2.recalplot + theme_classic()
 r2.recalplot
-ggsave(file="Termites/Results/r2c.recalplot.png",
+#ggsave(file="Termites/Results/Figures/r2c.recalplot.png",
        width= 25, height = 12,units ="cm", bg ="transparent",
        dpi = 600, limitsize = TRUE)
 
 #Plot for labile r2 models
-FINAL.r2.labilemodels$terms<- factor(FINAL.r2.labilemodels$terms, levels = FINAL.r2.labilemodels$terms[order(FINAL.r2.labilemodels$R2c)])
-r2.labileplot <- ggplot(data=FINAL.r2.labilemodels, aes(y=terms,x=R2c,color=experiment,alpha=experiment))
+r2.labileplot <- ggplot(data=FINAL.r2.labilemodels, aes(y=reorder(terms,R2c),x=R2c,color=experiment,alpha=experiment))
 r2.labileplot <- r2.labileplot+ geom_point(size=2)
 r2.labileplot <- r2.labileplot+scale_color_manual(values=c("black","green4"))
 r2.labileplot <- r2.labileplot+scale_alpha_manual(values=c(0.3,1))
 r2.labileplot <- r2.labileplot+xlab("R2c Labile")+ylab("Terms")
 r2.labileplot <- r2.labileplot + theme_classic()
 r2.labileplot
-ggsave(file="Termites/r2.labileplot.png",
+#ggsave(file="Termites/Results/Figures/r2.labileplot.png",
        width= 25, height = 12,units ="cm", bg ="transparent",
        dpi = 600, limitsize = TRUE)
+
+
+
+####TESTING INTERACTION TERMS - EMMEANS AND PLOTS####
+###########################################################################################################
+#Standard script
+#1) EMMEANS _ ACROSS FACTORS ONLY
+#ref_grid(MODELNAME_HERE)#Create ref.grid of the model. Make sure that this looks OK in the console.
+#ref.grid.MODELNAME <- ref_grid(MODELNAME_HERE)#Create ref.grid of the model
+#NOW CHECK THE INTERACTONS WITHIN THE CHOSEN MODEL:
+#emmip(ref.grid.MODELNAME, ~Region*Landuse|Season, type="response")#Graphically showing the intaractions, faceted by season.
+#emmeans.MODELNAME <- emmeans(ref.grid.MODELNAME, pairwise~Season*Region*Landuse,type="response") #Creating emmeans across the factor levels in the interaction.
+#emmeans.MODELNAME$emmeans #Exctracting only emmeans from the output
+#emmeans.MODELNAME.pairs #Exctracting only the contrast in emmeans between all combinations.
+#emmeans.MODELNAME.pairs <- pairs(emmeans.MODELNAME,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+#plot(emmeans.MODELNAME, comparisons = FALSE) #THIS IS A CREATE GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+#2) EMMEANS _ WHEN YOU NEED TO TEST A COVARIATE WITH FACTORS
+# ref_grid(MODELNAME_HERE)#Create ref.grid of the model. Make sure that this looks OK in the console.
+# emtrends.MODELNAME_HERE <- emtrends(MODELNAME_HERE, pairwise ~ Landuse|Region, var = "C.N",type="response") # Use emmtrends here due to usage of covariate. 
+# emmip(MODELNAME_HERE, Landuse~C.N|Region, cov.reduce = range, type="response") #Acov.reduce=range is used so we'll be using not only the means (one value) of the covariate but the min and max.
+# emtrends.MODELNAME_HERE.pairs <- pairs(emtrends.MODELNAME_HERE,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+# plot(emtrends.MODELNAME_HERE, cov.reduce = range,comparisons = FALSE) #THIS IS A GREATE GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+#############################################################################################
+
+#Create ref grids for all the four models:
+ref.grid.LabileMainModFINAL <- ref_grid(LabileMainModFINAL)
+ref.grid.LabileMCGModFINAL <- ref_grid(LabileMCGModFINAL)
+ref.grid.RecalMainModFINAL <- ref_grid(RecalMainModFINAL)
+ref.grid.RecalMCGModFINAL <- ref_grid(RecalMCGModFINAL)
+
+#Checking threeway - LABILE
+#Main
+#Season:Region:Landuse - Conlusiion: Dry-Dry-P/Ag is driving this.
+emmeans.LabileMainModFINAL <- emmeans(ref.grid.LabileMainModFINAL, pairwise~Season*Region*Landuse,type="response") #Creating emmeans across the factor levels in the interaction.
+emmeans.LabileMainModFINAL$emmeans
+emmeans.LabileMainModFINAL.pairs <- pairs(emmeans.LabileMainModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+plot(emmeans.LabileMainModFINAL, comparisons = FALSE) #THIS IS A CREATE GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+#CG
+#Season:Region:Landuse - Conlusiion: Dry-Dry-P/Ag is driving this.
+emmeans.LabileMCGModFINAL <- emmeans(ref.grid.LabileMCGModFINAL, pairwise~Season*Region*Landuse,type="response") #Creating emmeans across the factor levels in the interaction.
+emmeans.LabileMCGModFINAL$emmeans
+emmeans.LabileMCGModFINAL.pairs <- pairs(emmeansLabileMCGModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+plot(emmeans.LabileMCGModFINAL, comparisons = FALSE) #THIS IS A CREATE GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ref.grid.LabileMainModFINAL <- ref_grid(LabileMainModFINAL) #at = list(Region = c("Dry", "Wet"))) #Want to remove Intermadiate in the grid as it can't be compared to the other landuses, except wild.
+#ref.grid.LabileMainModFINAL#See how the grid is looking. Check for correct factors and the emmeans of numerical variables. If testing between numerical variables, only the means or the low/high end of values can be specified. I.e contrasts vs trend. See emmeans vignette for more info.
+#str(ref.grid.LabileMainModFINAL)
+#Check threeway first:
+#emmip(ref.grid.LabileMainModFINAL, ~Region*Landuse|Season, type="response")#Can see here that the regional differences is greatly pronounce in dry season. And thatdry region is most different in this season. In wet season, dry and wet region is similar (following rainfall) and that wet season is the most dissimilar. 
+#emmeans.LabileMainModFINAL <- emmeans(ref.grid.LabileMainModFINAL, pairwise~Season*Region*Landuse,type="response") #
+#emmeans.LabileMainModFINAL$contrasts #Get contrast between factors (linear). This is somewhat similar to pairs()
+#emmeans.LabileMainModFINAL$emmeans #Get emmeans of factors.
+#emmeans.LabileMainModFINAL.pairs <- pairs(emmeans.LabileMainModFINAL,simple = "each", combine =TRUE) # Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which simple effect is being displayed. 
+#write.csv(emmeans.LabileMainModFINAL.pairs$emmeans,file="Termites/Emmeans_contrast_Threeway_LabileMainMod.csv")
+#plot(emmeans.LabileMainModFINAL, comparisons = FALSE) #Comparisons summarized graphically. The blue bars are confidence intervals for the EMMs, and the red arrows are for the comparisons among them ,if comparison=TRUE. If an arrow from one mean overlaps an arrow from another group, the difference is not significant
+
+#Now look at the two-way interaction Landuse:C.N. I use emmtrends here due to usage of covariate. Also cov.reduce=range is used so we'll be using not only the means (one value) of the covariate but the min and max.
+# emtrends.LabileMainModFINAL <- emtrends(LabileMainModFINAL, pairwise ~ Landuse|Region, var = "C.N",type="response")
+# emmip(LabileMainModFINAL, Landuse~C.N|Region, cov.reduce = range, type="response")
+# emtrends.LabileMainModFINAL.pairs <- pairs(emtrends.LabileMainModFINAL,simple = "each", combine =TRUE) # Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which simple effect is being displayed. 
+# plot(emtrends.LabileMainModFINAL, cov.reduce = range,comparisons = FALSE) #Comparisons summarized graphically. The blue bars are confidence intervals for the EMMs, and the red arrows are for the comparisons among them ,if comparison=TRUE. If an arrow from one mean overlaps an arrow from another group, the difference is not significant
+
+#Now look at the two-way interaction Landuse:Temp. I use emmtrends here due to usage of covariate. Also cov.reduce=range is used so we'll be using not only the means (one value) of the covariate but the min and max.
+# emtrends.LabileMainModFINAL <- emtrends(LabileMainModFINAL, pairwise ~ Landuse|Region, var = "Temp",type="response")
+# emmip(LabileMainModFINAL, Landuse~Temp|Region*Season, cov.reduce = range, type="response")
+# emtrends.LabileMainModFINAL.pairs <- pairs(emtrends.LabileMainModFINAL,simple = "each", combine =TRUE) # Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which simple effect is being displayed. 
+# plot(emtrends.LabileMainModFINAL, cov.reduce = range,comparisons = FALSE) #Comparisons summarized graphically. The blue bars are confidence intervals for the EMMs, and the red arrows are for the comparisons among them ,if comparison=TRUE. If an arrow from one mean overlaps an arrow from another group, the difference is not significant
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #|####
@@ -3282,6 +3408,6 @@ cp <- cp + annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = In
 #cp2 
 cp
 
-ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Master projects/Anders Sundsal/AndersMainLanduseWET.png",
+#ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Master projects/Anders Sundsal/AndersMainLanduseWET.png",
        width= 25, height = 12,units ="cm", bg ="transparent",
        dpi = 600, limitsize = TRUE)
