@@ -1090,9 +1090,10 @@ LabileMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Se
                              (1|Site/Blockcode/Plot), na.action=na.omit,REML = T,data=LabileMain)
 
 LabileMainModFINAL.sumary <- summary(LabileMainModFINAL)$coef
-write.csv(LabileMainModFINAL.sumary,file="Termites/Model_estimates_LabileMainMod.csv")
 
-coef(summary(LabileMainModFINAL))
+summary(LabileMainModFINAL)
+plot(Massloss.per~Temp,LabileMain)
+abline(lm(Massloss.per~Temp,LabileMain))
 
 #Inspect chosen model for homogeneity:
 E1 <- resid(LabileMainModFINAL, type ="pearson")
@@ -1492,7 +1493,7 @@ RecalMainMod1ao <- update(RecalMainMod1aE, .~. - Season:Region)
 RecalMainMod1aP <- update(RecalMainMod1aE, .~. - Treatment:Sand-Treatment:C.N-Landuse:Temp-
                             Landuse:C.N-Landuse:Treatment- Region:Treatment-
                             -Region:Landuse-Season:Treatment-Season:Landuse-
-                            Season:Region)
+                            Season:Region-Region:Landuse)
 RecalMainMod1aq <- update(RecalMainMod1aP, .~. -  Season)
 RecalMainMod1ar <- update(RecalMainMod1aP, .~. -  Region)
 RecalMainMod1as <- update(RecalMainMod1aP, .~. -  Landuse)
@@ -2705,39 +2706,38 @@ ggsave("Termites/Results/Figures/CommongardenvsMain.png",
 
 #|####
 #WRAPPING UP RESULTS####
-#Wrapping up all terms and its significance in one table####
+#Wrapping up model LRT/update results in one table####
 names(LabileMCGModFINAL.anovaterms)
-LabileMCGModFINAL.anovaterms1 <- LabileMCGModFINAL.anovaterms[,c(1,6,7,8,9)]
-RecalMCGModFINAL.anovaterms1 <- RecalMCGModFINAL.anovaterms[,c(1,6,7,8,9)]
-LabileMainModFINAL.anovaterms1 <- LabileMainModFINAL.anovaterms[,c(1,6,7,8,9)]
-RecalMainModFINAL.anovaterms1 <- RecalMainModFINAL.anovaterms[,c(1,6,7,8,9)]
+LabileMCGModFINAL.update.anovaterms1 <- LabileMCGModFINAL.anovaterms[,c(1,6,7,8,9)]
+RecalMCGModFINAL.update.anovaterms1 <- RecalMCGModFINAL.anovaterms[,c(1,6,7,8,9)]
+LabileMainModFINAL.update.anovaterms1 <- LabileMainModFINAL.anovaterms[,c(1,6,7,8,9)]
+RecalMainModFINAL.update.anovaterms1 <- RecalMainModFINAL.anovaterms[,c(1,6,7,8,9)]
 
-LabileMCGModFINAL.anovaterms1$Model <- "LabileMCG"
-RecalMCGModFINAL.anovaterms1$Model <- "RecalMCG"
-LabileMainModFINAL.anovaterms1$Model <- "LabileMain"
-RecalMainModFINAL.anovaterms1$Model <- "RecalMain"
+LabileMCGModFINAL.update.anovaterms1$Model <- "LabileMCG"
+RecalMCGModFINAL.update.anovaterms1$Model <- "RecalMCG"
+LabileMainModFINAL.update.anovaterms1$Model <- "LabileMain"
+RecalMainModFINAL.update.anovaterms1$Model <- "RecalMain"
 
-FINAL.anovaterms <- full_join(
-LabileMCGModFINAL.anovaterms1,
-RecalMCGModFINAL.anovaterms1,by="Terms")
-
-FINAL.anovaterms <- full_join(
+FINAL.update.anovaterms <- full_join(
+  LabileMCGModFINAL.update.anovaterms1,
+  RecalMCGModFINAL.update.anovaterms1,by="Terms")
+FINAL.update.anovaterms <- full_join(
   FINAL.anovaterms,
-  LabileMainModFINAL.anovaterms1,by="Terms")
-FINAL.anovaterms <- full_join(
+  LabileMainModFINAL.update.anovaterms1,by="Terms")
+FINAL.update.anovaterms <- full_join(
   FINAL.anovaterms,
-  RecalMainModFINAL.anovaterms1,by="Terms")
-names(FINAL.anovaterms)
-colnames(FINAL.anovaterms) <- c("Df","F-ratio","Dfchi","Pr(>Chisq)","Terms","Model",
+  RecalMainModFINAL.update.anovaterms1,by="Terms")
+names(FINAL.update.anovaterms)
+colnames(FINAL.update.anovaterms) <- c("Df","F-ratio","Dfchi","Pr(>Chisq)","Terms","Model",
                                 "Df","F-ratio","Dfchi","Pr(>Chisq)","Model",
                                 "Df","F-ratio","Dfchi","Pr(>Chisq)","Model",
                                 "Df","F-ratio","Dfchi","Pr(>Chisq)","Model")
 
-FINAL.anovaterms <- as.data.frame(FINAL.anovaterms)
-FINAL.anovaterms<- FINAL.anovaterms[,c(5,1,2,3,4,6:21)]
-names(FINAL.anovaterms)
+FINAL.update.anovaterms <- as.data.frame(FINAL.update.anovaterms)
+FINAL.update.anovaterms<- FINAL.update.anovaterms[,c(5,1,2,3,4,6:21)]
+names(FINAL.update.anovaterms)
 
-write.csv(FINAL.anovaterms,na="", file="Termites/FINALMODELS.anovaterms.csv")
+write.csv(FINAL.update.anovaterms,na="", file="Termites/Results/FINAL.update.anovaterms.csv")
 
 #Wrapping up the R2c data into two graphs####
 #Want to have each graph comparing R2c for labile litter in Main and CG model.
@@ -2746,31 +2746,41 @@ RecalMainr2A <- RecalMainr2
 LabileCGr2A <- LabileCGr2
 RecalCGr2A <- RecalCGr2
 
-RecalMainr2
+#Labile data
+LabileMainr2A$experiment <- "Main"
+LabileCGr2A$experiment <- "CG"
+FINAL.r2.labilemodels <- rbind(LabileMainr2A,LabileCGr2A)
 
-FINAL.r2.labilemodels <- full_join(LabileMainr2,LabileCGr2,by="terms")
-colnames(FINAL.r2.labilemodels) <- c("R2m.main","R2c.main","terms","R2m.cg","R2c.cg")
-FINAL.r2.labilemodels$terms<- factor(FINAL.r2.labilemodels$terms, levels = FINAL.r2.labilemodels$terms[order(FINAL.r2.labilemodels$R2c.main)])
+#Recal data
+RecalMainr2A$experiment <- "Main"
+RecalCGr2A$experiment <- "CG"
+FINAL.r2.recalmodels <- rbind(RecalMainr2A,RecalCGr2A)
 
-FINAL.r2.recalmodels <- full_join(RecalMainr2,RecalCGr2,by="terms")
-colnames(FINAL.r2.recalmodels) <- c("R2m.main","R2c.main","terms","R2m.cg","R2c.cg")
-FINAL.r2.recalmodels$terms<- factor(FINAL.r2.recalmodels$terms, levels = FINAL.r2.recalmodels$terms[order(FINAL.r2.recalmodels$R2c.main)])
+FINAL.r2.recalmodels$experiment <- as.factor(FINAL.r2.recalmodels$experiment)
+levels(FINAL.r2.recalmodels$experiment)
+FINAL.r2.recalmodels$terms <- as.factor(FINAL.r2.recalmodels$terms)
 
-#Plot for recal r2 models
-length(FINAL.r2.recalmodels$terms)
-r2.recalplot <- ggplot(data=FINAL.r2.recalmodels, aes(y=terms,x=R2c.main))
-r2.recalplot <- r2.recalplot+ geom_point(data=FINAL.r2.recalmodels,size=2,colour="green4",fill="green4") 
-r2.recalplot <- r2.recalplot+geom_point(data=FINAL.r2.recalmodels, aes(x=R2c.cg),size=2,color="black",fill="black",alpha=0.3)
+#Plot for recal r2 models#
+FINAL.r2.recalmodels$terms<- factor(FINAL.r2.recalmodels$terms, levels = FINAL.r2.recalmodels$terms[order(FINAL.r2.recalmodels$R2c)])
+r2.recalplot <- ggplot(data=FINAL.r2.recalmodels, aes(y=terms,x=R2c,color=experiment,alpha=experiment))
+r2.recalplot <- r2.recalplot+ geom_point(size=2)
+r2.recalplot <- r2.recalplot+scale_color_manual(values=c("black","green4"))
+r2.recalplot <- r2.recalplot+scale_alpha_manual(values=c(0.3,1))
+r2.recalplot <- r2.recalplot+xlab("R2c Recalcitrant")+ylab("Terms")
+r2.recalplot <- r2.recalplot + theme_classic()
 r2.recalplot
-ggsave(file="Termites/r2.recalplot.png",
+ggsave(file="Termites/Results/r2c.recalplot.png",
        width= 25, height = 12,units ="cm", bg ="transparent",
        dpi = 600, limitsize = TRUE)
 
 #Plot for labile r2 models
-r2.labileplot <- ggplot(data=FINAL.r2.labilemodels, aes(y=terms,x=R2c.main))
-r2.labileplot <- r2.labileplot+ geom_point(data=FINAL.r2.labilemodels,size=2,colour="green4",fill="green4") 
-r2.labileplot <- r2.labileplot+geom_point(data=FINAL.r2.labilemodels, aes(x=R2c.cg),size=2,color="black",fill="black",alpha=0.3)
-r2.labileplot <- r2.labileplot+
+FINAL.r2.labilemodels$terms<- factor(FINAL.r2.labilemodels$terms, levels = FINAL.r2.labilemodels$terms[order(FINAL.r2.labilemodels$R2c)])
+r2.labileplot <- ggplot(data=FINAL.r2.labilemodels, aes(y=terms,x=R2c,color=experiment,alpha=experiment))
+r2.labileplot <- r2.labileplot+ geom_point(size=2)
+r2.labileplot <- r2.labileplot+scale_color_manual(values=c("black","green4"))
+r2.labileplot <- r2.labileplot+scale_alpha_manual(values=c(0.3,1))
+r2.labileplot <- r2.labileplot+xlab("R2c Labile")+ylab("Terms")
+r2.labileplot <- r2.labileplot + theme_classic()
 r2.labileplot
 ggsave(file="Termites/r2.labileplot.png",
        width= 25, height = 12,units ="cm", bg ="transparent",
