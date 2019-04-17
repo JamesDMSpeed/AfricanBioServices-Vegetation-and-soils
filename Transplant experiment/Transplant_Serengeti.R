@@ -1,59 +1,119 @@
 ########################################################################
 #### Serengeti turf trasnplant experiment ####
 ########################################################################
-#Libraries
+# Clean your R environment
+rm(list=ls())
 library(dplyr)
-library(xlsx)
-
+library(Matrix)
+library(ggplot2)
+library(glmmADMB)
+library(glmmTMB)
+library(multcomp)
+library(lme4)
 ########################################################################
-##### Joining aboveground and belowground files ####
-# Import data transplant experiment
-setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/")
-AboveTrans<-read.csv(file="Aboveground.survey.May2018depth.csv", sep=",",header=TRUE)
-BelowTrans<-read.csv(file="Belowground.soil.transplant.May2018.csv", sep=",",header=TRUE)
-names(AboveTrans)
-AboveTrans$Current.placement.of.the.turf
-BelowTrans$Current.placement.of.the.turf
+##### Aboveground plant cover ####
 
-# Join above and belowground - test which samples are missing...
-TransExp<- left_join(AboveTrans,BelowTrans, by=c("Current.placement.of.the.turf","depth"),drop=F)
-dim(TransExp) # 310 23
+TP<-read.csv(file="Transplant experiment/Aboveground.survey.May2018.csv", sep=",",header=TRUE)
 
-#write.xlsx(TransExp, "/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/TransExpAbove_below.xlsx")
+names(TP)
+str(TP)
+dim(TP) #152  22
 
-########################################################################
-##### Joining aboveground and belowground files ####
+# House keeping factors
+TP$fSite<-as.factor(TP$Site)
+TP$fBlock<-as.factor(TP$Block)
+TP$fTagsp<-as.factor(TP$Tagsp)
+TP$fLanduse<-as.factor(TP$Landuse)
 
-# Import data transplant experiment
-setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/")
-AboveCover<-read.csv(file="Aboveground.survey.Nov2018target.csv", sep=",",header=TRUE)
-AboveWeight<-read.csv(file="Aboveground.biomass.wts.Nov2018.csv", sep=",",header=TRUE)
+#### Determine how well target species transplanted ####
+# Remove plots not found with target species
+TP2<-TP[!is.na(TP$FinalTagspCover),]
+dim(TP2) #138  16
+TP2$FinalTagspCover
 
-names(AboveCover)
-names(AboveWeight)
+# Convert to binary data - presence vs absence and probability of detection
+TP2$FinalPresAb<-TP2$FinalTagspCover
+TP2$FinalPresAb[TP2$FinalPresAb>0]<-1
 
-levels(AboveCover$CurrentPlacementID) # 152 levels
-levels(AboveWeight$CurrentPlacementID) # 133
+TPprob<- glmmadmb(FinalPresAb~fTagsp+fLanduse+fTagsp:fLanduse+(1|fSite/fBlock), 
+                        family="binomial",#zeroInflation = TRUE,
+                        #admb.opts=admbControl(shess=FALSE,noinit=FALSE),
+                        data=TP2)
+summary(TPprob) # No difference in probabilty of species 
+drop1(TPprob,test="Chi")
+summary(glht(TPprob, mcp(fTagsp="Tukey"))) 
 
-levels(AboveCover$Target) # 152 levels
-levels(AboveWeight$Target) # 133
+#Model matrix
+MyData <- expand.grid(fTagsp = levels(TP2$fTagsp),
+                      fLanduse = levels(TP2$fLanduse))
+head(MyData)
 
-levels(AboveCover$Area) # 5 levels
-levels(AboveWeight$Area) # 5 levels
+#Convert the covariate values into an X matrix
+Xp <- model.matrix(~ fTagsp+fLanduse+fTagsp:fLanduse, data = MyData)
+
+#Extract parameters and parameter covariance matrix
+betas    <- fixef(TPprob)
+Covbetas <- vcov(TPprob)
+
+#Calculate the fitted values in the predictor scale
+MyData$eta <- Xp %*% betas
+MyData$Pi  <- exp(MyData$eta) / (1 + exp(MyData$eta))
 
 
-# Join above and belowground - test which samples are missing...
-CoverWeight<- left_join(AboveCover,AboveWeight, by=c("CurrentPlacementID","Target","Area"),drop=F)
-dim(AboveCover) # 304 21
-dim(CoverWeight) # 315 29 # 
+#Calculate the SEs on the scale of the predictor function
+MyData$se    <- sqrt(diag(Xp %*% Covbetas %*% t(Xp)))
+MyData$SeUp  <- exp(MyData$eta + 1.96 *MyData$se) / 
+  (1 + exp(MyData$eta  + 1.96 *MyData$se))
+MyData$SeLo  <- exp(MyData$eta - 1.96 *MyData$se) / 
+  (1 + exp(MyData$eta  - 1.96 *MyData$se))
 
-# Identify duplicates PlacementID
-CoverWeight$PlaceTarget<-as.factor(with(CoverWeight, paste(CurrentPlacementID,Target,Area, sep="_")))
+MyData
+#fTagsp        eta        Pi        se      SeUp      SeLo
+#1 Chl pyc  0.5108753 0.6250116 0.4216500 0.7920471 0.4217585
+#2 Chr ori -0.4053894 0.4000182 0.7142230 0.7299734 0.1412112 # Cryo orien - low 
+#3 Cyn dac  0.9985056 0.7307647 0.7657373 0.9240963 0.3769911 # Cynodon higher 
+#4 Dig mac  0.4519652 0.6111064 0.6852178 0.8575382 0.2908908
+#5 The tri  0.5306943 0.6296450 0.7177266 0.8740705 0.2939970
 
-CoverWeightDups<-CoverWeight[duplicated(CoverWeight$PlaceTarget), ]
-dim(CoverWeightDups) # 11 duplicates
+# No difference in probabilty of species being present after trasnplant
 
-# Export text file
-write.table(CoverWeight, "Cover.WeightsNov2018target.txt", row.name=F, sep="\t")
-write.table(CoverWeightDups, "Cover.WeightsNov2018targetDuplicates.txt", row.name=F, sep="\t")
+#### Determine species differences in cover ####
+TPcover<- lmer(FinalTagspCover~fTagsp+fLanduse+fTagsp:fLanduse+(1|fSite/fBlock),REML=T,
+                  data=TP2)
+summary(TPcover) # No difference in cover - marginal
+drop1(TPcover,test="Chi")
+
+# Interaction plot
+with(TP2, {interaction.plot(fLanduse,fTagsp,FinalTagspCover,
+                                  xlab = "Landuse",
+                                  ylab = "Target Cover",
+                                  fun=mean)})
+
+# Species differences
+summary(glht(TPcover, mcp(fTagsp="Tukey"))) 
+
+# No difference in probabilty of species 
+
+#Model matrix
+MyData <- expand.grid(fTagsp = levels(TP2$fTagsp))
+head(MyData)
+
+#Convert the covariate values into an X matrix
+Xp <- model.matrix(~ fTagsp, data = MyData)
+
+#Extract parameters and parameter covariance matrix
+betas    <- fixef(TPcover)
+Covbetas <- vcov(TPcover)
+
+#Calculate the fitted values in the predictor scale
+MyData$eta <- Xp %*% betas
+
+#Calculate the SEs on the scale of the predictor function
+MyData$se    <- sqrt(diag(Xp %*% Covbetas %*% t(Xp)))
+MyData$SeUp  <- exp(MyData$eta + 1.96 *MyData$se) / 
+  (1 + exp(MyData$eta  + 1.96 *MyData$se))
+MyData$SeLo  <- exp(MyData$eta - 1.96 *MyData$se) / 
+  (1 + exp(MyData$eta  - 1.96 *MyData$se))
+
+MyData
 
