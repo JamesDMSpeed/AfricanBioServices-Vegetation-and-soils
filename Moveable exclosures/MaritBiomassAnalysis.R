@@ -21,7 +21,7 @@ library(stargazer)
 
 Biomass <- read.csv("Moveable exclosures/Biomass.csv", header=T,sep=",")
 tail(Biomass)
-Nuts <- read.csv("Moveable exclosures/Nutrients.csv", header=T,sep=";")
+Nuts <- read.csv("Moveable exclosures/Nutrients.csv", header=T,sep=",")
 Datanuts <- Nuts[Nuts$treatment!="EX2",] #Removing Mesh exclosures  #300 obs
 Datanuts <- Datanuts[Datanuts$harvest!="H0",] #removing H0                #280 obs
 Datanuts <- droplevels(Datanuts)
@@ -3473,17 +3473,25 @@ Dataannuallong1$rain.day <- round(Dataannuallong1$rain.day,digits=2)
 #levels(Dataannuallong1$factor(rain.day))<-c("Dry \n Pasture","Dry \n Wild","Intermediate \n Wild","Wet \n Pasture","Wet \n Wild")
 levels(Dataannuallong1$prodcons)<-c("Production","Consumtption")
 
+# Group rain x landuse x block
+Dataannuallong1$rainlanduse <- as.factor(with(Dataannuallong1,paste(rain.day,landuse,block.id,sep=" ")))
+levels(Dataannuallong1$block.id) # 16 levels
+
+
 legend_title2<-"Land-use"
 legend_title <- "Biomass change"
-NAPtot <- ggplot(Dataannuallong1, aes(x=factor(rain.day), y=value, colour=colorbar,fill=colorbar, group=prodcons))
-NAPtot <- NAPtot+geom_bar(stat="identity", position="identity",size=1.2, alpha=.5, show.legend=T)
+NAPtot <- ggplot(Dataannuallong1, aes(x=factor(rain.day), y=value, colour=landuse,fill=colorbar, group=rainlanduse))
+NAPtot <- NAPtot+geom_bar(stat="identity",position = position_dodge(width = 1.5, preserve = "single"),size=1, alpha=.5, show.legend=T)
 #NAPtot <- NAPtot+geom_errorbar(aes(ymin=value, ymax=value+Cumprod_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # ymin=Cum_prod-Cumprod_SE
 #NAPtot <- NAPtot+geom_col(stat="identity", position=position_dodge(width=.95), size=1.2, alpha=.5, show.legend=T)
 NAPtot <- NAPtot +scale_fill_manual(legend_title, values=c( "tan3","turquoise3","white","white"))
-NAPtot <- NAPtot +scale_colour_manual(legend_title, values=c( "tan3","turquoise3","turquoise3","turquoise3","tan3","turquoise3"))
+NAPtot <- NAPtot +scale_colour_manual(legend_title, values=c( "tan3","turquoise3"))
 #NAPtot <- NAPtot +scale_fill_manual(legend_title2, values=c( "tan3","turquoise3"))
 NAPtot<-NAPtot+ xlab("Daily rainfall (mm)") + ylab(expression(paste("Total NAP and consumption (g ",m^-2,")")))
 #NAPtot <- NAPtot + guides(alpha=F, fill=guide_legend(override.aes = list(fill=c("tan3","turquoise3",NA,NA))))
+NAPtot<-NAPtot+scale_y_continuous(limits = c(-20,850), expand = c(0,0))
+NAPtot<-NAPtot+scale_x_discrete(expand = c(0.15,0.15)) #breaks=0:4, labels=c("1","2","3","4","5"),
+NAPtot
 NAPtot <- NAPtot + theme_bw() +
   theme(plot.background = element_blank()
         ,panel.grid.minor = element_blank()
@@ -3491,7 +3499,7 @@ NAPtot <- NAPtot + theme_bw() +
         ,panel.grid.major.x = element_blank()
         ,panel.grid.major.y = element_blank() 
         ,axis.text.y=element_text(size=12)
-        ,axis.text.x=element_text(size=12)
+        ,axis.text.x=element_text(size=12, hjust=1)
         ,axis.line=element_line( size=.5)
         ,axis.title=element_text(size=14)
         ,legend.text=element_text(size=12)
@@ -3501,11 +3509,16 @@ NAPtot <- NAPtot + theme_bw() +
         ,strip.background = element_blank()
         #,strip.text = element_text(size=12)
         ,strip.text = element_text(size=12)
+        ,axis.ticks.x =element_blank()
         #,axis.text.x=element_blank()
         #,axis.ticks.x=element_blank()
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
+NAPtot<- NAPtot+guides(colour=F,size=F,shape= F, alpha=F,
+                       fill= guide_legend(order=1,"Biomass change",override.aes = list(shape=NA, alpha=.99, size=1,fill=c( "tan3","turquoise3","white","white"),col=c( "tan3","turquoise3"))))
 NAPtot
+
+
 # ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSsiteFINAL.png",
 # width= 26, height = 18,units ="cm",
 # dpi = 600, limitsize = TRUE)
