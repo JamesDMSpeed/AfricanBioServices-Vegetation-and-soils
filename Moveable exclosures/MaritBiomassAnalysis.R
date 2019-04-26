@@ -207,7 +207,6 @@ Datamean$Cum_N.tot<-c(cumsum(Datamean[1:7,"N.total"]),cumsum(Datamean[8:14,"N.to
 
 # % production consumed 
 Datamean$Cum_perc_cons<-Datamean$Cum_cons/Datamean$Cum_prod*100
-Databiom2$Cum_perc_cons <- Databiom2$Cum_cons/Databiom2$Cum_prod*100
 
 #### Cumulative production, consumption, rainfall and N contents for non-aggregated data ####
 ##DataEx 
@@ -260,12 +259,12 @@ DataOp$Cum_rain<-c(cumsum(DataOp[1:7,"rain.sum"]),cumsum(DataOp[8:14,"rain.sum"]
 #### DATAFRAMES for modelling ####
 #### DF NAP season ####
 Dataprod <- Databiom[complete.cases(Databiom[c("prodtot")]),]   #271 obs
-  #Replacing neg values with 0
-  #Dataprod0 <- Dataprod
-  #Dataprod0[,c(40:65)] <- replace(Dataprod[,c(40:65)], Dataprod[,c(40:65)] < 0, 0)
+#Replacing neg values with 0
+#Dataprod0 <- Dataprod
+#Dataprod0[,c(40:65)] <- replace(Dataprod[,c(40:65)], Dataprod[,c(40:65)] < 0, 0)
 
 #Dataframe without the Handajega H7 values
-  #Dataprod1 <- Dataprod[!(Dataprod$site.name=="Handajega" & Dataprod$harvest=="H7"),]
+#Dataprod1 <- Dataprod[!(Dataprod$site.name=="Handajega" & Dataprod$harvest=="H7"),]
 DataprodEx <- Dataprod[Dataprod$treatment!="open",] #135 obs
 DataprodEx1 <- DataprodEx[!(DataprodEx$site.name=="Handajega" & DataprodEx$harvest=="H7"),]
 #DF WEIGHTED 
@@ -276,13 +275,14 @@ DataprodW1 <- DataprodW[!(DataprodW$site.name=="Handajega" & DataprodW$harvest==
 Datacons <- Databiom[complete.cases(Databiom[c("constot")]),]   #135 obs
 Datacons <- Datacons[complete.cases(Datacons[c("N.total")]),]   #105 obs
 Datacons <- Datacons[complete.cases(Datacons[c("prodtot")]),]   #104 obs
-  #Replacing neg values with 0
+#Replacing neg values with 0
 #Datacons0 <- Datacons
 #Datacons0[,c(40:65)] <- replace(Datacons[,c(40:65)], Datacons[,c(40:65)] < 0, 0)
 
 #### CUMULATIVE DF #### 
 # Combine again DataEx and DataOp. Getting accumulated values on block level
-Databiom2 <- bind_rows(DataEx,DataOp) 
+Databiom2 <- bind_rows(DataEx,DataOp)
+Databiom2$Cum_perc_cons <- Databiom2$Cum_cons/Databiom2$Cum_prod*100
 
 #Adding SE to Datamean
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
@@ -759,8 +759,8 @@ TotprodL$prodtot<- round(TotprodL$prodtot, digits=2)
 colnames(TotprodL)[4]<-"Productivity"
 TotprodL$pool<-"total" #Tagging these data with total productivity - combining later
 
-TarprodL<-aggregate(prodtarg~landuse+YrMonth+treatment,na.rm=T,Databiom,mean)
-TarprodL$prodtarg<-round(TarprodL$prodtarg,digits=2)  
+TarprodL<-aggregate(prodtarg.per~landuse+YrMonth+treatment,na.rm=T,Databiom,mean)
+TarprodL$prodtarg.per<-round(TarprodL$prodtarg.per,digits=2)  
 colnames(TarprodL)[4]<-"Productivity"
 TarprodL$pool<-"target"
 
@@ -774,8 +774,8 @@ TotprodLSE$prodtot<-round(TotprodLSE$prodtot,digits=2)
 colnames(TotprodLSE)[4]<-"SE"
 TotprodLSE$pool<-"total"
 
-TarprodLSE <- aggregate(prodtarg~landuse+YrMonth+treatment,Databiom,SE)
-TarprodLSE$prodtarg<-round(TarprodLSE$prodtarg,digits=2)
+TarprodLSE <- aggregate(prodtarg.per~landuse+YrMonth+treatment,Databiom,SE)
+TarprodLSE$prodtarg.per<-round(TarprodLSE$prodtarg.per,digits=2)
 colnames(TarprodLSE)[4]<-"SE"
 TarprodLSE$pool<-"target"
 
@@ -785,8 +785,19 @@ AvgprodL$SE<-SeprodL$SE
 # Convert to date
 AvgprodL$YrMonth<-as.Date(paste(AvgprodL$YrMonth,"-01",sep=""))#Adding day (first of month)
 
-# Redo code to include differences in pool - linetype
-#AvgprodL$site.id<-as.factor(with(AvgprodL, paste(landuse,treatment,pool, sep="_")))
+## SD dataframes
+TotprodLSD <- aggregate(prodtot~landuse+YrMonth+treatment,Databiom,sd)
+TotprodLSD$prodtot<-round(TotprodLSD$prodtot,digits=2)
+colnames(TotprodLSD)[4]<-"SD"
+TotprodLSD$pool<-"total"
+
+TarprodLSD <- aggregate(prodtarg.per~landuse+YrMonth+treatment,Databiom,sd)
+TarprodLSD$prodtarg.per<-round(TarprodLSD$prodtarg.per,digits=2)
+colnames(TarprodLSD)[4]<-"SD"
+TarprodLSD$pool<-"target"
+
+SdprodL<-rbind(TotprodLSD,TarprodLSD)
+AvgprodL$SD<-SdprodL$SD
 
 #### Average CONS ####
 # Average of each site per harvest
@@ -867,8 +878,8 @@ TotconsL$constot<- round(TotconsL$constot, digits=2)
 colnames(TotconsL)[3]<-"Consumption"
 TotconsL$pool<-"total" #Tagging these data with total productivity - combining later
 
-TarconsL<-aggregate(constarg~landuse+YrMonth,na.rm=T,Databiom,mean)
-TarconsL$constarg<-round(TarconsL$constarg,digits=2)  
+TarconsL<-aggregate(constarg.per~landuse+YrMonth,na.rm=T,Databiom,mean)
+TarconsL$constarg.per<-round(TarconsL$constarg.per,digits=2)  
 colnames(TarconsL)[3]<-"Consumption"
 TarconsL$pool<-"target"
 
@@ -881,8 +892,8 @@ TotconsLSE$constot<-round(TotconsLSE$constot,digits=2)
 colnames(TotconsLSE)[3]<-"SE"
 TotconsLSE$pool<-"total"
 
-TarconsLSE <- aggregate(constarg~landuse+YrMonth,Databiom,SE)
-TarconsLSE$constarg<-round(TarconsLSE$constarg,digits=2)
+TarconsLSE <- aggregate(constarg.per~landuse+YrMonth,Databiom,SE)
+TarconsLSE$constarg.per<-round(TarconsLSE$constarg.per,digits=2)
 colnames(TarconsLSE)[3]<-"SE"
 TarconsLSE$pool<-"target"
 
@@ -893,8 +904,19 @@ AvgconsL$SE<-SeconsL$SE
 # Convert to date
 AvgconsL$YrMonth<-as.Date(paste(AvgconsL$YrMonth,"-01",sep=""))
 
-# Redo code to include differences in pool - linetype
-#AvgconsL$site.id<-as.factor(with(AvgconsL, paste(landuse,pool, sep="_")))
+## SD dataframes
+TotconsLSD <- aggregate(constot~landuse+YrMonth+treatment,Databiom,sd)
+TotconsLSD$constot<-round(TotconsLSD$constot,digits=2)
+colnames(TotconsLSD)[4]<-"SD"
+TotconsLSD$pool<-"total"
+
+TarconsLSD <- aggregate(constarg.per~landuse+YrMonth+treatment,Databiom,sd)
+TarconsLSD$constarg.per<-round(TarconsLSD$constarg.per,digits=2)
+colnames(TarconsLSD)[4]<-"SD"
+TarconsLSD$pool<-"target"
+
+SdconsL<-rbind(TotconsLSD,TarconsLSD)
+AvgconsL$SD<-SdconsL$SD
 
 #### Aggregating rainfall per region #### 
 # Averaging rainfall data and getting SE by region # To be included in the NAP aggregated dataframes per site
@@ -928,6 +950,10 @@ RainlandX$SeLo<-RainlandX$rain.sum-RainlandX$SE
 # Convert to date
 RainlandX$YrMonth<-as.Date(paste(RainlandX$YrMonth,"-01",sep=""))
 
+###Adding daily rainfall also
+Rainday<-aggregate(rain.day~landuse+YrMonth,Databiom,mean)
+Rainday$YrMonth<-as.Date(paste(Rainday$YrMonth,"-01",sep=""))
+
 #### Adding NAP AND rainfall to aggregated dataframes ####
 # using left join.
 Avgprod<-left_join(Avgprod,RainregionX, by=c("region","YrMonth"),drop=F)
@@ -942,9 +968,11 @@ names(AvgconsW)
 
 #Average per landuse
 AvgprodL <- left_join(AvgprodL,RainlandX, by=c("landuse","YrMonth"),drop=F)
+AvgprodL <- left_join(AvgprodL,Rainday, by=c("landuse","YrMonth"),drop=F,copy=F)
 names(AvgprodL)
 
 AvgconsL <- left_join(AvgconsL,RainlandX, by=c("landuse","YrMonth"),drop=F)
+AvgconsL <- left_join(AvgconsL,Rainday, by=c("landuse","YrMonth"),drop=F,copy=F)
 names(AvgconsL)
 
 ## Set values <0 to zero
@@ -1033,14 +1061,32 @@ AvgprodL2 <- droplevels(AvgprodL2)
 AvgconsL2 <- AvgconsL[AvgconsL$pool!="target",]
 AvgconsL2 <- droplevels(AvgconsL2)
 
-dim(AvgprodL2) #15 10
-dim(AvgconsL2) #15 9
+dim(AvgprodL2) #15 11
+dim(AvgconsL2) #15 10
 
-AvgprodconsL<-left_join(AvgprodL2,AvgconsL2, by=c("landuse","YrMonth","pool","rain.sum"),drop=F)
+AvgprodconsL<-left_join(AvgprodL2,AvgconsL2, by=c("landuse","YrMonth","pool","rain.sum","rain.day"),drop=F)
 
 AvgprodconsL$col<-AvgprodconsL$landuse
 levels(AvgprodconsL$col)<-c("tan","turquoise3")
 AvgprodconsL$Biomass_change<-c("Productivity","Consumption","Productivity")
+AvgprodconsL$rain.day <- round(AvgprodconsL$rain.day,digits=2)
+AvgprodconsL$rain.sum <- round(AvgprodconsL$rain.sum,digits=2)
+
+## DF with target
+AvgprodL3 <- AvgprodL[AvgprodL$pool!="total",]
+AvgprodL3 <- AvgprodL3[AvgprodL3$treatment!="open",]
+AvgprodL3 <- droplevels(AvgprodL3)
+
+AvgconsL3 <- AvgconsL[AvgconsL$pool!="total",]
+AvgconsL3 <- droplevels(AvgconsL3)
+
+AvgprodconsL2<-left_join(AvgprodL3,AvgconsL3, by=c("landuse","YrMonth","pool","rain.sum","rain.day"),drop=F)
+
+AvgprodconsL2$col<-AvgprodconsL2$landuse
+levels(AvgprodconsL2$col)<-c("tan","turquoise3")
+AvgprodconsL2$Biomass_change<-c("Productivity","Consumption","Productivity")
+AvgprodconsL2$rain.day <- round(AvgprodconsL2$rain.day,digits=2)
+AvgprodconsL2$rain.sum <- round(AvgprodconsL2$rain.sum,digits=2)
 
 #### Plot NAP target+total ####
 legend_title<-"land-use"
@@ -1363,11 +1409,11 @@ AvgprodconsW <- left_join(AvgprodTot,AvgconsTot,by=c("region","landuse","YrMonth
 AvgprodconsW$Biomass_change<-c("Productivity","Consumption")
 
 # Plot without intermediate and then add intermediate later
-    # Avgprodcons2I<-droplevels(Avgprodcons2[Avgprodcons2$region=="Intermediate Region",])
-    # Avgprodcons2excI<-droplevels(Avgprodcons2[Avgprodcons2$region!="Intermediate Region",])
-    # 
-    # Avgprodcons2$landuse <-factor (Avgprodcons2$landuse,levels=c("UPA","PA"))
-   
+# Avgprodcons2I<-droplevels(Avgprodcons2[Avgprodcons2$region=="Intermediate Region",])
+# Avgprodcons2excI<-droplevels(Avgprodcons2[Avgprodcons2$region!="Intermediate Region",])
+# 
+# Avgprodcons2$landuse <-factor (Avgprodcons2$landuse,levels=c("UPA","PA"))
+
 
 Avgprodcons2<-left_join(Avgprod6b,Avgcons4, by=c("region","landuse","YrMonth","pool","rain.sum"),drop=F)
 Avgprodcons2$col<-Avgprodcons2$landuse
@@ -1431,11 +1477,11 @@ napcons2b
 #could also use the lemon package with facet_rep_wrap(), but might need to reinstall R for this to work 
 
 #ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSseason.png",
- #width= 26, height = 18,units ="cm",
- #dpi = 600, limitsize = TRUE)
+#width= 26, height = 18,units ="cm",
+#dpi = 600, limitsize = TRUE)
 
 #### Plot NAP+CONS per landuse ####
-levels(AvgprodconsL$landuse) <- c("UPA", "PA")
+levels(AvgprodconsL$landuse) <- c("Pasture", "Wild")
 AvgprodconsL$Biomass_change<-c("Productivity","Consumption","Productivity")
 
 legend_title<-"land-use"
@@ -1445,17 +1491,17 @@ napconsL<- ggplot(AvgprodconsL, aes(x=YrMonth, y=Productivity, colour=landuse,fi
 napconsL<-napconsL+geom_hline(yintercept = 0, size =1, linetype="dotted", colour="grey")
 napconsL<-napconsL+geom_line(aes(y = Consumption), linetype=2,size=1.2,show.legend=F)
 napconsL<-napconsL+geom_point(aes(y = Consumption), shape =21,size=4,show.legend=F)
-napconsL<-napconsL+geom_errorbar(aes(ymin=Consumption-SE.x.y, ymax=Consumption+SE.x.x),width=.2,lwd=1.1,show.legend=F)
-napconsL<-napconsL+scale_fill_manual(values=c(UPA = "tan3",PA = "turquoise3"))
+napconsL<-napconsL+geom_errorbar(aes(ymin=Consumption-SE.x.y, ymax=Consumption+SE.x.y),width=.2,lwd=1.1,show.legend=F)
+napconsL<-napconsL+scale_fill_manual(values=c(Pasture = "tan3",Wild = "turquoise3"))
 napconsL<-napconsL+geom_line(linetype=1,size=1.2, alpha=1, show.legend=F)
 napconsL<-napconsL+geom_errorbar(aes(ymin=Productivity-SE.x.x, ymax=Productivity+SE.x.x),width=.2,lwd=1.1,show.legend=F)
 napconsL<-napconsL+geom_point(shape=22,size=4, fill="white", stroke=2,show.legend=F)
 napconsL<-napconsL+facet_wrap(~landuse,ncol=2,scales='fixed')
-napconsL<-napconsL+scale_y_continuous(limits=c(-1.5,6),sec.axis = sec_axis(~ . *70, breaks = c(0,100,200,300,400,500), labels = c(0,100,200,300,400,500), name = "Precipitation (mm)"))
-napconsL<-napconsL+geom_line(aes(y = rain.sum/70),colour="dark blue",linetype=1,size=1, alpha=0.5)
+napconsL<-napconsL+scale_y_continuous(limits=c(-1.5,7), sec.axis = sec_axis(~.*1,breaks = c(0,2,4,6), labels = c(0,2,4,6), name = "Daily precipitation (mm)"))
+napconsL<-napconsL+geom_line(aes(y = rain.day),colour="dark blue",linetype=1,size=1, alpha=0.7)
 #napconsL<-napconsL+geom_point(aes(y = rain.sum/70),colour="dark blue",fill="dark blue",size=.9,alpha=.2)
 napconsL<-napconsL+scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(as.Date("2017-02-10"),max=as.Date("2018-05-31")), expand=c(0,0)) 
-napconsL<-napconsL+scale_colour_manual(legend_title, values=c(UPA = "tan3", PA = "turquoise3"))
+napconsL<-napconsL+scale_colour_manual(legend_title, values=c(Pasture = "tan3", Wild = "turquoise3"))
 #napconsL<-napconsL+scale_linetype_manual(values = c(wild = "solid", pasture = "dashed"))
 napconsL<-napconsL+xlab("Time (month|year)") + ylab(expression(paste("Productivity and consumption (g ",m^-2," ",day^-1,")")))
 napconsL<-napconsL+ theme_bw() +
@@ -1478,7 +1524,7 @@ napconsL<-napconsL+ theme_bw() +
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
 napconsL<-napconsL+ annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
-napconsL<-napconsL+annotate(geom="text",x=as.Date("2017-10-01"), y=6, label=c("Unprotected  area \n (UPA)","Protected area \n (PA)"),color="black", size=5)
+napconsL<-napconsL+annotate(geom="text",x=as.Date("2017-10-01"), y=6, label=c("Livestock \n Pasture Area ","Wildlife \n Protected Area"),color="black", size=5)
 napconsL<-napconsL+guides(shape=F, fill=F,colour = guide_legend(override.aes = list(shape=c(21, 21),
                                                                                     size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),nrow=2,byrow=TRUE))
 napconsL<-napconsL+ guides(colour=F, fill=F,shape = guide_legend("Biomass change",override.aes = list(shape=c(21, 22),
@@ -1490,9 +1536,69 @@ napconsLb<-napconsLb+ guides(size=guide_legend("Land-use", override.aes=list(sha
 napconsLb <- napconsLb+theme(panel.spacing.x=unit(2, "lines"),panel.spacing.y=unit(1, "lines"))
 napconsLb
 
-ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSseasonLand.png",
-width= 40, height = 16,units ="cm",
-dpi = 600, limitsize = TRUE)
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSseasonLandSE.png",
+#width= 40, height = 16,units ="cm",
+#dpi = 600, limitsize = TRUE)
+
+#### Plot domNAP+CONS (weighted) per landuse ####
+## Strange result. Need to check errors! ##
+levels(AvgprodconsL2$landuse) <- c("Pasture", "Wild")
+
+legend_title<-"land-use"
+napconsL<- ggplot(AvgprodconsL2, aes(x=YrMonth, y=Productivity, colour=landuse,fill=landuse,
+                                     shape=Biomass_change,
+                                     group=landuse))
+napconsL<-napconsL+geom_hline(yintercept = 0, size =1, linetype="dotted", colour="grey")
+napconsL<-napconsL+geom_line(aes(y = Consumption), linetype=2,size=1.2,show.legend=F)
+napconsL<-napconsL+geom_point(aes(y = Consumption), shape =21,size=4,show.legend=F)
+napconsL<-napconsL+geom_errorbar(aes(ymin=Consumption-SE.x.y, ymax=Consumption+SE.x.x),width=.2,lwd=1.1,show.legend=F)
+napconsL<-napconsL+scale_fill_manual(values=c(Pasture = "tan3",Wild = "turquoise3"))
+napconsL<-napconsL+geom_line(linetype=1,size=1.2, alpha=1, show.legend=F)
+napconsL<-napconsL+geom_errorbar(aes(ymin=Productivity-SE.x.x, ymax=Productivity+SE.x.x),width=.2,lwd=1.1,show.legend=F)
+napconsL<-napconsL+geom_point(shape=22,size=4, fill="white", stroke=2,show.legend=F)
+napconsL<-napconsL+facet_wrap(~landuse,ncol=2,scales='fixed')
+napconsL<-napconsL+scale_y_continuous(limits=c(-1.5,6),sec.axis = sec_axis(~.*1,breaks = c(0,2,4,6), labels = c(0,2,4,6), name = "Daily precipitation (mm)"))
+napconsL<-napconsL+geom_line(aes(y = rain.day),colour="dark blue",linetype=1,size=1, alpha=0.7)
+#napconsL<-napconsL+geom_point(aes(y = rain.sum/70),colour="dark blue",fill="dark blue",size=.9,alpha=.2)
+napconsL<-napconsL+scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(as.Date("2017-02-10"),max=as.Date("2018-05-31")), expand=c(0,0)) 
+napconsL<-napconsL+scale_colour_manual(legend_title, values=c(Pasture = "tan3", Wild = "turquoise3"))
+#napconsL<-napconsL+scale_linetype_manual(values = c(wild = "solid", pasture = "dashed"))
+napconsL<-napconsL+xlab("Time (month|year)") + ylab(expression(paste("NAP and CONS dominant species (g ",m^-2," ",day^-1,")")))
+napconsL<-napconsL+ theme_bw() +
+  theme(plot.background = element_blank()
+        #,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank() 
+        ,axis.text=element_text(size=12)
+        ,axis.text.x=element_text(size=10,angle=35, hjust=1)
+        ,axis.line=element_line( size=.5)
+        ,axis.title=element_text(size=14)
+        ,legend.text=element_text(size=12)
+        ,legend.title=element_text(size=14)
+        #,legend.position = c(0.25, 0.82)
+        ,plot.margin = unit(c(8,5,7,5), "mm")
+        ,strip.background = element_blank()
+        ,strip.text = element_blank()
+        ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
+  theme(axis.line = element_line(color = 'black'))
+napconsL<-napconsL+ annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
+napconsL<-napconsL+annotate(geom="text",x=as.Date("2017-10-01"), y=6, label=c("Livestock \n Pasture Area ","Wildlife \n Protected Area"),color="black", size=5)
+napconsL<-napconsL+guides(shape=F, fill=F,colour = guide_legend(override.aes = list(shape=c(21, 21),
+                                                                                    size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),nrow=2,byrow=TRUE))
+napconsL<-napconsL+ guides(colour=F, fill=F,shape = guide_legend("Biomass change",override.aes = list(shape=c(21, 22),
+                                                                                                      size=5,fill=c("gray50","white"),col="gray50", stroke=2),nrow=2,byrow=TRUE))
+
+napconsLb <-napconsL+geom_point(data =AvgprodconsL2, aes(size=landuse, shape = NA), colour = "grey50") #Adding legend
+napconsLb<-napconsLb+ guides(size=guide_legend("Land-use", override.aes=list(shape=c(21, 21), size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),
+                                               nrow=2,byrow=TRUE),legend.margin=margin(0,0,0,0))
+napconsLb <- napconsLb+theme(panel.spacing.x=unit(2, "lines"),panel.spacing.y=unit(1, "lines"))
+napconsLb
+
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/dominantWseason.png",
+#width= 40, height = 16,units ="cm",
+#dpi = 600, limitsize = TRUE)
 
 #### Plot Target NAP + CONS #### 
 AvgprodTarg <- AvgprodW[AvgprodW$pool!="total",]
@@ -1557,7 +1663,7 @@ AvgprodWT <- AvgprodW[AvgprodW$pool=="target",]
 AvgprodWT <- AvgprodWT[-c(3,15,32),]
 
 NAPdom<- ggplot(AvgprodWT, aes(x=YrMonth, y=Productivity, colour=landuse,
-                            group=site.id))
+                               group=site.id))
 NAPdom<-NAPdom+ geom_hline(yintercept = 0, size =1, linetype="dotted", colour="grey")
 NAPdom<-NAPdom+geom_line(aes(linetype=landuse),size=1.2, alpha=.5, show.legend=F)
 NAPdom<-NAPdom+geom_errorbar(aes(ymin=Productivity-SE.x, ymax=Productivity+SE.x),linetype="solid",width=.2,lwd=1.1,show.legend=F)
@@ -1838,8 +1944,8 @@ anova(P2)
 #Poly(rain.day,2)
 P2.2 <- lme(prodtot~landuse+poly(rain.day,2)+
               landuse:poly(rain.day,2),
-              #landuse:sand+
-              #poly(rain.day,2):sand,
+            #landuse:sand+
+            #poly(rain.day,2):sand,
             random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx)
 drop1(P2.2,test="Chisq") #dropping if not significant term
 AIC(P2.2) #1026.974
@@ -1871,7 +1977,7 @@ r.squaredGLMM(P2.2)
 #### Total NAP, Region #### 
 hist(DataprodEx$prodtot)
 plot(DataprodEx$prodtot~DataprodEx$landuse)
-  #identify(DataprodEx$prodtot~DataprodEx$landuse) #13  18  19 117 118 119, WET_W_3_EX_H7  SE_3_EX_H1  DRY_P_1_EX_H1  WET_W_2_EX_H7  WET_W_4_EX_H7
+#identify(DataprodEx$prodtot~DataprodEx$landuse) #13  18  19 117 118 119, WET_W_3_EX_H7  SE_3_EX_H1  DRY_P_1_EX_H1  WET_W_2_EX_H7  WET_W_4_EX_H7
 # Linear model
 napmod <- lm(prodtot~landuse+region+poly(rain.sum,2)+sand+
                landuse:poly(rain.sum,2)+
@@ -1934,9 +2040,9 @@ acf(E2, na.action=na.pass,main="Auto-correlation plot for residuals") # Temproal
 #Selecting fixed structure using ML. Simplifying with drop1
 #Rain.sum non-transformed ----> Poor fit
 NAPfull1 <- lme(prodtot~landuse+sand+rain.sum,
-                  #landuse:rain.sum+
-                  #landuse:sand+
-                  #rain.sum:sand,
+                #landuse:rain.sum+
+                #landuse:sand+
+                #rain.sum:sand,
                 random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx)
 drop1(NAPfull1,test="Chisq") #dropping if not significant term
 AIC(NAPfull1) #1094.439
@@ -1949,8 +2055,8 @@ NAPfull2 <- lme(prodtot~landuse+poly(rain.sum,2)+sand+
                   landuse:poly(rain.sum,2)+
                   #landuse:sand+
                   poly(rain.sum,2):sand,
-                  #region:poly(rain.sum,2)+
-                  #region:sand,
+                #region:poly(rain.sum,2)+
+                #region:sand,
                 random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx)
 drop1(NAPfull2,test="Chisq") #dropping if not significant term
 AIC(NAPfull2) #1032.561
@@ -1959,12 +2065,12 @@ anova(P2)
 
 #Poly(rain.day,2)
 P2.2 <- lme(prodtot~landuse+poly(rain.day,2)+region+sand+
-                    landuse:poly(rain.day,2)+
-                    #landuse:sand+
-                    poly(rain.day,2):sand+
-                    region:poly(rain.day,2),
-                    #region:sand,
-             random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx)
+              landuse:poly(rain.day,2)+
+              #landuse:sand+
+              poly(rain.day,2):sand+
+              region:poly(rain.day,2),
+            #region:sand,
+            random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx)
 drop1(P2.2,test="Chisq") #dropping if not significant term
 AIC(P2.2) #1026.974
 anova(P2.2)
@@ -1996,10 +2102,10 @@ anova(P2.,P2g) #sand                        0.3958413  0.5292 NS
 
 #New chosen model with region
 P2R <- lme(prodtot~landuse+poly(rain.day,2)+region+sand+
-              landuse:poly(rain.day,2)+
-              poly(rain.day,2):sand+
-              region:poly(rain.day,2),
-            random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=DataprodEx)
+             landuse:poly(rain.day,2)+
+             poly(rain.day,2):sand+
+             region:poly(rain.day,2),
+           random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=DataprodEx)
 summary(P2R)
 
 #Estimates and Rsquared (From LM or REML?)
@@ -2014,7 +2120,7 @@ NAPfull2.2<- lme(prodtot~landuse+poly(rain.day,2)+sand+
                    landuse:poly(rain.day,2)+
                    landuse:sand+
                    poly(rain.day,2):sand,
-            random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx)
+                 random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx)
 
 #modsetlmer_PRODlme <- dredge(NAPfull2.2,trace=2) 
 model.sel(NAPfull2.2) #Model selection table giving AIC, deltaAIC and weighting
@@ -2038,14 +2144,14 @@ dev.off()
 ####Model with N.total####
 DataprodExN <- droplevels(subset(DataprodEx,!is.na(N.total)))
 NAPN <- lme(prodtot~landuse+poly(rain.day,2)+
-                    #N.total+sand+
-                    landuse:poly(rain.day,2),
-                    #landuse:N.total+
-                    #poly(rain.day,2):N.total+
-                    #sand:N.total+
-                    #landuse:sand+
-                    #poly(rain.day,2):sand,
-       random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodExN)
+              #N.total+sand+
+              landuse:poly(rain.day,2),
+            #landuse:N.total+
+            #poly(rain.day,2):N.total+
+            #sand:N.total+
+            #landuse:sand+
+            #poly(rain.day,2):sand,
+            random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodExN)
 drop1(NAPN,test="Chisq") #dropping if not significant term
 AIC(NAPN)
 anova(NAPN)
@@ -2104,12 +2210,10 @@ dev.off()
 
 #### Total NAP without the H7, P3 ####
 #Poly(rain.day,2)
-P3<- lme(prodtot~landuse+poly(rain.day,2)+region+
-           landuse:poly(rain.day,2)+
-           #landuse:sand+
-           #poly(rain.day,2):sand+
-           region:poly(rain.day,2),
-         #region:sand,
+P3<- lme(prodtot~poly(rain.day,2),
+         #landuse:poly(rain.day,2)+
+         #landuse:sand+
+         #poly(rain.day,2):sand,
          random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx1)
 
 drop1(P3,test="Chisq") #dropping if not significant term
@@ -2117,6 +2221,9 @@ AIC(P3) #
 anova(P3)
 #Estimates and Rsquared
 summary(P3) #Parameter estimates
+
+P3<- lme(prodtot~poly(rain.day,2),
+         random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=DataprodEx1)
 r.squared.lme(P3) #To get conditional and marginal R^2 for the model
 
 #### Total NAP Weighted, P4 #### 
@@ -2199,14 +2306,14 @@ NAPfull4 <- lme(prodtot.per~landuse+sand+poly(rain.sum,2)+
 drop1(NAPfull4,test="Chisq") #dropping if not significant term
 AIC(NAPfull4) #1032.561
 P4 <- NAPfull4
-anova(P2)
+anova(P4)
 
 #Poly(rain.day,2)
 P4.1<- lme(prodtot.per~landuse+poly(rain.day,2)+
-                    landuse:poly(rain.day,2),
-                  #landuse:sand+
-                  #poly(rain.day,2):sand, 
-                  random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodW)
+             landuse:poly(rain.day,2),
+           #landuse:sand+
+           #poly(rain.day,2):sand, 
+           random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodW)
 drop1(P4.1,test="Chisq") #dropping if not significant term
 AIC(P4.1) #1026.974
 anova(P4.1)
@@ -2231,15 +2338,19 @@ anova(P4b,P4e) #sand                p-value: 0.06119713  0.8046
 #Estimates and Rsquared
 summary(P4) #Parameter estimates
 anova(P4) #F statistics with p-values and df 
+
+P4.1<- lme(prodtot.per~landuse+poly(rain.day,2)+
+             landuse:poly(rain.day,2), 
+           random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=DataprodW)
 r.squared.lme(P4) #To get conditional and marginal R^2 for the model
 
 #Dredging - getting the relative importance of each variable (RVI)
 #Full model again
 P4full<- lme(prodtot.per~landuse+poly(rain.sum,2)+sand+
-                   landuse:poly(rain.sum,2)+
-                   landuse:sand+
-                   poly(rain.sum,2):sand,
-                 random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodW)
+               landuse:poly(rain.sum,2)+
+               landuse:sand+
+               poly(rain.sum,2):sand,
+             random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodW)
 
 modsetlmer_PRODWlme <- dredge(P4full,trace=2) 
 model.sel(P4full) #Model selection table giving AIC, deltaAIC and weighting
@@ -2267,11 +2378,11 @@ P2.2 <- lme(prodtot~landuse+poly(rain.day,2)+
             random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=DataprodEx)
 summary(P2.2)
 #NEW with Region
-  #P2.2 <- lme(prodtot~landuse+poly(rain.day,2)+region+sand+
-             # landuse:poly(rain.day,2)+
-            #  poly(rain.day,2):sand+
-            #  region:poly(rain.day,2),
-          #  random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=DataprodEx)
+#P2.2 <- lme(prodtot~landuse+poly(rain.day,2)+region+sand+
+# landuse:poly(rain.day,2)+
+#  poly(rain.day,2):sand+
+#  region:poly(rain.day,2),
+#  random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=DataprodEx)
 
 #Graphical model validation checking for homogeneity by plotting standardized residuals vs fitted values
 par(mfrow=c(1,1))
@@ -2302,8 +2413,8 @@ plot(predict(P2.2)~landuse+rain.day+sand+region+
 #Step 9 and 10 - Zuur. The aftermath
 # Refitting with REML and validating the model
 NAPN<- lme(prodtot~landuse+poly(rain.day,2)+
-              landuse:poly(rain.day,2),
-            random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=DataprodExN)
+             landuse:poly(rain.day,2),
+           random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=DataprodExN)
 summary(NAPN)
 
 #Graphical model validation checking for homogeneity by plotting standardized residuals vs fitted values
@@ -2334,9 +2445,9 @@ plot(predict(NAPN)~landuse+rain.day+
 #Step 9 and 10 - Zuur. The aftermath
 # Refitting with REML and validating the model
 P4 <- lme(prodtot.per~landuse+sand+poly(rain.sum,2)+
-              landuse:poly(rain.sum,2)+
-              sand:poly(rain.sum,2),
-            random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=DataprodW)
+            landuse:poly(rain.sum,2)+
+            sand:poly(rain.sum,2),
+          random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=DataprodW)
 summary(P4)
 
 #Graphical model validation checking for homogeneity by plotting standardized residuals vs fitted values
@@ -2367,11 +2478,12 @@ plot(predict(P4)~landuse+sand+rain.sum+
 #### TABLES model results with Stargazer ####
 ?stargazer
 #NAP table
-stargazer(P2.2,NAPN, type="html",digits=2, #use "text" when looking at the result in the console, and html when printing table
-          column.labels = c("Community", "Community"),
+summary(P2.2)
+stargazer(P2.2,P3, type="text",digits=2, #use "text" when looking at the result in the console, and html when printing table
+          #column.labels = c("Community", "Community"),
           column.separate = c(1,2), #setting variable names (column labels) to more than one column
           intercept.bottom = FALSE,
-          #covariate.labels = c("Intercept", "Land-use (wild)", "Rain (daily average)", "Rain2", "Land-use: Rain", "Land-use: Rain2"),
+          covariate.labels = c("Intercept", "Land-use (wild)", "Rain", "Rain2", "Land-use: Rain", "Land-use: Rain2"),
           dep.var.labels = "Productivty",
           star.cutoffs = c(0.05, 0.01, 0.001),
           #ci=TRUE,
@@ -2379,12 +2491,27 @@ stargazer(P2.2,NAPN, type="html",digits=2, #use "text" when looking at the resul
           omit= "name of variable", #omits selected fixed effects
           #omit.stat=c("bic","ll"), #omits selected stats i.e "bic", "ll"
           keep.stat=c("n","aic","f","ll","rsq","adj.rsq"), #"lr", "f", rsq adj.rsq
-          add.lines=list(c("Conditional R2",0.34,0.29),c("Marginal R2", 0.31,0.27)),
+          add.lines=list(c("Conditional R2",0.34,0.30),c("Marginal R2", 0.31,0.25)),
           out="NAPmodelresult.htm"
 )
 
+#Weighted commNAP
+summary(P4.1)
+stargazer(P4.1, type="html",digits=2, #use "text" when looking at the result in the console, and html when printing table
+          intercept.bottom = FALSE,
+          covariate.labels = c("Intercept", "Land-use (wild)", "Rain", "Rain2", "Land-use: Rain", "Land-use: Rain2"),
+          dep.var.labels = "Productivty",
+          star.cutoffs = c(0.05, 0.01, 0.001),
+          #ci=TRUE,
+          single.row=TRUE,
+          omit= "name of variable", #omits selected fixed effects
+          #omit.stat=c("bic","ll"), #omits selected stats i.e "bic", "ll"
+          keep.stat=c("n","aic","f","ll","rsq","adj.rsq"), #"lr", "f", rsq adj.rsq
+          add.lines=list(c("Conditional R2",0.20),c("Marginal R2", 0.20)),
+          out="NAPmodelW.htm")
 
 #Cons table
+
 
 #### Sketch fitted values, following Stu's script ####
 #   RUN the REML model first! In #Validating models#
@@ -2438,7 +2565,7 @@ NAPpred<-ggplot(data=DataprodEx,aes(x=rain.day, y=prodtot)) #observed
 NAPpred<-NAPpred+geom_ribbon(data=MyData,aes(ymin=SeUp, ymax=SeLo),fill="springgreen4",colour="springgreen4",alpha=.65,lwd=NA,show.legend=F)
 NAPpred<-NAPpred+geom_line(data=MyData,aes(ymin=SeUp, ymax=SeLo),colour="springgreen4",alpha=.9,lwd=2,show.legend=F)
 NAPpred<-NAPpred+geom_point(stats="identity",size=2.5) #observed values
-  #,aes(colour=region,fill=region)
+#,aes(colour=region,fill=region)
 #NAPpred <- NAPpred+scale_colour_manual(values=c("goldenrod1","dodgerblue1","deepskyblue4"))
 NAPpred<-NAPpred+facet_wrap(~landuse, scale="fixed")
 #NAPpred<-NAPpred+scale_x_continuous(limits=c(0,530), breaks = c(0,100,200,300,400,500), labels = c(0,100,200,300,400,500), expand=c(0,0))
@@ -2468,12 +2595,12 @@ NAPpred<-NAPpred+theme_bw()+
     ,panel.spacing = unit(2, "lines"))
 NAPpred<-NAPpred+annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = 0, xend = 0, size = 1) 
 NAPpred<-NAPpred+annotate(geom = 'segment', y = 0, yend = 0, color = 'black', x = -Inf, xend = Inf, size = 0.5) 
-NAPpred<-NAPpred+annotate(geom="text",x=2, y=9, label=c("Unprotected  area \n (UPA)","Protected area \n (PA)"),color="black", size=5)
+NAPpred<-NAPpred+annotate(geom="text",x=2, y=9, label=c("Livestock \n Pasture Area","Wildlife \n Protected Area"),color="black", size=5)
 NAPpred
 
 #ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPpredictedEX.png",
-#  width= 26, height = 18,units ="cm",
- # dpi = 600, limitsize = TRUE)
+# width= 26, height = 18,units ="cm",
+#  dpi = 600, limitsize = TRUE)
 
 #### Sketch fitted values, with N total ####
 #   RUN the NAPN model first! In #Validating models with N.total#
@@ -2611,17 +2738,17 @@ acf(EC, na.action=na.pass,main="Auto-correlation plot for residuals") # Temproal
 #Selecting fixed structure using ML. Simplifying with drop1
 #With poly(rain.day,2)
 CONS2 <- lme(constot~prodtot+N.total+
-                  #landuse:prodtot+
-                  #landuse:sand+
-                  #landuse:poly(rain.day,2)+
-                  #landuse:N.total+
-                  #poly(rain.day,2):sand+
-                  #poly(rain.day,2):N.total+
-                  prodtot:N.total,
-                  #sand:N.total+
-                #prodtot:sand+
-                #landuse:sand:poly(rain.day,2),
-                random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Datacons)
+               #landuse:prodtot+
+               #landuse:sand+
+               #landuse:poly(rain.day,2)+
+               #landuse:N.total+
+               #poly(rain.day,2):sand+
+               #poly(rain.day,2):N.total+
+               prodtot:N.total,
+             #sand:N.total+
+             #prodtot:sand+
+             #landuse:sand:poly(rain.day,2),
+             random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Datacons)
 drop1(CONS2,test="Chisq") #dropping if not significant term
 C2 <- CONS2
 AIC(C2)
@@ -2642,13 +2769,13 @@ drop1(C2.1,test="Chisq") #dropping if not significant term
 AIC(C2.1)
 
 C2.2 <- lme(constot~prodtot+N.total+
-               prodtot:N.total,
-             random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Datacons)
+              prodtot:N.total,
+            random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Datacons)
 drop1(C2.2,test="Chisq") #dropping if not significant term
 AIC(C2.2)
 
 C2.3 <- lme(constot~prodtot+N.total,
-               random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Datacons)
+            random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Datacons)
 drop1(C2.3,test="Chisq") #dropping if not significant term
 AIC(C2.3)
 
@@ -2659,8 +2786,28 @@ write.table(dredge(C2,trace=T,rank="AICc",REML=F), file="Moveable exclosures/CON
 #Getting parameter estimates for C2.1 (ML)
 drop1(C2.1,test="Chisq")
 summary(C2.1) #Parameter estimates
+
+C2.1 <- lme(constot~prodtot,
+            random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Datacons)
 r.squared.lme(C2.1) 
 
+#### CONS Stargazer table #### 
+summary(C2.1)
+stargazer(C2.1, type="html",digits=2, #use "text" when looking at the result in the console, and html when printing table
+          #column.labels = c("Community", "Community"),
+          #column.separate = c, #setting variable names (column labels) to more than one column
+          intercept.bottom = FALSE,
+          #covariate.labels = c("Intercept", "Land-use (wild)", "Rain", "Rain2", "Land-use: Rain", "Land-use: Rain2"),
+          dep.var.labels = "Consumption",
+          star.cutoffs = c(0.05, 0.01, 0.001),
+          #ci=TRUE,
+          single.row=TRUE,
+          omit= "name of variable", #omits selected fixed effects
+          #omit.stat=c("bic","ll"), #omits selected stats i.e "bic", "ll"
+          keep.stat=c("n","aic","f","ll"), #"lr", "f", rsq adj.rsq
+          add.lines=list(c("Conditional R2",0.34),c("Marginal R2", 0.31)),
+          out="CONSmodelresult.htm"
+)
 #### DREDGING - THREE VERY SIMILAR MODELS ####
 CONS.lme <- lme(constot~landuse+prodtot+sand+poly(rain.sum,2)+N.total+
                   landuse:prodtot+
@@ -2695,12 +2842,12 @@ dev.off()
 
 # Refitting with REML and validating the model
 C1 <- lme(constot~prodtot,
-               random=~1|site.name/block.id,method="REML",na.action=na.pass, correlation=cs1AR1, data=Datacons)
+          random=~1|site.name/block.id,method="REML",na.action=na.pass, correlation=cs1AR1, data=Datacons)
 summary(C1)
 
 C2 <- lme(constot~prodtot+N.total+
-              prodtot:N.total,
-            random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=Datacons)
+            prodtot:N.total,
+          random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=Datacons)
 summary(C2) #Nothing is significant
 
 C3 <- lme(constot~prodtot+N.total,
@@ -2786,9 +2933,9 @@ CONSpred<-CONSpred+theme_bw()+
 #CONSpred<-CONSpred+annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = 0, xend = 0, size = 0.5) 
 #CONSpred<-CONSpred+annotate(geom = 'segment', y = 0, yend = 0, color = 'black', x = -Inf, xend = Inf, size = 0.5) 
 CONSpred
- # ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/CONSpred.png",
- #   width= 26, height = 18,units ="cm",
- #   dpi = 600, limitsize = TRUE)
+# ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/CONSpred.png",
+#   width= 26, height = 18,units ="cm",
+#   dpi = 600, limitsize = TRUE)
 
 #### DOMINANT sp ####
 ### domNAP periodic ####
@@ -2834,11 +2981,11 @@ with(Stackopen, {interaction.plot(rain.day,pool,prodsp,
 #### domNAP weighted ####
 # Linear model
 napmod <- lm(prodsp.per~landuse+poly(rain.day,2)+sand+pool+
-          landuse:poly(rain.day,2)+
-          landuse:sand+
-          poly(rain.day,2):pool+
-          sand:poly(rain.day,2),
-   data=StackprodW1)
+               landuse:poly(rain.day,2)+
+               landuse:sand+
+               poly(rain.day,2):pool+
+               sand:poly(rain.day,2),
+             data=StackprodW1)
 summary(napmod)
 par(mfrow=c(1,1))
 plot(resid(napmod)~StackprodW1$landuse,xlab="landuse",ylab="residuals")
@@ -2876,7 +3023,7 @@ NAP.lme <- lme(prodsp.per~landuse+poly(rain.day,2)+sand+pool+
                  poly(rain.day,2):sand+
                  sand:poly(rain.day,2):landuse+
                  landuse:poly(rain.day,2):pool, 
-        random=~1|site.name/block.id, method="REML",correlation=cs1AR1,data=StackprodW1)
+               random=~1|site.name/block.id, method="REML",correlation=cs1AR1,data=StackprodW1)
 summary(NAP.lme)#for parameter estimates, don't use the p-values
 anova(NAP.lme) #get F statistics and P-values
 AIC(NAP.lme)
@@ -2904,9 +3051,9 @@ D1 <- lme(prodsp.per~landuse+poly(rain.day,2)+sand+
             #landuse:sand+
             #poly(rain.day,2):pool+
             poly(rain.day,2):sand,
-            #sand:poly(rain.day,2):landuse+
-            #landuse:poly(rain.day,2):pool,
-       random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=StackprodW1)
+          #sand:poly(rain.day,2):landuse+
+          #landuse:poly(rain.day,2):pool,
+          random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=StackprodW1)
 drop1(D1,test="Chisq") #dropping if not significant term
 AIC(D1) #1094.439
 anova(D1)
@@ -2914,7 +3061,6 @@ anova(D1)
 ### Getting parameter estimates and p-values ### 
 summary(D1) #Parameter estimates
 anova(D1) #F statistics with p-values and df 
-r.squared.lme(D1) #To get conditional and marginal R^2 for the model
 
 # Updating the model - generating p-values for each term (with ML)
 # landuse + poly(rain.day,2) + sand + land:rain + rain:sand
@@ -2931,6 +3077,30 @@ anova(D1.,D1c) #landuse                   0.0482035  0.8262 NS
 anova(D1.,D1d) #rain                      18.76669   1e-04 <.001
 anova(D1.,D1e) #sand                      2.223895  0.1359  NS 
 
+D1 <- lme(prodsp.per~landuse+poly(rain.day,2)+sand+
+            landuse:poly(rain.day,2)+
+            poly(rain.day,2):sand,
+          random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=StackprodW1)
+r.squared.lme(D1) #To get conditional and marginal R^2 for the model
+
+##Model results Stargazer table 
+summary(D1)
+stargazer(D1, type="text",digits=2, #use "text" when looking at the result in the console, and html when printing table
+          #column.labels = c("Community", "Community"),
+          #column.separate = c, #setting variable names (column labels) to more than one column
+          intercept.bottom = FALSE,
+          covariate.labels = c("Intercept"),
+          dep.var.labels = "Consumption",
+          star.cutoffs = c(0.05, 0.01, 0.001),
+          #ci=TRUE,
+          single.row=TRUE,
+          omit= "name of variable", #omits selected fixed effects
+          #omit.stat=c("bic","ll"), #omits selected stats i.e "bic", "ll"
+          keep.stat=c("n","aic","f","ll"), #"lr", "f", rsq adj.rsq
+          add.lines=list(c("Conditional R2",0.14),c("Marginal R2", 0.14)),
+          out="domNAPmodelresult.htm"
+)
+
 #### Importance domNAP weighted ####
 #Dredging - getting the relative importance of each variable (RVI)
 #Full model again
@@ -2939,9 +3109,9 @@ D1full<- lme(prodsp.per~landuse+poly(rain.day,2)+sand+pool+
                landuse:sand+
                poly(rain.day,2):pool+
                poly(rain.day,2):sand+
-             sand:poly(rain.day,2):landuse+
-             landuse:poly(rain.day,2):pool,
-                 random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=StackprodW1)
+               sand:poly(rain.day,2):landuse+
+               landuse:poly(rain.day,2):pool,
+             random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=StackprodW1)
 
 modsetlmer_PRODDlme <- dredge(D1full,trace=2) 
 model.sel(D1full) #Model selection table giving AIC, deltaAIC and weighting
@@ -2955,7 +3125,7 @@ write.table(summary(modavglmer_PRODDlme)$coefmat.subset,file="Moveable exclosure
 importance.PRODD<- read.table("Moveable exclosures/Importance_PRODDlme.txt")
 colnames(importance.PRODD)<- 'PRODD'
 rownames(importance.PRODD) <- (c("Rainfall","Land-use","Sand","Land-use:Rainfall","Rainfall:Sand","Land-use:Sand","Pool","Rain:Pool","Land-use:Rain:sand","Land-use:Rain:Pool
-"))
+                                 "))
 col.PRODD <- c("deepskyblue4","darkgoldenrod1","burlywood3","lightcoral","skyblue4","sandybrown","red","gray50","gray70","gray85")
 png(filename = "Moveable exclosures/imp.PRODD.png")
 par(mar=c(5,15,1,2))
@@ -3140,7 +3310,7 @@ D2 <- lme(prodsp~landuse+poly(rain.day,2)+pool+
             landuse:poly(rain.day,2)+
             #landuse:sand+
             poly(rain.day,2):pool,
-            #poly(rain.day,2):sand,
+          #poly(rain.day,2):sand,
           #sand:poly(rain.day,2):landuse+
           #landuse:poly(rain.day,2):pool,
           random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=Stackprod)
@@ -3341,38 +3511,57 @@ Dataannuallong1 <- Dataannuallong1[Dataannuallong1$prodcons!="Cum_perc_cons",]
 Dataannuallong1 <- droplevels(Dataannuallong1) #32 obs
 
 #### NAP model Accumulated ####
-m1<-lm(Cum_prod~landuse+region+Cum_rain+
-         landuse:Cum_rain+
-         landuse:region,
+m1<-lm(Cum_prod~landuse+Cum_rain+
+         landuse:Cum_rain,
        DataannualEx)
 summary(m1)
-anova(m1)
+anova_m1 <- anova(m1)
 shapiro.test(resid(m1)) #Normal distribution of residuals. Normally distributed if p>0.05
 library(car)
 leveneTest(resid(m1)~landuse, data=DataannualEx) #Homogenous residuals. p-value >0.05 means equal  variances
 
 #### CONS model Accumulated ####
-m2<-lm(Cum_cons~landuse+rain.day+Cum_prod+
-         landuse:rain.day+
-         Cum_prod:rain.day,
+m2<-lm(Cum_cons~landuse+Cum_rain+Cum_prod+
+         landuse:Cum_rain+
+         Cum_prod:Cum_rain,
        DataannualEx)
 summary(m2)
-anova(m2)
+anova_m2 <- anova(m2)
 shapiro.test(resid(m2)) #Normal distribution of residuals. Normally distributed if p>0.05
-library(car)
 leveneTest(resid(m2)~landuse, data=DataannualEx) #Homogenous residuals. p-value >0.05 means equal  variances
 
 #### % CONS model Accumulated ####
-m3<-lm(Cum_perc_cons~landuse+region+Cum_rain+Cum_prod+
+m3<-lm(Cum_perc_cons~landuse+Cum_rain+Cum_prod+
          landuse:Cum_rain+
          Cum_prod:Cum_rain,
        DataannualEx)
 summary(m3)
-anova(m3)
+anova_m3 <- anova(m3)
 shapiro.test(resid(m3)) #Normal distribution of residuals. Normally distributed if p>0.05
-library(car)
 leveneTest(resid(m3)~landuse, data=DataannualEx) #Homogenous residuals. p-value >0.05 means equal  variances
 
+#### TABLES Stargazer ####
+stargazer(m1,m2,m3, type="html",digits=2, #use "text" when looking at the result in the console, and "html" when printing table
+          #column.labels = c("NAP", "CONS","CONS %"),
+          column.separate = c(1,2,3), #setting variable names (column labels) to more than one column
+          intercept.bottom = FALSE,
+          covariate.labels = "Intercept",
+          #covariate.labels = c("Intercept", "Land-use (wild)", "Rain (daily average)", "Rain2", "Land-use: Rain", "Land-use: Rain2"),
+          dep.var.labels = c("Productivty","Consumption","Consumption %"),
+          star.cutoffs = c(0.05, 0.01, 0.001),
+          #ci=TRUE,
+          single.row=TRUE,
+          omit= "name of variable", #omits selected fixed effects
+          #omit.stat=c("bic","ll"), #omits selected stats i.e "bic", "ll"
+          keep.stat=c("n","aic","f","ll","rsq","adj.rsq"), 
+          #"lr", "f", rsq adj.rsq
+          #add.lines=list(c("Conditional R2",0.34,0.29),c("Marginal R2", 0.31,0.27))
+          out="Accumulatedmodelresult.htm"
+          )
+
+#install.packages("xtable")
+require(xtable)
+print(xtable(anova_m1), type = "html")
 
 #### Total NAP per site graph ####
 #getting mean obs from Meanannual(grassmean), and ci from Dataannual (standing)
@@ -3430,12 +3619,12 @@ NAPtot <- ggplot(Meanannuallong1, aes(x=site.id, y=value, colour=colorbar,fill=c
 NAPtot <- NAPtot+geom_bar(stat="identity", position="identity",size=1.2, alpha=.5, show.legend=T)
 NAPtot <- NAPtot+geom_errorbar(aes(ymin=value, ymax=value+Cumprod_SE),width=.2,lwd=1.1,show.legend=F) # ymin=Cum_prod-Cumprod_SE
 #NAPtot <- NAPtot+geom_errorbar(aes(ymin=value, ymax=value+Cumprod_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # ymin=Cum_prod-Cumprod_SE
-    #NAPtot <- NAPtot+geom_errorbar(aes(Y=Consumption,ymin=Cum_prod, ymax=Cum_cons+Cumcons_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # Trying to get second bars with consumption
+#NAPtot <- NAPtot+geom_errorbar(aes(Y=Consumption,ymin=Cum_prod, ymax=Cum_cons+Cumcons_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # Trying to get second bars with consumption
 
 #NAPtot <- NAPtot+geom_col(stat="identity", position=position_dodge(width=.95), size=1.2, alpha=.5, show.legend=T)
 NAPtot <- NAPtot +scale_fill_manual(legend_title, values=c( "tan3","turquoise3","white","white"))
 NAPtot <- NAPtot +scale_colour_manual(legend_title, values=c( "tan3","turquoise3","tan3","turquoise3"))
-  #NAPtot <- NAPtot +scale_fill_manual(legend_title2, values=c( "tan3","turquoise3"))
+#NAPtot <- NAPtot +scale_fill_manual(legend_title2, values=c( "tan3","turquoise3"))
 NAPtot<-NAPtot+ xlab("Site") + ylab(expression(paste("Total NAP and consumption (g ",m^-2,")")))
 #NAPtot <- NAPtot + guides(alpha=F, fill=guide_legend(override.aes = list(fill=c("tan3","turquoise3",NA,NA))))
 NAPtot <- NAPtot + theme_bw() +
@@ -3460,9 +3649,9 @@ NAPtot <- NAPtot + theme_bw() +
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
 NAPtot
-  # ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSsiteFINAL.png",
-  # width= 26, height = 18,units ="cm",
-  # dpi = 600, limitsize = TRUE)
+# ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSsiteFINAL.png",
+# width= 26, height = 18,units ="cm",
+# dpi = 600, limitsize = TRUE)
 
 #### Bar graph total NAP and CONS per rainfall ####
 Dataannuallong1$colorbar <- as.factor(with(Dataannuallong1,paste(prodcons,landuse,sep=" ")))
@@ -3477,10 +3666,10 @@ levels(Dataannuallong1$prodcons)<-c("Production","Consumtption")
 Dataannuallong1$rainlanduse <- as.factor(with(Dataannuallong1,paste(rain.day,landuse,block.id,sep=" ")))
 levels(Dataannuallong1$block.id) # 16 levels
 
-
 legend_title2<-"Land-use"
 legend_title <- "Biomass change"
 NAPtot <- ggplot(Dataannuallong1, aes(x=factor(rain.day), y=value, colour=landuse,fill=colorbar, group=rainlanduse))
+#NAPtot <- NAPtot+geom_bar(stat="identity", position="identity",size=1.2, alpha=.5, show.legend=T)	
 NAPtot <- NAPtot+geom_bar(stat="identity",position = position_dodge(width = 1.5, preserve = "single"),size=1, alpha=.5, show.legend=T)
 #NAPtot <- NAPtot+geom_errorbar(aes(ymin=value, ymax=value+Cumprod_SE),position=position_dodge(width=.95),width=.2,lwd=1.1,show.legend=F) # ymin=Cum_prod-Cumprod_SE
 #NAPtot <- NAPtot+geom_col(stat="identity", position=position_dodge(width=.95), size=1.2, alpha=.5, show.legend=T)
@@ -3488,7 +3677,6 @@ NAPtot <- NAPtot +scale_fill_manual(legend_title, values=c( "tan3","turquoise3",
 NAPtot <- NAPtot +scale_colour_manual(legend_title, values=c( "tan3","turquoise3"))
 #NAPtot <- NAPtot +scale_fill_manual(legend_title2, values=c( "tan3","turquoise3"))
 NAPtot<-NAPtot+ xlab("Daily rainfall (mm)") + ylab(expression(paste("Total NAP and consumption (g ",m^-2,")")))
-#NAPtot <- NAPtot + guides(alpha=F, fill=guide_legend(override.aes = list(fill=c("tan3","turquoise3",NA,NA))))
 NAPtot<-NAPtot+scale_y_continuous(limits = c(-20,850), expand = c(0,0))
 NAPtot<-NAPtot+scale_x_discrete(expand = c(0.15,0.15)) #breaks=0:4, labels=c("1","2","3","4","5"),
 NAPtot
@@ -3509,19 +3697,16 @@ NAPtot <- NAPtot + theme_bw() +
         ,strip.background = element_blank()
         #,strip.text = element_text(size=12)
         ,strip.text = element_text(size=12)
-        ,axis.ticks.x =element_blank()
         #,axis.text.x=element_blank()
-        #,axis.ticks.x=element_blank()
+        ,axis.ticks.x=element_blank()
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
 NAPtot<- NAPtot+guides(colour=F,size=F,shape= F, alpha=F,
                        fill= guide_legend(order=1,"Biomass change",override.aes = list(shape=NA, alpha=.99, size=1,fill=c( "tan3","turquoise3","white","white"),col=c( "tan3","turquoise3"))))
 NAPtot
-
-
-# ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSsiteFINAL.png",
-# width= 26, height = 18,units ="cm",
-# dpi = 600, limitsize = TRUE)
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/ACC.NAPCONSrain.png",
+ #width= 26, height = 18,units ="cm",
+ #dpi = 600, limitsize = TRUE)
 
 ####Dominant NAP per site graph #### 
 legend_title<-"Land-use"
@@ -3592,9 +3777,9 @@ CONStot <- CONStot + theme_bw() +
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
 CONStot
- # ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/CONSsite.png",
- # width= 26, height = 18,units ="cm",
- # dpi = 600, limitsize = TRUE)
+# ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/CONSsite.png",
+# width= 26, height = 18,units ="cm",
+# dpi = 600, limitsize = TRUE)
 
 #### % CONS per site ####
 legend_title<-"Land-use"
@@ -3628,9 +3813,9 @@ CONSper <- CONSper + theme_bw() +
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
 CONSper
- # ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/CONSper.png",
- # width= 26, height = 18,units ="cm",
- # dpi = 600, limitsize = TRUE)
+# ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/CONSper.png",
+# width= 26, height = 18,units ="cm",
+# dpi = 600, limitsize = TRUE)
 
 ####Dominant CONS per site  #### 
 legend_title<-"Land-use"
@@ -3664,9 +3849,9 @@ CONSD <- CONSD + theme_bw() +
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
 CONSD
-  # ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/CONSDsite.png",
-  # width= 26, height = 18,units ="cm",
-  #  dpi = 600, limitsize = TRUE)
+# ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/CONSDsite.png",
+# width= 26, height = 18,units ="cm",
+#  dpi = 600, limitsize = TRUE)
 
 
 ####|####
