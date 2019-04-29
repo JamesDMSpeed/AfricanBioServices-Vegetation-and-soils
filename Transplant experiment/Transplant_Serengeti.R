@@ -11,30 +11,55 @@ library(glmmTMB)
 library(multcomp)
 library(lme4)
 ########################################################################
-##### Aboveground plant cover ####
-
-TP<-read.csv(file="Transplant experiment/Aboveground.survey.May2018.csv", sep=",",header=TRUE)
-
-names(TP)
-str(TP)
-dim(TP) #152  22
-
+##### Aboveground plant cover, aboveground biomass and soil properties ####
+#TP<-read.csv(file="Transplant experiment/Aboveground.survey.May2018.csv", sep=",",header=TRUE)
+#TPbio<-read.csv(file="Transplant experiment/Aboveground.biomass.May2018.csv", sep=",",header=TRUE)
 # House keeping factors
+#TP$fCurrent.placement.of.the.turf<-as.factor(TP$Current.placement.of.the.turf)
+#TPbio$fCurrent.placement.of.the.turf<-as.factor(TPbio$Current.placement.of.the.turf)
+# Combine cover and biomass
+#BioCover<-left_join(TP,TPbio,  by=c("fCurrent.placement.of.the.turf"))
+#write.csv(BioCover, "Transplant experiment/BioCover.csv",row.names=F) #,sep = ",",dec = ".",col.names = TRUE, row.names=F)
+
+# Combined species and aboveground biomass
+TP<-read.csv(file="Transplant experiment/BioCover2.csv", sep=",",header=TRUE)
+TP[duplicated(TP$Current.placement.of.the.turf), ] # No dups
+
+
+########################################################################
+
+# House keeping factors for analysis
 TP$fSite<-as.factor(TP$Site)
 TP$fBlock<-as.factor(TP$Block)
 TP$fTagsp<-as.factor(TP$Tagsp)
 TP$fLanduse<-as.factor(TP$Landuse)
 
-#### Determine how well target species transplanted ####
-# Remove plots not found with target species
-TP2<-TP[!is.na(TP$FinalTagspCover),]
-dim(TP2) #138  16
-TP2$FinalTagspCover
+
+#### Process data ####
+# Remove no data and control plots
+names(TP)
+dim(TP) # 152  30
+#TP2<-TP[!is.na(TP$FilTagspCover) & ! TP$Trasnplant=="Control" & !TP$Treatment=="Exclosed",]
+TP2<-TP[!is.na(TP$FilTagspCover) & ! TP$Trasnplant=="Control",]
+dim(TP2) #  118  30  with exclosures
+dim(TP2) #89 30 # 80 without exclosures, 29 exclosure data points....
+TP2$FilTagspCover
 
 # Convert to binary data - presence vs absence and probability of detection
-TP2$FinalPresAb<-TP2$FinalTagspCover
+TP2$FinalPresAb<-TP2$FilTagspCover
 TP2$FinalPresAb[TP2$FinalPresAb>0]<-1
 
+TP2Cry<-droplevels(TP2[!TP2$fTagsp=="Cry ori" & !TP2$fTagsp=="The tri" & !TP2$fTagsp=="Cyn dac",])
+dim(TP2Cry) #  96 30
+
+# Sample analysis
+TP0<-TP[!is.na(TP$FilVegCover),]
+dim(TP0) 
+(139+40)*68 #= 12172 #elemental CN analysis plant material
+840*96 #= 80640
+840*49 #= 41160
+########################################################################
+#### Model probability of occurence ####
 TPprob<- glmmadmb(FinalPresAb~fTagsp+fLanduse+fTagsp:fLanduse+(1|fSite/fBlock), 
                         family="binomial",#zeroInflation = TRUE,
                         #admb.opts=admbControl(shess=FALSE,noinit=FALSE),
@@ -77,17 +102,42 @@ MyData
 
 # No difference in probabilty of species being present after trasnplant
 
-#### Determine species differences in cover ####
-TPcover<- lmer(FinalTagspCover~fTagsp+fLanduse+fTagsp:fLanduse+(1|fSite/fBlock),REML=T,
+#### Determine species differences in biomass ####
+names(TP2)
+TPbio<- lmer(Target.weight.g~fTagsp+fLanduse+fTagsp:fLanduse+
+                 (1|fSite/fBlock),REML=T,
                   data=TP2)
-summary(TPcover) # No difference in cover - marginal
-drop1(TPcover,test="Chi")
+anova(TPbio)
+summary(TPbio) # No difference in cover - marginal
+drop1(TPbio,test="Chi")
+
+summary(glht(TPbio, mcp(fTagsp="Tukey"))) 
+
+
+#### Graph biomass and probability ####
+
+MeanBio<-aggregate(Target.weight.g~fTagsp+fLanduse,TP2,mean)
+MeanBio2<-aggregate(Target.weight.g~fTagsp+fLanduse,TP2,sd)
+MeanBio$Sd<-MeanBio2$Target.weight.g
+MeanBio$Pi<-MyData$Pi
+
+TPbiom<-ggplot(MeanBio,aes(y=Target.weight.g, x=fTagsp))
+TPbiom<-TPbiom+geom_jitter(data=TP2, fill="light grey", alpha=.5)
+TPbiom<-TPbiom+geom_point(stat="identity",aes(size=Pi),position=position_dodge(width=.6))
+TPbiom<-TPbiom+geom_errorbar(aes(ymin = Target.weight.g-Sd,ymax = Target.weight.g+Sd),width=.1,show.legend=F) 
+TPbiom<-TPbiom+ylab("Biomass (g)")+xlab("Target species")
+TPbiom<-TPbiom+facet_wrap(~fLanduse)
+TPbiom<-TPbiom+scale_y_continuous(limits=c(-5,80))
+TPbiom<-TPbiom+theme_classic()
+TPbiom
 
 # Interaction plot
-with(TP2, {interaction.plot(fLanduse,fTagsp,FinalTagspCover,
+TP3<-TP2[!is.na(TP2$Target.weight.g),]
+with(TP3, {interaction.plot(fLanduse,fTagsp,Target.weight.g,
                                   xlab = "Landuse",
                                   ylab = "Target Cover",
                                   fun=mean)})
+bwplot(Target.weight.g~fLanduse|fTagsp,TP3)
 
 # Species differences
 summary(glht(TPcover, mcp(fTagsp="Tukey"))) 
