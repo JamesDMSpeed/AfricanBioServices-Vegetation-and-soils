@@ -57,6 +57,7 @@ table(PhiltreesMAY$area)
 
 levels(PhiltreesDEC$species)
 table(PhiltreesDEC$species, PhiltreesDEC$area)
+table(PhiltreesDEC$species, PhiltreesDEC$landuse)
       
 Vildetrees <- PhiltreesDEC[,c(1:4,6,7,9,12,25,26,28,30:33)]
 str(Vildetrees)
@@ -176,6 +177,19 @@ Tree.carbon$Region<- factor(Tree.carbon$Region, levels = c("Makao","Maswa","Mwan
 levels(Tree.carbon$Region) # Releveled
 names(Tree.carbon)
 
+# Outlier 
+names(Tree.carbon)
+dotchart(Tree.carbon$TreeBM.kg_m2, groups=Tree.carbon$Region,main = "Tree Biomass")
+Tree.carbon.NA<-Tree.carbon[!is.na(Tree.carbon$TreeBM.kg_block),]
+mean(Tree.carbon.NA$TreeBM.kg_m2)
+sd(Tree.carbon.NA$TreeBM.kg_m2)
+Tree.carbon$TreeBM.kg_m2[Tree.carbon$TreeBM.kg_m2[(16),]]
+
+summary(lm(TreeBM.kg_m2~Fire_frequency.2000_2017, data=Tree.carbon))
+plot(TreeBM.kg_m2~Fire_frequency.2000_2017, data=Tree.carbon,xlab="Fire frequency", ylab="Tree biomass (kg/m2)")
+abline(a=0.01165,b=0.01165+0.02316)
+?plot
+
 Tree.carbon <- Tree.carbon[-16,]
 
 # Making a table for Tree Carbon per region 
@@ -185,10 +199,13 @@ TreeC.Region <- cbind((aggregate(TreeBM.kg_block~Region, Tree.carbon,sum)),
                       (aggregate(No.trees~Region, Tree.carbon,sum))[2],
                       (aggregate(Shrubbiness2~Region,Tree.carbon,mean))[2],
                       (aggregate(Shrubbiness2~Region,Tree.carbon,SE))[2])
-                      
 
-colnames(TreeC.Region) <- c("Region","TreeC.kg_m2","SE.TreeC.kg_m2","No_trees.m2","SE.No_trees.m2","TreeBM.kg_m2","SE.TreeBM.kg_m2","TreeBasalA.m2","SE.TreeBasalA.m2","MAP.mm_yr","SE.MAP.mm_yr","Fire_frequency.2000_2017","SE.Fire_frequency.2000_2017","Last_fire.yr","SE.Last_fire.yr")
+TreeC.Landuse <- cbind((aggregate(TreeBM.kg_block~landuse, Tree.carbon,sum)),
+                      (aggregate(No.trees~landuse, Tree.carbon,sum))[2],
+                      (aggregate(Shrubbiness2~landuse,Tree.carbon,mean))[2],
+                      (aggregate(Shrubbiness2~landuse,Tree.carbon,SE))[2])
 
+plot(Shrubbiness2~landuse,data=Tree.carbon)
 # Add landuse
 TreeC.Region$Region
 TreeC.Region$Landuse <- as.factor(c("Pasture","Wild","Pasture","Wild", "Wild", "Pasture","Wild"))

@@ -13,19 +13,63 @@ Dung.counts1 <- read.csv("Permanent exclosures/Herbivore dung/Sero.prod.dungFULL
 Soil.texture <- read.csv(file="Ecosystem Carbon/Soil.data/Soil.texture.Tot_Hor.csv",head=T)
 
 total.soil.data$Region<- factor(total.soil.data$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
-
+names(total.soil.data)
 # Look at data per Region 
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 P <- cbind(aggregate(P.g_kg~Region, mean, data=total.soil.data),
            aggregate(P.g_kg~Region, SE, data=total.soil.data)[2])
+colnames(P)[3] <- "SE.P"
 BD <- cbind(aggregate(BD_fine_earth_air_dry~Region, mean, data=total.soil.data),
            aggregate(BD_fine_earth_air_dry~Region, SE, data=total.soil.data)[2])
+colnames(BD)[3] <- "SE.BD"
 InorgC <- cbind(aggregate(fraction_inorg_C~Region, mean, data=total.soil.data),
             aggregate(fraction_inorg_C~Region, SE, data=total.soil.data)[2])
+colnames(InorgC)[3] <- "SE.InorgC"
 OrgC <- cbind(aggregate(fraction_org_C~Region, mean, data=total.soil.data),
              aggregate(fraction_org_C~Region, SE, data=total.soil.data)[2])
+colnames(OrgC)[3] <- "SE.OrgC"
 pH <- cbind(aggregate(pH~Region, mean, data=total.soil.data),
               aggregate(pH~Region, SE, data=total.soil.data)[2])
+colnames(pH)[3] <- "SE.pH"
+Al <- cbind(aggregate(Al.g_kg~Region, mean, data=total.soil.data),
+            aggregate(Al.g_kg~Region, SE, data=total.soil.data)[2])
+colnames(Al)[3] <- "SE.Al"
+Fe <- cbind(aggregate(Fe.g_kg~Region, mean, data=total.soil.data),
+            aggregate(Fe.g_kg~Region, SE, data=total.soil.data)[2])
+colnames(Fe)[3] <- "SE.Fe"
+mean(Fe$Fe.g_kg)
+CEC <- cbind(aggregate(CEC.cmol_kg~Region, mean, data=total.soil.data),
+            aggregate(CEC.cmol_kg~Region, SE, data=total.soil.data)[2])
+colnames(CEC)[3] <- "SE.CEC"
+
+# Per land-use 
+Soil.landuse <- cbind(aggregate(P.g_kg~Land_Use, mean, data=total.soil.data),
+                      aggregate(P.g_kg~Land_Use, SE, data=total.soil.data)[2],
+                      aggregate(BD_fine_earth_air_dry~Land_Use, mean, data=total.soil.data)[2],
+                      aggregate(BD_fine_earth_air_dry~Land_Use, SE, data=total.soil.data)[2],
+                      aggregate(fraction_inorg_C~Land_Use, mean, data=total.soil.data)[2],
+                      aggregate(fraction_inorg_C~Land_Use, SE, data=total.soil.data)[2],
+                      aggregate(fraction_org_C~Land_Use, mean, data=total.soil.data)[2],
+                      aggregate(fraction_org_C~Land_Use, SE, data=total.soil.data)[2],
+                      aggregate(pH~Land_Use, mean, data=total.soil.data)[2],
+                      aggregate(pH~Land_Use, SE, data=total.soil.data)[2],
+                      aggregate(Al.g_kg~Land_Use, mean, data=total.soil.data)[2],
+                      aggregate(Al.g_kg~Land_Use, SE, data=total.soil.data)[2],
+                      aggregate(Fe.g_kg~Land_Use, mean, data=total.soil.data)[2],
+                      aggregate(Fe.g_kg~Land_Use, SE, data=total.soil.data)[2],
+                      aggregate(CEC.cmol_kg~Land_Use, mean, data=total.soil.data)[2],
+                      aggregate(CEC.cmol_kg~Land_Use, SE, data=total.soil.data)[2])
+colnames(Soil.landuse) <- c("Landuse","P","SE.P","BD","SE.BD","InC","SE.InC","OrgC","SE.OrgC","pH","SE.pH","Al","SE.Al","Fe","SE.Fe","CEC","SE.CEC")
+# Look at soil properties with landuse
+landuse <- c("Pasture","Wild","Pasture","Wild","Wild","Pasture","Wild")
+# CEC
+CEC$landuse <- landuse
+colnames(CEC)[3] <- "SE.CEC"
+boxplot(CEC.cmol_kg~landuse, data=CEC)
+# pH
+pH$landuse <- landuse
+colnames(pH)[3] <- "SE.pH"
+boxplot(pH~landuse, data=pH)
 
 
 Metabolic.rate$Region<- factor(Metabolic.rate$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
@@ -37,7 +81,17 @@ Soil.texture <- na.omit(Soil.texture)
 Soil.texture <- droplevels(Soil.texture)
 
 Soil.texture$Class <- c("SaClLo","SaLo","SaClLo","SaClLo","Cl","Cl","Cl","ClLo","SaCl","SaCl","ClLo","SaClLo","SaClLo","SaClLo","SaClLo","SaClLo","SaClLo","SaLo","SaLo","SaLo","ClLo","Cl","ClLo","Cl", "Cl","ClLo","ClLo","Cl") 
+names(Soil.texture)
+Soil.texture.R <- cbind(aggregate(Sand.pip.per~Region, mean, data=Soil.texture),
+                        aggregate(Sand.pip.per~Region, SE, data=Soil.texture)[2],
+                        aggregate(Silt.pip.per~Region, mean, data=Soil.texture)[2],
+                        aggregate(Silt.pip.per~Region, SE, data=Soil.texture)[2],
+                        aggregate(Clay.pip.per~Region, mean, data=Soil.texture)[2],
+                        aggregate(Clay.pip.per~Region, SE, data=Soil.texture)[2])
+colnames(Soil.texture.R) <- c("Region","Sand","SE.Sand","Silt","SE.Silt","Clay","SE.Clay")
 
+Soil.texture.landuse <- cbind(aggregate(Sand.pip.per~Landuse, mean, data=Soil.texture),
+                              aggregate(Sand.pip.per~Landuse, SE, data=Soil.texture)[2])
 # Looking at dung counts 
 levels(Dung.counts1$area)
 levels(Dung.counts1$landuse)

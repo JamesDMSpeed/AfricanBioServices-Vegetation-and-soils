@@ -23,6 +23,8 @@ Tree.size <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.size.csv",head=T)
 Belowground <- read.csv(file="Ecosystem Carbon/Soil.data/Belowground.Carbon.csv",head=T)
 Tree.BM.N.non <- read.csv(file="Ecosystem Carbon/Tree.data/Tree.BM.N.non.csv",head=T)
 
+names(Tree.carbon)
+
 # Fixing the data for further processing 
 # Soil texture 
 levels(Soil.texture$Region)
