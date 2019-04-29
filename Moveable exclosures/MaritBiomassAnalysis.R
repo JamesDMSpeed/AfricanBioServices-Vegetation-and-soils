@@ -19,9 +19,9 @@ library(lme4)
 library(MuMIn) #for mod.sel()
 library(stargazer)
 
-Biomass <- read.csv("Moveable exclosures/Biomass.csv", header=T,sep=",")
+Biomass <- read.csv("Moveable exclosures/Biomass2.csv", header=T,sep=",")
 tail(Biomass)
-Nuts <- read.csv("Moveable exclosures/Nutrients.csv", header=T,sep=",")
+Nuts <- read.csv("Moveable exclosures/Nutrients.csv", header=T,sep=";")
 Datanuts <- Nuts[Nuts$treatment!="EX2",] #Removing Mesh exclosures  #300 obs
 Datanuts <- Datanuts[Datanuts$harvest!="H0",] #removing H0                #280 obs
 Datanuts <- droplevels(Datanuts)
@@ -1960,9 +1960,9 @@ P2b <- update(P2.2,  .~. -landuse:poly(rain.day,2))
 P2c <- update(P2b, .~. -landuse)
 P2d <- update(P2b, .~. -poly(rain.day,2))
 
-anova(P2.2,P2b) #landuse:poly(rain.day,2)  p-value: 16.62879   2e-04
-anova(P2b,P2c) #landuse             p-value: 0.1566105  0.6923
-anova(P2b,P2d) #rain                 p-value: 33.52895  <.0001
+anova(P2.2,P2b) #landuse:poly(rain.day,2)  p-value: 17.1674   2e-04
+anova(P2b,P2c) #landuse             p-value: 0.0367105  0.8481
+anova(P2b,P2d) #rain                 p-value: 36.50499  <.0001
 
 #Using model fitted with REML
 P2.2 <- lme(prodtot~landuse+poly(rain.day,2)+
@@ -1972,7 +1972,6 @@ P2.2 <- lme(prodtot~landuse+poly(rain.day,2)+
 #Estimates and Rsquared (From LM or REML?)
 summary(P2.2) #Parameter estimates
 r.squared.lme(P2.2) #To get conditional and marginal R^2 for the model
-r.squaredGLMM(P2.2)
 
 #### Total NAP, Region #### 
 hist(DataprodEx$prodtot)
@@ -2210,20 +2209,26 @@ dev.off()
 
 #### Total NAP without the H7, P3 ####
 #Poly(rain.day,2)
-P3<- lme(prodtot~poly(rain.day,2),
+P3<- lme(prodtot~landuse+poly(rain.day,2),
          #landuse:poly(rain.day,2)+
          #landuse:sand+
          #poly(rain.day,2):sand,
          random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx1)
-
 drop1(P3,test="Chisq") #dropping if not significant term
 AIC(P3) #
 anova(P3)
-#Estimates and Rsquared
-summary(P3) #Parameter estimates
 
-P3<- lme(prodtot~poly(rain.day,2),
+# Updating the model - generating p-values for each term (with ML)
+P3b <- update(P3, .~. -landuse)
+P3c <- update(P3, .~. -poly(rain.day,2))
+
+anova(P3,P3b) #landuse             p-value: 1.327422  0.2493
+anova(P3,P3c) #rain                 p-value: 39.1129  <.0001
+
+#Refitting to get estimates and Rsquared
+P3<- lme(prodtot~landuse+poly(rain.day,2),
          random=~1|site.name/block.id,method="REML",correlation=cs1AR1, data=DataprodEx1)
+summary(P3) #Parameter estimates
 r.squared.lme(P3) #To get conditional and marginal R^2 for the model
 
 #### Total NAP Weighted, P4 #### 
@@ -3054,6 +3059,12 @@ D1 <- lme(prodsp.per~landuse+poly(rain.day,2)+sand+
           #sand:poly(rain.day,2):landuse+
           #landuse:poly(rain.day,2):pool,
           random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=StackprodW1)
+
+D1 <- lme(prodsp.per~landuse+poly(rain.day,2)+
+            landuse:poly(rain.day,2),
+            #poly(rain.day,2):pool,
+          #landuse:poly(rain.day,2):pool,
+          random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=StackprodW1)
 drop1(D1,test="Chisq") #dropping if not significant term
 AIC(D1) #1094.439
 anova(D1)
@@ -3511,34 +3522,147 @@ Dataannuallong1 <- Dataannuallong1[Dataannuallong1$prodcons!="Cum_perc_cons",]
 Dataannuallong1 <- droplevels(Dataannuallong1) #32 obs
 
 #### NAP model Accumulated ####
-m1<-lm(Cum_prod~landuse+Cum_rain+
-         landuse:Cum_rain,
-       DataannualEx)
-summary(m1)
-anova_m1 <- anova(m1)
-shapiro.test(resid(m1)) #Normal distribution of residuals. Normally distributed if p>0.05
-library(car)
-leveneTest(resid(m1)~landuse, data=DataannualEx) #Homogenous residuals. p-value >0.05 means equal  variances
+AccNAP <- lme(Cum_prod~landuse+Cum_rain+
+                landuse:Cum_rain,
+              random=~1|site.id, method="ML",data=DataannualEx)
+drop1(AccNAP,test="Chisq")
+AIC(AccNAP)
+anova(AccNAP)
+
+# Updating the model - generating p-values for each term (with ML)
+AccNAPa <- update(AccNAP,  .~. -landuse:Cum_rain)
+AccNAPb <- update(AccNAPa, .~. -landuse)
+AccNAPc <- update(AccNAPa, .~. -Cum_rain)
+
+anova(AccNAP,AccNAPa) #landuse:Cum_rain     4.954402   0.026(LR, p-value)
+anova(AccNAPa,AccNAPb) #landuse             0.4345925  0.5097
+anova(AccNAPa,AccNAPc) #rain                5.06535  0.0244
+
+#Using model fitted with REML
+AccNAP <- lme(Cum_prod~landuse+Cum_rain+
+                landuse:Cum_rain,
+              random=~1|site.id, method="REML",data=DataannualEx)
+
+#Estimates and Rsquared from REML
+summary(AccNAP)
+r.squared.lme(AccNAP) #To get conditional and marginal R^2 for the model
+
+
+#Graphical model validation
+par(mfrow=c(1,1))
+E <- resid(AccNAP,type="normalized")
+Fit <- fitted(AccNAP)
+#plot(x=Fit,y=E,xlab="Fitted values",ylab="Residuals") 
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = Fit, 
+     y = E,
+     xlab = "Fitted values",
+     ylab = "Residuals",main="Residuals AccNAP")
+abline(v = 0, lwd = 2, col = 2) #Fitted values
+abline(h = 0, lty = 2, col = 1) 
+#Alternatively: plot(P2cfinal)   Get the same, residuals Vs fitted
+plot(E~landuse,data=DataannualEx,main="Landuse",ylab="Residuals") #a bit less var. for pasture
+plot(x=DataannualEx$Cum_rain,y=E,ylab="Residuals",xlab="Rainfall",main="Rainfall")
+hist(E) #Residuals of the model
+hist(DataannualEx$Cum_prod) #hist of Y-variable
+plot(AccNAP,Cum_prod~fitted(.)) #Y variable vs fitted values 
+plot(AccNAP,Cum_prod~resid(.))  # Y variable vs residuals
 
 #### CONS model Accumulated ####
-m2<-lm(Cum_cons~landuse+Cum_rain+Cum_prod+
-         landuse:Cum_rain+
-         Cum_prod:Cum_rain,
-       DataannualEx)
-summary(m2)
-anova_m2 <- anova(m2)
-shapiro.test(resid(m2)) #Normal distribution of residuals. Normally distributed if p>0.05
-leveneTest(resid(m2)~landuse, data=DataannualEx) #Homogenous residuals. p-value >0.05 means equal  variances
+#Mixed model
+AccCONS <- lme(Cum_cons~landuse+Cum_rain+Cum_prod+
+                landuse:Cum_rain,
+              random=~1|site.id, method="ML",data=DataannualEx)
+drop1(AccCONS,test="Chisq")
+AIC(AccCONS)
+anova(AccCONS)
+
+# Updating the model - generating p-values for each term (with ML)
+AccCONSa <- update(AccCONS,  .~. -landuse:Cum_rain)
+AccCONSb <- update(AccCONSa, .~. -landuse)
+AccCONSc <- update(AccCONSa, .~. -Cum_rain)
+AccCONSd <- update(AccCONSa, .~. -Cum_prod)
+
+anova(AccCONS,AccCONSa) #landuse:Cum_rain     3.55157  0.0595 (LR, p-value)
+anova(AccCONSa,AccCONSb) #landuse             7.539809   0.006
+anova(AccCONSa,AccCONSc) #rain                2.183488  0.1395
+anova(AccCONSa,AccCONSd) #prod                17.75977  <.0001
+
+#Using model fitted with REML
+AccCONS <- lme(Cum_cons~landuse+Cum_rain+Cum_prod+
+               landuse:Cum_rain,
+               random=~1|site.id, method="REML",data=DataannualEx)
+
+#Estimates and Rsquared from REML
+summary(AccCONS) #Parameter estimates (+ p-values for result table)
+r.squared.lme(AccCONS) #To get conditional and marginal R^2 for the model
+
+#Graphical model validation
+par(mfrow=c(1,1))
+E <- resid(AccCONS,type="normalized")
+Fit <- fitted(AccCONS)
+#plot(x=Fit,y=E,xlab="Fitted values",ylab="Residuals") 
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = Fit, 
+     y = E,
+     xlab = "Fitted values",
+     ylab = "Residuals",main="Residuals AccCONS")
+abline(v = 0, lwd = 2, col = 2) #Fitted values
+abline(h = 0, lty = 2, col = 1) 
+#Alternatively: plot(P2cfinal)   Get the same, residuals Vs fitted
+plot(E~landuse,data=DataannualEx,main="Landuse",ylab="Residuals") #a bit less var. for pasture
+plot(x=DataannualEx$Cum_rain,y=E,ylab="Residuals",xlab="Rainfall",main="Rainfall")
+hist(E) #Residuals of the model
+hist(DataannualEx$Cum_cons) #hist of Y-variable
+plot(AccCONS,Cum_cons~fitted(.)) #Y variable vs fitted values 
+plot(AccCONS,Cum_cons~resid(.))  # Y variable vs residuals
 
 #### % CONS model Accumulated ####
-m3<-lm(Cum_perc_cons~landuse+Cum_rain+Cum_prod+
-         landuse:Cum_rain+
-         Cum_prod:Cum_rain,
-       DataannualEx)
-summary(m3)
-anova_m3 <- anova(m3)
-shapiro.test(resid(m3)) #Normal distribution of residuals. Normally distributed if p>0.05
-leveneTest(resid(m3)~landuse, data=DataannualEx) #Homogenous residuals. p-value >0.05 means equal  variances
+#Mixed model
+AccCONS2 <- lme(Cum_perc_cons~landuse+Cum_rain+Cum_prod,
+                 #landuse:Cum_rain,
+               random=~1|site.id, method="ML",data=DataannualEx)
+drop1(AccCONS2,test="Chisq")
+AIC(AccCONS2)
+anova(AccCONS2)
+
+# Updating the model - generating p-values for each term (with ML)
+AccCONS2a <- update(AccCONS2,  .~. -landuse)
+AccCONS2b <- update(AccCONS2, .~. -Cum_prod)
+AccCONS2c <- update(AccCONS2, .~. -Cum_rain)
+
+
+anova(AccCONS2,AccCONS2a) #landuse    7.995736  0.0047 (LR, p-value)
+anova(AccCONS2,AccCONS2b) #prod       5.356407  0.0206
+anova(AccCONS2,AccCONS2c) #rain       2.439095  0.1183
+
+#Using model fitted with REML
+AccCONS2 <- lme(Cum_perc_cons~landuse+Cum_rain+Cum_prod,
+                random=~1|site.id, method="REML",data=DataannualEx)
+
+#Estimates and Rsquared from REML
+summary(AccCONS2) #Parameter estimates (+ p-values for result table)
+r.squared.lme(AccCONS2) #To get conditional and marginal R^2 for the model
+
+#Graphical model validation
+par(mfrow=c(1,1))
+E <- resid(AccCONS2,type="normalized")
+Fit <- fitted(AccCONS2)
+#plot(x=Fit,y=E,xlab="Fitted values",ylab="Residuals") 
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = Fit, 
+     y = E,
+     xlab = "Fitted values",
+     ylab = "Residuals",main="Residuals AccCONS")
+abline(v = 0, lwd = 2, col = 2) #Fitted values
+abline(h = 0, lty = 2, col = 1) 
+#Alternatively: plot(P2cfinal)   Get the same, residuals Vs fitted
+plot(E~landuse,data=DataannualEx,main="Landuse",ylab="Residuals") #a bit less var. for pasture
+plot(x=DataannualEx$Cum_rain,y=E,ylab="Residuals",xlab="Rainfall",main="Rainfall")
+hist(E) #Residuals of the model
+hist(DataannualEx$Cum_perc_cons) #hist of Y-variable
+plot(AccCONS2,Cum_perc_cons~fitted(.)) #Y variable vs fitted values 
+plot(AccCONS2,Cum_perc_cons~resid(.))  # Y variable vs residuals
 
 #### TABLES Stargazer ####
 stargazer(m1,m2,m3, type="html",digits=2, #use "text" when looking at the result in the console, and "html" when printing table
@@ -3649,9 +3773,9 @@ NAPtot <- NAPtot + theme_bw() +
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
 NAPtot
-# ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSsiteFINAL.png",
-# width= 26, height = 18,units ="cm",
-# dpi = 600, limitsize = TRUE)
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSsiteFINAL2.png",
+ #width= 26, height = 18,units ="cm",
+ #dpi = 600, limitsize = TRUE)
 
 #### Bar graph total NAP and CONS per rainfall ####
 Dataannuallong1$colorbar <- as.factor(with(Dataannuallong1,paste(prodcons,landuse,sep=" ")))
@@ -3664,7 +3788,7 @@ levels(Dataannuallong1$prodcons)<-c("Production","Consumtption")
 
 # Group rain x landuse x block
 Dataannuallong1$rainlanduse <- as.factor(with(Dataannuallong1,paste(rain.day,landuse,block.id,sep=" ")))
-levels(Dataannuallong1$block.id) # 16 levels
+levels(Dataannuallong1$block.id) # 20 levels
 
 legend_title2<-"Land-use"
 legend_title <- "Biomass change"
@@ -3704,9 +3828,9 @@ NAPtot <- NAPtot + theme_bw() +
 NAPtot<- NAPtot+guides(colour=F,size=F,shape= F, alpha=F,
                        fill= guide_legend(order=1,"Biomass change",override.aes = list(shape=NA, alpha=.99, size=1,fill=c( "tan3","turquoise3","white","white"),col=c( "tan3","turquoise3"))))
 NAPtot
-#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/ACC.NAPCONSrain.png",
- #width= 26, height = 18,units ="cm",
- #dpi = 600, limitsize = TRUE)
+ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/ACC.NAPCONSrain2.png",
+ width= 26, height = 18,units ="cm",
+ dpi = 600, limitsize = TRUE)
 
 ####Dominant NAP per site graph #### 
 legend_title<-"Land-use"
@@ -3782,6 +3906,7 @@ CONStot
 # dpi = 600, limitsize = TRUE)
 
 #### % CONS per site ####
+levels(MeanannualEx$site.id)<-c("Dry \n Pasture","Dry \n Wild","Intermediate \n Wild","Wet \n Pasture","Wet \n Wild")
 legend_title<-"Land-use"
 #legend_title2 <- "Biomass change"
 CONSper <- ggplot(MeanannualEx, aes(x=site.id, y=Cum_perc_cons, colour=landuse,fill=landuse))
@@ -3813,7 +3938,7 @@ CONSper <- CONSper + theme_bw() +
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
 CONSper
-# ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/CONSper.png",
+# ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/CONSper2.png",
 # width= 26, height = 18,units ="cm",
 # dpi = 600, limitsize = TRUE)
 
