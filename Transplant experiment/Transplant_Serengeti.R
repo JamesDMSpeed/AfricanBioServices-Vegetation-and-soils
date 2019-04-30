@@ -21,12 +21,34 @@ library(lme4)
 #BioCover<-left_join(TP,TPbio,  by=c("fCurrent.placement.of.the.turf"))
 #write.csv(BioCover, "Transplant experiment/BioCover.csv",row.names=F) #,sep = ",",dec = ".",col.names = TRUE, row.names=F)
 
-# Combined species and aboveground biomass
-TP<-read.csv(file="Transplant experiment/BioCover2.csv", sep=",",header=TRUE)
-TP[duplicated(TP$Current.placement.of.the.turf), ] # No dups
+# Combined specie and aboveground biomass
+#TP<-read.csv(file="Transplant experiment/BioCover2.csv", sep=",",header=TRUE)
+#TP[duplicated(TP$Current.placement.of.the.turf), ] # No dups
 
+# Combined species and belowground soil properties
+#bTP<-read.csv(file="Transplant experiment/Belowground.soil.May2018.csv", sep=",",header=TRUE)
+
+# Seperate 5 cm and deep samples
+# Duplicates by depth #
+#bTP5cm<-bTP[bTP$Soil.depth=="5cm",] # No dups
+#bTP10cm<-bTP[!bTP$Soil.depth=="5cm",]
+#bTP5cm[duplicated(bTP5cm$Current.placement.of.the.turf), ] # Duplicates
+#dim(bTP5cm) # 137  16
+#CG_DRY_W_2_2
+#bTP10cm[duplicated(bTP10cm$Current.placement.of.the.turf), ] # Duplicates
+#dim(bTP10cm) #140  16
+# CG_DRY_W_1_1
+#SE_2_EX_4
+
+#BioCoverSoil5cm<-left_join(TP,bTP5cm,  by=c("Current.placement.of.the.turf"))
+#write.csv(BioCoverSoil5cm, "Transplant experiment/BioCoverSoil5cm.csv",row.names=F) #,sep = ",",dec = ".",col.names = TRUE, row.names=F)
 
 ########################################################################
+
+
+# Combined species, aboveground biomass and 5 cm soil
+TP<-read.csv(file="Transplant experiment/BioCoverSoil5cm.csv", sep=",",header=TRUE)
+TP[duplicated(TP$Current.placement.of.the.turf), ] # No dups
 
 # House keeping factors for analysis
 TP$fSite<-as.factor(TP$Site)
@@ -34,15 +56,16 @@ TP$fBlock<-as.factor(TP$Block)
 TP$fTagsp<-as.factor(TP$Tagsp)
 TP$fLanduse<-as.factor(TP$Landuse)
 
-
 #### Process data ####
 # Remove no data and control plots
 names(TP)
 dim(TP) # 152  30
-#TP2<-TP[!is.na(TP$FilTagspCover) & ! TP$Trasnplant=="Control" & !TP$Treatment=="Exclosed",]
-TP2<-TP[!is.na(TP$FilTagspCover) & ! TP$Trasnplant=="Control",]
-dim(TP2) #  118  30  with exclosures
-dim(TP2) #89 30 # 80 without exclosures, 29 exclosure data points....
+TP2Cex<-TP[!is.na(TP$FilTagspCover) & ! TP$Trasnplant=="Control" & !TP$Treatment=="Exclosed",]
+TP2Con<-TP[!is.na(TP$FilTagspCover) & ! TP$Trasnplant=="Control",]
+TP2<-TP[!is.na(TP$FilTagspCover),]
+dim(TP2Cex) #  89 41 - No controls or exclosures
+dim(TP2Con) # 118  41 - No controls
+dim(TP2) # No NAs 139 41 
 TP2$FilTagspCover
 
 # Convert to binary data - presence vs absence and probability of detection
@@ -58,6 +81,19 @@ dim(TP0)
 (139+40)*68 #= 12172 #elemental CN analysis plant material
 840*96 #= 80640
 840*49 #= 41160
+
+########################################################################
+#### Cover change with and without controls ####
+
+names(TP2Con)
+TP2Con$CoverChange<-TP2Con$FilTagspCover-TP2Con$InitialTagSpcover
+TP2$CoverChange<-TP2$FilTagspCover-TP2$InitialTagSpcover
+
+CC<-aggregate(CoverChange~fTagsp+fLanduse,TP2,mean)
+CCcon<-aggregate(CoverChange~fTagsp+fLanduse,TP2Con,mean)
+
+CC
+
 ########################################################################
 #### Model probability of occurence ####
 TPprob<- glmmadmb(FinalPresAb~fTagsp+fLanduse+fTagsp:fLanduse+(1|fSite/fBlock), 
@@ -167,3 +203,35 @@ MyData$SeLo  <- exp(MyData$eta - 1.96 *MyData$se) /
 
 MyData
 
+########################################################################
+#### Soil properties ####
+
+TP2dig<-TP2[TP2$fTagsp=="Dig mac",]
+dim(TP2dig) # 36
+names(TP2dig)
+TP2dig$Site_block<-as.factor(with(TP2dig, paste(fSite,fBlock, sep=".")))
+BDdig<-aggregate(BD.gcm3~Site_block,TP2dig, mean)
+# 18 samples
+18*280 #= 5040 NOK...
+36*280 # 10080 NOK ...
+
+
+#### Soil bulk density ####
+
+BD<-aggregate(BD.gcm3~fTagsp+fLanduse,TP2, mean)
+BDSe<-aggregate(BD.gcm3~fTagsp+fLanduse,TP2, sd)
+BD$Sd<-BDSe$BD.gcm3
+
+TPBD<-ggplot(BD,aes(y=BD.gcm3, x=fTagsp))
+TPBD<-TPBD+geom_point(stat="identity", size=4,position=position_dodge(width=.6))
+TPBD<-TPBD+geom_errorbar(aes(ymin = BD.gcm3-Sd,ymax = BD.gcm3+Sd),width=.1,show.legend=F) 
+TPBD<-TPBD+ylab("Bulk density (g cm3)")+xlab("Target species")
+TPBD<-TPBD+facet_wrap(~fLanduse)
+#TPBD<-TPBD+scale_y_continuous(limits=c(-5,80))
+TPBD<-TPBD+theme_classic()
+TPBD
+
+
+########################################################################
+#### END ####
+########################################################################
