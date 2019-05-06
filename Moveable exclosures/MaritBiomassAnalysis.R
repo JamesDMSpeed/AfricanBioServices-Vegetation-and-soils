@@ -1728,74 +1728,16 @@ colnames(NAPsd2)[2]<-"SD"
 NAPmean2$SD<-NAPsd2$SD
 
 #Mean NAP per land-use, DRY (H3 and H4)
-DataDRY <- Databiom[Databiom$harvest==c("H3","H4"),]
-NAPmean3 <- aggregate(prodtot~landuse+YrMonth+treatment,na.rm=T,DataDRY,mean)
+#Need reduced Databiom, H3 and H4 only --> then aggregate
+NAPmean3 <- aggregate(prodtot~landuse+YrMonth+treatment,na.rm=T,Databiom,mean)
 NAPmean3$prodtot<- round(NAPmean3$prodtot, digits=2)
-NAPsd3 <- aggregate(prodtot~landuse+YrMonth+treatment,na.rm=T,DataDRY,sd)
+NAPsd3 <- aggregate(prodtot~landuse+YrMonth+treatment,na.rm=T,Databiom,sd)
 colnames(NAPsd3)[4]<-"SD"
 NAPmean3$SD<-NAPsd3$SD
 
 #Mean NAP per land-use, WET (same as above)
-DataWET <- Databiom[Databiom$harvest==c("H1","H2","H5","H6","H7"),]
-NAPmean4 <- aggregate(prodtot~landuse+treatment,na.rm=T,DataWET,mean)
-Rainmean <- aggregate(rain.day~harvest,na.rm=T,Databiom,mean)
-NAPmean4$prodtot<- round(NAPmean4$prodtot, digits=2)
-NAPsd4 <- aggregate(prodtot~landuse+treatment,na.rm=T,DataWET,sd)
-colnames(NAPsd4)[3]<-"SD"
-NAPmean4$SD<-NAPsd4$SD
-
-#% diff between means?
-(0.11-(-0.27))/2 #0.19
-(-0.27+0.11)/2 #0.08
-
-#### Seasonal CONS ####
-#Mean NAP per land-use
-CONSmean <- aggregate(constot~landuse,na.rm=T,Databiom,mean)
-CONSsd <- aggregate(constot~landuse,na.rm=T,Databiom,sd)
-colnames(CONSsd)[2]<-"SD"
-CONSmean$SD<-CONSsd$SD
-
-#Mean CONS per land-use, DRY (H3 and H4)
-CONSmean2 <- aggregate(constot~landuse,na.rm=T,DataDRY,mean)
-CONSmean2$constot<- round(CONSmean2$constot, digits=2)
-CONSsd2 <- aggregate(constot~landuse,na.rm=T,DataDRY,sd)
-colnames(CONSsd2)[2]<-"SD"
-CONSmean2$SD<-CONSsd2$SD
-
-#%difference
-(((0.64-0.20)/((0.20+0.64)/2)))*100
-
-#Mean CONS per land-use, per harvest
-CONSmean3 <- aggregate(constot~landuse+harvest,na.rm=T,Databiom,mean)
-CONSmean3$constot<- round(CONSmean3$constot, digits=2)
-CONSsd3 <- aggregate(constot~landuse+harvest,na.rm=T,Databiom,sd)
-colnames(CONSsd3)[3]<-"SD"
-CONSmean3$SD<-CONSsd3$SD
-
-#### Seasonal dominant CONS ####
-DCONSmean <- aggregate(conssp.per~pool,na.rm=T,StackconsW,mean)
-DCONSmean$conssp.per<- round(DCONSmean$conssp.per, digits=2)
-DCONSsd <- aggregate(conssp.per~pool,na.rm=T,StackconsW,sd)
-colnames(DCONSsd)[2]<-"SD"
-DCONSmean$SD<-DCONSsd$SD
-
-#### Accumulated CONS ####
-#Per landuse
-Dataannual <- subset(Databiom2, YrMonth=="2018-05") #cumulative per block, H7 only
-CUMCONS <- aggregate(Cum_cons~landuse,na.rm=T,Dataannual,mean)
-CUMCONSsd <- aggregate(Cum_cons~landuse,na.rm=T,Dataannual,sd)
-colnames(CUMCONSsd)[2]<-"SD"
-CUMCONS$SD<-CUMCONSsd$SD
-
-#% CONS per landuse
-Dataannual <- subset(Databiom2, YrMonth=="2018-05") #cumulative per block, H7 only
-CUMCONS2 <- aggregate(Cum_perc_cons~landuse,na.rm=T,Dataannual,mean)
-CUMCONSsd2 <- aggregate(Cum_perc_cons~landuse,na.rm=T,Dataannual,sd)
-colnames(CUMCONSsd2)[2]<-"SD"
-CUMCONS2$SD<-CUMCONSsd2$SD
 
 
-####|####
 #### ANALYSIS ####
 #### Pearsons correlation ####
 #If 100% correlation - points on a scatter plot lie on a straight line
@@ -3030,10 +2972,25 @@ CONSpred<-CONSpred+theme_bw()+
     ,strip.background = element_rect(fill="transparent",colour=NA))
 CONSpred <-CONSpred+geom_point(data =Datacons, aes(size=landuse, shape = NA), colour = "grey50") #Adding legend
 CONSpred<-CONSpred+ guides(size=guide_legend("Land-use", override.aes=list(shape=c(21, 21), size=3,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2)))
+CONSpred+border()
 CONSpred
  #ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/CONSpred2.png",
   # width= 26, height = 18,units ="cm",
   # dpi = 600, limitsize = TRUE)
+
+# Marginal density plot of x (top panel) and y (right panel)
+xplot <- ggdensity(Datacons, "prodtot",color="landuse", fill = "landuse")+scale_fill_manual(values=c("tan3","turquoise3"))
+yplot <- ggdensity(Datacons, "constot", color="landuse",fill = "landuse") +scale_fill_manual(values=c("tan3","turquoise3"))+ rotate()
+
+# Cleaning the plots
+yplot <- yplot + clean_theme() 
+xplot <- xplot + clean_theme()
+
+# Arranging the plot
+ggarrange(xplot, NULL, CONSpred+theme_classic(), yplot, 
+          ncol = 2, nrow = 2,  align = "hv", 
+          widths = c(2, .75), heights = c(.75, 2),
+          common.legend = TRUE)
 
 #### DOMINANT sp ####
 ### domNAP periodic ####
