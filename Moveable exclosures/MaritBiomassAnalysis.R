@@ -2979,8 +2979,10 @@ CONSpred
   # dpi = 600, limitsize = TRUE)
 
 # Marginal density plot of x (top panel) and y (right panel)
-xplot <- ggdensity(Datacons, "prodtot",color="landuse", fill = "landuse")+scale_fill_manual(values=c("tan3","turquoise3"))
-yplot <- ggdensity(Datacons, "constot", color="landuse",fill = "landuse") +scale_fill_manual(values=c("tan3","turquoise3"))+ rotate()
+xplot <- ggdensity(Datacons, "prodtot",color="landuse", fill = "landuse")+scale_fill_manual("Land-use",values=c("tan3","turquoise3"))+
+  scale_colour_manual("Land-use",values=c("tan3","turquoise3"))
+yplot <- ggdensity(Datacons, "constot", color="landuse",fill = "landuse") +scale_fill_manual("Land-use",values=c("tan3","turquoise3"))+
+  scale_colour_manual("Land-use",values=c("tan3","turquoise3"))+ rotate()
 
 # Cleaning the plots
 yplot <- yplot + clean_theme() 
