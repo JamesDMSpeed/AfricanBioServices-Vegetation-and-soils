@@ -1484,7 +1484,9 @@ napcons2b
 #### Plot NAP+CONS per landuse ####
 levels(AvgprodconsL$landuse) <- c("Pasture", "Wild")
 AvgprodconsL$Biomass_change<-c("Productivity","Consumption","Productivity")
-
+#Sys.setlocale(category="LC_TIME","English")
+library(tidyverse)
+library(reshape2)
 legend_title<-"land-use"
 napconsL<- ggplot(AvgprodconsL, aes(x=YrMonth, y=Productivity, colour=landuse,fill=landuse,
                                     shape=Biomass_change,
@@ -1492,15 +1494,16 @@ napconsL<- ggplot(AvgprodconsL, aes(x=YrMonth, y=Productivity, colour=landuse,fi
 napconsL<-napconsL+geom_hline(yintercept = 0, size =1, linetype="dotted", colour="grey")
 napconsL<-napconsL+geom_line(aes(y = Consumption), linetype=2,size=1.2,show.legend=F)
 napconsL<-napconsL+geom_point(aes(y = Consumption), shape =21,size=4,show.legend=F)
-napconsL<-napconsL+geom_errorbar(aes(ymin=Consumption-SE.x.y, ymax=Consumption+SE.x.y),width=.2,lwd=1.1,show.legend=F)
+napconsL<-napconsL+geom_errorbar(aes(ymin=Consumption-SD.y, ymax=Consumption+SD.y),width=.2,lwd=1.1,show.legend=F)
 napconsL<-napconsL+scale_fill_manual(values=c(Pasture = "tan3",Wild = "turquoise3"))
 napconsL<-napconsL+geom_line(linetype=1,size=1.2, alpha=1, show.legend=F)
-napconsL<-napconsL+geom_errorbar(aes(ymin=Productivity-SE.x.x, ymax=Productivity+SE.x.x),width=.2,lwd=1.1,show.legend=F)
+napconsL<-napconsL+geom_errorbar(aes(ymin=Productivity-SD.x, ymax=Productivity+SD.x),width=.2,lwd=1.1,show.legend=F)
 napconsL<-napconsL+geom_point(shape=22,size=4, fill="white", stroke=2,show.legend=F)
 napconsL<-napconsL+facet_wrap(~landuse,ncol=2,scales='fixed')
 napconsL<-napconsL+scale_y_continuous(limits=c(-1.5,7), sec.axis = sec_axis(~.*1,breaks = c(0,2,4,6), labels = c(0,2,4,6), name = "Daily precipitation (mm)"))
-napconsL<-napconsL+geom_line(aes(y = rain.day),colour="dark blue",linetype=1,size=1, alpha=0.7)
-#napconsL<-napconsL+geom_point(aes(y = rain.sum/70),colour="dark blue",fill="dark blue",size=.9,alpha=.2)
+napconsL<-napconsL+geom_line(aes(y = rain.day),colour="dark blue",linetype= 1,size=1, alpha=0.7) #Rain graph
+#geom_line(data = df_line, aes(x = period, y = (d) / 10, group = 1, linetype = "My line"), inherit.aes = FALSE) +
+  #scale_linetype_manual(NULL, values = 1)
 napconsL<-napconsL+scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(as.Date("2017-02-10"),max=as.Date("2018-05-31")), expand=c(0,0)) 
 napconsL<-napconsL+scale_colour_manual(legend_title, values=c(Pasture = "tan3", Wild = "turquoise3"))
 #napconsL<-napconsL+scale_linetype_manual(values = c(wild = "solid", pasture = "dashed"))
@@ -1513,7 +1516,7 @@ napconsL<-napconsL+ theme_bw() +
         ,panel.grid.major.x = element_blank()
         ,panel.grid.major.y = element_blank() 
         ,axis.text=element_text(size=12)
-        ,axis.text.x=element_text(size=10,angle=35, hjust=1)
+        ,axis.text.x=element_text(size=12,angle=35, hjust=1)
         ,axis.line=element_line( size=.5)
         ,axis.title=element_text(size=14)
         ,legend.text=element_text(size=12)
@@ -1525,19 +1528,20 @@ napconsL<-napconsL+ theme_bw() +
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
 napconsL<-napconsL+ annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
-napconsL<-napconsL+annotate(geom="text",x=as.Date("2017-10-01"), y=6, label=c("Livestock \n Pasture Area ","Wildlife \n Protected Area"),color="black", size=5)
-napconsL<-napconsL+guides(shape=F, fill=F,colour = guide_legend(override.aes = list(shape=c(21, 21),
-                                                                                    size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),nrow=2,byrow=TRUE))
-napconsL<-napconsL+ guides(colour=F, fill=F,shape = guide_legend("Biomass change",override.aes = list(shape=c(21, 22),
-                                                                                                      size=5,fill=c("gray50","white"),col="gray50", stroke=2),nrow=2,byrow=TRUE))
-
+napconsL<-napconsL+annotate(geom="text",x=as.Date("2017-10-01"), y=6, label=c("Livestock \n Pasture Area ","Wildlife \n Protected Area"),color="black", size=5) 
+napconsL<-napconsL+guides(shape=F, fill=F,colour = guide_legend(override.aes = list(shape=c(21, 21), size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),nrow=2,byrow=TRUE)) #Landuse
+napconsL<-napconsL+ guides(colour=F, fill=F,shape = guide_legend("Biomass change",override.aes = list(shape=c(21, 22), size=5,fill=c("gray50","white"),col="gray50", stroke=2),nrow=2,byrow=TRUE)) #Biomass change
+#napconsL <- napconsL+guides(colour=F,fill=F,shape=guide_legend("Rainfall",override.aes=list(colour="dark blue",linetype=1, alpha=0.7), byrow=TRUE)) #Rainfall. Overrides the biomass change! 
+#napconsL <- napconsL+ theme(legend.background = element_rect(fill = "transparent"), 
+     #legend.box.background = element_rect(fill = "transparent", colour = NA),
+      #legend.key = element_rect(fill = "transparent"), 
+      #legend.spacing = unit(-1, "lines"))
 napconsLb <-napconsL+geom_point(data =AvgprodconsL, aes(size=landuse, shape = NA), colour = "grey50") #Adding legend
 napconsLb<-napconsLb+ guides(size=guide_legend("Land-use", override.aes=list(shape=c(21, 21), size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),
                                                nrow=2,byrow=TRUE),legend.margin=margin(0,0,0,0))
 napconsLb <- napconsLb+theme(panel.spacing.x=unit(2, "lines"),panel.spacing.y=unit(1, "lines"))
 napconsLb
-
-#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSseasonLandSE.png",
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSseasonLandSD.png",
 #width= 40, height = 16,units ="cm",
 #dpi = 600, limitsize = TRUE)
 
