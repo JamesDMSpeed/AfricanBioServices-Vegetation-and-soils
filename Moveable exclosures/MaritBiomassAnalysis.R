@@ -120,7 +120,6 @@ Databiom$Rdate<-Rdate# Add to the dataframe #
 # Create a Yr-Month time value as experiment runs over 15 months - > 2 years
 # Rdate convert to Year-month
 Databiom$YrMonth<-format(as.Date(Rdate), "%Y-%m")
-
 Databiom$month<-Databiom$Rdate$mon+1
 Databiom$month <- month.abb[Databiom$month] #Changing to month name abbrevitations
 Databiom$month<-as.factor(Databiom$month)
@@ -1541,9 +1540,9 @@ napconsLb<-napconsLb+ guides(size=guide_legend("Land-use", override.aes=list(sha
                                                nrow=2,byrow=TRUE),legend.margin=margin(0,0,0,0))
 napconsLb <- napconsLb+theme(panel.spacing.x=unit(2, "lines"),panel.spacing.y=unit(1, "lines"))
 napconsLb
-#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSseasonLandSD.png",
-#width= 40, height = 16,units ="cm",
-#dpi = 600, limitsize = TRUE)
+ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPCONSseasonLandSD2.png",
+width= 40, height = 16,units="cm",
+dpi = 600, limitsize = TRUE)
 
 #### Plot domNAP+CONS (weighted) per landuse ####
 ## Strange result. Need to check errors! ##
@@ -1556,19 +1555,19 @@ napconsL<- ggplot(AvgprodconsL2, aes(x=YrMonth, y=Productivity, colour=landuse,f
 napconsL<-napconsL+geom_hline(yintercept = 0, size =1, linetype="dotted", colour="grey")
 napconsL<-napconsL+geom_line(aes(y = Consumption), linetype=2,size=1.2,show.legend=F)
 napconsL<-napconsL+geom_point(aes(y = Consumption), shape =21,size=4,show.legend=F)
-napconsL<-napconsL+geom_errorbar(aes(ymin=Consumption-SE.x.y, ymax=Consumption+SE.x.x),width=.2,lwd=1.1,show.legend=F)
+napconsL<-napconsL+geom_errorbar(aes(ymin=Consumption-SD.y, ymax=Consumption+SD.y),width=.2,lwd=1.1,show.legend=F)
 napconsL<-napconsL+scale_fill_manual(values=c(Pasture = "tan3",Wild = "turquoise3"))
 napconsL<-napconsL+geom_line(linetype=1,size=1.2, alpha=1, show.legend=F)
-napconsL<-napconsL+geom_errorbar(aes(ymin=Productivity-SE.x.x, ymax=Productivity+SE.x.x),width=.2,lwd=1.1,show.legend=F)
+napconsL<-napconsL+geom_errorbar(aes(ymin=Productivity-SD.x, ymax=Productivity+SD.x),width=.2,lwd=1.1,show.legend=F)
 napconsL<-napconsL+geom_point(shape=22,size=4, fill="white", stroke=2,show.legend=F)
 napconsL<-napconsL+facet_wrap(~landuse,ncol=2,scales='fixed')
-napconsL<-napconsL+scale_y_continuous(limits=c(-1.5,6),sec.axis = sec_axis(~.*1,breaks = c(0,2,4,6), labels = c(0,2,4,6), name = "Daily precipitation (mm)"))
+napconsL<-napconsL+scale_y_continuous(limits=c(-30,20),sec.axis = sec_axis(~.*1,breaks = c(0,2,4,6), labels = c(0,2,4,6), name = "Daily precipitation (mm)"))
 napconsL<-napconsL+geom_line(aes(y = rain.day),colour="dark blue",linetype=1,size=1, alpha=0.7)
 #napconsL<-napconsL+geom_point(aes(y = rain.sum/70),colour="dark blue",fill="dark blue",size=.9,alpha=.2)
 napconsL<-napconsL+scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(as.Date("2017-02-10"),max=as.Date("2018-05-31")), expand=c(0,0)) 
 napconsL<-napconsL+scale_colour_manual(legend_title, values=c(Pasture = "tan3", Wild = "turquoise3"))
 #napconsL<-napconsL+scale_linetype_manual(values = c(wild = "solid", pasture = "dashed"))
-napconsL<-napconsL+xlab("Time (month|year)") + ylab(expression(paste("NAP and CONS dominant species (g ",m^-2," ",day^-1,")")))
+napconsL<-napconsL+xlab("Time (month|year)") + ylab(expression(paste("Weighted productivity and consumption, dominant species (g ",m^-2," ",day^-1,")")))
 napconsL<-napconsL+ theme_bw() +
   theme(plot.background = element_blank()
         #,panel.grid.major = element_blank()
@@ -2616,7 +2615,7 @@ NAPpred <- NAPpred+scale_colour_manual(values=c("tan3","turquoise3"))
 NAPpred<-NAPpred+facet_wrap(~landuse, scale="fixed")
 #NAPpred<-NAPpred+scale_x_continuous(limits=c(0,530), breaks = c(0,100,200,300,400,500), labels = c(0,100,200,300,400,500), expand=c(0,0))
 NAPpred<-NAPpred+scale_x_continuous(limits=c(0,8), breaks = c(0,2,4,6,8), labels = c(0,2,4,6,8), expand=c(0,0))
-NAPpred<-NAPpred+scale_y_continuous(limits=c(-4,10), breaks = c(-2,0,2,4,6,8), labels = c(-2,0,2,4,6,8), expand=c(0,0))
+NAPpred<-NAPpred+scale_y_continuous(limits=c(-5.5,10), breaks = c(-4,-2,0,2,4,6,8), labels = c(-4,-2,0,2,4,6,8), expand=c(0,0))
 NAPpred<-NAPpred+ylab(expression(paste("Productivity (g ",m^-2," ",day^-1,")")))+xlab("Daily rainfall (mm)") # Adding x and ylabs to plot
 NAPpred<-NAPpred+theme_bw()+
   theme(
@@ -2646,9 +2645,9 @@ NAPpred <-NAPpred+geom_point(data =DataprodEx, aes(size=landuse, shape = NA), co
 NAPpred<-NAPpred+ guides(size=guide_legend("Land-use", override.aes=list(shape=c(21, 21), size=3,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2)))
 NAPpred
 
-#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPpredictedEX2.png",
- #width= 26, height = 18,units ="cm",
-  #dpi = 600, limitsize = TRUE)
+ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/NAPpredictedEX2.png",
+ width= 26, height = 18,units ="cm",
+  dpi = 600, limitsize = TRUE)
 
 #### Sketch fitted values, with N total ####
 #   RUN the NAPN model first! In #Validating models with N.total#
@@ -2997,6 +2996,10 @@ ggarrange(xplot, NULL, CONSpred+theme_classic(), yplot,
           ncol = 2, nrow = 2,  align = "hv", 
           widths = c(2, .75), heights = c(.75, 2),
           common.legend = TRUE)
+
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/CONSpredHIST.png",
+ #width= 26, height = 18,units ="cm",
+ #dpi = 600, limitsize = TRUE)
 
 #### DOMINANT sp ####
 ### domNAP periodic ####
@@ -4227,6 +4230,12 @@ Avgtotal$SE <- AvgtotalSE$SE
 
 # Average veg. height per site 
 Avgheight <- aggregate(height..setup~site.name,SpeciesS_long,mean)
+
+#### Rainfall zero days ####
+Rainzero <- read.csv("Moveable exclosures/RainZeros.csv", header=T,sep=",")
+Rainzeromean <- aggregate(zero.days~landuse+harvest+rainfall+rain.sum,na.rm=T,Rainzero,mean)
+plot(Rainzeromean$zero.days,Rainzeromean$rain.sum)
+plot(Rainzero$harvest,Rainzero$zero.days)
 
 #######################
 
