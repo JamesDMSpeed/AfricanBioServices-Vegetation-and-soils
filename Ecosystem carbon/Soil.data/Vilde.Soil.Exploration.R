@@ -4,6 +4,7 @@ library(tidyr)
 library(plyr)
 library(dplyr)
 library(ggplot2)
+library("Hmisc") # For the correlation plot 
 
 # Uploading the soil file
 total.soil.data<- read.csv("Ecosystem Carbon/Soil.data/Total.Soil.Data.csv", head = TRUE)
@@ -16,32 +17,23 @@ total.soil.data$Region<- factor(total.soil.data$Region, levels = c("Makao","Masw
 names(total.soil.data)
 # Look at data per Region 
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
-P <- cbind(aggregate(P.g_kg~Region, mean, data=total.soil.data),
-           aggregate(P.g_kg~Region, SE, data=total.soil.data)[2])
-colnames(P)[3] <- "SE.P"
-BD <- cbind(aggregate(BD_fine_earth_air_dry~Region, mean, data=total.soil.data),
-           aggregate(BD_fine_earth_air_dry~Region, SE, data=total.soil.data)[2])
-colnames(BD)[3] <- "SE.BD"
-InorgC <- cbind(aggregate(fraction_inorg_C~Region, mean, data=total.soil.data),
-            aggregate(fraction_inorg_C~Region, SE, data=total.soil.data)[2])
-colnames(InorgC)[3] <- "SE.InorgC"
-OrgC <- cbind(aggregate(fraction_org_C~Region, mean, data=total.soil.data),
-             aggregate(fraction_org_C~Region, SE, data=total.soil.data)[2])
-colnames(OrgC)[3] <- "SE.OrgC"
-pH <- cbind(aggregate(pH~Region, mean, data=total.soil.data),
-              aggregate(pH~Region, SE, data=total.soil.data)[2])
-colnames(pH)[3] <- "SE.pH"
-Al <- cbind(aggregate(Al.g_kg~Region, mean, data=total.soil.data),
-            aggregate(Al.g_kg~Region, SE, data=total.soil.data)[2])
-colnames(Al)[3] <- "SE.Al"
-Fe <- cbind(aggregate(Fe.g_kg~Region, mean, data=total.soil.data),
-            aggregate(Fe.g_kg~Region, SE, data=total.soil.data)[2])
-colnames(Fe)[3] <- "SE.Fe"
-mean(Fe$Fe.g_kg)
-CEC <- cbind(aggregate(CEC.cmol_kg~Region, mean, data=total.soil.data),
-            aggregate(CEC.cmol_kg~Region, SE, data=total.soil.data)[2])
-colnames(CEC)[3] <- "SE.CEC"
-
+Soil.region <- cbind(aggregate(P.g_kg~Region, mean, data=total.soil.data),
+                     aggregate(P.g_kg~Region, SE, data=total.soil.data)[2],
+                     aggregate(BD_fine_earth_air_dry~Region, mean, data=total.soil.data)[2],
+                     aggregate(BD_fine_earth_air_dry~Region, SE, data=total.soil.data)[2],
+                     aggregate(fraction_inorg_C~Region, mean, data=total.soil.data)[2],
+                     aggregate(fraction_inorg_C~Region, SE, data=total.soil.data)[2],
+                     aggregate(fraction_org_C~Region, mean, data=total.soil.data)[2],
+                     aggregate(fraction_org_C~Region, SE, data=total.soil.data)[2],
+                     aggregate(pH~Region, mean, data=total.soil.data)[2],
+                     aggregate(pH~Region, SE, data=total.soil.data)[2],
+                     aggregate(Al.g_kg~Region, mean, data=total.soil.data)[2],
+                     aggregate(Al.g_kg~Region, SE, data=total.soil.data)[2],
+                     aggregate(Fe.g_kg~Region, mean, data=total.soil.data)[2],
+                     aggregate(Fe.g_kg~Region, SE, data=total.soil.data)[2],
+                     aggregate(CEC.cmol_kg~Region, mean, data=total.soil.data)[2],
+                     aggregate(CEC.cmol_kg~Region, SE, data=total.soil.data)[2])
+colnames(Soil.region) <- c("Region","P","SE.P","BD","SE.BD","InC","SE.InC","OrgC","SE.OrgC","pH","SE.pH","Al","SE.Al","Fe","SE.Fe","CEC","SE.CEC")
 # Per land-use 
 Soil.landuse <- cbind(aggregate(P.g_kg~Land_Use, mean, data=total.soil.data),
                       aggregate(P.g_kg~Land_Use, SE, data=total.soil.data)[2],
@@ -92,6 +84,49 @@ colnames(Soil.texture.R) <- c("Region","Sand","SE.Sand","Silt","SE.Silt","Clay",
 
 Soil.texture.landuse <- cbind(aggregate(Sand.pip.per~Landuse, mean, data=Soil.texture),
                               aggregate(Sand.pip.per~Landuse, SE, data=Soil.texture)[2])
+
+# Look at soil properties correlations 
+Tot.soil.region <- cbind(Soil.texture.R,
+      Soil.region[2:17])
+
+# RUN THIS CODE FIRST (FROM STU)
+
+panel.cor <- function(x, y, digits=1, prefix="", cex.cor = 6)
+{
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1))
+  r1=cor(x,y,use="pairwise.complete.obs")
+  r <- abs(cor(x, y,use="pairwise.complete.obs"))
+  txt <- format(c(r1, 0.123456789), digits=digits)[1]
+  txt <- paste(prefix, txt, sep="")
+  if(missing(cex.cor)) { cex <- 0.9/strwidth(txt) } else {
+    cex = cex.cor}
+  text(0.5, 0.5, txt, cex = cex * r)
+}
+
+# Then select the variables to use in the pair function with panel.cor
+names(Tot.soil.region)
+ModelVar<-c("Sand","Silt","Clay","P","BD","pH","Al","Fe","CEC")
+
+# Want to get these two in one matrix. 
+pairs(Tot.soil.region[,ModelVar],lower.panel = panel.cor)
+# If I want these values in a table:
+Model.var.FULL <- Belowground.full.CnoNA[,c(14,28,26,12,13,51,32,64,16,22,21,15)]
+Model.var.Herb <- Belowground.full.CnoNA[,c(14,28,26,12,13,51,32,64,16,22,21,15)]
+Model.var.SUB <- Total.Eco.C.CnoNA2[,c(5,10,8,7,15,35,34,41,42,33,24,6,44,46,47)]
+CandN.var <- Belowground.full[,c(53,56)] 
+Tree.var <- Soil.Ahor[,c(14:17,31,39)]
+
+MycorFULL <- rcorr(as.matrix(Model.var.FULL), type="pearson") # Use the pearson correlation (r-value)
+MycorHERB <- rcorr(as.matrix(Model.var.Herb), type="pearson") # Use the pearson correlation (r-value)
+MycorSUB <- rcorr(as.matrix(Model.var.SUB), type="pearson") # Use the pearson correlation (r-value)
+MycorFULL <- as.data.frame(round(MycorFULL$r, digits=3))
+MycorHERB <- as.data.frame(round(MycorHERB$r, digits=3))
+MycorSUB <- as.data.frame(round(MycorSUB$r, digits=3))
+write.csv(MycorFULL, file= "Ecosystem carbon/VariableCorrelationFULL.csv")
+write.csv(MycorHERB, file= "Ecosystem carbon/VariableCorrelationHERB.csv")
+write.csv(MycorSUB, file= "Ecosystem carbon/VariableCorrelationSUB.csv")
+
 # Looking at dung counts 
 levels(Dung.counts1$area)
 levels(Dung.counts1$landuse)
