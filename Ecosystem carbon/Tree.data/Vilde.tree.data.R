@@ -200,8 +200,10 @@ TreeC.Region <- cbind((aggregate(TreeBM.kg_block~Region, Tree.carbon,sum)),
                       (aggregate(Shrubbiness2~Region,Tree.carbon,mean))[2],
                       (aggregate(Shrubbiness2~Region,Tree.carbon,SE))[2])
 
-TreeC.Landuse <- cbind((aggregate(TreeBM.kg_block~landuse, Tree.carbon,sum)),
-                      (aggregate(No.trees~landuse, Tree.carbon,sum))[2],
+TreeC.Landuse <- cbind((aggregate(TreeBM.kg_block~landuse, Tree.carbon,mean)),
+                       (aggregate(TreeBM.kg_block~landuse,Tree.carbon,SE))[2],
+                      (aggregate(No.trees~landuse, Tree.carbon,mean))[2],
+                      (aggregate(No.trees~landuse,Tree.carbon,SE))[2],
                       (aggregate(Shrubbiness2~landuse,Tree.carbon,mean))[2],
                       (aggregate(Shrubbiness2~landuse,Tree.carbon,SE))[2])
 
