@@ -1546,6 +1546,7 @@ dpi = 600, limitsize = TRUE)
 
 #### Plot domNAP+CONS (weighted) per landuse ####
 ## Strange result. Need to check errors! ##
+#Sys.setlocale(category="LC_TIME","English")
 levels(AvgprodconsL2$landuse) <- c("Pasture", "Wild")
 
 legend_title<-"land-use"
@@ -1567,7 +1568,7 @@ napconsL<-napconsL+geom_line(aes(y = rain.day),colour="dark blue",linetype=1,siz
 napconsL<-napconsL+scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(as.Date("2017-02-10"),max=as.Date("2018-05-31")), expand=c(0,0)) 
 napconsL<-napconsL+scale_colour_manual(legend_title, values=c(Pasture = "tan3", Wild = "turquoise3"))
 #napconsL<-napconsL+scale_linetype_manual(values = c(wild = "solid", pasture = "dashed"))
-napconsL<-napconsL+xlab("Time (month|year)") + ylab(expression(paste("Weighted productivity and consumption, dominant species (g ",m^-2," ",day^-1,")")))
+napconsL<-napconsL+xlab("Time (month|year)") + ylab(expression(paste("Productivity and consumption, dominant species (g ",m^-2," ",day^-1,")")))
 napconsL<-napconsL+ theme_bw() +
   theme(plot.background = element_blank()
         #,panel.grid.major = element_blank()
@@ -1600,7 +1601,7 @@ napconsLb<-napconsLb+ guides(size=guide_legend("Land-use", override.aes=list(sha
 napconsLb <- napconsLb+theme(panel.spacing.x=unit(2, "lines"),panel.spacing.y=unit(1, "lines"))
 napconsLb
 
-#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/dominantWseason.png",
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/dominantWseasonSD.png",
 #width= 40, height = 16,units ="cm",
 #dpi = 600, limitsize = TRUE)
 
@@ -3669,6 +3670,51 @@ Dataannuallong1 <- Dataannuallong1[Dataannuallong1$prodcons!="Cum_constarg2",]
 Dataannuallong1 <- Dataannuallong1[Dataannuallong1$prodcons!="Cum_perc_cons",]
 Dataannuallong1 <- droplevels(Dataannuallong1) #32 obs
 
+#### Accumulated without the Handajega H7 #### 
+# Need to make like Dataannual, but exclude WET:
+DataprodEx <- Dataprod[Dataprod$treatment!="open",] #135 obs
+levels(DataprodEx$landuse) <- c("Pasture", "Wild")
+DataannualEx1 <- DataprodEx[!(DataprodEx$site.name=="Handajega" & DataprodEx$harvest=="H7"),]
+
+### Accumulated up until H6 ###
+MeanannualH6 <- subset(Datamean, YrMonth=="2018-03")#mean per site per harvest, H6 only
+DataannualH6 <- subset(Databiom2, YrMonth=="2018-03") #cumulative per block, H6 only
+MeanannualExH6 <- MeanannualH6[MeanannualH6$treatment!="open",]
+DataannualExH6 <- DataannualH6[DataannualH6$treatment!="open",]
+
+
+#### AVERAGES TO REPORT ####
+#Mean NAP per land-use
+NAPmean <- aggregate(Cum_prod~landuse,na.rm=T,DataannualEx,mean)
+NAPsd <- aggregate(Cum_prod~landuse,na.rm=T,DataannualEx,sd)
+colnames(NAPsd)[2]<-"SD"
+NAPmean$SD<-NAPsd$SD
+
+#Mean total per site
+NAPmean2 <- aggregate(Cum_prod~landuse+site.name,na.rm=T,DataannualEx,mean)
+NAPsd2 <- aggregate(Cum_prod~landuse+site.name,na.rm=T,DataannualEx,sd)
+colnames(NAPsd2)[3]<-"SD"
+NAPmean2$SD<-NAPsd2$SD
+
+#Mean NAP per block # Makao site 1 is so high compared to the others (and Maswa values)! Why?
+NAPmean3 <- aggregate(Cum_prod~block.id.harvest,na.rm=T,DataannualEx,mean)
+NAPsd3 <- aggregate(Cum_prod~block.id.harvest,na.rm=T,DataannualEx,sd)
+colnames(NAPsd3)[2]<-"SD"
+NAPmean3$SD<-NAPsd3$SD
+
+#Mean CONS per landuse
+CONSmean <- aggregate(Cum_cons~landuse,na.rm=T,DataannualEx,mean)
+CONSsd <- aggregate(Cum_cons~landuse,na.rm=T,DataannualEx,sd)
+colnames(CONSsd)[2]<-"SD"
+CONSmean$SD<-CONSsd$SD
+
+#Mean CONS per landuse
+CONSmean2 <- aggregate(Cum_cons~landuse+site.name,na.rm=T,DataannualEx,mean)
+CONSsd2 <- aggregate(Cum_cons~landuse+site.name,na.rm=T,DataannualEx,sd)
+colnames(CONSsd2)[3]<-"SD"
+CONSmean2$SD<-CONSsd2$SD
+
+
 #### NAP model Accumulated ####
 AccNAP <- lme(Cum_prod~landuse+Cum_rain+
                 landuse:Cum_rain,
@@ -3694,6 +3740,53 @@ AccNAP <- lme(Cum_prod~landuse+Cum_rain+
 #Estimates and Rsquared from REML
 summary(AccNAP)
 r.squared.lme(AccNAP) #To get conditional and marginal R^2 for the model
+
+
+#Graphical model validation
+par(mfrow=c(1,1))
+E <- resid(AccNAP,type="normalized")
+Fit <- fitted(AccNAP)
+#plot(x=Fit,y=E,xlab="Fitted values",ylab="Residuals") 
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = Fit, 
+     y = E,
+     xlab = "Fitted values",
+     ylab = "Residuals",main="Residuals AccNAP")
+abline(v = 0, lwd = 2, col = 2) #Fitted values
+abline(h = 0, lty = 2, col = 1) 
+#Alternatively: plot(P2cfinal)   Get the same, residuals Vs fitted
+plot(E~landuse,data=DataannualEx,main="Landuse",ylab="Residuals") #a bit less var. for pasture
+plot(x=DataannualEx$Cum_rain,y=E,ylab="Residuals",xlab="Rainfall",main="Rainfall")
+hist(E) #Residuals of the model
+hist(DataannualEx$Cum_prod) #hist of Y-variable
+plot(AccNAP,Cum_prod~fitted(.)) #Y variable vs fitted values 
+plot(AccNAP,Cum_prod~resid(.))  # Y variable vs residuals
+
+#### NAP model Accumulated without Handajega H7 ####
+AccNAP2 <- lme(Cum_prod~landuse+Cum_rain+
+                landuse:Cum_rain,
+              random=~1|site.id, method="ML",data=DataannualExH6)
+drop1(AccNAP2,test="Chisq")
+AIC(AccNAP2)
+anova(AccNAP2)
+
+# Updating the model - generating p-values for each term (with ML)
+AccNAP2a <- update(AccNAP2,  .~. -landuse:Cum_rain)
+AccNAP2b <- update(AccNAP2a, .~. -landuse)
+AccNAP2c <- update(AccNAP2a, .~. -Cum_rain)
+
+anova(AccNAP2,AccNAP2a) #landuse:Cum_rain     4.954402   0.026(LR, p-value)
+anova(AccNAP2a,AccNAP2b) #landuse             0.4345925  0.5097
+anova(AccNAP2a,AccNAP2c) #rain                5.06535  0.0244
+
+#Using model fitted with REML
+AccNAP2 <- lme(Cum_prod~landuse+Cum_rain+
+                landuse:Cum_rain,
+              random=~1|site.id, method="REML",data=DataannualExH6)
+
+#Estimates and Rsquared from REML
+summary(AccNAP2)
+r.squared.lme(AccNAP2) #To get conditional and marginal R^2 for the model
 
 
 #Graphical model validation
@@ -3948,7 +4041,7 @@ NAPtot <- NAPtot+geom_bar(stat="identity",position = position_dodge(width = 1.5,
 NAPtot <- NAPtot +scale_fill_manual(legend_title, values=c( "tan3","turquoise3","white","white"))
 NAPtot <- NAPtot +scale_colour_manual(legend_title, values=c( "tan3","turquoise3"))
 #NAPtot <- NAPtot +scale_fill_manual(legend_title2, values=c( "tan3","turquoise3"))
-NAPtot<-NAPtot+ xlab("Daily rainfall (mm)") + ylab(expression(paste("Total NAP and consumption (g ",m^-2,")")))
+NAPtot<-NAPtot+ xlab("Daily rainfall (mm)") + ylab(expression(paste("Accumulated productivity and consumption (g ",m^-2,")")))
 NAPtot<-NAPtot+scale_y_continuous(limits = c(-20,850), expand = c(0,0))
 NAPtot<-NAPtot+scale_x_discrete(expand = c(0.15,0.15)) #breaks=0:4, labels=c("1","2","3","4","5"),
 NAPtot
@@ -3976,9 +4069,9 @@ NAPtot <- NAPtot + theme_bw() +
 NAPtot<- NAPtot+guides(colour=F,size=F,shape= F, alpha=F,
                        fill= guide_legend(order=1,"Biomass change",override.aes = list(shape=NA, alpha=.99, size=1,fill=c( "tan3","turquoise3","white","white"),col=c( "tan3","turquoise3"))))
 NAPtot
-ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/ACC.NAPCONSrain2.png",
- width= 26, height = 18,units ="cm",
- dpi = 600, limitsize = TRUE)
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/ACC.NAPCONSrain2.png",
+ #width= 26, height = 18,units ="cm",
+ #dpi = 600, limitsize = TRUE)
 
 ####Dominant NAP per site graph #### 
 legend_title<-"Land-use"
