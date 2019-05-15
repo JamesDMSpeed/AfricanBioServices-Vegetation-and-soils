@@ -754,59 +754,83 @@ AvgprodW$site.id<-as.factor(with(AvgprodW, paste(region,landuse,treatment,pool, 
 
 #### Average NAP, landuse ####
 # Average of each landuse per harvest
-TotprodL <- aggregate(prodtot~landuse+YrMonth+treatment,na.rm=T,Databiom,mean)
+#Databiom without the most extreme low domNAP values
+DatabiomB <- Databiom[Databiom$block.id.harvest!="WET_P_1_H1",] #prod.targ
+DatabiomB <- DatabiomB[DatabiomB$block.id.harvest!="DRY_P_1_H4",] #prod.targ
+DatabiomB <- DatabiomB[DatabiomB$block.id.harvest!="SE_2_H7",] #prod.targ
+DatabiomB <- DatabiomB[DatabiomB$block.id.harvest!="DRY_P_4_H3",] #prod.targ
+DatabiomB <- DatabiomB[DatabiomB$block.id.harvest!="DRY_W_3_EX_H5",] #prod.other
+
+TotprodL <- aggregate(prodtot~landuse+YrMonth+treatment,na.rm=T,DatabiomB,mean)
 TotprodL$prodtot<- round(TotprodL$prodtot, digits=2)
 colnames(TotprodL)[4]<-"Productivity"
 TotprodL$pool<-"total" #Tagging these data with total productivity - combining later
 
-TarprodL<-aggregate(prodtarg.per~landuse+YrMonth+treatment,na.rm=T,Databiom,mean)
+TarprodL<-aggregate(prodtarg.per~landuse+YrMonth+treatment,na.rm=T,DatabiomB,mean)
 TarprodL$prodtarg.per<-round(TarprodL$prodtarg.per,digits=2)  
 colnames(TarprodL)[4]<-"Productivity"
 TarprodL$pool<-"target"
 
+colnames(DatabiomB)[colnames(DatabiomB)=="consumption.other.g.2.dayWEIGHTED"] <- "consoth.per"
+colnames(DatabiomB)[colnames(DatabiomB)=="productivity.other.g.m2.dayWEIGHTED"] <- "prodoth.per"
+SubprodL <- aggregate(prodoth.per~landuse+YrMonth+treatment,na.rm=T,DatabiomB,mean)
+SubprodL$prodoth.per<-round(SubprodL$prodoth.per,digits=2)  
+colnames(SubprodL)[4]<-"Productivity"
+SubprodL$pool<-"other"
+
 # Average total and target productivity, in one dataframe
-AvgprodL<-rbind(TotprodL,TarprodL)
+AvgprodL<-rbind(TotprodL,TarprodL,SubprodL)
 
 #Then making dataframes for total and target SEs --> combining them in one frame, then adding them to the average dataframe Avgprod
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
-TotprodLSE <- aggregate(prodtot~landuse+YrMonth+treatment,Databiom,SE)
+TotprodLSE <- aggregate(prodtot~landuse+YrMonth+treatment,DatabiomB,SE)
 TotprodLSE$prodtot<-round(TotprodLSE$prodtot,digits=2)
 colnames(TotprodLSE)[4]<-"SE"
 TotprodLSE$pool<-"total"
 
-TarprodLSE <- aggregate(prodtarg.per~landuse+YrMonth+treatment,Databiom,SE)
+TarprodLSE <- aggregate(prodtarg.per~landuse+YrMonth+treatment,DatabiomB,SE)
 TarprodLSE$prodtarg.per<-round(TarprodLSE$prodtarg.per,digits=2)
 colnames(TarprodLSE)[4]<-"SE"
 TarprodLSE$pool<-"target"
 
-SeprodL<-rbind(TotprodLSE,TarprodLSE)
+SubprodLSE <- aggregate(prodoth.per~landuse+YrMonth+treatment,DatabiomB,SE)
+SubprodLSE$prodoth.per<-round(SubprodLSE$prodoth.per,digits=2)
+colnames(SubprodLSE)[4]<-"SE"
+SubprodLSE$pool<-"other"
+
+SeprodL<-rbind(TotprodLSE,TarprodLSE,SubprodLSE)
 AvgprodL$SE<-SeprodL$SE
 
 # Convert to date
 AvgprodL$YrMonth<-as.Date(paste(AvgprodL$YrMonth,"-01",sep=""))#Adding day (first of month)
 
 ## SD dataframes
-TotprodLSD <- aggregate(prodtot~landuse+YrMonth+treatment,Databiom,sd)
+TotprodLSD <- aggregate(prodtot~landuse+YrMonth+treatment,DatabiomB,sd)
 TotprodLSD$prodtot<-round(TotprodLSD$prodtot,digits=2)
 colnames(TotprodLSD)[4]<-"SD"
 TotprodLSD$pool<-"total"
 
-TarprodLSD <- aggregate(prodtarg.per~landuse+YrMonth+treatment,Databiom,sd)
+TarprodLSD <- aggregate(prodtarg.per~landuse+YrMonth+treatment,DatabiomB,sd)
 TarprodLSD$prodtarg.per<-round(TarprodLSD$prodtarg.per,digits=2)
 colnames(TarprodLSD)[4]<-"SD"
 TarprodLSD$pool<-"target"
 
-SdprodL<-rbind(TotprodLSD,TarprodLSD)
+SubprodLSD <- aggregate(prodoth.per~landuse+YrMonth+treatment,DatabiomB,sd)
+SubprodLSD$prodoth.per<-round(SubprodLSD$prodoth.per,digits=2)
+colnames(SubprodLSD)[4]<-"SD"
+SubprodLSD$pool<-"other"
+
+SdprodL<-rbind(TotprodLSD,TarprodLSD,SubprodLSD)
 AvgprodL$SD<-SdprodL$SD
 
 #### Average CONS ####
 # Average of each site per harvest
-Totcons <- aggregate(constot~region+landuse+site.id+YrMonth,na.rm=T,Databiom,mean)
+Totcons <- aggregate(constot~region+landuse+site.id+YrMonth,na.rm=T,DatabiomB,mean)
 Totcons$constot<- round(Totcons$constot, digits=2)
 colnames(Totcons)[5]<-"Consumption"
 Totcons$pool<-"total" #Tagging these data with total productivity - combining later
 
-Tarcons<-aggregate(constarg~region+landuse+site.id+YrMonth,na.rm=T,Databiom,mean)
+Tarcons<-aggregate(constarg~region+landuse+site.id+YrMonth,na.rm=T,DatabiomB,mean)
 Tarcons$constarg<-round(Tarcons$constarg,digits=2)  
 colnames(Tarcons)[5]<-"Consumption"
 Tarcons$pool<-"target"
@@ -815,12 +839,12 @@ Tarcons$pool<-"target"
 Avgcons<-rbind(Totcons,Tarcons)
 
 #Then making dataframes for total and target SEs --> combining them in one frame, then adding them to the average dataframe Avgcons
-TotconsSE <- aggregate(constot~region+landuse+site.id+YrMonth,Databiom,SE)
+TotconsSE <- aggregate(constot~region+landuse+site.id+YrMonth,DatabiomB,SE)
 TotconsSE$constot<-round(TotconsSE$constot,digits=2)
 colnames(TotconsSE)[5]<-"SE"
 TotconsSE$pool<-"total"
 
-TarconsSE <- aggregate(constarg~region+landuse+site.id+YrMonth,Databiom,SE)
+TarconsSE <- aggregate(constarg~region+landuse+site.id+YrMonth,DatabiomB,SE)
 TarconsSE$constarg<-round(TarconsSE$constarg,digits=2)
 colnames(TarconsSE)[5]<-"SE"
 TarconsSE$pool<-"target"
@@ -837,12 +861,12 @@ Avgcons$site.id<-as.factor(with(Avgcons, paste(region,landuse,pool, sep="_")))
 
 #### Average CONS WEIGHTED ####
 # Average of each site per harvest
-TotconsW <- aggregate(constot.per~region+landuse+site.id+YrMonth,na.rm=T,Databiom,mean)
+TotconsW <- aggregate(constot.per~region+landuse+site.id+YrMonth,na.rm=T,DatabiomB,mean)
 TotconsW$constot.per<- round(TotconsW$constot.per, digits=2)
 colnames(TotconsW)[5]<-"Consumption"
 TotconsW$pool<-"total" #Tagging these data with total productivity - combining later
 
-TarconsW<-aggregate(constarg.per~region+landuse+site.id+YrMonth,na.rm=T,Databiom,mean)
+TarconsW<-aggregate(constarg.per~region+landuse+site.id+YrMonth,na.rm=T,DatabiomB,mean)
 TarconsW$constarg.per<-round(TarconsW$constarg.per,digits=2)  
 colnames(TarconsW)[5]<-"Consumption"
 TarconsW$pool<-"target"
@@ -851,12 +875,12 @@ TarconsW$pool<-"target"
 AvgconsW<-rbind(TotconsW,TarconsW)
 
 #Then making dataframes for total and target SEs --> combining them in one frame, then adding them to the average dataframe Avgcons
-TotconsWSE <- aggregate(constot.per~region+landuse+site.id+YrMonth,Databiom,SE)
+TotconsWSE <- aggregate(constot.per~region+landuse+site.id+YrMonth,DatabiomB,SE)
 TotconsWSE$constot.per<-round(TotconsWSE$constot.per,digits=2)
 colnames(TotconsWSE)[5]<-"SE"
 TotconsWSE$pool<-"total"
 
-TarconsWSE <- aggregate(constarg.per~region+landuse+site.id+YrMonth,Databiom,SE)
+TarconsWSE <- aggregate(constarg.per~region+landuse+site.id+YrMonth,DatabiomB,SE)
 TarconsWSE$constarg.per<-round(TarconsWSE$constarg.per,digits=2)
 colnames(TarconsWSE)[5]<-"SE"
 TarconsWSE$pool<-"target"
@@ -873,57 +897,72 @@ AvgconsW$site.id<-as.factor(with(AvgconsW, paste(region,landuse,pool, sep="_")))
 
 #### Average CONS, landuse ####
 # Average of each site per harvest
-TotconsL <- aggregate(constot~landuse+YrMonth,na.rm=T,Databiom,mean)
+TotconsL <- aggregate(constot~landuse+YrMonth,na.rm=T,DatabiomB,mean)
 TotconsL$constot<- round(TotconsL$constot, digits=2)
 colnames(TotconsL)[3]<-"Consumption"
 TotconsL$pool<-"total" #Tagging these data with total productivity - combining later
 
-TarconsL<-aggregate(constarg.per~landuse+YrMonth,na.rm=T,Databiom,mean)
+TarconsL<-aggregate(constarg.per~landuse+YrMonth,na.rm=T,DatabiomB,mean)
 TarconsL$constarg.per<-round(TarconsL$constarg.per,digits=2)  
 colnames(TarconsL)[3]<-"Consumption"
 TarconsL$pool<-"target"
 
+SubconsL<-aggregate(consoth.per~landuse+YrMonth,na.rm=T,DatabiomB,mean)
+SubconsL$consoth.per<-round(SubconsL$consoth.per,digits=2)  
+colnames(SubconsL)[3]<-"Consumption"
+SubconsL$pool<-"other"
+
 # Average total and target CONS, in one dataframe
-AvgconsL<-rbind(TotconsL,TarconsL)
+AvgconsL<-rbind(TotconsL,TarconsL,SubconsL)
 
 #Then making dataframes for total and target SEs --> combining them in one frame, then adding them to the average dataframe Avgcons
-TotconsLSE <- aggregate(constot~landuse+YrMonth,Databiom,SE)
+TotconsLSE <- aggregate(constot~landuse+YrMonth,DatabiomB,SE)
 TotconsLSE$constot<-round(TotconsLSE$constot,digits=2)
 colnames(TotconsLSE)[3]<-"SE"
 TotconsLSE$pool<-"total"
 
-TarconsLSE <- aggregate(constarg.per~landuse+YrMonth,Databiom,SE)
+TarconsLSE <- aggregate(constarg.per~landuse+YrMonth,DatabiomB,SE)
 TarconsLSE$constarg.per<-round(TarconsLSE$constarg.per,digits=2)
 colnames(TarconsLSE)[3]<-"SE"
 TarconsLSE$pool<-"target"
 
+SubconsLSE<-aggregate(consoth.per~landuse+YrMonth,DatabiomB,SE)
+SubconsLSE$consoth.per<-round(SubconsLSE$consoth.per,digits=2)  
+colnames(SubconsLSE)[3]<-"SE"
+SubconsLSE$pool<-"other"
+
 #Including SE in the averagecons frame
-SeconsL<-rbind(TotconsLSE,TarconsLSE)
+SeconsL<-rbind(TotconsLSE,TarconsLSE,SubconsLSE)
 AvgconsL$SE<-SeconsL$SE
 
 # Convert to date
 AvgconsL$YrMonth<-as.Date(paste(AvgconsL$YrMonth,"-01",sep=""))
 
 ## SD dataframes
-TotconsLSD <- aggregate(constot~landuse+YrMonth+treatment,Databiom,sd)
+TotconsLSD <- aggregate(constot~landuse+YrMonth+treatment,DatabiomB,sd)
 TotconsLSD$constot<-round(TotconsLSD$constot,digits=2)
 colnames(TotconsLSD)[4]<-"SD"
 TotconsLSD$pool<-"total"
 
-TarconsLSD <- aggregate(constarg.per~landuse+YrMonth+treatment,Databiom,sd)
+TarconsLSD <- aggregate(constarg.per~landuse+YrMonth+treatment,DatabiomB,sd)
 TarconsLSD$constarg.per<-round(TarconsLSD$constarg.per,digits=2)
 colnames(TarconsLSD)[4]<-"SD"
 TarconsLSD$pool<-"target"
 
-SdconsL<-rbind(TotconsLSD,TarconsLSD)
+SubconsLSD<-aggregate(consoth.per~landuse+YrMonth+treatment,DatabiomB,sd)
+SubconsLSD$consoth.per<-round(SubconsLSD$consoth.per,digits=2)  
+colnames(SubconsLSD)[4]<-"SD"
+SubconsLSD$pool<-"other"
+
+SdconsL<-rbind(TotconsLSD,TarconsLSD,SubconsLSD)
 AvgconsL$SD<-SdconsL$SD
 
 #### Aggregating rainfall per region #### 
 # Averaging rainfall data and getting SE by region # To be included in the NAP aggregated dataframes per site
 #per rainfall region (WET, SE , DRY)
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
-Rainregion<-aggregate(rain.sum~region+YrMonth,Databiom,mean)
-RainregionSE<-aggregate(rain.sum~region+YrMonth,Databiom,SE)
+Rainregion<-aggregate(rain.sum~region+YrMonth,DatabiomB,mean)
+RainregionSE<-aggregate(rain.sum~region+YrMonth,DatabiomB,SE)
 
 RainregionX<-cbind(Rainregion,RainregionSE[,3])
 colnames(RainregionX)[4]<-"SE"
@@ -937,8 +976,8 @@ RainregionX$YrMonth<-as.Date(paste(RainregionX$YrMonth,"-01",sep=""))
 
 #### Rainfall per harvest per landuse ####
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
-Rainland<-aggregate(rain.sum~landuse+YrMonth,Databiom,mean)
-RainlandSE<-aggregate(rain.sum~landuse+YrMonth,Databiom,SE)
+Rainland<-aggregate(rain.sum~landuse+YrMonth,DatabiomB,mean)
+RainlandSE<-aggregate(rain.sum~landuse+YrMonth,DatabiomB,SE)
 
 RainlandX<-cbind(Rainland,RainlandSE[,3])
 colnames(RainlandX)[4]<-"SE"
@@ -951,7 +990,7 @@ RainlandX$SeLo<-RainlandX$rain.sum-RainlandX$SE
 RainlandX$YrMonth<-as.Date(paste(RainlandX$YrMonth,"-01",sep=""))
 
 ###Adding daily rainfall also
-Rainday<-aggregate(rain.day~landuse+YrMonth,Databiom,mean)
+Rainday<-aggregate(rain.day~landuse+YrMonth,DatabiomB,mean)
 Rainday$YrMonth<-as.Date(paste(Rainday$YrMonth,"-01",sep=""))
 
 #### Adding NAP AND rainfall to aggregated dataframes ####
@@ -1056,13 +1095,16 @@ Avgprodcons2$Biomass_change<-c("Productivity","Consumption","Productivity","Cons
 #### Average PRODCONS df per landuse ####
 AvgprodL2 <- AvgprodL[AvgprodL$treatment!="open",]
 AvgprodL2 <- AvgprodL2[AvgprodL2$pool!="target",]
+AvgprodL2 <- AvgprodL2[AvgprodL2$pool!="other",]
 AvgprodL2 <- droplevels(AvgprodL2)
 
 AvgconsL2 <- AvgconsL[AvgconsL$pool!="target",]
+AvgconsL2 <- AvgconsL2[AvgconsL2$pool!="other",]
+
 AvgconsL2 <- droplevels(AvgconsL2)
 
-dim(AvgprodL2) #15 11
-dim(AvgconsL2) #15 10
+dim(AvgprodL2) #15 12
+dim(AvgconsL2) #15 11
 
 AvgprodconsL<-left_join(AvgprodL2,AvgconsL2, by=c("landuse","YrMonth","pool","rain.sum","rain.day"),drop=F)
 
@@ -1087,6 +1129,35 @@ levels(AvgprodconsL2$col)<-c("tan","turquoise3")
 AvgprodconsL2$Biomass_change<-c("Productivity","Consumption","Productivity")
 AvgprodconsL2$rain.day <- round(AvgprodconsL2$rain.day,digits=2)
 AvgprodconsL2$rain.sum <- round(AvgprodconsL2$rain.sum,digits=2)
+
+#### AVERAGES to report dominant sp. ####
+#Per site
+dNAPmean<-aggregate(prodtarg.per~site.name,na.rm=T,Databiom,mean)
+dNAPmean$prodtarg.per<-round(dNAPmean$prodtarg.per,digits=2)
+dNAPsd<-aggregate(prodtarg.per~site.name,na.rm=T,Databiom,sd)
+colnames(dNAPsd)[2]<-"SD"
+dNAPmean$SD<-dNAPsd$SD
+
+#Per site per harvest
+dNAPmean2<-aggregate(prodtarg.per~site.name+harvest,na.rm=T,Databiom,mean)
+dNAPmean2$prodtarg.per<-round(dNAPmean2$prodtarg.per,digits=2)
+dNAPsd2<-aggregate(prodtarg.per~site.name+harvest,na.rm=T,Databiom,sd)
+colnames(dNAPsd2)[3]<-"SD"
+dNAPmean2$SD<-dNAPsd2$SD
+
+# Per site DatabiomB - Difference? 
+dNAPmean3<-aggregate(prodtarg.per~site.name,na.rm=T,DatabiomB,mean)
+dNAPmean3$prodtarg.per<-round(dNAPmean3$prodtarg.per,digits=2)
+dNAPsd3<-aggregate(prodtarg.per~site.name,na.rm=T,DatabiomB,sd)
+colnames(dNAPsd3)[2]<-"SD"
+dNAPmean3$SD<-dNAPsd3$SD
+
+#Per site per harvest DatabiomB
+dNAPmean4<-aggregate(prodtarg.per~site.name+harvest,na.rm=T,DatabiomB,mean)
+dNAPmean4$prodtarg.per<-round(dNAPmean4$prodtarg.per,digits=2)
+dNAPsd4<-aggregate(prodtarg.per~site.name+harvest,na.rm=T,DatabiomB,sd)
+colnames(dNAPsd4)[3]<-"SD"
+dNAPmean4$SD<-dNAPsd4$SD
 
 #### Plot NAP target+total ####
 legend_title<-"land-use"
@@ -1545,9 +1616,9 @@ width= 40, height = 16,units="cm",
 dpi = 600, limitsize = TRUE)
 
 #### Plot domNAP+CONS (weighted) per landuse ####
-## Strange result. Need to check errors! ##
 #Sys.setlocale(category="LC_TIME","English")
 levels(AvgprodconsL2$landuse) <- c("Pasture", "Wild")
+levels(AvgprodconsL2$pool) <- c("Dominant", "Subordinate")
 
 legend_title<-"land-use"
 napconsL<- ggplot(AvgprodconsL2, aes(x=YrMonth, y=Productivity, colour=landuse,fill=landuse,
@@ -1561,14 +1632,14 @@ napconsL<-napconsL+scale_fill_manual(values=c(Pasture = "tan3",Wild = "turquoise
 napconsL<-napconsL+geom_line(linetype=1,size=1.2, alpha=1, show.legend=F)
 napconsL<-napconsL+geom_errorbar(aes(ymin=Productivity-SD.x, ymax=Productivity+SD.x),width=.2,lwd=1.1,show.legend=F)
 napconsL<-napconsL+geom_point(shape=22,size=4, fill="white", stroke=2,show.legend=F)
-napconsL<-napconsL+facet_wrap(~landuse,ncol=2,scales='fixed')
-napconsL<-napconsL+scale_y_continuous(limits=c(-30,20),sec.axis = sec_axis(~.*1,breaks = c(0,2,4,6), labels = c(0,2,4,6), name = "Daily precipitation (mm)"))
+napconsL<-napconsL+facet_wrap(~pool+landuse,ncol=2,scales='fixed')
+napconsL<-napconsL+scale_y_continuous(limits=c(-5,10),sec.axis = sec_axis(~.*1,breaks = c(0,2,4,6), labels = c(0,2,4,6), name = "Daily precipitation (mm)"))
 napconsL<-napconsL+geom_line(aes(y = rain.day),colour="dark blue",linetype=1,size=1, alpha=0.7)
 #napconsL<-napconsL+geom_point(aes(y = rain.sum/70),colour="dark blue",fill="dark blue",size=.9,alpha=.2)
 napconsL<-napconsL+scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(as.Date("2017-02-10"),max=as.Date("2018-05-31")), expand=c(0,0)) 
 napconsL<-napconsL+scale_colour_manual(legend_title, values=c(Pasture = "tan3", Wild = "turquoise3"))
 #napconsL<-napconsL+scale_linetype_manual(values = c(wild = "solid", pasture = "dashed"))
-napconsL<-napconsL+xlab("Time (month|year)") + ylab(expression(paste("Productivity and consumption, dominant species (g ",m^-2," ",day^-1,")")))
+napconsL<-napconsL+xlab("Time (month|year)") + ylab(expression(paste("Productivity and consumption (g ", m^-2," ",day^-1,")")))
 napconsL<-napconsL+ theme_bw() +
   theme(plot.background = element_blank()
         #,panel.grid.major = element_blank()
@@ -1589,7 +1660,7 @@ napconsL<-napconsL+ theme_bw() +
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
 napconsL<-napconsL+ annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
-napconsL<-napconsL+annotate(geom="text",x=as.Date("2017-10-01"), y=6, label=c("Livestock \n Pasture Area ","Wildlife \n Protected Area"),color="black", size=5)
+napconsL<-napconsL+annotate(geom="text",x=as.Date("2017-10-01"), y=9, label=c("Livestock \n Pasture Area (Subordinates) ","Wildlife \n Protected Area (Subordinates)","Livestock \n Pasture Area (Dominants) ","Wildlife \n Protected Area (Dominants)"),color="black", size=4.5)
 napconsL<-napconsL+guides(shape=F, fill=F,colour = guide_legend(override.aes = list(shape=c(21, 21),
                                                                                     size=5,fill=c("tan3","turquoise3"),col=c("tan3","turquoise3"), stroke=2),nrow=2,byrow=TRUE))
 napconsL<-napconsL+ guides(colour=F, fill=F,shape = guide_legend("Biomass change",override.aes = list(shape=c(21, 22),
@@ -1601,8 +1672,8 @@ napconsLb<-napconsLb+ guides(size=guide_legend("Land-use", override.aes=list(sha
 napconsLb <- napconsLb+theme(panel.spacing.x=unit(2, "lines"),panel.spacing.y=unit(1, "lines"))
 napconsLb
 
-#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/dominantWseasonSD.png",
-#width= 40, height = 16,units ="cm",
+#ggsave("C:/Users/Marit/Google Drive/0_Dokumenter/0_NTNU/0_Master/Presentations/Graphs/dominantWseasonSDNEW2.png",
+#width= 40, height = 20,units ="cm",
 #dpi = 600, limitsize = TRUE)
 
 #### Plot Target NAP + CONS #### 
@@ -1725,6 +1796,12 @@ NAPsd <- aggregate(prodtot~landuse+treatment,na.rm=T,Databiom,sd)
 colnames(NAPsd)[3]<-"SD"
 NAPmean$SD<-NAPsd$SD
 
+#Mean NAP per land-use per harvest
+NAPmean1 <- aggregate(prodtot~landuse+harvest+treatment,na.rm=T,Databiom,mean)
+NAPsd1 <- aggregate(prodtot~landuse+harvest+treatment,na.rm=T,Databiom,sd)
+colnames(NAPsd1)[4]<-"SD"
+NAPmean1$SD<-NAPsd1$SD
+
 #Mean total NAP
 NAPmean2 <- aggregate(prodtot~treatment,na.rm=T,Databiom,mean)
 NAPsd2 <- aggregate(prodtot~treatment,na.rm=T,Databiom,sd)
@@ -1732,14 +1809,17 @@ colnames(NAPsd2)[2]<-"SD"
 NAPmean2$SD<-NAPsd2$SD
 
 #Mean NAP per land-use, DRY (H3 and H4)
-#Need reduced Databiom, H3 and H4 only --> then aggregate
 NAPmean3 <- aggregate(prodtot~landuse+YrMonth+treatment,na.rm=T,Databiom,mean)
 NAPmean3$prodtot<- round(NAPmean3$prodtot, digits=2)
 NAPsd3 <- aggregate(prodtot~landuse+YrMonth+treatment,na.rm=T,Databiom,sd)
 colnames(NAPsd3)[4]<-"SD"
 NAPmean3$SD<-NAPsd3$SD
 
-#Mean NAP per land-use, WET (same as above)
+#Mean NAP per site per harvest
+NAPmean4 <- aggregate(prodtot~site.name+harvest+block.id+treatment,na.rm=T,Databiom,mean)
+NAPsd4 <- aggregate(prodtot~site.name+harvest+block.id+treatment,na.rm=T,Databiom,sd)
+colnames(NAPsd4)[5]<-"SD"
+NAPmean4$SD<-NAPsd4$SD
 
 
 #### ANALYSIS ####
@@ -2014,6 +2094,13 @@ P22 <- lme(prodtot~landuse+rain.day+I(rain.day^2)+
 summary(P2.2) #Parameter estimates
 summary(P22)
 r.squared.lme(P2.2) #To get conditional and marginal R^2 for the model
+
+library(sjstats)
+sjstats::icc(P2.2) # Random terms
+ICC (Plot:Blockcode): 0.3825
+ICC (Blockcode): 0.2019
+sjstats::r2(P2.2) # fixed terms
+
 
 #### Total NAP, Region #### 
 hist(DataprodEx$prodtot)
