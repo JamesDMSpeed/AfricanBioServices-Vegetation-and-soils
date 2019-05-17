@@ -5,6 +5,7 @@ if(!is.null(dev.list())) dev.off()
 cat("\014") 
 # Clean workspace
 rm(list=ls())
+library(plotly)
 library(cowplot)
 library(qpcR)
 library(lattice)
@@ -275,12 +276,12 @@ Signdata <- rcorr(as.matrix(Data))
 names(Fulldata)
 #Soil variables
 MySoil<-c("Massloss.per","C.N","Claycorr","Siltcorr","Sandcorr")
-#pairs(Fulldata[,MySoil], lower.panel= panel.cor)
+pairs(Fulldata[,MySoil], lower.panel= panel.cor)
 
 #Climate variables
 MyEnv<-c("Massloss.per","Rain.sum","Moisture..","Temperature..C.")
 pairs(Fulldata[,MyEnv], lower.panel= panel.cor)
-
+?drop1()
 #Choosen variables:
 MyVarTot <- c("C.N","Claycorr","Sandcorr",
            "Moisture..","Temperature..C.","Rain.sum")
@@ -396,7 +397,7 @@ boxplot(Rain.sum ~Region+Season  ,
 #No difference in rainfall in wet vs dry regions in wet season.
 #THere is a pattern here, but the categories in Region are not
 #really following whats happening for the amount of Rain
-#Should only use Rain.sum.
+#Should only use Season.
 
 boxplot( Rain.sum ~Blockcode +Season  , 
          xlab = "Moisture",
@@ -408,7 +409,7 @@ boxplot( Rain.sum ~Landuse  ,
          ylab = "Blockcode"  ,
          data = Fulldata) #OK
 #Maybe thinking of not having Rgion and Season
-#in model and only use Rain.sum
+#in model and only use Rain.sum or the opposite.
 
 boxplot(Temperature..C.~Landuse,data=Fulldata) #Overlapping - not covarying
 boxplot(Temperature..C.~Region,data=Fulldata) #Overlaping - not covarying
@@ -437,7 +438,7 @@ boxplot(C.N ~Region,data=Fulldata) #Overlapping
 boxplot(C.N ~Season,data=Fulldata) #Overlapping
 
 boxplot(Rain.sum ~Region,data=Fulldata)
-
+boxplot(Rain.sum ~Season,data=Fulldata)
 
 #SEPARATING EXP'S####
 DataCG<-droplevels(Fulldata[Fulldata$Experiment=="CG",]) # Only commongarden data
@@ -464,67 +465,6 @@ DataMain$froots<-as.factor(DataMain$Sign.of.roots)
 
 names(Data)
 
-
-#CODE HERE NOT WORKING NOW.Termite effect and microbe effect variable for Main####
-Greenop<-DataMain[DataMain$Littertype=="Green" & DataMain$Treatment=="Open",] # Only Green Open data
-Greenex<-DataMain[DataMain$Littertype=="Green" & DataMain$Treatment=="Exclosed",] # Only Green Open data
-Redop<-DataMain[DataMain$Littertype=="Rooibos" & DataMain$Treatment=="Open",] # Only Green Open data
-Redex<-DataMain[DataMain$Littertype=="Rooibos" & DataMain$Treatment=="Exclosed",] # Only Green Open data
- 
-
-#Creating dataframe with termite and microbe effect variable=Exlosed and Termite effect=Open minus exclosed):
-GreendataT <- Greenop
-GreendataM <- Greenop
-
-GreendataM$Massloss.per <- Greenex$Massloss.per
-GreendataT$Massloss.per <- abs(Greenop$Massloss.per-Greenex$Massloss.per)
-GreendataT$Massloss.per <- (Greenop$Massloss.per-Greenex$Massloss.per)
-plot(GreendataT$Massloss.per)
-GreendataT$Massloss.per[GreendataT$Massloss.per<0] <- 0
-
-ReddataT <- Redop
-ReddataM <- Redop
-ReddataM$Massloss.per<-Redex$Massloss.per
-ReddataT$Massloss.per<- (Redop$Massloss.per-Redex$Massloss.per)
-plot(ReddataT$Massloss.per)
-ReddataT$Massloss.per[ReddataT$Massloss.per<0] <- 0
-#Means and error
-se<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
-#Redtea
-MeanReddataM<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataM,mean)
-MeanReddataMSE<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataM,se)
-MeanReddataM$SE<-MeanReddataMSE$Massloss.per
-MeanReddataM$Decomposer <- "Microbe"
-
-MeanReddataT<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataT,mean)
-MeanReddataTSE<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataT,se)
-MeanReddataT$SE<-MeanReddataTSE$Massloss.per
-MeanReddataT$Decomposer <- "Termite"
-
-
-#combine decomposition of red tea by termite and microbe:
-ReddataTM <- rbind(MeanReddataM,MeanReddataT)
-ReddataTM$Littertype <- "Recalcitrant"
-#Green tea
-MeanGreendataM<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataM,mean)
-MeanGreendataMSE<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataM,se)
-MeanGreendataM$SE<-MeanGreendataMSE$Massloss.per
-MeanGreendataM$Decomposer <- "Microbe"
-
-MeanGreendataT<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataT,mean)
-MeanGreendataTSE<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataT,se)
-MeanGreendataT$SE<-MeanGreendataTSE$Massloss.per
-MeanGreendataT$Decomposer <- "Termite"
-
-#Combine decomposition of red tea by termite and microbe:
-GreendataTM <- rbind(MeanGreendataM,MeanGreendataT)
-GreendataTM$Littertype <- "Labile"
-
-#Combine both littertypes:
-TMMasslossMain <- rbind(GreendataTM,ReddataTM) 
-TMMasslossMain$Decomposer<-as.factor(TMMasslossMain$Decomposer)
-levels(TMMasslossMain$Decomposer)
-
 #Termite effect Dataset (CG+Main)####
 Greenop<-Fulldata[Fulldata$Littertype=="Green" & Fulldata$Treatment=="Open",] # Only Green Open data
 Greenex<-Fulldata[Fulldata$Littertype=="Green" & Fulldata$Treatment=="Exclosed",] # Only Green Open data
@@ -549,7 +489,6 @@ length(GreenOpEx$Termite.effect[GreenOpEx$Termite.effect < 0]) #268 values are n
 LabileTermEff <- GreenOpEx
 #Setting all negative values below zero:
 LabileTermEff$Termite.effect[LabileTermEff$Termite.effect < 0] <- 0
-
 
 #For red littertype dataset
 length(Redop$Massloss.per)#440
@@ -583,17 +522,17 @@ RecalTermEff_Wetseason_Block <-aggregate(Termite.effect~Season+Region+Site+Landu
 write.csv(write.csv(RecalTermEff_Wetseason_Block,file="Termites/RecalTermEff_Wetseason_Block.csv"))
 
 
-
 #Setting all negative values below zero (did this previously for Vilde data, but do it again to create my own data):
 RedOpEx$Termite.effect[RedOpEx$Termite.effect < 0] <- 0
 GreenOpEx$Termite.effect[GreenOpEx$Termite.effect < 0] <- 0
 
 #Create microbe effect variable for green:
-GreenOpEx$Microbe.effect <- (GreenOpEx$Open.Massloss)
+GreenOpEx$Microbe.effect <- GreenOpEx$Excl.Massloss
 #Create microbe effect variable for red:
-Microbe.effect.Red <- RedOpEx$Microbe.effect <- (RedOpEx$Open.Massloss)
+RedOpEx$Microbe.effect <- RedOpEx$Excl.Massloss
 
-#Agregatin the 4 varialbes
+
+#Agregating the 4 varialbes
 #MICROBE GREEN
 SUM.Microbe.effect.green<-aggregate(Microbe.effect~Season+Region+Landuse,GreenOpEx,mean)
 SUM.Microbe.effect.greenSE<-aggregate(Microbe.effect~Season+Region+Landuse,GreenOpEx,se)
@@ -627,18 +566,23 @@ SUM.Termite.effect.red$Decomposer <- "Termite"
 SUM.Termite.effect.red$LD <- "Recalcitrant Termite"
 SUM.Termite.effect.red$Littertype <- "Recalcitrant"
 colnames(SUM.Termite.effect.red)[(names(SUM.Termite.effect.red)== "Termite.effect")] <- "Massloss.per"
+
 #Need to rbind the 4 variables to plot them:
 TM.effect <- rbind(SUM.Microbe.effect.green,SUM.Microbe.effect.red,
                        SUM.Termite.effect.green,SUM.Termite.effect.red)
 
-#GRAPH SIMPLIFIED TERMITE EFFECT (SEASON & LANDUSE)####
+
 #First, just excude Seronera:
 TM.effectMain <- droplevels(TM.effect[TM.effect$Region!="Intermediate",])
 
+#Create a fill factor for plotting:
+TM.effectMain$LD<-as.factor(with(TM.effectMain, paste(Littertype,Decomposer, sep=" ")))
+levels(TM.effectMain$LD)
+
 #Legend title:
 TitleDecomp<-"Decomposer"
-TitleLitter <- "Litter Quality"
-TM.effectMain$LD <- factor(TM.effectMain$LD,levels=c("Labile Microbe", "Recalcitrant Microbe","Labile Termite","Recalcitrant Termite"))
+TitleLitter <- "Litter type"
+#TM.effectMain$LD <- factor(TM.effectMain$LD,levels(TM.effectMain$LD)=[c("Labile Microbe", "Recalcitrant Microbe","Labile Termite","Recalcitrant Termite"))
 levels(TM.effectMain$LD)
 
 #Housekeeping
@@ -652,14 +596,14 @@ levels(TM.effectMain$Littertype)
 TM.effectMain$Region <- as.factor(TM.effectMain$Region)
 levels(TM.effectMain$Region)
 
-#Adjusting the upper SE for error bars for stacked barplot:
+#Adjusting the upper SE for error bars for stacked barplot (Elevate the SE of the upper bar so that the SE is correct, by doing: SE "+" mean value of the lower bar:
 TM.effectMain$SE.up <- TM.effectMain$SE
 TM.effectMain$SE.up[TM.effectMain$LD == "Labile Microbe"] <- with(TM.effectMain,SE[LD == "Labile Microbe"]+
                                                                     Massloss.per[LD=="Labile Termite"])
 
 TM.effectMain$SE.up[TM.effectMain$LD == "Recalcitrant Microbe"] <- with(TM.effectMain,SE[LD == "Recalcitrant Microbe"]+
                                                                    Massloss.per[LD=="Recalcitrant Termite"])
-#Adjusting the lower SE for error bars (I want the lower to be same as the mean value)
+#Adjusting the lower SE for error bars (I want the lower to be same as the mean value of the bar at the bottom)
 TM.effectMain$Mass.stop <- TM.effectMain$Massloss.per
 TM.effectMain$Mass.stop[TM.effectMain$LD == "Labile Microbe"] <- with(TM.effectMain,Massloss.per[LD == "Labile Microbe"]+
                                                       Massloss.per[LD=="Labile Termite"])
@@ -667,12 +611,95 @@ TM.effectMain$Mass.stop[TM.effectMain$LD == "Labile Microbe"] <- with(TM.effectM
 TM.effectMain$Mass.stop[TM.effectMain$LD == "Recalcitrant Microbe"] <- with(TM.effectMain,Massloss.per[LD == "Recalcitrant Microbe"]+
                                                             +Massloss.per[LD=="Recalcitrant Termite"])
 
-#Plotting
+#GRAPH TERMITE EFFECT####
 TM.effectMainP <- ggplot(data=TM.effectMain,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE.up,ymin=Mass.stop))+
-  #geom_errorbar(position="identity",width=NA,lwd=1)+
-  geom_bar(stat="identity",width=0.9)+
-  facet_wrap(Region~Season+Landuse,nrow=2)+
-  scale_fill_manual(TitleLitter,values=c("Green4","Orangered3","Green4","Orangered3"))+
+  geom_errorbar(position="identity",width=NA,lwd=1)+
+  geom_bar(stat="identity",position="stack",width=0.9)+
+  facet_wrap(Season~Region+Landuse,nrow=5,ncol=3)+
+  scale_fill_manual(TitleLitter,values=c("Green4","Green4","Orangered3","Orangered3"))+
+  scale_alpha_discrete(TitleDecomp,range=c(0.3,1,0.3,1))+
+  xlab("")+ylab("Mass loss (%)")+
+  scale_y_continuous(limits = c(0,100), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))+
+  theme_bw()+
+  theme(
+    rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
+    ,panel.background=element_rect(fill="transparent")
+    ,plot.background=element_rect(fill="transparent",colour=NA)
+    ,plot.margin = unit(c(8,50,5,5), "mm")
+    ,panel.grid.minor = element_blank() # Removing all grids and borders
+    ,panel.border = element_blank()
+    ,panel.grid.major.x = element_blank()
+    ,panel.grid.major.y = element_blank()
+    ,axis.text.x = element_blank()
+    ,axis.ticks.x = element_blank()
+    ,legend.background = element_rect(fill="transparent")
+    ,legend.text = element_text(size=12,color="black")
+    ,legend.title = element_text(size=14,color="black")
+    ,axis.title.y=element_text(size=16,color="black", margin = margin(t = 0, r = 10, b = 0, l = 0))
+    ,strip.text = element_text(size=5)
+    ,strip.background = element_blank()
+    ,strip.text.x = element_text(margin = margin(.1, 0, .1, 0, "mm"))
+                              )
+
+TM.effectMainP <- TM.effectMainP+guides(alpha=F, fill=guide_legend(override.aes =list(size=6,fill=c("Green4","Green4","Orangered3","Orangered3"), alpha=c(0.3,1,0.3,1))))
+
+TM.effectMainP
+ggsave("Termites/Results/Figures/Termite_Microbe_contribution_Plot.png",
+        width= 20, height = 12,units ="cm",bg ="transparent",
+           dpi = 600, limitsize = TRUE)
+
+#Means across season
+TM.effectMain.means <- aggregate(Massloss.per~Season+Decomposer+Littertype,mean,data=TM.effectMain)
+TM.effectMain.se <-  aggregate(Massloss.per~Season+Decomposer+Littertype,se,data=TM.effectMain)
+TM.effectMain.means$SE <-TM.effectMain.se$Massloss.per
+#
+
+
+#Doing the same, for only Seronera:
+TM.effectSeronera <- droplevels(TM.effect[TM.effect$Region=="Intermediate",])
+
+#Create a fill factor for plotting:
+TM.effectSeronera$LD<-as.factor(with(TM.effectSeronera, paste(Littertype,Decomposer, sep=" ")))
+levels(TM.effectSeronera$LD)
+
+#Legend title:
+TitleDecomp<-"Decomposer"
+TitleLitter <- "Litter type"
+#TM.effectSeronera$LD <- factor(TM.effectSeronera$LD,levels(TM.effectSeronera$LD)=[c("Labile Microbe", "Recalcitrant Microbe","Labile Termite","Recalcitrant Termite"))
+levels(TM.effectSeronera$LD)
+
+#Housekeeping
+TM.effectSeronera$Season <- as.factor(TM.effectSeronera$Season)
+levels(TM.effectSeronera$Season)
+levels(TM.effectSeronera$Landuse)
+TM.effectSeronera$Decomposer <- as.factor(TM.effectSeronera$Decomposer)
+levels(TM.effectSeronera$Decomposer)
+TM.effectSeronera$Littertype <- as.factor(TM.effectSeronera$Littertype)
+levels(TM.effectSeronera$Littertype)
+TM.effectSeronera$Region <- as.factor(TM.effectSeronera$Region)
+levels(TM.effectSeronera$Region)
+
+#Adjusting the upper SE for error bars for stacked barplot (Elevate the SE of the upper bar so that the SE is correct, by doing: SE "+" mean value of the lower bar:
+TM.effectSeronera$SE.up <- TM.effectSeronera$SE
+TM.effectSeronera$SE.up[TM.effectSeronera$LD == "Labile Microbe"] <- with(TM.effectSeronera,SE[LD == "Labile Microbe"]+
+                                                                    Massloss.per[LD=="Labile Termite"])
+
+TM.effectSeronera$SE.up[TM.effectSeronera$LD == "Recalcitrant Microbe"] <- with(TM.effectSeronera,SE[LD == "Recalcitrant Microbe"]+
+                                                                          Massloss.per[LD=="Recalcitrant Termite"])
+#Adjusting the lower SE for error bars (I want the lower to be same as the mean value of the bar at the bottom)
+TM.effectSeronera$Mass.stop <- TM.effectSeronera$Massloss.per
+TM.effectSeronera$Mass.stop[TM.effectSeronera$LD == "Labile Microbe"] <- with(TM.effectSeronera,Massloss.per[LD == "Labile Microbe"]+
+                                                                        Massloss.per[LD=="Labile Termite"])
+
+TM.effectSeronera$Mass.stop[TM.effectSeronera$LD == "Recalcitrant Microbe"] <- with(TM.effectSeronera,Massloss.per[LD == "Recalcitrant Microbe"]+
+                                                                              +Massloss.per[LD=="Recalcitrant Termite"])
+
+#Plotting
+TM.effectSeroneraP <- ggplot(data=TM.effectSeronera,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE.up,ymin=Mass.stop))+
+  geom_errorbar(position="identity",width=NA,lwd=1)+
+  geom_bar(stat="identity",position="stack",width=0.9)+
+  facet_wrap(Season~Region+Landuse,nrow=5,ncol=3)+
+  scale_fill_manual(TitleLitter,values=c("Green4","Green4","Orangered3","Orangered3"))+
   scale_alpha_discrete(TitleDecomp,range=c(0.3,1,0.3,1))+
   xlab("")+ylab("Mass loss (%)")+
   theme_bw()+
@@ -690,206 +717,19 @@ TM.effectMainP <- ggplot(data=TM.effectMain,aes(x=Littertype,y=Massloss.per,fill
     ,legend.text = element_text(size=12,color="black")
     ,legend.title = element_text(size=14,color="black")
     ,axis.title.y=element_text(size=16,color="black", margin = margin(t = 0, r = 10, b = 0, l = 0))
+    ,strip.text = element_text(size=5)
+    ,strip.background = element_blank()
+    ,strip.text.x = element_text(margin = margin(.1, 0, .1, 0, "mm"))
   )
-TM.effectMainP <-TM.effectMainP + scale_y_continuous(limits=c(0,100), breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100), expand=c(0,0))
-TM.effectMainP <- TM.effectMainP+guides(alpha=F, fill=guide_legend(override.aes =list(size=6,fill=c("Green4","Orangered3","Green4","Orangered3"), alpha=c(0.3,0.3,1,1))))
 
-TM.effectMainP
+TM.effectSeroneraP <-TM.effectSeroneraP + scale_y_continuous(limits=c(0,100), breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100), expand=c(0,0))
+TM.effectSeroneraP <- TM.effectSeroneraP+guides(alpha=F, fill=guide_legend(override.aes =list(size=6,fill=c("Green4","Green4","Orangered3","Orangered3"), alpha=c(0.3,1,0.3,1))))
 
-#BARPLOTTING - three own grafs for each Landuse####
-#Creating a fill factor:
-TMMasslossMain$LD<-as.factor(with(TMMasslossMain, paste(Decomposer, Littertype, sep=" ")))
-head(TMMasslossMain)
-#Creating error bars for stacked barplot:
-#Sort out each landuse into own dataframe
-Agri <- droplevels(TMMasslossMain[TMMasslossMain$flanduse=="Agriculture",])
-Pasture <- droplevels(TMMasslossMain[TMMasslossMain$flanduse=="Pasture",])
-Wild <- droplevels(TMMasslossMain[TMMasslossMain$flanduse=="Wild",])
+TM.effectSeroneraP
+ggsave("Termites/Results/Figures/Termite_Microbe_contribution_SERONERAPlot.png",
+       width= 12, height = 20,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
 
-#AGRICULTURE#
-
-#Legend title:
-TitleDecomp<-"Decomposer"
-TitleLitter <- c("Litter Quality")
-
-levels(Agri$LD)
-levels(Agri$LD) <- c("Labile Microbe", "Recalcitrant Microbe","Labile Termite","Recalcitrant Termite")
-levels(Agri$LD)
-levels(Agri$fseason)
-levels(Agri$flanduse)
-levels(Agri$Decomposer)
-#Adjusting the upper SE for error bars for stacked barplot:
-Agri$SE.up <- Agri$SE
-Agri$SE.up[Agri$LD == "Labile Microbe"] <- with(Agri,SE[LD == "Labile Microbe"]+
-                                                  #SE[LD == "Labile Termite"]+
-                                               Massloss.per[LD=="Labile Termite"])
-
-Agri$SE.up[Agri$LD == "Recalcitrant Microbe"] <- with(Agri,SE[LD == "Recalcitrant Microbe"]+
-                                                  #SE[LD == "Recalcitrant Termite"]+
-                                                  Massloss.per[LD=="Recalcitrant Termite"])
-#Adjusting the lower SE for error bars (I want the lower to be same as the mean value)
-Agri$Mass.stop <- Agri$Massloss.per
-Agri$Mass.stop[Agri$LD == "Labile Microbe"] <- with(Agri,Massloss.per[LD == "Labile Microbe"]+
-                                                  Massloss.per[LD=="Labile Termite"])
-
-Agri$Mass.stop[Agri$LD == "Recalcitrant Microbe"] <- with(Agri,Massloss.per[LD == "Recalcitrant Microbe"]+
-                                                        +Massloss.per[LD=="Recalcitrant Termite"])
-
-#Plotting
-AgriP <- ggplot(data=Agri,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE.up,ymin=Mass.stop))+
-          geom_errorbar(position="identity",width=NA,lwd=1)+
-          geom_bar(stat="identity",position="stack",width=0.9)+
-          facet_wrap(~fseason+fregion,nrow=1)+
-          scale_fill_manual(TitleLitter,values=c("Green4","Orangered3","Green4","Orangered3"))+
-          scale_alpha_discrete(TitleDecomp,range=c(0.3,1))+
-          xlab("")+ylab("Massloss (%)")+
-  theme_bw()+
-  theme(
-    rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
-    ,panel.background=element_rect(fill="transparent")
-    ,plot.background=element_rect(fill="transparent",colour=NA)
-    ,panel.grid.minor = element_blank() # Removing all grids and borders
-    ,panel.border = element_blank()
-    ,panel.grid.major.x = element_blank()
-    ,panel.grid.major.y = element_blank()
-    ,axis.text.x = element_blank()
-    ,axis.ticks.x = element_blank()
-    ,legend.background = element_rect(fill="transparent")
-    ,legend.text = element_text(size=12,color="black")
-    ,legend.title = element_text(size=14,color="black")
-    ,axis.title.y=element_text(size=16,color="black", margin = margin(t = 0, r = 10, b = 0, l = 0))
-    )
-AgriP <-AgriP + scale_y_continuous(limits=c(0,100), breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80), expand=c(0,0))
-AgriP <- AgriP+guides(alpha=F, fill=guide_legend(override.aes =list(size=6,fill=c("Green4","Orangered3","Green4","Orangered3"), alpha=c(0.3,0.3,1,1))))
-
-AgriP
-
-# ggsave("Termites/Main & CG experiment/Agriculture_Main_experiment.png",
-#      width= 20, height = 15,units ="cm",bg ="transparent",
-#     dpi = 600, limitsize = TRUE)
-
-#PASTURE#
-#Legend title:
-TitleDecomp<-"Decomposer"
-TitleLitter <- c("Litter Quality")
-
-levels(Pasture$LD)
-levels(Pasture$LD) <- c("Labile Microbe", "Recalcitrant Microbe","Labile Termite","Recalcitrant Termite")
-levels(Pasture$LD)
-levels(Pasture$fseason)
-levels(Pasture$flanduse)
-levels(Pasture$Decomposer)
-#Adjusting the upper SE for error bars for stacked barplot:
-Pasture$SE.up <- Pasture$SE
-Pasture$SE.up[Pasture$LD == "Labile Microbe"] <- with(Pasture,SE[LD == "Labile Microbe"]+
-                                                  #SE[LD == "Labile Termite"]+
-                                                  Massloss.per[LD=="Labile Termite"])
-
-Pasture$SE.up[Pasture$LD == "Recalcitrant Microbe"] <- with(Pasture,SE[LD == "Recalcitrant Microbe"]+
-                                                        #SE[LD == "Recalcitrant Termite"]
-                                                        +Massloss.per[LD=="Recalcitrant Termite"])
-#Adjusting the lower SE for error bars (I want the lower to be same as the mean value)
-Pasture$Mass.stop <- Pasture$Massloss.per
-Pasture$Mass.stop[Pasture$LD == "Labile Microbe"] <- with(Pasture,Massloss.per[LD == "Labile Microbe"]+
-                                                      Massloss.per[LD=="Labile Termite"])
-
-Pasture$Mass.stop[Pasture$LD == "Recalcitrant Microbe"] <- with(Pasture,Massloss.per[LD == "Recalcitrant Microbe"]+
-                                                            +Massloss.per[LD=="Recalcitrant Termite"])
-
-
-PastureP <- ggplot(data=Pasture,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE.up,ymin=Mass.stop))+
-  geom_errorbar(position="identity",width=NA,lwd=1)+
-  geom_bar(stat="identity",position="stack",width=0.9)+
-  facet_wrap(~fseason+fregion,nrow=1)+
-  scale_fill_manual(TitleLitter,values=c("Green4","Orangered3","Green4","Orangered3"))+
-  scale_alpha_discrete(TitleDecomp,range=c(0.3,1))+
-  xlab("")+ylab("Massloss (%)")+
-  theme_bw()+
-  theme(
-    rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
-    ,panel.background=element_rect(fill="transparent")
-    ,plot.background=element_rect(fill="transparent",colour=NA)
-    ,panel.grid.minor = element_blank() # Removing all grids and borders
-    ,panel.border = element_blank()
-    ,panel.grid.major.x = element_blank()
-    ,panel.grid.major.y = element_blank()
-    ,axis.text.x = element_blank()
-    ,axis.ticks.x = element_blank()
-    ,legend.background = element_rect(fill="transparent")
-    ,legend.text = element_text(size=12,color="black")
-    ,legend.title = element_text(size=14,color="black")
-    ,axis.title.y=element_text(size=16,color="black", margin = margin(t = 0, r = 10, b = 0, l = 0))
-  )
-PastureP <-PastureP + scale_y_continuous(limits=c(0,100), breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80), expand=c(0,0))
-PastureP <- PastureP+guides(alpha=F, fill=guide_legend(override.aes =list(size=6,fill=c("Green4","Orangered3","Green4","Orangered3"), alpha=c(0.3,0.3,1,1))))
-
-PastureP
-
-# ggsave("Termites/Main & CG experiment/Pasture_Main_experiment.png",
-#        width= 20, height = 15,units ="cm",bg ="transparent",
-#        dpi = 600, limitsize = TRUE)
-
-
-#WILD#
-#Legend title:
-TitleDecomp<-"Decomposer"
-TitleLitter <- c("Litter Quality")
-
-levels(Wild$LD)
-levels(Wild$LD) <- c("Labile Microbe", "Recalcitrant Microbe","Labile Termite","Recalcitrant Termite")
-levels(Wild$LD)
-levels(Wild$fseason)
-levels(Wild$flanduse)
-levels(Wild$Decomposer)
-#Adjusting the upper SE for error bars for stacked barplot:
-Wild$SE.up <- Wild$SE
-Wild$SE.up[Wild$LD == "Labile Microbe"] <- with(Wild,SE[LD == "Labile Microbe"]+
-                                                        #SE[LD == "Labile Termite"]+
-                                                        Massloss.per[LD=="Labile Termite"])
-
-Wild$SE.up[Wild$LD == "Recalcitrant Microbe"] <- with(Wild,SE[LD == "Recalcitrant Microbe"]+
-                                                              #SE[LD == "Recalcitrant Termite"]
-                                                              +Massloss.per[LD=="Recalcitrant Termite"])
-#Adjusting the lower SE for error bars (I want the lower to be same as the mean value)
-Wild$Mass.stop <- Wild$Massloss.per
-Wild$Mass.stop[Wild$LD == "Labile Microbe"] <- with(Wild,Massloss.per[LD == "Labile Microbe"]+
-                                                            Massloss.per[LD=="Labile Termite"])
-
-Wild$Mass.stop[Wild$LD == "Recalcitrant Microbe"] <- with(Wild,Massloss.per[LD == "Recalcitrant Microbe"]+
-                                                                  +Massloss.per[LD=="Recalcitrant Termite"])
-
-
-WildP <- ggplot(data=Wild,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE.up,ymin=Mass.stop))+
-  geom_errorbar(position="identity",width=NA,lwd=1)+
-  geom_bar(stat="identity",position="stack",width=0.9)+
-  facet_wrap(~fseason+fregion,nrow=1)+
-  scale_fill_manual(TitleLitter,values=c("Green4","Orangered3","Green4","Orangered3"))+
-  scale_alpha_discrete(TitleDecomp,range=c(0.3,1))+
-  xlab("")+ylab("Massloss (%)")+
-  theme_bw()+
-  theme(
-    rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
-    ,panel.background=element_rect(fill="transparent")
-    ,plot.background=element_rect(fill="transparent",colour=NA)
-    ,panel.grid.minor = element_blank() # Removing all grids and borders
-    ,panel.border = element_blank()
-    ,panel.grid.major.x = element_blank()
-    ,panel.grid.major.y = element_blank()
-    ,axis.text.x = element_blank()
-    ,axis.ticks.x = element_blank()
-    ,legend.background = element_rect(fill="transparent")
-    ,legend.text = element_text(size=12,color="black")
-    ,legend.title = element_text(size=14,color="black")
-    ,axis.title.y=element_text(size=16,color="black", margin = margin(t = 0, r = 10, b = 0, l = 0))
-  )
-WildP <-WildP + scale_y_continuous(limits=c(0,100), breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80), expand=c(0,0))
-WildP <- WildP+guides(alpha=F, fill=guide_legend(override.aes =list(size=6,fill=c("Green4","Orangered3","Green4","Orangered3"), alpha=c(0.3,0.3,1,1))))
-
-WildP
-
-# ggsave("Termites/Main & CG experiment/Wild_Main_experiment.png",
-#        width= 20, height = 15,units ="cm",bg ="transparent",
-#        dpi = 600, limitsize = TRUE)
 
 
 
@@ -961,7 +801,7 @@ GlobalLabileMainMod <- lmer(Massloss.per ~ (Season+Region+Landuse+Treatment+C.N+
 summary(GlobalLabileMainMod)
 anova(GlobalLabileMainMod) 
 AIC(GlobalLabileMainMod) #5003.159
-drop1(GlobalLabileMainMod,test="Chisq") #
+drop1(GlobalLabileMainMod, test="Chisq") #
 
 # Season:Region:Landuse     2 5012.9 13.773  0.001021 ** K 
 # Season:Region:Treatment   2 5003.7  4.563  0.102152 R  
@@ -1062,7 +902,7 @@ LabileMainMod5am <- update(LabileMainMod5aJ, .~.-C.N)
 LabileMainMod5an <- update(LabileMainMod5aJ, .~.-Landuse)
 LabileMainMod5ao <- update(LabileMainMod5aJ, .~.-Region)
 LabileMainMod5ap <- update(LabileMainMod5aJ, .~.-Season)
-
+summary(LabileMainMod5aA)
 LabileMainModFINAL.anovaterms<- rbind(anova(LabileMainMod5aA,LabileMainMod5a)[2,],
                                  anova(LabileMainMod5ab,LabileMainMod5aA)[2,],
                                  anova(LabileMainMod5ac,LabileMainMod5aA)[2,],
@@ -1079,7 +919,7 @@ LabileMainModFINAL.anovaterms<- rbind(anova(LabileMainMod5aA,LabileMainMod5a)[2,
                                  anova(LabileMainMod5ao,LabileMainMod5aJ)[2,],
                                  anova(LabileMainMod5ap,LabileMainMod5aJ)[2,])
 LabileMainModFINAL.anovaterms$Terms <- c("Season:Region:Landuse","Landuse:Temp","Landuse:C.N", "Region:Temp","Region:Landuse",
-                                    "Season:Sand","Season:Temp","Season:Landuse","Season.Region","Sand","Temp","C.N","Landuse","Region","Season")
+                                    "Season:Sand","Season:Temp","Season:Landuse","Season:Region","Sand","Temp","C.N","Landuse","Region","Season")
 LabileMainModFINAL.anovaterms <- as.data.frame(LabileMainModFINAL.anovaterms)
 #write.csv(LabileMainModFINAL.anovaterms,file="Termites/LabileMainModFINAL.anovaterms.csv")
 
@@ -1091,7 +931,8 @@ LabileMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Se
 
 LabileMainModFINAL.sumary <- summary(LabileMainModFINAL)$coef
 
-summary(LabileMainModFINAL)
+summary(LabileMainModFINAL)$coef
+
 plot(Massloss.per~Temp,LabileMain)
 abline(lm(Massloss.per~Temp,LabileMain))
 
@@ -1136,24 +977,24 @@ xyplot(E1 ~ Temp | Landuse+Season,
          panel.points(x, y, col = 1)
          panel.loess(x, y, span = 0.5, col = 1,lwd=2)})
 
-#Here we see that the line is not entirely straight - So the linear mixed effect is wrong, i.e effect of C.N,Sand and Temp is not linear
-
-library(itsadug)
-plot(acf_resid(LabileMainModFINAL), type="b",alpha=0.05)
-abline(c(0,0), lty = 2, col = 1)
-
-
-
-
-library(mgcv)
-M1 <- gamm(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse+Season:Temp+Season:Sand+
-             Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
-             Season:Region:Landuse+
-             (1|Site/Blockcode/Plot),
-             random = list(Site/Blockcode/Plot =~ 1), data = LabileMain)
+# #Here we see that the line is not entirely straight - So the linear mixed effect is wrong, i.e effect of C.N,Sand and Temp is not linear
+# 
+# library(itsadug)
+# plot(acf_resid(LabileMainModFINAL), type="b",alpha=0.05)
+# abline(c(0,0), lty = 2, col = 1)
+# 
+# 
+# 
+# 
+# library(mgcv)
+# M1 <- gamm(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse+Season:Temp+Season:Sand+
+#              Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
+#              Season:Region:Landuse+
+#              (1|Site/Blockcode/Plot),
+#              random = list(Site/Blockcode/Plot =~ 1), data = LabileMain)
 
 #### Extracting R2 from lmer model for each individual compared to full model ####
-LabileMainr2<-rbind(#LabileMain<-r.squaredGLMM(LabileMainModFINAL),
+LabileMainr2<-rbind(#LabileMainr2<-r.squaredGLMM(LabileMainModFINAL),
   r.squaredGLMM(lmer(Massloss.per ~ Season +(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL), 
   r.squaredGLMM(lmer(Massloss.per ~ Region+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL), 
   r.squaredGLMM(lmer(Massloss.per ~ Landuse+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL), 
@@ -1170,44 +1011,12 @@ LabileMainr2<-rbind(#LabileMain<-r.squaredGLMM(LabileMainModFINAL),
   r.squaredGLMM(lmer(Massloss.per ~ Landuse:C.N+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL),
   r.squaredGLMM(lmer(Massloss.per ~ Landuse:Temp+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL),
   r.squaredGLMM(lmer(Massloss.per ~ Season:Region:Landuse+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))/r.squaredGLMM(LabileMainModFINAL))
-AIC(lmer(Massloss.per ~ Season:Temp+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =LabileMain))
-AIC(LabileMainModFINAL)
 LabileMainr2<-as.data.frame(LabileMainr2)
 LabileMainr2$terms<-c("Season","Region","Landuse", "Treatment","C.N","Temp","Sand",
                     "Season:Region","Season:Landuse","Season:Temp","Season:Sand",
                     "Region:Landuse","Region:Temp","Landuse:C.N","Landuse:Temp","Season:Region:Landuse")
-LabileMainr2$terms<- factor(LabileMainr2$terms, levels = LabileMainr2$terms[order(LabileMainr2$R2c)])
-ggplot(LabileMainr2, aes(y=terms, x=R2c))+geom_point()
-
-
-#Exploring interaction levels, what drives the interactions to be significant?####
-#Interesting interactions to look at:
-#Threeway: Season:Region:Landuse
-#Twoway:Landuse:Temp, Landuse:C.N, Season:Sand
-#emmeans
-#ref.grid.LabileMainModFINAL <- ref_grid(LabileMainModFINAL) #at = list(Region = c("Dry", "Wet"))) #Want to remove Intermadiate in the grid as it can't be compared to the other landuses, except wild.
-#ref.grid.LabileMainModFINAL#See how the grid is looking. Check for correct factors and the emmeans of numerical variables. If testing between numerical variables, only the means or the low/high end of values can be specified. I.e contrasts vs trend. See emmeans vignette for more info.
-#str(ref.grid.LabileMainModFINAL)
-#Check threeway first:
-#emmip(ref.grid.LabileMainModFINAL, ~Region*Landuse|Season, type="response")#Can see here that the regional differences is greatly pronounce in dry season. And thatdry region is most different in this season. In wet season, dry and wet region is similar (following rainfall) and that wet season is the most dissimilar. 
-#emmeans.LabileMainModFINAL <- emmeans(ref.grid.LabileMainModFINAL, pairwise~Season*Region*Landuse,type="response") #
-#emmeans.LabileMainModFINAL$contrasts #Get contrast between factors (linear). This is somewhat similar to pairs()
-#emmeans.LabileMainModFINAL$emmeans #Get emmeans of factors.
-#emmeans.LabileMainModFINAL.pairs <- pairs(emmeans.LabileMainModFINAL,simple = "each", combine =TRUE) # Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which simple effect is being displayed. 
-##write.csv(emmeans.LabileMainModFINAL.pairs$emmeans,file="Termites/Emmeans_contrast_Threeway_LabileMainMod.csv")
-#plot(emmeans.LabileMainModFINAL, comparisons = FALSE) #Comparisons summarized graphically. The blue bars are confidence intervals for the EMMs, and the red arrows are for the comparisons among them ,if comparison=TRUE. If an arrow from one mean overlaps an arrow from another group, the difference is not significant
-
-#Now look at the two-way interaction Landuse:C.N. I use emmtrends here due to usage of covariate. Also cov.reduce=range is used so we'll be using not only the means (one value) of the covariate but the min and max.
-# emtrends.LabileMainModFINAL <- emtrends(LabileMainModFINAL, pairwise ~ Landuse|Region, var = "C.N",type="response")
-# emmip(LabileMainModFINAL, Landuse~C.N|Region, cov.reduce = range, type="response")
-# emtrends.LabileMainModFINAL.pairs <- pairs(emtrends.LabileMainModFINAL,simple = "each", combine =TRUE) # Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which simple effect is being displayed. 
-# plot(emtrends.LabileMainModFINAL, cov.reduce = range,comparisons = FALSE) #Comparisons summarized graphically. The blue bars are confidence intervals for the EMMs, and the red arrows are for the comparisons among them ,if comparison=TRUE. If an arrow from one mean overlaps an arrow from another group, the difference is not significant
-
-#Now look at the two-way interaction Landuse:Temp. I use emmtrends here due to usage of covariate. Also cov.reduce=range is used so we'll be using not only the means (one value) of the covariate but the min and max.
-# emtrends.LabileMainModFINAL <- emtrends(LabileMainModFINAL, pairwise ~ Landuse|Region, var = "Temp",type="response")
-# emmip(LabileMainModFINAL, Landuse~Temp|Region*Season, cov.reduce = range, type="response")
-# emtrends.LabileMainModFINAL.pairs <- pairs(emtrends.LabileMainModFINAL,simple = "each", combine =TRUE) # Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which simple effect is being displayed. 
-# plot(emtrends.LabileMainModFINAL, cov.reduce = range,comparisons = FALSE) #Comparisons summarized graphically. The blue bars are confidence intervals for the EMMs, and the red arrows are for the comparisons among them ,if comparison=TRUE. If an arrow from one mean overlaps an arrow from another group, the difference is not significant
+#LabileMainr2$terms<- factor(LabileMainr2$terms, levels = LabileMainr2$terms[order(LabileMainr2$R2c)])
+#ggplot(LabileMainr2, aes(y=terms, x=R2c))+geom_point()
 
 
 #|####
@@ -1220,10 +1029,11 @@ ggplot(LabileMainr2, aes(y=terms, x=R2c))+geom_point()
 #E. Plot predicted values
 #F. Plot predicted values +/- 	1.96 * SE
 
-LabileMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse+
-                             #+Season:Temp+Season:Sand+
-                             #Region:Landuse+Region:Temp+Landuse:C.N+Landuse:Temp+
-                             # Season:Region:Landuse+
+#Simplified final model to make redictions:
+LabileMainModFINAL2 <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:Landuse+
+                             #Season:Temp+#Season:Sand+
+                             #Region:Landuse+#Region:Temp+Landuse:C.N+Landuse:Temp+
+                              #Season:Region:Landuse+
                              (1|Site/Blockcode/Plot), na.action=na.omit,REML = T,data=LabileMain)
 
 #A:Specify covariate values for predictions - Labile
@@ -1239,7 +1049,7 @@ X1 <- model.matrix(~ Season+Region+Landuse+C.N+Temp+Sand+Season:Region+Season:La
 head(X1)
 
 #C. Calculate predicted values
-Data2Labile$Pred <- X1 %*% fixef(LabileMainModFINAL) 
+Data2Labile$Pred <- X1 %*% fixef(LabileMainModFINAL2) 
 
 #D. Calculate standard errors (SE) for predicted values
 #Data2Labile$SE <- sqrt(  diag(X1 %*% vcov(LabileMainModFINAL) %*% t(X1))  ) #Hash out f not using as it takes some time to run.
@@ -1253,14 +1063,13 @@ Data2Labile$SeLo <- Data2Labile$Pred - 1.96 * Data2Labile$SE
 
 #E. Plot predicted values
 names(Data2Labile) #NB! Some predicted values are negativ mass loss. This does not makes sense...
-colnames(Data2Labile)[3]<-"Landuse"
 colnames(Data2Labile)[7] <- "Massloss.per"
 
 #Sorting predicted data (Means, SE)
 se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Standard Error
 Data2Labile.sum <-aggregate(Massloss.per~Season+Region+Landuse, data=Data2Labile, mean)
 colnames(Data2Labile.sum)[4] <- "Massloss.per"
-Data2Labile.sum.se<-aggregate(Massloss.per~Season+Region+Landuse, data=Data2Labile, se)
+Data2Labile.sum.se<-aggregate(SE~Season+Region+Landuse, data=Data2Labile, mean)
 Data2Labile.sum$SE<-Data2Labile.sum.se$SE
 
 #Sorting observed data (Means, SE)
@@ -1271,15 +1080,15 @@ LabileMain.sum$SE<-LabileMain.sum.se$Massloss.per
 
 #### Plot observed data versus prediction #####
 
-Mainp <- ggplot(data=LabileMain.sum, aes(x=Landuse,y=Massloss.per))
-Mainp <- Mainp+ geom_errorbar(data=Data2Labile.sum, aes(ymin=Massloss.per-SE, ymax=Massloss.per+SE), colour="green4",width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F)
-Mainp <- Mainp+ geom_point(data=Data2Labile.sum,size=3,stroke=1.2,colour="green4",fill="green4",position=position_dodge(width=.35),show.legend=T) 
-Mainp <- Mainp+geom_errorbar(aes(ymin=Massloss.per-SE, ymax=Massloss.per+SE),width=.5,lwd=1,show.legend=F)
-Mainp <- Mainp+geom_point(position=position_dodge(width=.65),size=3)
-Mainp <- Mainp+ facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region",`Intermediate`="Intermediate Region"),Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
-Mainp <- Mainp+scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
-Mainp <- Mainp+xlab("Land-use")+ylab("Mass loss (%)")
-Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
+Mainp2 <- ggplot(data=LabileMain.sum, aes(x=Landuse,y=Massloss.per))
+Mainp2 <- Mainp2+ geom_errorbar(data=Data2Labile.sum, aes(ymin=Massloss.per-SE, ymax=Massloss.per+SE), colour="black",width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F)
+Mainp2 <- Mainp2+ geom_point(data=Data2Labile.sum,size=3,stroke=1.2,colour="black",fill="black",position=position_dodge(width=.35),show.legend=T) 
+Mainp2 <- Mainp2+geom_errorbar(aes(ymin=Massloss.per-SE, ymax=Massloss.per+SE),width=.5,lwd=1,show.legend=F,colour="green4")
+Mainp2 <- Mainp2+geom_point(position=position_dodge(width=.65),size=3,colour="green4",fill="green4")
+Mainp2 <- Mainp2+ facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region",`Intermediate`="Intermediate Region"),Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
+Mainp2 <- Mainp2+scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
+Mainp2 <- Mainp2+xlab("Land-use")+ylab("Mass loss (%)")
+Mainp2 <- Mainp2+theme(rect = element_rect(fill ="transparent")
                      ,panel.background=element_rect(fill="transparent")
                      ,plot.background=element_rect(fill="transparent",colour=NA)
                      ,panel.grid.major = element_blank()
@@ -1310,16 +1119,16 @@ Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
                      ,legend.key = element_rect(colour = NA, fill = NA)
                      ,legend.key.size = unit(7,"mm")
                      ,legend.text=element_text(size=12,color="black"))
-Mainp <- Mainp+
+Mainp2 <- Mainp2+
   annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
   annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15) +
   annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
   annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
 
-Mainp
-#ggsave("Termites//Main & CG experiment/Mainlabile_predvsobs.png",
-#      width= 20, height = 15,units ="cm",bg ="transparent",
-#     dpi = 600, limitsize = TRUE)
+Mainp2
+# ggsave("Termites//Main & CG experiment/Mainlabile_predvsobs.png",
+#       width= 20, height = 15,units ="cm",bg ="transparent",
+#      dpi = 600, limitsize = TRUE)
 
 
 
@@ -1503,6 +1312,10 @@ RecalMainMod1au <- update(RecalMainMod1aP, .~. -  C.N)
 RecalMainMod1av <- update(RecalMainMod1aP, .~. -  Temp)
 RecalMainMod1aw <- update(RecalMainMod1aP, .~. -  Sand)
 anova(RecalMainMod1ab,RecalMainMod1a)$"Pr(>Chisq)"
+
+
+
+
 RecalMainModFINAL.anovaterms <- rbind(anova(RecalMainMod1ab,RecalMainMod1a)[2,],
                                  anova(RecalMainMod1ac,RecalMainMod1a)[2,],
                                  anova(RecalMainMod1ad,RecalMainMod1a)[2,],
@@ -1571,7 +1384,7 @@ RecalMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+Treatment+C.N+Tem
                             Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+
                             (1|Site/Blockcode/Plot), na.action=na.omit,REML = T, data=RecalMain)
 
-RecalMainr2<-rbind(#RecalMain<-r.squaredGLMM(RecalMainModFINAL),
+RecalMainr2<-rbind(#RecalMainr2<-r.squaredGLMM(RecalMainModFINAL),
   r.squaredGLMM(lmer(Massloss.per ~ Season +(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL), 
   r.squaredGLMM(lmer(Massloss.per ~ Region+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL), 
   r.squaredGLMM(lmer(Massloss.per ~ Landuse+(1|Site/Blockcode/Plot), na.action=na.omit, REML=T, data =RecalMain))/r.squaredGLMM(RecalMainModFINAL), 
@@ -1598,14 +1411,14 @@ RecalMainr2$terms<-c("Season","Region","Landuse", "Treatment","C.N","Temp","Sand
                      "Treatment:Sand","Treatment:C.N","Landuse:Temp","Landuse:C.N","Landuse:Treatment",
                      "Region:Treatment","Region:Landuse","Season:Treatment","Season:Landuse","Season:Region",
                      "Season:Region:Landuse","Season:Region:Treatment","Season:Landuse:Treatment")
-RecalMainr2$terms<- factor(RecalMainr2$terms, levels = RecalMainr2$terms[order(RecalMainr2$R2c)])
-ggplot(RecalMainr2, aes(y=terms, x=R2c))+geom_point()
+#RecalMainr2$terms<- factor(RecalMainr2$terms, levels = RecalMainr2$terms[order(RecalMainr2$R2c)])
+#ggplot(RecalMainr2, aes(y=terms, x=R2c))+geom_point()
 
 
 
 
-
-
+AIC(RecalMainModFINAL) #6266.714
+AIC(RecalMainModFINAL2) #6242.939
 
 #### Standadrized temp, C:N and Sand  variables -  remove resdiual negative slope 
 RecalMain$Temp.std <- (RecalMain$Temp - mean(RecalMain$Temp, na.rm=T)) / sd(RecalMain$Temp,na.rm=T)
@@ -1615,7 +1428,7 @@ RecalMain$C.N.std <- (RecalMain$C.N - mean(RecalMain$C.N,na.rm=T)) / sd(RecalMai
 RecalMainModFINAL2 <- lmer(Massloss.per ~ Season+Region+Landuse+Treatment+C.N.std +Temp.std +Sand.std +
                             Treatment:Sand.std +Treatment:C.N.std +Landuse:Temp.std +
                             Landuse:C.N.std +Landuse:Treatment+Region:Treatment+
-                            +Region:Landuse+Season:Treatment+Season:Landuse+
+                            Region:Landuse+Season:Treatment+Season:Landuse+
                             Season:Region+
                             Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+
                             (1|Site/Blockcode/Plot), na.action=na.omit,REML = T, data=RecalMain)
@@ -1642,6 +1455,7 @@ RecalMain$Massloss.per[RecalMain$Massloss.per<0.01]<-0.01
 RecalMain$Massloss.perB<-RecalMain$Massloss.per/100
 #### GLMM - glmmADMB pacakge #### Can also used glmmTMB
 library(glmmADMB)
+citation()
 
 RecalMain2<-RecalMain[!is.na(RecalMain$Massloss.per),]
 RecalMain2$Massloss.per
@@ -1653,7 +1467,7 @@ RecalMain2$Plot<-as.factor(RecalMain2$Plot)
 
 min(RecalMain2$Massloss.perB)
 max(RecalMain2$Massloss.perB)
-#RecalMainModFINAL2 <- glmmadmb(Massloss.perB ~ Season+Region+Landuse+C.N+Temp+Sand+
+RecalMainModFINAL2 <- glmmadmb(Massloss.perB ~ Season+Region+Landuse+C.N+Temp+Sand+
                             Treatment:Sand+Treatment:C.N+Landuse:Temp+
                             Landuse:C.N+Landuse:Treatment+Region:Treatment+
                             #+Region:Landuse+Season:Treatment+Season:Landuse+
@@ -1672,25 +1486,6 @@ max(RecalMain2$Massloss.perB)
 summary(RecalMainModFINAL2)
 
 
-#Exploring interaction levels, what drives the interactions to be significant?####
-#Interesting interactions to look at:
-#Threeway: Season:Region:Landuse, Season:Region:Treatment, Season:Landuse:Treatment
-#Twoway: Treatment:C.N, Landuse:C.N, 
-#emmeans
-#First up:Season:Region:Landuse
-
-#ref.grid.RecalMainModFINAL <- ref_grid(RecalMainModFINAL) #at = list(Region = c("Dry", "Wet"))) #Want to remove Intermadiate in the grid as it can't be compared to the other landuses, except wild.
-#ref.grid.RecalMainModFINAL#See how the grid is looking. Check for correct factors and the emmeans of numerical variables. If testing between numerical variables, only the means or the low/high end of values can be specified. I.e contrasts vs trend. See emmeans vignette for more info.
-#Check threeway first:
-#emmip(ref.grid.RecalMainModFINAL, Landuse~Region|Season+Treatment, type="response")#
-#emmeans.RecalMainModFINAL <- emmeans(ref.grid.RecalMainModFINAL, pairwise~Season*Region*Landuse|Treatment,type="response") #
-#emmeans.RecalMainModFINAL$contrasts #Get contrast between factors (linear). This is somewhat similar to pairs()
-#emmeans.RecalMainModFINAL$emmeans #Get emmeans of factors.
-#emmeans.RecalMainModFINAL.pairs <- pairs(emmeans.RecalMainModFINAL,simple = "each", combine =TRUE) # Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which simple effect is being displayed. 
-##write.csv(emmeans.RecalMainModFINAL.pairs$emmeans,file="Termites/Emmeans_contrast_Threeway_RecalMainMod.csv")
-#plot(emmeans.RecalMainModFINAL, comparisons = FALSE) #Comparisons summarized graphically. The blue bars are confidence intervals for the EMMs, and the red arrows are for the comparisons among them ,if comparison=TRUE. If an arrow from one mean overlaps an arrow from another group, the difference is not significant
-
-
 
 #Predicted and observed values on graph####
 #### Sketch fitted values #
@@ -1701,75 +1496,77 @@ summary(RecalMainModFINAL2)
 #E. Plot predicted values
 #F. Plot predicted values +/- 	1.96 * SE
 
-RecalMainModFINAL <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Treatment
+RecalMainModFINAL.simple <- lmer(Massloss.per ~ Season+Region+Landuse+C.N+Temp+Sand+Treatment+
                             Treatment:Sand+Treatment:C.N+Landuse:Temp+
                             Landuse:C.N+Landuse:Treatment+Region:Treatment+
-                            +Region:Landuse+Season:Treatment+Season:Landuse+
+                            #Region:Landuse+
+                            Season:Treatment+#Season:Landuse+
                             Season:Region+
-                            Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment+
-                            (1|Site/Blockcode/Plot), na.action=na.omit,REML = T, data=RecalMain)
+                            #Season:Region:Landuse+
+                            Season:Region:Treatment+#Season:Landuse:Treatment+
+                            (1|Site/Blockcode/Plot), na.action=na.omit, REML = T, data=RecalMain)
 
 #A:Specify covariate values for predictions - Recal
 Data2Recal <- expand.grid(Season=levels(RecalMain$Season), #Specify which terms are used in the model. Specify levels for factors and min-max for numeric values. Specify length for each numeric var (how many predictions are created)
                            Region=levels(RecalMain$Region),
                            Landuse=levels(RecalMain$Landuse),
-                          Treatment=levels(RecalMain$Treatment),
-                           C.N = seq(min(RecalMain$C.N), max(RecalMain$C.N), length=12),
-                           Temp = seq(min(RecalMain$Temp,na.rm=T), max(RecalMain$Temp,na.rm=T), length=12),
-                           Sand = seq(min(RecalMain$Sand), max(RecalMain$Sand), length=12))
+                           Treatment=levels(RecalMain$Treatment),
+                           C.N = seq(min(RecalMain$C.N), max(RecalMain$C.N), length=9),
+                           Temp = seq(min(RecalMain$Temp,na.rm=T), max(RecalMain$Temp,na.rm=T), length=9),
+                           Sand = seq(min(RecalMain$Sand), max(RecalMain$Sand), length=9))
 
 #B. Create X matrix with expand.grid
-X1 <- model.matrix(~ Season+Region+Landuse+C.N+Temp+Sand+
+X1 <- model.matrix(~ Season+Region+Landuse+C.N+Temp+Sand+Treatment+
                      Treatment:Sand+Treatment:C.N+Landuse:Temp+
                      Landuse:C.N+Landuse:Treatment+Region:Treatment+
-                     +Region:Landuse+Season:Treatment+Season:Landuse+
+                     #Region:Landuse+
+                     Season:Treatment+#Season:Landuse+
                      Season:Region+
-                     Season:Region:Landuse+Season:Region:Treatment+Season:Landuse:Treatment,
+                     #Season:Region:Landuse+
+                     Season:Region:Treatment, #+Season:Landuse:Treatment,
                    data = Data2Recal)
 head(X1)
 
 #C. Calculate predicted values
-Data2Recal$Pred <- X1 %*% fixef(RecalMainModFINAL) 
+Data2Recal$Pred.massloss <- X1 %*% fixef(RecalMainModFINAL.simple) 
 
-#D. Calculate standard errors (SE) for predicted values
-#Data2Recal$SE <- sqrt(  diag(X1 %*% vcov(RecalMainModFINAL) %*% t(X1))  ) #Hash out if not using. Takes some time to run!
-memory.limit() #Need to allocate more memory to R to be able to do this with length of 25. Scaled down to max of 12, since only ~8gb is given.
+#D. Calculate standard errors (SE) for predicted values #Can maybe do this withaggregate as well.
+#Data2Recal$SE <- sqrt(  diag(X1 %*% vcov(RecalMainModFINAL.simple) %*% t(X1))  ) #Hash out if not using. Takes some time to run!
+memory.limit()
 
 
 #And using the Pred and SE values, we can calculate
 #a 95% confidence interval
-Data2Recal$SeUp <- Data2Recal$Pred + 1.96 * Data2Recal$SE
-Data2Recal$SeLo <- Data2Recal$Pred - 1.96 * Data2Recal$SE
+Data2Recal$SeUp <- Data2Recal$Pred.massloss + 1.96 * Data2Recal$SE
+Data2Recal$SeLo <- Data2Recal$Pred.massloss - 1.96 * Data2Recal$SE
 
 #E. Plot predicted values
 names(Data2Recal) #NB! Some predicted values are negativ mass loss. This does not makes sense...
-colnames(Data2Recal)[3]<-"Landuse"
-colnames(Data2Recal)[7] <- "Massloss.per"
 
 #Sorting predicted data (Means, SE)
 se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Standard Error
-Data2Recal.sum <-aggregate(Massloss.per~Season+Region+Landuse, data=Data2Recal, mean)
-colnames(Data2Recal.sum)[4] <- "Massloss.per"
-Data2Recal.sum.se<-aggregate(Massloss.per~Season+Region+Landuse, data=Data2Recal, se)
-Data2Recal.sum$SE<-Data2Recal.sum.se$SE
+Data2Recal.Pred.sum <-aggregate(Pred.massloss~Season+Region+Landuse+Treatment, data=Data2Recal, mean)
+colnames(Data2Recal.Pred.sum)[5] <- "Massloss.per" 
+Data2Recal.sum.se<-aggregate(SE~Season+Region+Landuse+Treatment, data=Data2Recal, mean)
+Data2Recal.Pred.sum$SE<-Data2Recal.sum.se$SE
 
 #Sorting observed data (Means, SE)
 #RecalMain.sum <- aggregate(Massloss.per~Season+Region+Landuse, data=RecalMain, mean)
-RecalMain.sum <-aggregate(cbind(Massloss.per,C.N,Temp,Sand)~Season+Region+Landuse, data=RecalMain, mean)
-RecalMain.sum.se<-aggregate(Massloss.per~Season+Region+Landuse, data=RecalMain, se)
+RecalMain.sum <-aggregate(cbind(Massloss.per,C.N,Temp,Sand)~Season+Region+Landuse+Treatment, data=RecalMain, mean)
+RecalMain.sum.se<-aggregate(Massloss.per~Season+Region+Landuse+Treatment, data=RecalMain, se)
 RecalMain.sum$SE<-RecalMain.sum.se$Massloss.per
 
 #### Plot observed data versus prediction #####
 
-Mainp <- ggplot(data=RecalMain.sum, aes(x=Landuse,y=Massloss.per))
-Mainp <- Mainp+ geom_errorbar(data=Data2Recal.sum, aes(ymin=Massloss.per-SE, ymax=Massloss.per+SE), colour="green4",width=.5,lwd=1,position=position_dodge(width=.35),show.legend=F)
-Mainp <- Mainp+ geom_point(data=Data2Recal.sum,size=3,stroke=1.2,colour="green4",fill="green4",position=position_dodge(width=.35),show.legend=T) 
-Mainp <- Mainp+geom_errorbar(aes(ymin=Massloss.per-SE, ymax=Massloss.per+SE),width=.5,lwd=1,show.legend=F)
-Mainp <- Mainp+geom_point(position=position_dodge(width=.65),size=3)
-Mainp <- Mainp+ facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region",`Intermediate`="Intermediate Region"),Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
-Mainp <- Mainp+scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
-Mainp <- Mainp+xlab("Land-use")+ylab("Mass loss (%)")
-Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
+RecalMainp2 <- ggplot(data=RecalMain.sum, aes(x=Landuse,y=Massloss.per))
+RecalMainp2 <- RecalMainp2+ geom_errorbar(data=Data2Recal.Pred.sum, aes(ymin=Massloss.per-SE, ymax=Massloss.per+SE),color="black",width=.5,lwd=1)#,position=position_dodge(width=.35),show.legend=F)
+RecalMainp2 <- RecalMainp2+ geom_point(data=Data2Recal.Pred.sum,size=3,stroke=1.2, color="black",position=position_dodge(width=.35),show.legend=T) 
+RecalMainp2 <- RecalMainp2+geom_errorbar(aes(ymin=Massloss.per-SE, ymax=Massloss.per+SE),width=.5,lwd=1,show.legend=F, color="orangered3")
+RecalMainp2 <- RecalMainp2+geom_point(position=position_dodge(width=.65),size=3,color="orangered3")
+RecalMainp2 <- RecalMainp2+ facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region",`Intermediate`="Intermediate Region"),Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
+RecalMainp2 <- RecalMainp2+scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
+RecalMainp2 <- RecalMainp2+xlab("Land-use")+ylab("Mass loss (%)")
+RecalMainp2 <- RecalMainp2+theme(rect = element_rect(fill ="transparent")
                      ,panel.background=element_rect(fill="transparent")
                      ,plot.background=element_rect(fill="transparent",colour=NA)
                      ,panel.grid.major = element_blank()
@@ -1800,76 +1597,16 @@ Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
                      ,legend.key = element_rect(colour = NA, fill = NA)
                      ,legend.key.size = unit(7,"mm")
                      ,legend.text=element_text(size=12,color="black"))
-Mainp <- Mainp+
+RecalMainp2 <- RecalMainp2+
   annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
   annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15) +
   annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
   annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
 
-Mainp
-
-
-
-#Termite effect models, using the difference between treatment (op-excl)####
-####Preliminary dataprocessing####
-names(LabileTermEff) #Data has both CG and Main experiment - Need to seperate
-names(RecalTermEff) #Data has both CG and Main experiment - Need to seperate
-
-#Seperate experiments
-LabileTermEff.Main <- LabileTermEff[LabileTermEff$Experiment=="Main",]
-RecalTermEff.Main <- RecalTermEff[RecalTermEff$Experiment=="Main",]
-#Extracting Local soil (Seronera) and adding it to the Main datasets:
-LocalCGsoil.T.E.Labile <- LabileTermEff[LabileTermEff$Site=="Seronera",] #The sites are from 1-4, but actually they are just 1 when comparing to the other sites.
-LocalCGsoil.T.E.Recal <- RecalTermEff[RecalTermEff$Site=="Seronera",]
-#So replacing site numbering to only 1.
-LocalCGsoil.T.E.Labile$Block <- 1
-LocalCGsoil.T.E.Recal$Block  <- 1
-LocalCGsoil.T.E.Labile$Blockcode <- "Int_W1"
-LocalCGsoil.T.E.Recal$Blockcode <- "Int_W1"
-
-LabileTermEff.Main <- rbind(LabileTermEff.Main,LocalCGsoil.T.E.Labile)
-RecalTermEff.Main <- rbind(RecalTermEff.Main,LocalCGsoil.T.E.Recal)
-
-#Renaming some columns (RECAL):
-names(RecalTermEff.Main)
-colnames(RecalTermEff.Main)[(names(RecalTermEff.Main)== "Sandcorr")] <- "Sand"
-colnames(RecalTermEff.Main)[(names(RecalTermEff.Main)== "Claycorr")] <- "Clay"
-colnames(RecalTermEff.Main)[(names(RecalTermEff.Main)== "Moisture..")] <- "Moisture"
-colnames(RecalTermEff.Main)[(names(RecalTermEff.Main)== "Temperature..C.")] <- "Temp"
-colnames(RecalTermEff.Main)[(names(RecalTermEff.Main)== "Rain.sum")] <- "Rain"
-#Renaming some columns (LABILE):
-names(LabileTermEff.Main)
-colnames(LabileTermEff.Main)[(names(LabileTermEff.Main)== "Sandcorr")] <- "Sand"
-colnames(LabileTermEff.Main)[(names(LabileTermEff.Main)== "Claycorr")] <- "Clay"
-colnames(LabileTermEff.Main)[(names(LabileTermEff.Main)== "Moisture..")] <- "Moisture"
-colnames(LabileTermEff.Main)[(names(LabileTermEff.Main)== "Temperature..C.")] <- "Temp"
-colnames(LabileTermEff.Main)[(names(LabileTermEff.Main)== "Rain.sum")] <- "Rain"
-
-#Block needs to be a unique number - not repeated across blocks (I think blockcode already do this but anyway...)
-
-LabileTermEff.Main$blockdesign.num<-as.factor(with(LabileTermEff.Main, paste(Season,Region,Landuse,Blockcode, sep="")))
-LabileTermEff.Main$blockdesign.num<-as.numeric(LabileTermEff.Main$blockdesign.num)
-LabileTermEff.Main$blockdesign.num<-as.factor(LabileTermEff.Main$blockdesign.num)
-table(LabileTermEff.Main$blockdesign.num, LabileTermEff.Main$Landuse)
-
-RecalTermEff.Main$blockdesign.num<-as.factor(with(RecalTermEff.Main, paste(Season,Region,Landuse,Blockcode, sep="")))
-RecalTermEff.Main$blockdesign.num<-as.numeric(RecalTermEff.Main$blockdesign.num)
-RecalTermEff.Main$blockdesign.num<-as.factor(RecalTermEff.Main$blockdesign.num)
-table(RecalTermEff.Main$blockdesign.num, RecalTermEff.Main$Landuse)
-
-
-##Labile Model - Termite effect massloss####
-#Singular fit issue:
-LabileT.E.Mod <- lmer(Termite.effect~Season+Landuse+Region+Sand+Rain+Temp+
-                        (1|Site/Blockcode/Plot),na.action=na.omit,REML = FALSE, data=LabileTermEff.Main)
-
-#Recal Model - Termite effect massloss####
-#Singular fit issue:
-RecalT.E.Mod <- lmer(Termite.effect~Season+Landuse+Region+Sand+Rain+Temp+
-                       (1|Site/Blockcode/Plot),na.action=na.omit,REML = FALSE, data=RecalTermEff.Main)
-
-
-
+RecalMainp2
+# ggsave("Termites//Main & CG experiment/Mainrecal_predvsobs.png",
+#       width= 20, height = 15,units ="cm",bg ="transparent",
+#      dpi = 600, limitsize = TRUE)
 
 
 #Graphing: Main experiment - decomposition across landuse #### 
@@ -1906,13 +1643,14 @@ Mainp <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=(Massloss.per-SE
                                   fill = tea.hole,color = Littertype,shape=Landuse))
 Mainp <- Mainp+geom_errorbar(width=.9,lwd=1,position=position_dodge(width=.35),show.legend=F)
 Mainp <- Mainp+geom_point(size=4,stroke=1.2,position=position_dodge(width=.35),show.legend=T)
-Mainp <- Mainp+facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region"),
+Mainp <- Mainp+facet_grid(Region ~ Season, scale ="fixed",
+                          labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region"),
                                                                 Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
 Mainp <- Mainp+scale_color_manual(values=c("green4", "orangered3"))
 Mainp <- Mainp+scale_fill_manual(values=c("green4","orangered3","white","white"))
 Mainp <- Mainp+scale_shape_manual(values=c(21,22,24))
 Mainp <- Mainp+guides(fill = guide_legend(override.aes=list(shape=25, color=c("green4","orangered3","green4","orangered3"))),color=F)
-Mainp <- Mainp+scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
+Mainp <- Mainp+scale_y_continuous(limits = c(0,100), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))
 Mainp <- Mainp+xlab("Land-use")+ylab("Mass loss (%)")
 Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="transparent")
@@ -1954,8 +1692,8 @@ Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
   annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
 
 Mainp
-#ggsave("Termites//Results/Figures/Mainexp.png",
-      width= 20, height = 15,units ="cm",bg ="transparent",
+ggsave("Termites//Results/Figures/Mainexp.png",
+      width= 20, height = 12,units ="cm",bg ="transparent",
      dpi = 600, limitsize = TRUE)
 
 
@@ -2055,8 +1793,153 @@ LabileDataMCG$Region <- as.factor(LabileDataMCG$Region)
 LabileDataMCG$Landuse <- as.factor(LabileDataMCG$Landuse)
 LabileDataMCG$Treatment <- as.factor(LabileDataMCG$Treatment)
 
+qplot(DataMCG$MainCGdiff,DataMCG$Tempdiff)
+qplot(DataMCG$MainCGdiff,DataMCG$Temp)
+
+qplot(LabileDataMCG$MainCGdiff,LabileDataMCG$Tempdiff)
+qplot(LabileDataMCG$MainCGdiff,LabileDataMCG$Temp)
+
 #COMMON GARDEN MODELLING####
-#Labilemodel analysis####
+# #Labilemodel analysis Tempdiff #
+# GlobalLabileMCGMod2 <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+C.N+Tempdiff+Sand+
+#                               Season:Region+Season:Landuse+Season:Treatment+Season:C.N+#Season:Tempdiff+
+#                               Season:Sand+
+#                               Region:Landuse+#Region:Treatment+Region:C.N+Region.Tempdiff+Region:Sand+
+#                               #Landuse:Treatment+
+#                               Landuse:C.N+Landuse:Tempdiff+#Landuse:Sand+
+#                               #Treatment:C.N+Treatment:Tempdiff+Treatment:Sand+
+#                               #C.N:Tempdiff+
+#                               #C.N:Sand+#+Tempdiff:Sand+
+#                            #+Season:Landuse:Treatment+
+#                              #Season:Region:Landuse+
+#                              #Landuse:Region:Treatment+#Season:Region:Treatment+
+#                              (1|Site/Blockcode), na.action=na.omit, REML=F, data =LabileDataMCG)
+# summary(GlobalLabileMCGMod2)                         
+# AIC(GlobalLabileMCGMod2)# 770.6798 - 762.6926 - 753.315 - 750.5038
+# drop1(GlobalLabileMCGMod2,test="Chisq")
+# #Fullmodel
+# # Season:Landuse:Treatment  2 766.92  0.236 0.8888933    
+# # Season:Region:Landuse     2 772.80  6.117 0.0469586 *  
+# #   Region:Landuse:Treatment  2 767.81  1.129 0.5687100    
+# # Season:Region:Treatment   2 769.16  2.484 0.2887975    
+# 
+# #Simplified model 1
+# # Season:Treatment       1 766.62  5.931  0.014878 *  
+# #   Season:C.N             1 768.99  8.294  0.003979 ** 
+# #   Season:Tempdiff        1 772.13 11.434  0.000721 ***
+# #   Season:Sand            1 769.11  8.416  0.003719 ** 
+# #   Region:Treatment       2 759.41  0.717  0.698744    
+# # Region:C.N             1 761.58  0.888  0.346001    
+# # Region:Tempdiff        2 761.35  2.662  0.264247    
+# # Region:Sand            1 760.83  0.139  0.709694    
+# # Landuse:Treatment      2 758.76  0.071  0.965031    
+# # Landuse:C.N            2 793.46 34.767 2.821e-08 ***
+# #   Landuse:Tempdiff       2 768.69 10.001  0.006734 ** 
+# #   Landuse:Sand           2 759.23  0.536  0.764821    
+# # Treatment:C.N          1 761.26  0.571  0.449783    
+# # Treatment:Tempdiff     1 761.45  0.760  0.383265    
+# # Treatment:Sand         1 760.70  0.005  0.943528    
+# # C.N:Tempdiff           1 763.32  2.631  0.104828    
+# # C.N:Sand               1 764.08  3.387  0.065704 .  
+# # Tempdiff:Sand          1 761.43  0.733  0.391980    
+# # Season:Region:Landuse  2 764.57  5.880  0.052874 . 
+# 
+# #Simplified model 2
+# # Season:Treatment       1 757.00  5.688 0.0170782 *  
+# #   Season:C.N             1 758.71  7.391 0.0065539 ** 
+# #   Season:Tempdiff        1 754.30  2.984 0.0840913 .  
+# # Season:Sand            1 766.65 15.335 9.004e-05 ***
+# #   Landuse:C.N            2 783.71 34.395 3.398e-08 ***
+# #   Landuse:Tempdiff       2 765.36 16.043 0.0003283 ***
+# #   C.N:Sand               1 751.68  0.365 0.5455567    
+# # Season:Region:Landuse  2 751.50  2.182 0.3359062   
+# 
+# #Simplified model 3 - All sign.
+# 
+# #FINAL2 MODEL#
+# AIC(LabileMCGModFINAL2)
+# LabileMCGModFINAL2 <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+C.N+Tempdiff+Sand+
+#                              Season:Region+Season:Landuse+Season:Treatment+Season:C.N+
+#                              Season:Sand+Region:Landuse+Landuse:C.N+Landuse:Tempdiff+
+#                              (1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)
+# 
+# summary(LabileMCGModFINAL2)
+# #Inspect chosen model for homogeneity:
+# E1 <- resid(LabileMCGModFINAL2, type ="pearson")
+# F1 <- fitted(LabileMCGModFINAL2)
+# 
+# par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+# plot(x = F1, 
+#      y = E1,
+#      xlab = "Fitted values",
+#      ylab = "Residuals")
+# abline(v = 0, lwd = 2, col = 2)
+# abline(h = 0, lty = 2, col = 1)
+# #identify(F1, E1)
+# hist(E1, nclass = 25) 
+# 
+# #Exctract P-values from best model for all terms:
+# LabileMCGMod2 <- LabileMCGModFINAL2
+# LabileMCGMod2a <- update(LabileMCGMod2, .~. -Season:Region)
+# LabileMCGMod2b <- update(LabileMCGMod2, .~. -Season:Landuse )
+# LabileMCGMod2c <- update(LabileMCGMod2, .~. -Season:Treatment )
+# LabileMCGMod2d <- update(LabileMCGMod2, .~. -Season.C.N)
+# LabileMCGMod2e <- update(LabileMCGMod2, .~. -Season:Sand)
+# LabileMCGMod2f <- update(LabileMCGMod2, .~. -Region:Landuse)
+# LabileMCGMod2g <- update(LabileMCGMod2, .~. -Landuse:C.N)
+# LabileMCGMod2h <- update(LabileMCGMod2, .~. -Landuse:Tempdiff)
+# LabileMCGMod2I <- update(LabileMCGMod2, .~. -Season:Region-Season:Landuse-Season:Treatment-Season:C.N-
+#                            Season:Sand-Region:Landuse-Landuse:C.N-Landuse:Tempdiff) #REMOVE ALL 2ways
+# LabileMCGMod2j <- update(LabileMCGMod2I, .~. -Season)
+# LabileMCGMod2k <- update(LabileMCGMod2I, .~. -Region)
+# LabileMCGMod2l <- update(LabileMCGMod2I, .~. -Landuse)
+# LabileMCGMod2m <- update(LabileMCGMod2I, .~. -Treatment)
+# LabileMCGMod2n <- update(LabileMCGMod2I, .~. -C.N)
+# LabileMCGMod2o <- update(LabileMCGMod2I, .~. -Tempdiff)
+# LabileMCGMod2p <- update(LabileMCGMod2I, .~. -Sand)
+# 
+# LabileMCGModFINAL.anovaterms <- rbind(
+#   anova(LabileMCGMod2a,LabileMCGMod2)[2,], #Season:Region 2.2e-16 ***
+#   anova(LabileMCGMod2b,LabileMCGMod2)[2,], #Season:Treatment 0.01675 *
+#   anova(LabileMCGMod2c,LabileMCGMod2)[2,], #Season:Sand 2.21e-10 ***
+#   anova(LabileMCGMod2d,LabileMCGMod2)[2,], #Region:Landuse 4.574e-08 ***
+#   anova(LabileMCGMod2e,LabileMCGMod2)[2,], #Region:Temp 2.652e-11 ***
+#   anova(LabileMCGMod2f,LabileMCGMod2)[2,], #Landuse:Temp 9.561e-12 ***
+#   anova(LabileMCGMod2g,LabileMCGMod2)[2,], #Landuse:Sand 0.008727 **
+#   anova(LabileMCGMod2h,LabileMCGMod2)[2,], #Temp:Sand 0.000802 ***
+#   anova(LabileMCGMod2j,LabileMCGMod2I)[2,], #Season 2.279e-15 ***
+#   anova(LabileMCGMod2k,LabileMCGMod2I)[2,], #Region 2.787e-05 ***
+#   anova(LabileMCGMod2l,LabileMCGMod2I)[2,], #Landuse 0.02727 *
+#   anova(LabileMCGMod2m,LabileMCGMod2I)[2,], #Treatment 0.5615
+#   anova(LabileMCGMod2n,LabileMCGMod2I)[2,], #Temp 0.007109 **
+#   anova(LabileMCGMod2o,LabileMCGMod2I)[2,],
+#   anova(LabileMCGMod2p,LabileMCGMod2I)[2,]) #Sand 0.0008505 ***
+# LabileMCGModFINAL2.anovaterms$Terms <- c("Season:Region","Season:Landuse","Season:Treatment","Season:C.N",
+#                            "Season:Sand","Region:Landuse","Landuse:C.N","Landuse:Tempdiff",
+#                                         "Season","Region","Landuse","Treatment","C.N","Tempdiff","Sand")
+# 
+# LabileCG2r2<-rbind(#LabileCG<-r.squaredGLMM(,,LabileMCGModFINAL22,
+#   r.squaredGLMM(lmer(MainCGdiff ~ Season:Region +(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL2),
+#   r.squaredGLMM(lmer(MainCGdiff ~ Season:Landuse+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL2), 
+#   r.squaredGLMM(lmer(MainCGdiff ~ Season:Treatment+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL2), 
+#   r.squaredGLMM(lmer(MainCGdiff ~ Season:C.N+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL2), 
+#   r.squaredGLMM(lmer(MainCGdiff ~ Season:Sand+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL2),
+#   r.squaredGLMM(lmer(MainCGdiff ~ Region:Landuse+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL2),
+#   r.squaredGLMM(lmer(MainCGdiff ~ Landuse:C.N+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL2),
+#   r.squaredGLMM(lmer(MainCGdiff ~ Landuse:Tempdiff+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL2),
+#   r.squaredGLMM(lmer(MainCGdiff ~ Season+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL2),
+#   r.squaredGLMM(lmer(MainCGdiff ~ Region+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL2),
+#   r.squaredGLMM(lmer(MainCGdiff ~ Landuse+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL2),
+#   r.squaredGLMM(lmer(MainCGdiff ~ Treatment+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL2),
+#   r.squaredGLMM(lmer(MainCGdiff ~ C.N+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL2),
+#   r.squaredGLMM(lmer(MainCGdiff ~ Tempdiff+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL2),
+#   r.squaredGLMM(lmer(MainCGdiff ~ Sand+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL2))
+# LabileCG2r2<-as.data.frame(LabileCG2r2)
+# LabileCG2r2$terms<-c("Season:Region","Season:Landuse","Season:Treatment","Season:C.N",
+#                     "Season:Sand","Region:Landuse","Landuse:C.N","Landuse:Tempdiff",
+#                     "Season","Region","Landuse","Treatment","C.N","Tempdiff","Sand")
+
+#Labilemodel analysis - Temp####
 GlobalLabileMCGMod <- lmer(MainCGdiff ~ (Season+Region+Landuse+Treatment+C.N+Temp+Sand)^2
                            +Season:Landuse:Treatment+Season:Landuse:Region+
                              Landuse:Region:Treatment+Season:Region:Treatment+
@@ -2167,13 +2050,14 @@ anova(LabileMCGMod3l,LabileMCGMod3I)[2,], #Landuse 0.03737 *
 anova(LabileMCGMod3m,LabileMCGMod3I)[2,], #Treatment 0.5615
 anova(LabileMCGMod3n,LabileMCGMod3I)[2,], #Temp 0.007109 **
 anova(LabileMCGMod3o,LabileMCGMod3I)[2,]) #Sand 0.0008505 ***
-LabileMCGModFINAL.anovaterms$Terms <- c("Season:Region","Season:Treatment","Season:Sand ",
+LabileMCGModFINAL.anovaterms$Terms <- c("Season:Region","Season:Treatment","Season:Sand",
                                         "Region:Landuse","Region:Temp","Landuse:Temp","Landuse:Sand","Temp:Sand",
                                         "Season","Region","Landuse","Treatment","Temp","Sand")
 LabileMCGModFINAL.anovaterms <- as.data.frame(LabileMCGModFINAL.anovaterms)
 #write.csv(LabileMCGModFINAL.anovaterms,file="Termites/LabileMCGModFINAL.anovaterms.csv")
 
 #FINAL Model####
+AIC(LabileMCGModFINAL) #702.9864
 LabileMCGModFINAL <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+Sand+
                             Season:Region+Season:Treatment+Season:Sand+Region:Landuse+
                             Region:Temp+Landuse:Temp+Landuse:Sand+Temp:Sand+
@@ -2182,8 +2066,8 @@ LabileMCGModFINAL <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+Sand
 summary(LabileMCGModFINAL)
 
 #Inspect chosen model for homogeneity:
-E1 <- resid(LabileMCGModFINAL, type ="pearson")
-F1 <- fitted(LabileMCGModFINAL)
+E2 <- resid(LabileMCGModFINAL, type ="pearson")
+F2 <- fitted(LabileMCGModFINAL)
 
 par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
 plot(x = F1, 
@@ -2218,7 +2102,7 @@ hist(E1, nclass = 25)
 
 #### Extracting R2 from lmer model for each individual compared to full model ####
 
-LabileCGr2<-rbind(#LabileCG<-r.squaredGLMM(LabileMCGModFINAL),
+LabileCGr2<-rbind(#LabileCGr2<-r.squaredGLMM(LabileMCGModFINAL),
   r.squaredGLMM(lmer(MainCGdiff ~ Season +(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL), 
                   r.squaredGLMM(lmer(MainCGdiff ~ Region+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL), 
                   r.squaredGLMM(lmer(MainCGdiff ~ Landuse+(1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG))/r.squaredGLMM(LabileMCGModFINAL), 
@@ -2237,8 +2121,8 @@ LabileCGr2<-rbind(#LabileCG<-r.squaredGLMM(LabileMCGModFINAL),
 LabileCGr2<-as.data.frame(LabileCGr2)
 LabileCGr2$terms<-c("Season","Region","Landuse", "Treatment","Temp","Sand",
                     "Season:Region","Season:Treatment","Season:Sand","Region:Landuse","Region:Temp","Landuse:Temp","Landuse:Sand","Temp:Sand")
-LabileCGr2$terms<- factor(LabileCGr2$terms, levels = LabileCGr2$terms[order(LabileCGr2$R2c)])
-ggplot(LabileCGr2, aes(y=terms, x=R2c))+geom_point()
+#LabileCGr2$terms<- factor(LabileCGr2$terms, levels = LabileCGr2$terms[order(LabileCGr2$R2c)])
+#ggplot(LabileCGr2, aes(y=terms, x=R2c))+geom_point()
 
 
 
@@ -2254,19 +2138,6 @@ with(LabileDataMCG, {interaction.plot(Season,Treatment,MainCGdiff,
                                          ylab = "Mass loss difference",
                                          fun=mean)})
 
-#emmeans
-ref.gridLabileMCGModFINAL <- ref_grid(LabileMCGModFINAL)
-ref.gridLabileMCGModFINAL #See how the grid is looking. Check for correct factors and the emmeans of numerical variables. If testing between numerical variables, only the means or the low/high end of values can be specified. I.e contrasts vs trend. See emmeans vignette for more info.
-emmip(LabileMCGModFINAL, Treatment~Season|Region, type="response") #Can see here that there is an interaction effect of treatment:season
-emmeans.LabileMCGModFINAL <- emmeans(LabileMCGModFINAL, pairwise~Treatment|Season|Region,type="response") #Positive values=More main massloss means less massloss in CG
-emm.sum.LabileMCGModFINAL<- summary(emmeansLabileMCGModFINAL)
-emm.sum.LabileMCGModFINAL$contrasts #Get contrast between factors (linear). This is somewhat similar to pairs()
-emm.sum.LabileMCGModFINAL$emmeans #Get emmeans of factors.
-
-pairs(emmeans(LabileMCGModFINAL, ~Treatment*Season|Region),simple = "each", combine =TRUE) # Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE all contrasts are combined into one family:. The dots (.) in this result correspond to which simple effect is being displayed. 
-plot(emmeans.LabileMCGModFINAL, comparisons = TRUE) #Comparisons summarized graphically. The blue bars are confidence intervals for the EMMs, and the red arrows are for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant
-
-#Conlcusion on treatment:Season: There is an effect of treatment when season is dry. CG has higher massloss in dry season (due to more rain as seen in precip data).
 
 
 # #MODELL AVERAGING
@@ -2389,12 +2260,22 @@ anova(RecalMCGMod11a,RecalMCGMod6a) #Sand+Temp:Sand not sign
 AIC(RecalMCGMod11a)# Orig.Best: 1005.783. Now: 1007.906 #Not better
 
 RecalMCGMod12a <- update(RecalMCGMod6a, .~. +Landuse:Treatment)
-anova(RecalMCGMod12a,RecalMCGMod6a) #SLanduse:Treatment not sign
+anova(RecalMCGMod12a,RecalMCGMod6a) #Landuse:Treatment not sign
 AIC(RecalMCGMod12a)# Orig.Best: 1005.783. Now: 1009.32 #Not better
 
 RecalMCGMod13a <- update(RecalMCGMod6a, .~. +Season:Treatment)
 anova(RecalMCGMod13a,RecalMCGMod6a) #Season:Treatment not sign BUT...
 AIC(RecalMCGMod13a)# Orig.Best: 1005.783. Now: 1005.125 #Better!
+
+RecalMCGMod14a <- update(RecalMCGMod13a, .~. +Season:Landuse:Treatment)
+anova(RecalMCGMod14a,RecalMCGMod13a) 
+AIC(RecalMCGMod14a) #Nope
+
+RecalMCGMod15a <- update(RecalMCGMod13a, .~. +Season:Region:Treatment)
+anova(RecalMCGMod15a,RecalMCGMod13a) 
+AIC(RecalMCGMod15a) #Nope
+
+
 
 #OK, landing on the best model, and generating p-values:
 AIC(RecalMCGMod13a)
@@ -2453,7 +2334,7 @@ hist(E1, nclass = 25)
 
 #### Extracting R2 from lmer model for each individual compared to full model ####
 
-RecalCGr2<-rbind(#RecalCG<-r.squaredGLMM(RecalMCGModFINAL), #This term is hashed to get ratio of the other terms in relation to full model
+RecalCGr2<-rbind(#RecalCGr2<-r.squaredGLMM(RecalMCGModFINAL), #This term is hashed to get ratio of the other terms in relation to full model
                   r.squaredGLMM(lmer(MainCGdiff ~ Season +(1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG))/r.squaredGLMM(RecalMCGModFINAL), 
                   r.squaredGLMM(lmer(MainCGdiff ~ Region+(1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG))/r.squaredGLMM(RecalMCGModFINAL), 
                   r.squaredGLMM(lmer(MainCGdiff ~ Landuse+(1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG))/r.squaredGLMM(RecalMCGModFINAL), 
@@ -2470,12 +2351,9 @@ RecalCGr2<-as.data.frame(RecalCGr2)
 
 
 RecalCGr2$terms<-c("Season","Region","Landuse", "Treatment","Temp", "Season:Treatment","Season:Region","Season:Landuse",
-                   "Season:Temp","Region:Season","Season:Region:Landuse")
-RecalCGr2$terms<- factor(RecalCGr2$terms, levels = RecalCGr2$terms[order(RecalCGr2$R2c)])
-ggplot(RecalCGr2, aes(y=terms, x=R2c))+geom_point()
-
-
-
+                   "Season:Temp","Region:Landuse","Season:Region:Landuse")
+#RecalCGr2$terms<- factor(RecalCGr2$terms, levels = RecalCGr2$terms[order(RecalCGr2$R2c)])
+#ggplot(RecalCGr2, aes(y=terms, x=R2c))+geom_point()
 
 
 #Predicted and observed values on graph####
@@ -2486,80 +2364,42 @@ ggplot(RecalCGr2, aes(y=terms, x=R2c))+geom_point()
 #D. Calculate standard errors (SE) for predicted values
 #E. Plot predicted values
 #F. Plot predicted values +/- 	1.96 * SE
-LabileMCGModFINAL <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+Sand+
-                            Season:Region+#Season:Treatment+
-                            Season:Sand+#Region:Landuse+
+LabileMCGModFINAL2 <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+Sand+
+                            Season:Region+Season:Treatment+Season:Sand+
+                            #Region:Landuse+
                             #Region:Temp+
-                            Landuse:Temp+Landuse:Sand+
-                            Temp:Sand+
+                             Landuse:Temp+Landuse:Sand+Temp:Sand+
                             (1|Site/Blockcode), na.action=na.omit, REML=T, data =LabileDataMCG)
-
-RecalMCGModFINAL <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+
-                           #+Region:Landuse+
-                           Season:Temp+
-                           Season:Landuse+Season:Region+
-                           #Season:Region:Landuse+
-                           (1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG)
 
 #A:Specify covariate values for predictions
 Data2LabileMCG <- expand.grid(Season=levels(RecalMain$Season), #Specify which terms are used in the model. Specify levels for factors and min-max for numeric values. Specify length for each numeric var (how many predictions are created)
-                          Region=levels(RecalMain$Region),
-                          Landuse=levels(RecalMain$Landuse),
-                          Treatment=levels(RecalMain$Treatment),
-                          Temp = seq(min(RecalMain$Temp,na.rm=T), max(RecalMain$Temp,na.rm=T), length=12),
-                          Sand = seq(min(RecalMain$Sand), max(RecalMain$Sand), length=12))
-
-
-
-Data2RecalMCG <- expand.grid(Season=levels(RecalMain$Season), #Specify which terms are used in the model. Specify levels for factors and min-max for numeric values. Specify length for each numeric var (how many predictions are created)
                               Region=levels(RecalMain$Region),
                               Landuse=levels(RecalMain$Landuse),
                               Treatment=levels(RecalMain$Treatment),
-                              Temp = seq(min(RecalMain$Temp,na.rm=T), max(RecalMain$Temp,na.rm=T), length=12),
-                              C.N = seq(min(RecalMain$C.N), max(RecalMain$C.N), length=12))
-
+                              Temp = seq(min(RecalMain$Temp,na.rm=T), max(RecalMain$Temp,na.rm=T), length=25),
+                              Sand = seq(min(RecalMain$Sand), max(RecalMain$Sand), length=25))
 #B. Create X matrix with expand.grid
-CG_L <- model.matrix(~ Season+Region+Landuse+Treatment+Temp+Sand+
-                       Season:Region+#Season:Treatment+
-                       Season:Sand+#Region:Landuse+
+CG_L <- model.matrix( ~ Season+Region+Landuse+Treatment+Temp+Sand+
+                       Season:Region+Season:Treatment+Season:Sand+
+                       #Region:Landuse+
                        #Region:Temp+
-                       Landuse:Temp+Landuse:Sand+
-                       Temp:Sand,
-                       data = Data2LabileMCG)
+                       Landuse:Temp+Landuse:Sand+Temp:Sand,
+                     data = Data2LabileMCG)
 head(CG_L)
 
-CG_R <- model.matrix(~ Season+Region+Landuse+Treatment+C.N+Temp+
-                       #+Region:Landuse+
-                       Season:Temp+
-                       Season:Landuse+Season:Region,
-                       #Season:Region:Landuse+,
-                       data = Data2RecalMCG)
-head(CG_R)
-
 #C. Calculate predicted values
-Data2LabileMCG$Pred <- CG_L %*% fixef(LabileMCGModFINAL) #Error: non-conformable arguments when having rank deficiency. need to reduce model.
-Data2RecalMCG$Pred <- CG_R %*% fixef(RecalMCGModFINAL) ##Error: non-conformable arguments when having rank deficiency. need to reduce model.
+Data2LabileMCG$Pred <- CG_L %*% fixef(LabileMCGModFINAL2)
 
 #D. Calculate standard errors (SE) for predicted values
-Data2LabileMCG$SE <- sqrt(  diag(CG_L %*% vcov(LabileMCGModFINAL) %*% t(CG_L))  )
-Data2RecalMCG$SE <- sqrt(  diag(CG_R %*% vcov(RecalMCGModFINAL) %*% t(CG_R))  )
-
-memory.limit() #Need to allocate more memory to R to be able to do this with length of 25. Scaled down to max of 12, since only ~8gb is given.
-
+#Data2LabileMCG$SE <- sqrt(  diag(CG_L %*% vcov(LabileMCGModFINAL2) %*% t(CG_L))  )
 
 #And using the Pred and SE values, we can calculate
 #a 95% confidence interval
 Data2LabileMCG$SeUp <- Data2LabileMCG$Pred + 1.96 * Data2LabileMCG$SE
 Data2LabileMCG$SeLo <- Data2LabileMCG$Pred - 1.96 * Data2LabileMCG$SE
 
-Data2RecalMCG$SeUp <- Data2RecalMCG$Pred + 1.96 * Data2RecalMCG$SE
-Data2RecalMCG$SeLo <- Data2RecalMCG$Pred - 1.96 * Data2RecalMCG$SE
-
-#E. Plot predicted values
-names(Data2LabileMCG) 
-names(Data2RecalMCG)
+names(Data2LabileMCG)
 colnames(Data2LabileMCG)[7] <- "MainCGdiff"
-colnames(Data2RecalMCG)[7] <- "MainCGdiff"
 
 #Sorting predicted data (Means, SE)
 se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Standard Error
@@ -2568,23 +2408,184 @@ colnames(Data2LabileMCG.sum)[4] <- "MainCGdiff"
 Data2LabileMCG.sum.se<-aggregate(MainCGdiff~Season+Region+Landuse, data=Data2LabileMCG, se)
 Data2LabileMCG.sum$SE<-Data2LabileMCG.sum.se$V1
 
-Data2RecalMCG.sum <-aggregate(MainCGdiff~Season+Region+Landuse, data=Data2RecalMCG, mean)
-colnames(Data2RecalMCG.sum)[4] <- "MainCGdiff"
-Data2RecalMCG.sum.se<-aggregate(MainCGdiff~Season+Region+Landuse, data=Data2RecalMCG, se)
-Data2RecalMCG.sum$SE<-Data2RecalMCG.sum.se$V1
-
 #Sorting observed data (Means, SE)
 LabileDataMCG.sum <-aggregate(cbind(MainCGdiff,C.N,Temp,Sand)~Season+Region+Landuse, data=LabileDataMCG, mean)
 LabileDataMCG.sum.se<-aggregate(MainCGdiff~Season+Region+Landuse, data=LabileDataMCG, se)
 LabileDataMCG.sum$SE<-LabileDataMCG.sum.se$MainCGdiff
 
-RecalDataMCG.sum <-aggregate(cbind(MainCGdiff,C.N,Temp,Sand)~Season+Region+Landuse, data=RecalDataMCG, mean)
-RecalDataMCG.sum.se<-aggregate(MainCGdiff~Season+Region+Landuse, data=RecalDataMCG, se)
+
+LabileMCGp <- ggplot(data=LabileDataMCG.sum, aes(x=Landuse,y=MainCGdiff))
+LabileMCGp <- LabileMCGp+geom_errorbar(data=Data2LabileMCG.sum, aes(ymin = MainCGdiff-SE,ymax = MainCGdiff+SE),width=0.1,show.legend=F,color="black")
+LabileMCGp <- LabileMCGp+geom_point(data=Data2LabileMCG.sum, color="black",size=2)
+LabileMCGp <- LabileMCGp+geom_errorbar(aes(ymin = MainCGdiff-SE,ymax = MainCGdiff+SE),width=0.1,show.legend=F,color="green4")
+LabileMCGp <- LabileMCGp+geom_point(color="green4",size=2)
+LabileMCGp <- LabileMCGp + geom_abline(slope=0, intercept=0, size =.95) 
+LabileMCGp <- LabileMCGp+ facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region",`Intermediate`="Intermediate Region"),Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
+#Mainp2 <- Mainp2+scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
+LabileMCGp <- LabileMCGp+xlab("Land-use")+ylab("Mass loss diff (%)")
+LabileMCGp <- LabileMCGp+theme(rect = element_rect(fill ="transparent")
+                             ,panel.background=element_rect(fill="transparent")
+                             ,plot.background=element_rect(fill="transparent",colour=NA)
+                             ,panel.grid.major = element_blank()
+                             ,panel.grid.minor = element_blank()
+                             ,panel.border = element_blank()
+                             ,panel.grid.major.x = element_blank()
+                             ,panel.grid.major.y = element_blank()
+                             ,axis.text=element_text(size=12,color="black")
+                             ,axis.title.y=element_text(size=14,color="black")
+                             ,axis.title.x=element_text(size=14,vjust=-.4,color="black")
+                             ,axis.text.x = element_text(size=10,color="black",
+                                                         margin=margin(2.5,2.5,2.5,2.5,"mm"))
+                             ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+                             ,axis.ticks.length=unit(-1.5, "mm")
+                             #,axis.line.y = element_blank()
+                             ,axis.line.x = element_blank()
+                             ,plot.margin = unit(c(8,50,5,5), "mm")
+                             ,strip.background = element_rect(fill="transparent",colour=NA)
+                             ,strip.text.x = element_text(size = 14,colour = "black")
+                             ,strip.text.y = element_text(size = 14,colour = "black")
+                             ,panel.spacing = unit(1, "lines")
+                             ,legend.background = element_rect(fill = "transparent")
+                             ,legend.title=element_blank()
+                             ,legend.position = c(1.3,0.5)
+                             ,legend.spacing.y = unit(-0.8, "mm")
+                             ,legend.key.height=unit(7.5,"mm")
+                             ,legend.key.width=unit(7.5,"mm")
+                             ,legend.key = element_rect(colour = NA, fill = NA)
+                             ,legend.key.size = unit(7,"mm")
+                             ,legend.text=element_text(size=12,color="black"))
+#LabileMCGp <- LabileMCGp+
+# annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
+#annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15) +
+#annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
+#annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
+
+LabileMCGp
+# ggsave("Termites//Main & CG experiment/MCGlabile_predvsobs.png",
+#       width= 20, height = 15,units ="cm",bg ="transparent",
+#      dpi = 600, limitsize = TRUE)
+
+
+#Predicted and observed values on graph####
+#### Sketch fitted values #
+#A. Specify covariate values for predictions
+#B. Create X matrix with expand.grid
+#C. Calculate predicted values
+#D. Calculate standard errors (SE) for predicted values
+#E. Plot predicted values
+#F. Plot predicted values +/- 	1.96 * SE
+
+RecalMCGModFINAL2 <- lmer(MainCGdiff ~ Season+Region+Landuse+Treatment+Temp+
+                           #Region:Landuse+
+                           Season:Temp+Season:Treatment+
+                           Season:Landuse+Season:Region+
+                          #Season:Region:Landuse+
+                           (1|Site/Blockcode), na.action=na.omit, REML=T, data =RecalDataMCG)
+
+#A:Specify covariate values for predictions
+
+Data2RecalMCG <- expand.grid(Season=levels(RecalMain$Season), #Specify which terms are used in the model. Specify levels for factors and min-max for numeric values. Specify length for each numeric var (how many predictions are created)
+                              Region=levels(RecalMain$Region),
+                              Landuse=levels(RecalMain$Landuse),
+                              Treatment=levels(RecalMain$Treatment),
+                              Temp = seq(min(RecalMain$Temp,na.rm=T), max(RecalMain$Temp,na.rm=T), length=100))
+                              
+#B. Create X matrix with expand.grid
+
+CG_R <- model.matrix(~ Season+Region+Landuse+Treatment+Temp+
+                       #Region:Landuse+
+                       Season:Temp+Season:Treatment+
+                       Season:Landuse+Season:Region,
+                       #Season:Region:Landuse
+                       data = Data2RecalMCG)
+head(CG_R)
+
+#C. Calculate predicted values
+Data2RecalMCG$Pred <- CG_R %*% fixef(RecalMCGModFINAL2)
+
+#D. Calculate standard errors (SE) for predicted values
+#Data2RecalMCG$SE <- sqrt(  diag(CG_R %*% vcov(RecalMCGModFINAL2) %*% t(CG_R))  )
+
+memory.limit() #Need to allocate more memory to R to be able to do this with length of 25. Scaled down to max of 12, since only ~8gb is given.
+
+
+#And using the Pred and SE values, we can calculate
+#a 95% confidence interval
+Data2RecalMCG$SeUp <- Data2RecalMCG$Pred + 1.96 * Data2RecalMCG$SE
+Data2RecalMCG$SeLo <- Data2RecalMCG$Pred - 1.96 * Data2RecalMCG$SE
+
+#E. Plot predicted values
+names(Data2RecalMCG)
+colnames(Data2RecalMCG)[6] <- "MainCGdiff"
+
+#Sorting predicted data (Means, SE)
+Data2RecalMCG.sum <-aggregate(MainCGdiff~Season+Region+Landuse+Treatment, data=Data2RecalMCG, mean)
+colnames(Data2RecalMCG.sum)[5] <- "MainCGdiff"
+Data2RecalMCG.sum.se<-aggregate(SE~Season+Region+Landuse, data=Data2RecalMCG, mean)
+Data2RecalMCG.sum$SE<-Data2RecalMCG.sum.se$SE
+
+#Sorting observed data (Means, SE)
+RecalDataMCG.sum <-aggregate(cbind(MainCGdiff,C.N,Temp,Sand)~Season+Region+Landuse+Treatment, data=RecalDataMCG, mean)
+RecalDataMCG.sum.se<-aggregate(MainCGdiff~Season+Region+Landuse+Treatment, data=RecalDataMCG, se)
 RecalDataMCG.sum$SE<-RecalDataMCG.sum.se$MainCGdiff
 
-#Plot CG ####
 
-#Graphing: CGvsMain experiment ####
+
+RecalMCGp <- ggplot(data=RecalDataMCG.sum, aes(x=Landuse,y=MainCGdiff))
+RecalMCGp <- RecalMCGp+geom_errorbar(data=Data2RecalMCG.sum, aes(ymin = MainCGdiff-SE,ymax = MainCGdiff+SE),width=0.1,show.legend=F,color="black")
+RecalMCGp <- RecalMCGp+geom_point(data=Data2RecalMCG.sum, color="black",size=2)
+RecalMCGp <- RecalMCGp+geom_errorbar(aes(ymin = MainCGdiff-SE,ymax = MainCGdiff+SE),width=0.1,show.legend=F,color="orangered3")
+RecalMCGp <- RecalMCGp+geom_point(color="orangered3",size=2)
+RecalMCGp <- RecalMCGp + geom_abline(slope=0, intercept=0, size =.95) 
+RecalMCGp <- RecalMCGp+ facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region",`Intermediate`="Intermediate Region"),Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
+#Mainp2 <- Mainp2+scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
+RecalMCGp <- RecalMCGp+xlab("Land-use")+ylab("Mass loss diff (%)")
+RecalMCGp <- RecalMCGp+theme(rect = element_rect(fill ="transparent")
+                       ,panel.background=element_rect(fill="transparent")
+                       ,plot.background=element_rect(fill="transparent",colour=NA)
+                       ,panel.grid.major = element_blank()
+                       ,panel.grid.minor = element_blank()
+                       ,panel.border = element_blank()
+                       ,panel.grid.major.x = element_blank()
+                       ,panel.grid.major.y = element_blank()
+                       ,axis.text=element_text(size=12,color="black")
+                       ,axis.title.y=element_text(size=14,color="black")
+                       ,axis.title.x=element_text(size=14,vjust=-.4,color="black")
+                       ,axis.text.x = element_text(size=10,color="black",
+                                                   margin=margin(2.5,2.5,2.5,2.5,"mm"))
+                       ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+                       ,axis.ticks.length=unit(-1.5, "mm")
+                       #,axis.line.y = element_blank()
+                       ,axis.line.x = element_blank()
+                       ,plot.margin = unit(c(8,50,5,5), "mm")
+                       ,strip.background = element_rect(fill="transparent",colour=NA)
+                       ,strip.text.x = element_text(size = 14,colour = "black")
+                       ,strip.text.y = element_text(size = 14,colour = "black")
+                       ,panel.spacing = unit(1, "lines")
+                       ,legend.background = element_rect(fill = "transparent")
+                       ,legend.title=element_blank()
+                       ,legend.position = c(1.3,0.5)
+                       ,legend.spacing.y = unit(-0.8, "mm")
+                       ,legend.key.height=unit(7.5,"mm")
+                       ,legend.key.width=unit(7.5,"mm")
+                       ,legend.key = element_rect(colour = NA, fill = NA)
+                       ,legend.key.size = unit(7,"mm")
+                       ,legend.text=element_text(size=12,color="black"))
+#RecalMCGp <- RecalMCGp+
+ # annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
+  #annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15) +
+  #annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
+  #annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
+
+RecalMCGp
+#ggsave("Termites//Main & CG experiment/MCGrecal_predvsobs.png",
+#      width= 20, height = 15,units ="cm",bg ="transparent",
+#     dpi = 600, limitsize = TRUE)
+ggplotly(RecalMCGp)
+
+
+
+#Graphing: OBSERVATIONS CGvsMain experiment VER.1#### 
 DataCG2<-droplevels(Fulldata[Fulldata$Experiment=="CG",]) # Only commongarden data
 DataMain2<-droplevels(Fulldata[Fulldata$Experiment=="Main",]) #Only landuse experiement data
 #But first sorting the commongarden data and main experiemnt for GGplot:
@@ -2681,8 +2682,8 @@ MainCGp <- MainCGp+guides(fill = guide_legend(override.aes=list(shape=25, color=
 MainCGp <- MainCGp+facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region"),
                                                                                  Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
 
-MainCGp <- MainCGp+ scale_x_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
-MainCGp <- MainCGp+ scale_y_continuous(limits = c(5,95), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
+MainCGp <- MainCGp+ scale_x_continuous(limits = c(0,100), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
+MainCGp <- MainCGp+ scale_y_continuous(limits = c(0,100), expand = c(0,0),breaks = c(5,20,40,60,80), labels = c(0,20,40,60,80))
 MainCGp <- MainCGp+xlab("Main experiment mass loss (%)") +  ylab("Common garden mass loss (%)")
 MainCGp <- MainCGp+ theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="transparent")
@@ -2732,8 +2733,166 @@ MainCGp
 
 
 
+
 #|####
 #WRAPPING UP RESULTS####
+#Soil properties for all Landuses and sites:####
+VildeSoil<- read.csv("Ecosystem carbon/Soil.data/Total.soil.data.csv")
+PH.sum <- aggregate(pH ~ Region,mean,data=VildeSoil)
+PH.sum.se <- aggregate(pH ~ Region,se,data=VildeSoil)
+PH.sum$SE <- PH.sum.se$pH
+
+PH.sum<-droplevels(PH.sum[PH.sum$Region!="Ikorongo",])
+PH.sum<-droplevels(PH.sum[PH.sum$Region!="Park Nyigoti",])
+PH.sum$Landuse <- c("Wild","Pasture","Wild","Pasture","Wild")
+
+#GPS locations####OPPS CANT AVARAGE THIS!
+Landuse.sitesGPS <- aggregate(cbind(Lat,Long)~Region+Landuse,Fulldata,mean)
+Landuse.sitesGPS$"Object-ID" <- c(1,2,3,4,5,6,7)
+write.csv(Landuse.sitesGPS,file="Termites/Results/Landuse.siteGPS.csv")
+All.GPS <- Fulldata[c("Region","Block","Landuse","Site","Lat","Long")]
+write.csv(Landuse.sitesGPS,file="Termites/Results/All.GPS.csv")
+
+#Avarage soil moisture, rain and temp####
+Moisture.sum <- aggregate(Moisture..~Season,Fulldata,mean)
+Moisture.sum.se <- aggregate(Moisture..~Season,Fulldata,se)
+Moist.measure <- aggregate(Moisture..~Season+Region+Block+Landuse,Fulldata,mean)
+Moist.measure.se <- aggregate(Moisture..~Season+Region+Block+Landuse,Fulldata,se)
+Moist.measure$SE.Moist <- Moist.measure.se$Moisture..
+Moist.measure$Block <- as.factor(Moist.measure$Block)
+library(ggplot2)
+Moistplot <- ggplot(Moist.measure,aes(x=Landuse,y=Moisture..,color=Block,shape=Landuse))
+Moistplot <- Moistplot+geom_errorbar(aes(ymin = Moisture..-SE.Moist,ymax = Moisture..+SE.Moist),width=.9,lwd=1,show.legend=F) 
+Moistplot <- Moistplot+geom_point(size=4)
+#Moistplot <- Moistplot+scale_color_discrete (size=4)
+Moistplot <- Moistplot+facet_wrap(Season~Region)
+Moistplot <- Moistplot+theme_classic()
+Moistplot
+
+#Separate out agriculture:
+Moist.Ag <- droplevels(Fulldata[Fulldata$Landuse=="Agriculture",])
+Moist.Ag <- droplevels(Moist.Ag[Moist.Ag$Region=="Dry",])
+Moist.Ag$agg.order <- as.factor(with(Moist.Ag,
+                                            ifelse(Region %in% c("Dry") &
+                                              Block == "1", 
+                                                "1",
+                                              ifelse(Region %in% c("Dry") &
+                                                       Block == "2", 
+                                                     "1",
+                                                     ifelse(Region %in% c("Dry") &
+                                                              Block == "3", 
+                                                            "2",
+                                                     ifelse(Region %in% c("Dry") &
+                                                              Block == "4", 
+                                                            "2","WRONG"))))))
+
+Moist.Ag.measure <- aggregate(cbind(Moisture..,Temperature..C.)~Season+Region+agg.order,Moist.Ag,mean)
+Moist.Ag.measure.se <- aggregate(cbind(Moisture..,Temperature..C.)~Season+Region+agg.order,Moist.Ag,se)
+Moist.Ag.measure$SE.Moist <- Moist.Ag.measure.se$Moisture..
+Moist.Ag.measure$SE.Temp <- Moist.Ag.measure.se$Temperature..C.
+write.csv(Moist.Ag.measure,file="Termites/Results/Moist.Ag.measure.csv")
+
+Climate.measure <- aggregate(cbind(Moisture..,Temperature..C.)~Season+Region+Landuse,Fulldata,mean)
+Climate.measure.se <- aggregate(cbind(Moisture..,Temperature..C.)~Season+Region+Landuse,Fulldata,se)
+Climate.measure$SE.Mois <- Climate.measure.se$Moisture..
+Climate.measure$SE.Temp<- Climate.measure.se$Temperature..C.
+write.csv(Climate.measure,file="Termites/Results/Temp.Moist.sum.csv")
+summary(Climate.measure)
+
+Rain.measure <- aggregate(Rain.sum~Season+Region,Fulldata,mean)
+Rain.measure.se <- aggregate(Rain.sum~Season+Region,Fulldata,se)
+Rain.measure$SE.Rain <- Rain.measure.se$Rain.sum
+write.csv(Rain.measure,file="Termites/Results/Rain.sum.csv")
+
+Rain.measure2 <- aggregate(Rain.sum~Season,Fulldata,mean)
+Rain.measure.se2 <- aggregate(Rain.sum~Season,Fulldata,se)
+Rain.measure2$SE.Rain <- Rain.measure.se2$Rain.sum
+write.csv(Rain.measure2,file="Termites/Results/Season.Rain.sum.csv")
+
+#Creating a texture table####
+SoilC.N.sum <- aggregate(C.N~Season+Region+Site+Landuse,Soildata,mean)
+SoilC.N.sum.se <- aggregate(C.N ~Season+Region+Site+Landuse,Soildata,se)
+SoilC.N.sum$SE.C.N <- SoilC.N.sum.se$C.N
+
+write.csv(SoilC.N.sum,file="Termites/Results/SoilC.N_Summary.csv")
+
+Soiltext.sum <- aggregate(cbind(Sandcorr, Siltcorr, Claycorr)~Region+Site+Landuse,Soildata,mean)
+Soiltext.sum.se <- aggregate(cbind(Sandcorr, Siltcorr, Claycorr)~Region+Site+Landuse,Soildata,se)
+Soiltext.sum$SE.Sand <- Soiltext.sum.se$Sandcorr
+Soiltext.sum$SE.Silt <- Soiltext.sum.se$Siltcorr
+Soiltext.sum$SE.Clay <- Soiltext.sum.se$Claycorr
+Soiltext.sum<- Soiltext.sum[,c(1,2,3,4,7,5,8,6,9)] #Reorder columns
+
+write.csv(Soiltext.sum,file="Termites/Results/Soiltext_Summary.csv")
+
+#Separate agriculture blocks 
+Soiltext.Ag <- droplevels(Soildata[Soildata$Landuse=="Agriculture",])
+#Create a new columns refering to who owns which block (Shabani, Mzee etc)
+Soiltext.Ag$Landowner <- as.factor(with(Soiltext.Ag,
+                                ifelse(Site %in% c("Makao") &
+                                  Block == "1", 
+                                "Shabani",
+                                ifelse(Site %in% c("Makao") &
+                                         Block == "2", 
+                                       "Shabani",
+                                ifelse(Site %in% c("Makao") &
+                                         Block == "3",
+                                       "Bonifas",
+                                ifelse(Site %in% c("Makao") &
+                                          Block == "4",
+                                        "Bonifas",
+                                  ifelse(Site %in% c("Mwantimba") &
+                                                Block == "1",
+                                              "Mzee Shabani",
+                                  ifelse(Site %in% c("Mwantimba") &
+                                                Block == "2",
+                                               "Mzee Shabani",
+                                    ifelse(Site %in% c("Mwantimba") &
+                                                  Block == "3",
+                                                "Mzee Majebere",
+                                    ifelse(Site %in% c("Mwantimba") &
+                                                   Block == "4",
+                                                "Mzee Majebere","WRONG"))))))))))
+Soiltext.Ag.sum <- aggregate(cbind(Sandcorr, Siltcorr, Claycorr)~Region+Site+Landowner,Soiltext.Ag,mean)
+Soiltext.Ag.sum.se <- aggregate(cbind(Sandcorr, Siltcorr, Claycorr)~Region+Site+Landowner,Soiltext.Ag,se)
+Soiltext.Ag.sum$SE.Sand <- Soiltext.Ag.sum.se$Sandcorr
+Soiltext.Ag.sum$SE.Silt <- Soiltext.Ag.sum.se$Siltcorr
+Soiltext.Ag.sum$SE.Clay <- Soiltext.Ag.sum.se$Claycorr
+Soiltext.Ag.sum<- Soiltext.Ag.sum[,c(1,2,3,4,7,5,8,6,9)] #Reorder columns
+write.csv(Soiltext.Ag.sum,file="Termites/Results/Soiltext_Summary_subset_agriculture.csv")
+
+#FYI - C.N is the only that is different across season (as we sampled in both season)
+
+
+Soiltextplot <- ggplot(Soildata.sum,aes(x=Landuse,y=Sandcorr,color=Site,shape=Landuse))
+Soiltextplot <- Soiltextplot+geom_point(size=4)
+Soiltextplot
+
+SoilCNplot <- ggplot(Soildata.sum,aes(x=Landuse,y=C.N,color=Site,shape=Landuse))
+SoilCNplot <- SoilCNplot+geom_point(size=4)
+SoilCNplot <- SoilCNplot+facet_wrap(~Season)
+SoilCNplot
+
+#Want to get the mean and SE for intermadiate Seronera mass loss:####
+LabileMainMean_Int <- aggregate(Massloss.per~Season+Region+Landuse+Treatment,mean, data=LabileMain)
+LabileMainSE_INt <- aggregate(Massloss.per~Season+Region+Landuse+Treatment,se, data=LabileMain)
+LabileMainMean_Int$SE <- LabileMainSE_INt$Massloss.per
+
+RecalMainMean_Int <- aggregate(Massloss.per~Season+Region+Landuse+Treatment,mean, data=RecalMain)
+RecalMainSE_INt <- aggregate(Massloss.per~Season+Region+Landuse+Treatment,se, data=RecalMain)
+RecalMainMean_Int$SE <- RecalMainSE_INt$Massloss.per
+
+
+#TermiteVSMicrobial effect - means####
+#Means across season
+TM.effectMain.means <- aggregate(Massloss.per~Season+Decomposer+Littertype,mean,data=TM.effectMain)
+TM.effectMain.se <-  aggregate(Massloss.per~Season+Decomposer+Littertype,se,data=TM.effectMain)
+TM.effectMain.means$SE <-TM.effectMain.se$Massloss.per
+#
+
+
+
+
 #Wrapping up model LRT/update results in one table####
 names(LabileMCGModFINAL.anovaterms)
 LabileMCGModFINAL.update.anovaterms1 <- LabileMCGModFINAL.anovaterms[,c(1,6,7,8,9)]
@@ -2750,10 +2909,10 @@ FINAL.update.anovaterms <- full_join(
   LabileMCGModFINAL.update.anovaterms1,
   RecalMCGModFINAL.update.anovaterms1,by="Terms")
 FINAL.update.anovaterms <- full_join(
-  FINAL.anovaterms,
+  FINAL.update.anovaterms,
   LabileMainModFINAL.update.anovaterms1,by="Terms")
 FINAL.update.anovaterms <- full_join(
-  FINAL.anovaterms,
+  FINAL.update.anovaterms,
   RecalMainModFINAL.update.anovaterms1,by="Terms")
 names(FINAL.update.anovaterms)
 colnames(FINAL.update.anovaterms) <- c("Df","F-ratio","Dfchi","Pr(>Chisq)","Terms","Model",
@@ -2765,7 +2924,7 @@ FINAL.update.anovaterms <- as.data.frame(FINAL.update.anovaterms)
 FINAL.update.anovaterms<- FINAL.update.anovaterms[,c(5,1,2,3,4,6:21)]
 names(FINAL.update.anovaterms)
 
-#write.csv(FINAL.update.anovaterms,na="", file="Termites/Results/FINAL.update.anovaterms.csv")
+write.csv(FINAL.update.anovaterms,na="", file="Termites/Results/FINAL.update.anovaterms.csv")
 
 #Wrapping up the R2c data into two graphs####
 #Want to have each graph comparing R2c for labile litter in Main and CG model.
@@ -2776,48 +2935,48 @@ RecalCGr2A <- RecalCGr2
 
 #Labile data
 LabileMainr2A$experiment <- "Main"
-LabileCGr2A$experiment <- "CG"
+LabileCGr2A$experiment <- "Common Garden"
 FINAL.r2.labilemodels <- rbind(LabileMainr2A,LabileCGr2A)
-
+write.csv(FINAL.r2.labilemodels,file="Termites/Results/R2_Importance_Labile_Models.csv")
 #Recal data
 RecalMainr2A$experiment <- "Main"
-RecalCGr2A$experiment <- "CG"
+RecalCGr2A$experiment <- "Common Garden"
 FINAL.r2.recalmodels <- rbind(RecalMainr2A,RecalCGr2A)
+write.csv(FINAL.r2.recalmodels,file="Termites/Results/R2_Importance_Recal_Models.csv")
 
 FINAL.r2.recalmodels$experiment <- as.factor(FINAL.r2.recalmodels$experiment)
 levels(FINAL.r2.recalmodels$experiment)
 FINAL.r2.recalmodels$terms <- as.factor(FINAL.r2.recalmodels$terms)
 
 #Plot for recal r2 models#
-#FINAL.r2.recalmodels$terms<- factor(FINAL.r2.recalmodels$terms, levels = FINAL.r2.recalmodels$terms[order(FINAL.r2.recalmodels$R2c)])
-r2.recalplot <- ggplot(data=FINAL.r2.recalmodels, aes(y=reorder(terms,R2c),x=R2c,color=experiment,alpha=experiment))
+r2.recalplot <- ggplot(data=FINAL.r2.recalmodels, aes(y=reorder(terms,R2m),x=R2m,color=experiment,alpha=experiment))
 r2.recalplot <- r2.recalplot+ geom_point(size=2)
-r2.recalplot <- r2.recalplot+scale_color_manual(values=c("black","green4"))
+r2.recalplot <- r2.recalplot+scale_color_manual(values=c("black","orangered3"))
 r2.recalplot <- r2.recalplot+scale_alpha_manual(values=c(0.3,1))
-r2.recalplot <- r2.recalplot+xlab("R2c Recalcitrant")+ylab("Terms")
+r2.recalplot <- r2.recalplot+xlab("R2m Recalcitrant litter")+ylab("Model terms")
 r2.recalplot <- r2.recalplot + theme_classic()
 r2.recalplot
-#ggsave(file="Termites/Results/Figures/r2c.recalplot.png",
-       width= 25, height = 12,units ="cm", bg ="transparent",
-       dpi = 600, limitsize = TRUE)
+ggsave(file="Termites/Results/Figures/r2m.recalplot.png",
+     width= 25, height = 12,units ="cm", bg ="transparent",
+    dpi = 600, limitsize = TRUE)
 
 #Plot for labile r2 models
-r2.labileplot <- ggplot(data=FINAL.r2.labilemodels, aes(y=reorder(terms,R2c),x=R2c,color=experiment,alpha=experiment))
+r2.labileplot <- ggplot(data=FINAL.r2.labilemodels, aes(y=reorder(terms,R2m),x=R2m,color=experiment,alpha=experiment))
 r2.labileplot <- r2.labileplot+ geom_point(size=2)
 r2.labileplot <- r2.labileplot+scale_color_manual(values=c("black","green4"))
 r2.labileplot <- r2.labileplot+scale_alpha_manual(values=c(0.3,1))
-r2.labileplot <- r2.labileplot+xlab("R2c Labile")+ylab("Terms")
+r2.labileplot <- r2.labileplot+xlab("R2m Labile litter")+ylab("Model terms")
 r2.labileplot <- r2.labileplot + theme_classic()
 r2.labileplot
-#ggsave(file="Termites/Results/Figures/r2.labileplot.png",
-       width= 25, height = 12,units ="cm", bg ="transparent",
-       dpi = 600, limitsize = TRUE)
+ggsave(file="Termites/Results/Figures/r2m.labileplot.png",
+      width= 25, height = 12,units ="cm", bg ="transparent",
+      dpi = 600, limitsize = TRUE)
 
 
 
-####TESTING INTERACTION TERMS - EMMEANS AND PLOTS####
 ###########################################################################################################
-#Standard script
+#Recipe script EMMEANS####
+#library(emmeans)
 #1) EMMEANS _ ACROSS FACTORS ONLY
 #ref_grid(MODELNAME_HERE)#Create ref.grid of the model. Make sure that this looks OK in the console.
 #ref.grid.MODELNAME <- ref_grid(MODELNAME_HERE)#Create ref.grid of the model
@@ -2837,11 +2996,33 @@ r2.labileplot
 # plot(emtrends.MODELNAME_HERE, cov.reduce = range,comparisons = FALSE) #THIS IS A GREATE GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
 #############################################################################################
 
+####CHECKING INTERACTION TERMS - EMMEANS AND PLOTS####
+library(emmeans)
 #Create ref grids for all the four models:
 ref.grid.LabileMainModFINAL <- ref_grid(LabileMainModFINAL)
 ref.grid.LabileMCGModFINAL <- ref_grid(LabileMCGModFINAL)
 ref.grid.RecalMainModFINAL <- ref_grid(RecalMainModFINAL)
 ref.grid.RecalMCGModFINAL <- ref_grid(RecalMCGModFINAL)
+
+#Main - Labile####
+#Season - Conlusiion: Dry season mass loss decreases
+emmeans.LabileMainModFINAL <- emmeans(ref.grid.LabileMainModFINAL, pairwise~Season,type="response") #Creating emmeans across the factor levels in the interaction.
+emmeans.LabileMainModFINAL$emmeans
+emmeans.LabileMainModFINAL.pairs <- pairs(emmeans.LabileMainModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+emmeans.LabileMainModFINAL.pairs$emmeans
+plot(emmeans.LabileMainModFINAL, comparisons = FALSE) #THIS IS A CREATE GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+#Season:Region - conclution: The difference bewteen Dry season-dry region vs all other regions across both seasons is driving this.
+emmeans.LabileMainModFINAL2 <- emmeans(ref.grid.LabileMainModFINAL, pairwise~Season*Region,type="response") #Creating emmeans across the factor levels in the interaction.
+emmeans.LabileMainModFINAL2$emmeans
+emmeans.LabileMainModFINAL.pairs2 <- pairs(emmeans.LabileMainModFINAL2,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+emmeans.LabileMainModFINAL.pairs2$emmeans
+plot(emmeans.LabileMainModFINAL2, comparisons = FALSE) #THIS IS A CREATE GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+#Getting mean obs values of each landuse in each region
+Labile.Mean <-aggregate(Massloss.per~Season+Region+Landuse, data=LabileMain, mean)
+Labile.se <-aggregate(Massloss.per~Season+Region+Landuse, data=LabileMain, se)
+
 
 #Checking threeway - LABILE
 #Main
@@ -2849,13 +3030,291 @@ ref.grid.RecalMCGModFINAL <- ref_grid(RecalMCGModFINAL)
 emmeans.LabileMainModFINAL <- emmeans(ref.grid.LabileMainModFINAL, pairwise~Season*Region*Landuse,type="response") #Creating emmeans across the factor levels in the interaction.
 emmeans.LabileMainModFINAL$emmeans
 emmeans.LabileMainModFINAL.pairs <- pairs(emmeans.LabileMainModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+emmeans.LabileMainModFINAL.pairs$emmeans
 plot(emmeans.LabileMainModFINAL, comparisons = FALSE) #THIS IS A CREATE GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
-#CG
-#Season:Region:Landuse - Conlusiion: Dry-Dry-P/Ag is driving this.
-emmeans.LabileMCGModFINAL <- emmeans(ref.grid.LabileMCGModFINAL, pairwise~Season*Region*Landuse,type="response") #Creating emmeans across the factor levels in the interaction.
+
+#Checking twoway - LABILE
+#Main
+#Region:Temp - Concl. similar slope acroass season and region (ie effect of temp is the same), but with higher temp, the decomposition decreases.
+emtrends.LabileMainModFINAL <- emtrends(LabileMainModFINAL, pairwise ~ Region, var = "Temp",type="response") # Use emmtrends here due to usage of covariate. 
+emmip(LabileMainModFINAL, Region~Temp, cov.reduce = range, type="response") #Acov.reduce=range is used so we'll be using not only the means (one value) of the covariate but the min and max.
+emtrends.LabileMainModFINAL.pairs <- pairs(emtrends.LabileMainModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+plot(emtrends.LabileMainModFINAL, cov.reduce = range,comparisons = FALSE) #THIS IS A GREAT GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+LabileTempPlot <- ggplot(LabileMain, aes(x=LabileMain$Temp, y=LabileMain$Massloss.per))
+LabileTempPlot <- LabileTempPlot+geom_point()
+LabileTempPlot <- LabileTempPlot+geom_smooth(method='lm')
+LabileTempPlot <- LabileTempPlot+facet_grid(~Region)
+LabileTempPlot <- LabileTempPlot+ylab("Labile litter mass loss (%)") +  xlab("Temp")
+LabileTempPlot <- LabileTempPlot+theme_classic()                                      
+LabileTempPlot
+
+#ggsave("Termites/Results/Figures/Temp_labile_plot_by_Season.png",
+#ggsave("Termites/Results/Figures/Temp_labile_plot_by_Region.png",
+#width= 40, height = 20,units ="cm",bg ="transparent",dpi = 600, limitsize = TRUE)
+
+#Season:Sand #No big effect here. As far as I can see
+emtrends.LabileMainModFINAL <- emtrends(LabileMainModFINAL, pairwise ~ Season, var = "Sand",type="response") # Use emmtrends here due to usage of covariate. 
+emmip(LabileMainModFINAL, Season~Sand, cov.reduce = range, type="response") #Acov.reduce=range is used so we'll be using not only the means (one value) of the covariate but the min and max.
+emtrends.LabileMainModFINAL.pairs <- pairs(emtrends.LabileMainModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+plot(emtrends.LabileMainModFINAL, cov.reduce = range,comparisons = FALSE) #THIS IS A GREAT GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+LabileSandPlot <- ggplot(LabileMain, aes(x=LabileMain$Sand, y=LabileMain$Massloss.per))
+LabileSandPlot <- LabileSandPlot+geom_point()
+LabileSandPlot <- LabileSandPlot+geom_smooth(method='lm')
+LabileSandPlot <- LabileSandPlot+facet_grid(~Season)
+LabileSandPlot <- LabileSandPlot+ylab("Labile litter mass loss (%)") +  xlab("Sand")
+LabileSandPlot <- LabileSandPlot+theme_classic()                                      
+LabileSandPlot
+
+#Landuse:C:N
+LabileC.NPlot <- ggplot(LabileMain, aes(x=LabileMain$C.N, y=LabileMain$Massloss.per))
+LabileC.NPlot <- LabileC.NPlot+geom_point()
+LabileC.NPlot <- LabileC.NPlot+geom_smooth(method='lm')
+LabileC.NPlot <- LabileC.NPlot+facet_grid(~Landuse)
+LabileC.NPlot <- LabileC.NPlot+ylab("Labile litter mass loss (%)") +  xlab("C.N")
+LabileC.NPlot <- LabileC.NPlot+theme_classic()                                      
+LabileC.NPlot
+
+#Main - Recal####
+#Checking threeway - Recal
+#Main
+#Season:Region:Treatment - Conlusion: The overall mass loss difference in treamtents from Dry seaso-dry region to the other season and regions are driving this.
+#significant increase in  treatment difference in wild wet season-dry region is driving this.
+emmeans.RecalMainModFINAL <- emmeans(ref.grid.RecalMainModFINAL, pairwise~Season*Region*Treatment,type="response") #Creating emmeans across the factor levels in the interaction.
+#emmeans.RecalMainModFINAL$emmeans
+emmeans.RecalMainModFINAL.pairs <- pairs(emmeans.RecalMainModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+#emmeans.RecalMainModFINAL.pairs$emmeans
+plot(emmeans.RecalMainModFINAL, comparisons = FALSE) #THIS IS A CREATE GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+emmip(ref.grid.RecalMainModFINAL, ~Season*Treatment|Region, type="response")#Graphically showing the intaractions, faceted by season.
+
+
+#Season:Landuse:Treatment - Conlusion: Just significant treatment differences are driving this. And that treatment difference is significantly less for wild areas by 17-28%.
+emmeans.RecalMainModFINAL <- emmeans(ref.grid.RecalMainModFINAL, pairwise~Season*Landuse*Treatment,type="response") #Creating emmeans across the factor levels in the interaction.
+emmeans.RecalMainModFINAL$contrasts
+emmeans.RecalMainModFINAL.pairs <- pairs(emmeans.RecalMainModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+emmeans.RecalMainModFINAL.pairs$emmeans
+plot(emmeans.RecalMainModFINAL, comparisons = FALSE) #THIS IS A GREAT GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+#Season:Region:Landuse - Conlusion:
+emmeans.RecalMainModFINAL <- emmeans(ref.grid.RecalMainModFINAL, pairwise~Season*Region*Landuse,type="response") #Creating emmeans across the factor levels in the interaction.
+#emmeans.RecalMainModFINAL$emmeans
+emmeans.RecalMainModFINAL.pairs <- pairs(emmeans.RecalMainModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+emmeans.RecalMainModFINAL.pairs$emmeans
+plot(emmeans.RecalMainModFINAL, comparisons = FALSE) #THIS IS A GREAT GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+Recal.sum.Seas.Reg.Land <- aggregate(Massloss.per~Season+Region+Landuse,RecalMain,mean)
+
+
+#Season:Region - concl: dryregion-dryseason vs all other regions across both seasons are driving this
+emmeans.RecalMainModFINAL2 <- emmeans(ref.grid.RecalMainModFINAL, pairwise~Season*Region,type="response") #Creating emmeans across the factor levels in the interaction.
+emmeans.RecalMainModFINAL2$emmeans
+emmeans.RecalMainModFINAL.pairs2 <- pairs(emmeans.RecalMainModFINAL2,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+emmeans.RecalMainModFINAL.pairs2$emmeans
+plot(emmeans.RecalMainModFINAL2, comparisons = FALSE) #THIS IS A CREATE GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+#Season:Landuse - The difference wild (dry season+dryregion) vs wild (wet season+dryregion) is driving this
+emmeans.RecalMainModFINAL <- emmeans(ref.grid.RecalMainModFINAL, pairwise~Season*Landuse,type="response") #Creating emmeans across the factor levels in the interaction.
+emmeans.RecalMainModFINAL$emmeans
+emmeans.RecalMainModFINAL.pairs <- pairs(emmeans.RecalMainModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+emmeans.RecalMainModFINAL.pairs$emmeans
+plot(emmeans.RecalMainModFINAL, comparisons = FALSE) #THIS IS A CREATE GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+#Treatment:Sand
+emtrends.RecalMainModFINAL <- emtrends(RecalMainModFINAL, pairwise ~ Treatment|Region , var = "Sand",type="response") # Use emmtrends here due to usage of covariate. 
+emmip(RecalMainModFINAL, Treatment|Region~Sand, cov.reduce = range, type="response") #Acov.reduce=range is used so we'll be using not only the means (one value) of the covariate but the min and max.
+emtrends.RecalMainModFINAL.pairs <- pairs(emtrends.RecalMainModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+plot(emtrends.RecalMainModFINAL, cov.reduce = range,comparisons = FALSE) #THIS IS A GREAT GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+
+RecalTempPlot <- ggplot(RecalMain, aes(x=RecalMain$Sand, y=RecalMain$Massloss.per))
+RecalTempPlot <- RecalTempPlot+geom_point()
+RecalTempPlot <- RecalTempPlot+geom_smooth(method='lm')
+RecalTempPlot <- RecalTempPlot+facet_grid(~Treatment)
+RecalTempPlot <- RecalTempPlot+ylab("Recal litter mass loss (%)") +  xlab("Sand")
+RecalTempPlot <- RecalTempPlot+theme_classic()                                      
+RecalTempPlot
+
+#Treatment:C:N
+RecalC.NPlot <- ggplot(RecalMain, aes(x=RecalMain$C.N, y=RecalMain$Massloss.per))
+RecalC.NPlot <- RecalC.NPlot+geom_point()
+RecalC.NPlot <- RecalC.NPlot+geom_smooth(method='lm')
+RecalC.NPlot <- RecalC.NPlot+facet_grid(~Treatment)
+RecalC.NPlot <- RecalC.NPlot+ylab("Recal litter mass loss (%)") +  xlab("C:N")
+RecalC.NPlot <- RecalC.NPlot+theme_classic()                                      
+RecalC.NPlot
+
+
+#CG-Labile####
+#Season:Region - Conlusion: Mainly Dry season-dry region driving this, as the difference between CG and Main in terms of rainfall is huge here. So more mass loss in CG.
+emmeans.LabileMCGModFINAL <- emmeans(ref.grid.LabileMCGModFINAL, pairwise~Season*Region,type="response") #Creating emmeans across the factor levels in the interaction.
 emmeans.LabileMCGModFINAL$emmeans
-emmeans.LabileMCGModFINAL.pairs <- pairs(emmeansLabileMCGModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
-plot(emmeans.LabileMCGModFINAL, comparisons = FALSE) #THIS IS A CREATE GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+emmeans.LabileMCGModFINAL.pairs <- pairs(emmeans.LabileMCGModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple MCG-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+emmeans.LabileMCGModFINAL.pairs$emmeans
+plot(emmeans.LabileMCGModFINAL, comparisons = FALSE) #THIS IS A GREAT GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+#Region:Temp - Concl. With increased temperature, mass loss wil increase in if soil is wet enough. The increase in temperature at the border, increases the decompostion differences (CG vs Main). I.e. more decompositon in common garden when soil due to more moisture in the soil compared to main experiment.
+emtrends.LabileMCGModFINAL <- emtrends(LabileMCGModFINAL, pairwise ~ Region, var = "Temp",type="response") # Use emmtrends here due to usage of covariate. 
+emmip(LabileMCGModFINAL, Region~Temp, cov.reduce = range, type="response") #Acov.reduce=range is used so we'll be using not only the means (one value) of the covariate but the min and max.
+emtrends.LabileMCGModFINAL.pairs <- pairs(emtrends.LabileMCGModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+plot(emtrends.LabileMCGModFINAL, cov.reduce = range,comparisons = FALSE) #THIS IS A GREAT GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+CGLabileTempPlot <- ggplot(LabileDataMCG, aes(x=LabileDataMCG$Temp, y=LabileDataMCG$MainCGdiff))
+CGLabileTempPlot <- CGLabileTempPlot+geom_point()
+CGLabileTempPlot <- CGLabileTempPlot+geom_smooth(method='lm')
+CGLabileTempPlot <- CGLabileTempPlot+facet_grid(~ Region)
+CGLabileTempPlot <- CGLabileTempPlot+ylab("Labile litter mass loss difference (%)") +  xlab("Temperature")
+CGLabileTempPlot <- CGLabileTempPlot+theme_classic()
+CGLabileTempPlot
+
+#Region:Landuse - Conlusion:  
+emmeans.LabileMCGModFINAL <- emmeans(ref.grid.LabileMCGModFINAL, pairwise~Region*Landuse,type="response") #Creating emmeans across the factor levels in the interaction.
+emmeans.LabileMCGModFINAL$emmeans
+emmeans.LabileMCGModFINAL.pairs <- pairs(emmeans.LabileMCGModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple MCG-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+emmeans.LabileMCGModFINAL.pairs$emmeans
+plot(emmeans.LabileMCGModFINAL, comparisons = FALSE) #THIS IS A GREAT GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+CGLabile.Mean <-aggregate(MainCGdiff ~Season+Region+Landuse, data=LabileDataMCG, mean)
+CGLabile.se <-aggregate(MainCGdiff~Season+Region+Landuse, data=LabileDataMCG, se)
+
+
+#Season:Treatment - Conlusion:  
+emmeans.LabileMCGModFINAL <- emmeans(ref.grid.LabileMCGModFINAL, pairwise~Season*Treatment,type="response") #Creating emmeans across the factor levels in the interaction.
+emmeans.LabileMCGModFINAL$emmeans
+emmeans.LabileMCGModFINAL.pairs <- pairs(emmeans.LabileMCGModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple MCG-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+emmeans.LabileMCGModFINAL.pairs$emmeans
+plot(emmeans.LabileMCGModFINAL, comparisons = FALSE) #THIS IS A GREAT GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+
+
+
+#Season:Sand - Concl. Looking at the trend emmeans, then an increase in sand in dry season increases decomposition a little (0.6% mass loss) and in wet season it increases only at 0.2% mass loss
+emtrends.LabileMCGModFINAL <- emtrends(LabileMCGModFINAL, pairwise ~ Season, var = "Sand",type="response") # Use emmtrends here due to usage of covariate. 
+emmip(LabileMCGModFINAL, Season~Sand, cov.reduce = range, type="response") #Acov.reduce=range is used so we'll be using not only the means (one value) of the covariate but the min and max.
+emtrends.LabileMCGModFINAL.pairs <- pairs(emtrends.LabileMCGModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+plot(emtrends.LabileMCGModFINAL, cov.reduce = range,comparisons = FALSE) #THIS IS A GREAT GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+CGLabileSandPlot <- ggplot(LabileDataMCG, aes(x=LabileDataMCG$Sand, y=LabileDataMCG$MainCGdiff))
+CGLabileSandPlot <- CGLabileSandPlot+geom_point()
+CGLabileSandPlot <- CGLabileSandPlot+geom_smooth(method='lm')
+CGLabileSandPlot <- CGLabileSandPlot+facet_grid(~ Season)
+CGLabileSandPlot <- CGLabileSandPlot+ylab("Labile litter mass loss difference (%)") +  xlab("Sand (%)")
+CGLabileSandPlot <- CGLabileSandPlot+theme_classic()
+CGLabileSandPlot
+
+#Landuse:Sand
+CGLabileSandPlot <- ggplot(LabileDataMCG, aes(x=LabileDataMCG$Sand, y=LabileDataMCG$MainCGdiff))
+CGLabileSandPlot <- CGLabileSandPlot+geom_point()
+CGLabileSandPlot <- CGLabileSandPlot+geom_smooth(method='lm')
+CGLabileSandPlot <- CGLabileSandPlot+facet_grid(~ Landuse)
+CGLabileSandPlot <- CGLabileSandPlot+ylab("Labile litter mass loss difference (%)") +  xlab("Sand (%)")
+CGLabileSandPlot <- CGLabileSandPlot+theme_classic()
+CGLabileSandPlot
+
+
+#Season:Treatment
+#Why is treatment.season sign for labile litter? #Looking a interacion plot below:
+#CG lost more in open than in exclosed treatment during dry season.
+#Seronera was the wettest area during dry season. So this makes sense!
+#Maybe leaching is greatest in open teabags, which could be the case when there is a lot of rain.
+with(LabileDataMCG, {interaction.plot(Season,Treatment,MainCGdiff,
+                                      xlab = "Season",
+                                      ylab = "Mass loss difference",
+                                      fun=mean)})
+
+#CG-Recal####
+#Season:Region - Conlusion: Mainly Dry season-dry region driving this, as the difference between CG and Main in terms of rainfall is huge here. So more mass loss in CG.
+emmeans.RecalMCGModFINAL <- emmeans(ref.grid.RecalMCGModFINAL, pairwise~Season*Region,type="response") #Creating emmeans across the factor levels in the interaction.
+emmeans.RecalMCGModFINAL$emmeans
+emmeans.RecalMCGModFINAL.pairs <- pairs(emmeans.RecalMCGModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple MCG-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+emmeans.RecalMCGModFINAL.pairs$emmeans
+plot(emmeans.RecalMCGModFINAL, comparisons = FALSE) #THIS IS A GREAT GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+#Season:Region by treatment - Conlusion: Mainly Dry season-dry region driving this, as the difference between CG and Main in terms of rainfall is huge here. So more mass loss in CG.
+emmeans.RecalMCGModFINAL <- emmeans(ref.grid.RecalMCGModFINAL, pairwise~Season*Region|Treatment,type="response") #Creating emmeans across the factor levels in the interaction.
+emmeans.RecalMCGModFINAL$emmeans
+emmeans.RecalMCGModFINAL.pairs <- pairs(emmeans.RecalMCGModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple MCG-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+emmeans.RecalMCGModFINAL.pairs$emmeans
+plot(emmeans.RecalMCGModFINAL, comparisons = FALSE) #THIS IS A GREAT GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+ggplotly(plot(emmeans.RecalMCGModFINAL, comparisons = FALSE))
+
+#Season:Region by landuse - Conlusion: Mainly Dry season-dry region driving this, as the difference between CG and Main in terms of rainfall is huge here. So more mass loss in CG.
+emmeans.RecalMCGModFINAL <- emmeans(ref.grid.RecalMCGModFINAL, pairwise~Season*Region|Landuse,type="response") #Creating emmeans across the factor levels in the interaction.
+emmeans.RecalMCGModFINAL$emmeans
+emmeans.RecalMCGModFINAL.pairs <- pairs(emmeans.RecalMCGModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple MCG-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+emmeans.RecalMCGModFINAL.pairs$emmeans
+plot(emmeans.RecalMCGModFINAL, comparisons = FALSE) #THIS IS A GREAT GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+
+#Season:Landuse - Conlusion: When season is dry within dry region, mass loss is higher in CG, 19%,20%,8% respectively for Ag, Pasture and Wild.
+#Indicating importance of rainfall for decomposition.
+emmeans.RecalMCGModFINAL <- emmeans(ref.grid.RecalMCGModFINAL, pairwise~Season*Landuse|Region,type="response") #Creating emmeans across the factor levels in the interaction.
+emmeans.RecalMCGModFINAL$emmeans
+emmeans.RecalMCGModFINAL.pairs <- pairs(emmeans.RecalMCGModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple MCG-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+emmeans.RecalMCGModFINAL.pairs$emmeans
+plot(emmeans.RecalMCGModFINAL, comparisons = FALSE) #THIS IS A GREAT GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+#Season:Region:Landuse - Conlusion:
+emmeans.RecalMCGModFINAL <- emmeans(ref.grid.RecalMCGModFINAL, pairwise~Season*Region*Landuse,type="response") #Creating emmeans across the factor levels in the interaction.
+emmeans.RecalMCGModFINAL$emmeans
+emmeans.RecalMCGModFINAL.pairs <- pairs(emmeans.RecalMCGModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple MCG-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+emmeans.RecalMCGModFINAL.pairs$emmeans
+plot(emmeans.RecalMCGModFINAL, comparisons = FALSE) #THIS IS A GREAT GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+ggplotly(plot(emmeans.RecalMCGModFINAL, comparisons = FALSE))
+
+#Season:Treatment - concl: 
+emmeans.RecalMCGModFINAL <- emmeans(ref.grid.RecalMCGModFINAL, pairwise~Season*Treatment,type="response") #Creating emmeans across the factor levels in the interaction.
+emmeans.RecalMCGModFINAL$emmeans
+emmeans.RecalMCGModFINAL.pairs <- pairs(emmeans.RecalMCGModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple MCG-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+emmeans.RecalMCGModFINAL.pairs$emmeans
+plot(emmeans.RecalMCGModFINAL, comparisons = FALSE) #THIS IS A GREAT GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+emmip(ref.grid.RecalMCGModFINAL, ~Season*Treatment, type="response")#Graphically showing the intaractions, faceted by season.
+
+se.tre.plot<- with(RecalDataMCG, {interaction.plot(Season,Treatment,MainCGdiff,
+                                      xlab = "Season",
+                                      ylab = "Mass loss difference",
+                                      fun=mean)})
+
+mean.treat.seas <- aggregate(MainCGdiff~Season+Treatment,RecalDataMCG,mean)
+mean.treat.seas.sd <- aggregate(MainCGdiff~Season+Treatment,RecalDataMCG,sd)
+mean.treat.seas$SD <- mean.treat.seas.sd$MainCGdiff
+mean.treat.seas
+# Season Treatment MainCGdiff        SD
+# 1    Dry  Exclosed -8.3627997 10.060362
+# 2    Wet  Exclosed -0.1842042  5.792581
+# 3    Dry      Open -5.5558818 36.709499
+# 4    Wet      Open 14.1143027 19.197890
+
+CGRecalTreatmentPlot <- ggplot(RecalDataMCG, aes(x=RecalDataMCG$Treatment, y=RecalDataMCG$MainCGdiff))
+CGRecalTreatmentPlot <- CGRecalTreatmentPlot+geom_point()
+CGRecalTreatmentPlot <- CGRecalTreatmentPlot+geom_smooth(method='lm')
+CGRecalTreatmentPlot <- CGRecalTreatmentPlot+facet_grid(~ Season)
+CGRecalTreatmentPlot <- CGRecalTreatmentPlot+ylab("Recal litter mass loss difference (%)") +  xlab("Treatmenterature")
+CGRecalTreatmentPlot <- CGRecalTreatmentPlot+theme_classic()
+CGRecalTreatmentPlot
+
+
+CGRecal.Mean <-aggregate(MainCGdiff ~Season+Region+Landuse+Treatment, data=RecalDataMCG, mean)
+CGRecal.se <-aggregate(MainCGdiff~Season+Region+Landuse+Treatment, data=RecalDataMCG, se)
+
+
+#Treatment:C.N - Looks like more decrease in decomp for open treatment with high C:N (i.e termites prefer soil with low C.N..hmm.. not sure about this)
+emtrends.RecalMainModFINAL <- emtrends(RecalMainModFINAL, pairwise~Treatment|Season*Region, var = "C.N",type="response") # Use emmtrends here due to usage of covariate. 
+emmip(RecalMainModFINAL, Treatment~C.N|Season*Region, cov.reduce = range, type="response") #Acov.reduce=range is used so we'll be using not only the means (one value) of the covariate but the min and max.
+emtrends.RecalMainModFINAL.pairs <- pairs(emtrends.RecalMainModFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+plot(emtrends.RecalMainModFINAL, cov.reduce = range,comparisons = FALSE) #THIS IS A GREAT GRAPHICAL OUTPUT!! Comparisons summarized graphically instead of with a table as in pairs(). The blue bars are confidence intervals for the EMMs. if  you set comparison=TRUE this shows red arrows for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant. This function (comparison=TRUE) may not always work for your data.
+
+#Checking C:N observations Concl. The effect of C.N:Treatment on mass loss is inconsistent, no clear pattern.
+# It shows sign in model propably because the high C:N value (20) is in dry season-wet region-wild, and here the treatment difference in 
+#mass loss is smaller. Therefore the interaction plot in emmeans shows that open treatment has a more decrease in mass loss. compared to the exclosed (which are kept almost the same across)
+RecalCNPlot <- ggplot(RecalMain, aes(x=RecalMain$C.N, y=RecalMain$Massloss.per))
+RecalCNPlot <- RecalCNPlot+geom_point()
+RecalCNPlot <- RecalCNPlot+geom_smooth(method='lm')
+#RecalCNPlot <- RecalCNPlot+facet_grid(~ Treatment)
+RecalCNPlot <- RecalCNPlot+facet_grid(Treatment~ Season+Region+Landuse)
+#RecalCNPlot <- RecalCNPlot+facet_grid(Treatment~ Landuse+Season)
+RecalCNPlot <- RecalCNPlot+theme_classic()
+RecalCNPlot
 
 
 
@@ -2864,49 +3323,249 @@ plot(emmeans.LabileMCGModFINAL, comparisons = FALSE) #THIS IS A CREATE GRAPHICAL
 
 
 
+#emmeans
+ref.gridLabileMCGModFINAL <- ref_grid(LabileMCGModFINAL)
+ref.gridLabileMCGModFINAL #See how the grid is looking. Check for correct factors and the emmeans of numerical variables. If testing between numerical variables, only the means or the low/high end of values can be specified. I.e contrasts vs trend. See emmeans vignette for more info.
+emmip(LabileMCGModFINAL, Treatment~Season|Region, type="response") #Can see here that there is an interaction effect of treatment:season
+emmeans.LabileMCGModFINAL <- emmeans(LabileMCGModFINAL, pairwise~Treatment|Season|Region,type="response") #Positive values=More main massloss means less massloss in CG
+emm.sum.LabileMCGModFINAL<- summary(emmeansLabileMCGModFINAL)
+emm.sum.LabileMCGModFINAL$contrasts #Get contrast between factors (linear). This is somewhat similar to pairs()
+emm.sum.LabileMCGModFINAL$emmeans #Get emmeans of factors.
+
+pairs(emmeans(LabileMCGModFINAL, ~Treatment*Season|Region),simple = "each", combine =TRUE) # Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE all contrasts are combined into one family:. The dots (.) in this result correspond to which simple effect is being displayed. 
+plot(emmeans.LabileMCGModFINAL, comparisons = TRUE) #Comparisons summarized graphically. The blue bars are confidence intervals for the EMMs, and the red arrows are for the comparisons among them. If an arrow from one mean overlaps an arrow from another group, the difference is not significant
+
+#Conlcusion on treatment:Season: There is an effect of treatment when season is dry. CG has higher massloss in dry season (due to more rain as seen in precip data).
+
+
+#View model prediction tables####
+#write.csv(Data2Labile,file="Termites/Results/Labile_predictions.csv")
+#write.csv(Data2Recal,file="Termites/Results/Recal_predictions.csv")
+#write.csv(Data2LabileMCG,file="Termites/Results/CGLabile_predictions.csv")
+#write.csv(Data2RecalMCG,file="Termites/Results/CGRecal_predictions.csv")
+
+Data2Labile <- read.csv(file="Termites/Results/Labile_predictions.csv")
+Data2Recal <- read.csv(file="Termites/Results/Recal_predictions.csv")
+Data2LabileMCG <- read.csv(file="Termites/Results/CGLabile_predictions.csv")
+Data2RecalMCG <- read.csv(file="Termites/Results/CGRecal_predictions.csv")
+View(Data2Labile) #Both <0 and >100  pred. values
+View(Data2Recal) #Both <0 and >100  pred. values
+View(Data2LabileMCG) #More than 100% pred. values. (Should be between -100to100)
+View(Data2RecalMCG) #Ok, values within boundary of -100to100.
+
+
+Temp.Mean <-aggregate(Temperature..C.~Season+Region, data=Fulldata, mean)
+
+
+
+#View observed plots####
+#Use this to identify observations in the plots:
+ggplotly(Mainp)#Main
+ggplotly(MainCGp)#Common Garden
+ggplotly(RecalMCGp)
+
+#Temperature for Labile litter plot####
+#By Region
+LabileTempPlot <- ggplot(LabileMain, aes(x=LabileMain$Temp, y=LabileMain$Massloss.per))
+LabileTempPlot <- LabileTempPlot+geom_point()
+LabileTempPlot <- LabileTempPlot+geom_smooth(method='lm')
+LabileTempPlot <- LabileTempPlot+facet_grid(~Region)
+LabileTempPlot <- LabileTempPlot+ylab("Labile litter mass loss (%)") +  xlab("Temperature (\u00B0C)")
+LabileTempPlot <- LabileTempPlot+theme_classic()                                      
+LabileTempPlot
+ggsave("Termites/Results/Figures/Temp_labile_plot_by_Region.png",
+width= 40, height = 20,units ="cm",bg ="transparent",dpi = 600, limitsize = TRUE)
+
+#By Region and Landuse
+LabileTempPlot2 <- ggplot(LabileMain, aes(x=LabileMain$Temp, y=LabileMain$Massloss.per))
+LabileTempPlot2 <- LabileTempPlot2+geom_point()
+LabileTempPlot2 <- LabileTempPlot2+geom_smooth(method='lm')
+LabileTempPlot2 <- LabileTempPlot2+facet_grid(Region~ Landuse)
+LabileTempPlot2 <- LabileTempPlot2+ylab("Labile litter mass loss (%)") +  xlab("Temperature (\u00B0C)")
+LabileTempPlot2 <- LabileTempPlot2+theme_classic()                                      
+LabileTempPlot2
+ggsave("Termites/Results/Figures/Temp_labile_plot_by_RegionLanduse.png",
+       width= 40, height = 20,units ="cm",bg ="transparent",dpi = 600, limitsize = TRUE)
+
+###Calcultating means for result section in thesis####
+
+#Labile litter decomposition
+a <- aggregate(Massloss.per ~ Season+Region+Littertype+Landuse,DataMain,mean)
+a.sd <- aggregate(Massloss.per ~ Season+Region+Littertype+Landuse,DataMain,sd)
+a$SD <- a.sd$Massloss.per
+a
+# Season Littertype Massloss.per        SD
+# 1    Dry      Green     40.97735 29.546029
+# 2    Wet      Green     74.08637  6.056158
+# 3    Dry    Rooibos     27.51009 29.454469
+# 4    Wet    Rooibos     40.59864 24.455982
+
+#Season       Region Littertype Massloss.per        SD
+#Dry          Dry      Green     14.51066 15.210379
+# Dry          Wet      Green     64.66720 15.322555
+
+# Season       Region Littertype     Landuse Massloss.per        SD
+#Dry          Dry      Green Agriculture    23.404241 19.807013
+#Dry          Dry      Green     Pasture    11.923111 10.596254
+#Dry          Dry      Green        Wild     8.701274  9.353974
+
+
+
+#SEASON:REGION:TREATMENT
+#Recal Contribution by termites and microbes in dry season, across regions#
+a <- aggregate(Massloss.per ~ Season+Region+LD,TM.effectMain,mean)
+a.sd <- aggregate(Massloss.per ~ Season+Region+LD,TM.effectMain,sd)
+a$SD <- a.sd$Massloss.per
+a
+#Season Region                   LD Massloss.per        SD
+#Dry    Dry Recalcitrant Microbe     9.766916  1.1956586
+#Dry    Dry Recalcitrant Termite    16.596434 10.3620756
+#Dry    Wet Recalcitrant Microbe    22.064035  3.0183441
+#Dry    Wet Recalcitrant Termite    32.980234 12.0583196
+
+#Season:Landuse:Treatment
+b <- aggregate(Massloss.per~Season+Landuse+LD,TM.effectMain,mean)
+b.sd <- aggregate(Massloss.per~Season+Landuse+LD,TM.effectMain,sd)
+b$SD <- b.sd$Massloss.per
+b
+#
+#Dry Agriculture Recalcitrant Termite   31.6893734  9.4427586
+#Dry     Pasture Recalcitrant Termite   30.5804005 15.3107229
+#Dry        Wild Recalcitrant Termite   12.0952277 10.0018056
+#Wet Agriculture Recalcitrant Termite   14.8343162  8.8340299
+#Wet     Pasture Recalcitrant Termite   16.6586713  0.1632007
+#Wet        Wild Recalcitrant Termite   23.4152203 14.7874798
+
+c <- aggregate(Massloss.per~Season+Region+LD,TM.effectMain,mean)
+c.sd <- aggregate(Massloss.per~Season+Region+LD,TM.effectMain,sd)
+c$SD <- c.sd$Massloss.per
+c
+
+
+#Season                   LD Massloss.per         SD
+#Dry Recalcitrant Microbe    15.915475  7.0414304
+#Wet Recalcitrant Microbe    31.351618  4.7812891
+
+d <- aggregate(cbind(Microbe.effect,Termite.effect)~Season+Region+Landuse,RedOpEx,mean)
+d.sd <- aggregate(cbind(Microbe.effect,Termite.effect)~Season+Region+Landuse,RedOpEx,sd)
+d$SD.Microbe <- d.sd$Microbe.effect
+d$SD.Term <- d.sd$Termite.effect
+d
+#RECAL
+#Season       Region     Landuse Microbe.effect Termite.effect SD.Microbe   SD.Term
+#Dry          Dry Agriculture      11.008958      25.012335   7.122670 37.058116
+#Dry          Dry     Pasture       9.713846      19.754085   6.802211 32.990369
+#Dry          Dry        Wild       8.598676       5.022883   5.875826 15.235399
+#LABILE
+#Dry          Dry Agriculture       28.33721      4.3722057  24.128391 6.5534648
+#Dry          Dry     Pasture       18.86685      4.2966222  23.146971 8.2103081
+#Dry          Dry        Wild       16.35381      1.9333322  23.021169 4.5254084
+
+d <- aggregate(Termite.effect~Season+Region+Landuse,RedOpEx,mean)
+d.sd <- aggregate(Termite.effect~Season+Region+Landuse,RedOpEx,sd)
+d$SD.Term <- d.sd$Termite.effect
+d
+
+d.avrg <- aggregate(Termite.effect~Season+Region+Landuse,d,mean)
+d.avrg
+
+# Season       Region     Landuse Termite.effect
+# # 1     Dry          Dry Agriculture    25.012335
+# 3     Dry          Wet Agriculture      38.366412
+# 4     Wet          Wet Agriculture      21.080919
+# 5     Dry          Dry     Pasture      19.754085
+# 7     Dry          Wet     Pasture      41.406716
+# 8     Wet          Wet     Pasture      16.774072
+# 9     Dry          Dry        Wild       5.022883
+# 13    Dry          Wet        Wild      19.167572
+# 14    Wet          Wet        Wild      12.958893
+# #----
+# 2     Wet          Dry Agriculture       8.587714
+# 6     Wet          Dry     Pasture      16.543271
+# 10    Wet          Dry        Wild      33.871548
 
 
 
 
+#CG LABILE#
+#SEASON:REGION
+e <- aggregate(MainCGdiff~Season+Region,LabileDataMCG,mean)
+e.sd <- aggregate(MainCGdiff~Season+Region,LabileDataMCG,sd)
+e$SD <- e.sd$MainCGdiff
+e
+# 
+# Season       Region    MainCGdiff        SD
+# 1    Dry          Dry -5.909574e+01 11.424835
+# 2    Wet          Dry -3.536588e+00  4.405311
+# 3    Dry          Wet -9.401838e+00 16.161568
+# 4    Wet          Wet  6.216437e+00  4.627340
+# 5    Dry Intermediate  5.329071e-15  4.230784
+# 6    Wet Intermediate  1.776357e-15  2.252442
+
+# Season:region:landuse
+e <- aggregate(MainCGdiff~Season+Region+Landuse,LabileDataMCG,mean)
+e.sd <- aggregate(MainCGdiff~Season+Region+Landuse,LabileDataMCG,sd)
+e$SD <- e.sd$MainCGdiff
+e
+# Season       Region     Landuse    MainCGdiff        SD
+# Dry          Wet Agriculture -8.923158e+00  7.236806
+#Dry          Wet     Pasture -1.714237e+01 25.808130
+#Dry          Dry Agriculture -4.748959e+01 10.003898
+#Dry          Dry     Pasture -6.319739e+01  5.640356
+#Dry          Dry        Wild -6.660024e+01  7.710168
+
+LabileDataMCG.AG<-droplevels(LabileDataMCG[LabileDataMCG$Landuse=="Agriculture",]) 
+LabileDataMCG.AGPlot <- ggplot(LabileDataMCG.AG, aes(x=LabileDataMCG.AG$Blockcode, y=LabileDataMCG.AG$MainCGdiff))
+LabileDataMCG.AGPlot <- LabileDataMCG.AGPlot+geom_point()
+#LabileDataMCG.AGPlot <- LabileDataMCG.AGPlot+geom_smooth(method='lm')
+LabileDataMCG.AGPlot <- LabileDataMCG.AGPlot+facet_grid(Region~Season)
+LabileDataMCG.AGPlot <- LabileDataMCG.AGPlot+ylab("Labile litter mass loss difference (%)") +  xlab("Blocks")
+LabileDataMCG.AGPlot <- LabileDataMCG.AGPlot+theme_classic()
+LabileDataMCG.AGPlot
 
 
+#CG RECAL#
+#SEASON:REGION
+e <- aggregate(MainCGdiff~Season+Region,RecalDataMCG,mean)
+e.sd <- aggregate(MainCGdiff~Season+Region,RecalDataMCG,sd)
+e$SD <- e.sd$MainCGdiff
+e
+# Season       Region    MainCGdiff        SD
+# 1    Dry          Dry -1.508103e+01 29.739112
+# 2    Wet          Dry  1.101655e+01 17.212778
+# 3    Dry          Wet -1.554309e+00 23.362455
+# 4    Wet          Wet  5.235229e+00 16.121566
+# 5    Dry Intermediate  2.220446e-15 21.586847
+# 6    Wet Intermediate  4.440892e-16  3.233844
 
+#SEASON:REGION:LANDUSE
+e <- aggregate(MainCGdiff~Season+Region+Landuse,RecalDataMCG,mean)
+e.sd <- aggregate(MainCGdiff~Season+Region+Landuse,RecalDataMCG,sd)
+e$SD <- e.sd$MainCGdiff
+e
+# Season       Region     Landuse    MainCGdiff        SD
+# 1     Dry          Dry Agriculture -1.173783e+01 44.510644
+# 5     Dry          Dry     Pasture -1.860421e+01 31.667795
+# 9     Dry          Dry        Wild -1.448316e+01  7.266320
 
-
-
-#ref.grid.LabileMainModFINAL <- ref_grid(LabileMainModFINAL) #at = list(Region = c("Dry", "Wet"))) #Want to remove Intermadiate in the grid as it can't be compared to the other landuses, except wild.
-#ref.grid.LabileMainModFINAL#See how the grid is looking. Check for correct factors and the emmeans of numerical variables. If testing between numerical variables, only the means or the low/high end of values can be specified. I.e contrasts vs trend. See emmeans vignette for more info.
-#str(ref.grid.LabileMainModFINAL)
-#Check threeway first:
-#emmip(ref.grid.LabileMainModFINAL, ~Region*Landuse|Season, type="response")#Can see here that the regional differences is greatly pronounce in dry season. And thatdry region is most different in this season. In wet season, dry and wet region is similar (following rainfall) and that wet season is the most dissimilar. 
-#emmeans.LabileMainModFINAL <- emmeans(ref.grid.LabileMainModFINAL, pairwise~Season*Region*Landuse,type="response") #
-#emmeans.LabileMainModFINAL$contrasts #Get contrast between factors (linear). This is somewhat similar to pairs()
-#emmeans.LabileMainModFINAL$emmeans #Get emmeans of factors.
-#emmeans.LabileMainModFINAL.pairs <- pairs(emmeans.LabileMainModFINAL,simple = "each", combine =TRUE) # Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which simple effect is being displayed. 
-#write.csv(emmeans.LabileMainModFINAL.pairs$emmeans,file="Termites/Emmeans_contrast_Threeway_LabileMainMod.csv")
-#plot(emmeans.LabileMainModFINAL, comparisons = FALSE) #Comparisons summarized graphically. The blue bars are confidence intervals for the EMMs, and the red arrows are for the comparisons among them ,if comparison=TRUE. If an arrow from one mean overlaps an arrow from another group, the difference is not significant
-
-#Now look at the two-way interaction Landuse:C.N. I use emmtrends here due to usage of covariate. Also cov.reduce=range is used so we'll be using not only the means (one value) of the covariate but the min and max.
-# emtrends.LabileMainModFINAL <- emtrends(LabileMainModFINAL, pairwise ~ Landuse|Region, var = "C.N",type="response")
-# emmip(LabileMainModFINAL, Landuse~C.N|Region, cov.reduce = range, type="response")
-# emtrends.LabileMainModFINAL.pairs <- pairs(emtrends.LabileMainModFINAL,simple = "each", combine =TRUE) # Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which simple effect is being displayed. 
-# plot(emtrends.LabileMainModFINAL, cov.reduce = range,comparisons = FALSE) #Comparisons summarized graphically. The blue bars are confidence intervals for the EMMs, and the red arrows are for the comparisons among them ,if comparison=TRUE. If an arrow from one mean overlaps an arrow from another group, the difference is not significant
-
-#Now look at the two-way interaction Landuse:Temp. I use emmtrends here due to usage of covariate. Also cov.reduce=range is used so we'll be using not only the means (one value) of the covariate but the min and max.
-# emtrends.LabileMainModFINAL <- emtrends(LabileMainModFINAL, pairwise ~ Landuse|Region, var = "Temp",type="response")
-# emmip(LabileMainModFINAL, Landuse~Temp|Region*Season, cov.reduce = range, type="response")
-# emtrends.LabileMainModFINAL.pairs <- pairs(emtrends.LabileMainModFINAL,simple = "each", combine =TRUE) # Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which simple effect is being displayed. 
-# plot(emtrends.LabileMainModFINAL, cov.reduce = range,comparisons = FALSE) #Comparisons summarized graphically. The blue bars are confidence intervals for the EMMs, and the red arrows are for the comparisons among them ,if comparison=TRUE. If an arrow from one mean overlaps an arrow from another group, the difference is not significant
-
-
-
-
-
-
-
-
-
-
+#SEASON:REGION:LANDUSE:Treatment
+e <- aggregate(MainCGdiff~Season+Region+Landuse+Treatment,RecalDataMCG,mean)
+e.sd <- aggregate(MainCGdiff~Season+Region+Landuse+Treatment,RecalDataMCG,sd)
+e$SD <- e.sd$MainCGdiff
+e
+# # Season       Region     Landuse Treatment    MainCGdiff        SD
+# 5    Dry          Dry Agriculture      Open -9.189796e+00 76.327608
+# 16    Wet          Dry Agriculture      Open  4.867841e+00 16.839650
+# 17    Dry          Wet Agriculture      Open -1.031034e+01 41.015726
+# 18    Wet          Wet Agriculture      Open  2.114243e+01 24.957477
+# 19    Dry          Dry     Pasture      Open -1.935158e+01 48.168640
+# 20    Wet          Dry     Pasture      Open  2.098098e+01 15.227836
+# 21    Dry          Wet     Pasture      Open -9.390411e+00 34.704419
+# 22    Wet          Wet     Pasture      Open  1.565621e+01 15.736712
+# 23    Dry          Dry        Wild      Open -1.277978e+01 10.144311
+# 24    Wet          Dry        Wild      Open  3.468804e+01 20.627584
+# 25    Dry          Wet        Wild      Open  2.122225e+01  5.313909
+# 26    Wet          Wet        Wild      Open  1.464624e+00 14.272862
 
 
 
