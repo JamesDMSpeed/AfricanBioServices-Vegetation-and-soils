@@ -2054,7 +2054,7 @@ anova(P2)
 #Poly(rain.day,2)
 P2.2 <- lme(prodtot~landuse+poly(rain.day,2)+
               landuse:poly(rain.day,2),
-            #landuse:sand+
+            #landuse:sand,
             #poly(rain.day,2):sand,
             random=~1|site.name/block.id,method="ML",correlation=cs1AR1, data=DataprodEx)
 drop1(P2.2,test="Chisq") #dropping if not significant term
