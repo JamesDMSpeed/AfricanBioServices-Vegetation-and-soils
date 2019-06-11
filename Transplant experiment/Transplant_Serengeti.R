@@ -45,27 +45,29 @@ library(lme4)
 
 ########################################################################
 
-
+setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/VegSoil_AfricanBioServices/AfricanBioServices-Vegetation-and-soils/")
 # Combined species, aboveground biomass and 5 cm soil
-TP<-read.csv(file="Transplant experiment/BioCoverSoil5cm.csv", sep=",",header=TRUE)
+TP<-read.csv(file="Transplant experiment/BioCoverSoil5cmNuts.csv", sep=",",header=TRUE)
 TP[duplicated(TP$Current.placement.of.the.turf), ] # No dups
 
 # House keeping factors for analysis
-TP$fSite<-as.factor(TP$Site)
-TP$fBlock<-as.factor(TP$Block)
+names(TP)
+TP$fSite<-as.factor(TP$site)
+TP$fBlock<-as.factor(TP$block)
 TP$fTagsp<-as.factor(TP$Tagsp)
-TP$fLanduse<-as.factor(TP$Landuse)
+TP$fLanduse<-as.factor(TP$landuse)
+TP$fregion<-as.factor(TP$region)
 
 #### Process data ####
 # Remove no data and control plots
 names(TP)
-dim(TP) # 152  30
-TP2Cex<-TP[!is.na(TP$FilTagspCover) & ! TP$Trasnplant=="Control" & !TP$Treatment=="Exclosed",]
-TP2Con<-TP[!is.na(TP$FilTagspCover) & ! TP$Trasnplant=="Control",]
+dim(TP) # 152  67
+TP2Cex<-TP[!is.na(TP$FilTagspCover) & ! TP$transplant=="Control" & !TP$treatment=="Exclosed",]
+TP2Con<-TP[!is.na(TP$FilTagspCover) & ! TP$transplant=="Control",]
 TP2<-TP[!is.na(TP$FilTagspCover),]
-dim(TP2Cex) #  89 41 - No controls or exclosures
-dim(TP2Con) # 118  41 - No controls
-dim(TP2) # No NAs 139 41 
+dim(TP2Cex) #   102  67 - No controls or exclosures
+dim(TP2Con) # 118  67 - No controls
+dim(TP2) # No NAs 139  67
 TP2$FilTagspCover
 
 # Convert to binary data - presence vs absence and probability of detection
@@ -73,14 +75,73 @@ TP2$FinalPresAb<-TP2$FilTagspCover
 TP2$FinalPresAb[TP2$FinalPresAb>0]<-1
 
 TP2Cry<-droplevels(TP2[!TP2$fTagsp=="Cry ori" & !TP2$fTagsp=="The tri" & !TP2$fTagsp=="Cyn dac",])
-dim(TP2Cry) #  96 30
+dim(TP2Cry) # 86 68
 
 # Sample analysis
 TP0<-TP[!is.na(TP$FilVegCover),]
-dim(TP0) 
-(139+40)*68 #= 12172 #elemental CN analysis plant material
-840*96 #= 80640
-840*49 #= 41160
+dim(TP0) #139  67
+
+########################################################################
+#Data exploration
+# A Missing values?
+# B Outliers in Y / Outliers in X
+# C Collinearity X
+# D Relationships Y vs X
+# E Spatial/temporal aspects of sampling design (not relevant here)
+# F Interactions (is the quality of the data good enough to include them?)
+# G Zero inflation Y
+# H Are categorical covariates balanced?
+########################################################################
+source(file="/Users/anotherswsmith/Documents/AfricanBioServices/Data/Root decomp Serengeti/HighstatLibV10.R")
+
+#Missing values
+colSums(is.na(TP)) 
+#Tree data has missing values
+# Missing values for fauna.hole (percentage - not scanned)
+
+# Check for outliers
+dotchart(TP$FilTagspCover)
+dotchart(TP$Target.weight.g)
+
+# C Collinearity X
+names(TP)
+MyEnv<-c("FilVegH","rain.sum.mm", "Tot.Zero.days","Mean.ConscZero.days" ,        
+       "Fire.freq2000.2016","Year.of.last.fire",
+       "total_dungTot","total_dungMean", "HerbPRC")
+pairs(TP[,MyEnv], lower.panel= panel.cor)
+
+# Rainfall variables all related
+# Fire variables related
+# Height OK with variables
+# Use either min or total
+
+MyHerb<-c("wild_grazerTot","wild_grazerMean","live_broswerMean","live_broswerTot",        
+"live_grazerTot","live_grazerMean","wild_broswerrMean","wild_broswerTot",
+"total_dungTot","total_dungMean", "HerbPRC")
+pairs(TP[,MyHerb], lower.panel= panel.cor)
+
+# HerbPRC and total are related - higher on livestock
+# Boxplot for factors
+par(mfrow = c(1, 3), cex.lab = 1.5)
+boxplot(FilVegH~ landuse, 
+        xlab = "Landuse",
+        ylab = "Veg height",
+        data = TP) # Higher in wild, but overlaps
+
+boxplot(FilVegH~ treatment, 
+        xlab = "Treatment",
+        ylab = "Veg height",
+        data = TP) # Higher exclosure - colinear
+
+boxplot(Year.of.last.fire~ landuse, 
+        xlab = "Treatment",
+        ylab = "Yr.of.last.fire",
+        data = TP) # Fire history colinear with land-use
+
+boxplot(total_dungTot~ landuse, 
+        xlab = "Treatment",
+        ylab = "total_dungTot",
+        data = TP) # Total higher on pasture
 
 ########################################################################
 #### Cover change with and without controls ####
@@ -129,11 +190,11 @@ CCbiomF<-CCbiomF+facet_wrap(~fLanduse)
 CCbiomF<-CCbiomF+theme_classic()
 CCbiomF
 
-########################################################################
+################################################################################################################################################
 #### Model probability of occurence ####
 names(TP2)
 TP2$FinalPresAb
-TPprob<- glmmadmb(FinalPresAb~fTagsp+fLanduse+Treatment+fTagsp:fLanduse+
+TPprob<- glmmadmb(FinalPresAb~fTagsp+fLanduse+treatment+fTagsp:fLanduse+
                     #Treatment:fTagsp
                      (1|fSite/fBlock), 
                         family="binomial",#zeroInflation = TRUE,
@@ -147,7 +208,7 @@ summary(glht(TPprob, mcp(fTagsp="Tukey")))
 #Model matrix
 MyData <- expand.grid(fTagsp = levels(TP2$fTagsp),
                       fLanduse = levels(TP2$fLanduse),
-                      Treatment = levels(TP2$Treatment))
+                      Treatment = levels(TP2$treatment))
 head(MyData)
 
 #Convert the covariate values into an X matrix
@@ -169,19 +230,17 @@ MyData$SeLo  <- exp(MyData$eta - 1.96 *MyData$se) /
   (1 + exp(MyData$eta  - 1.96 *MyData$se))
 
 MyData
-#fTagsp        eta        Pi        se      SeUp      SeLo
-#1 Chl pyc  0.5108753 0.6250116 0.4216500 0.7920471 0.4217585
-#2 Chr ori -0.4053894 0.4000182 0.7142230 0.7299734 0.1412112 # Cryo orien - low 
-#3 Cyn dac  0.9985056 0.7307647 0.7657373 0.9240963 0.3769911 # Cynodon higher 
-#4 Dig mac  0.4519652 0.6111064 0.6852178 0.8575382 0.2908908
-#5 The tri  0.5306943 0.6296450 0.7177266 0.8740705 0.2939970
+
 
 # No difference in probabilty of species being present after trasnplant
+# Species from pastures do worse in wildlife, most species do worse in pasture,
+# Chl pyc does poorly in Seronera exclosures
 
+################################################################################################################################################
 #### Determine species differences in biomass ####
 names(TP2)
-TPbio<- lmer(Target.weight.g~fTagsp+Treatment+fLanduse+fTagsp:fLanduse+
-               fTagsp:Treatment+
+TPbio<- lmer(Target.weight.g~fTagsp+Treatment+#fLanduse+Year.of.last.fire+
+               fTagsp:Treatment+#fTagsp:fLanduse+
                  (1|fSite/fBlock),REML=T,
                   data=TP2)
 anova(TPbio)
@@ -190,6 +249,25 @@ drop1(TPbio,test="Chi")
 
 summary(glht(TPbio, mcp(fTagsp="Tukey"))) 
 
+# Remove Seronera
+TP2b<-TP2[!TP2$fSite=="Seronera",]
+TPbio2<- lmer(Target.weight.g~fTagsp+total_dungTot+Year.of.last.fire+FilVegH+
+                #fTagsp:total_dungTot+fTagsp:Year.of.last.fire+
+               (1|fSite/fBlock),REML=T,
+             data=TP2b)
+anova(TPbio2)
+summary(TPbio2) # No difference in cover - marginal
+drop1(TPbio2,test="Chi")
+plot(Target.weight.g~total_dungTot,TP2b)
+
+TPbio3<- lmer(Target.weight.g~fTagsp+live_grazerTot+Year.of.last.fire+FilVegH+
+                fTagsp:live_grazerTot+fTagsp:Year.of.last.fire+
+                (1|fSite/fBlock),REML=T,
+              data=TP2b)
+anova(TPbio3)
+summary(TPbio3) # No difference in cover - marginal
+drop1(TPbio3,test="Chi")
+plot(Target.weight.g~live_grazerTot,TP2b)
 
 #### Graph biomass and probability ####
 
@@ -312,6 +390,226 @@ BDdig<-aggregate(BD.gcm3~Site_block,TP2dig, mean)
 57*280 # 15960 NOK ...
 write.csv(NminSelect, "Transplant experiment/NminSelect.csv",row.names=F) #,sep = ",",dec = ".",col.names = TRUE, row.names=F)
 
+
+################################################################################################################################################
+# Plant Nitrogen concencentrations #
+################################################################################################################################################
+
+setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/")
+
+MoveNuts<-read.csv("BiomassStacked2.csv")
+names(MoveNuts)
+
+TransNuts<-read.csv("BioCoverSoil5cmNuts2.csv")
+names(TransNuts)
+
+# Harvest H7 
+names(MoveNuts)
+MoveNutsH7<-droplevels(MoveNuts[MoveNuts$harvest=="H7" & !MoveNuts$pool=="other",])
+dim(MoveNutsH7)
+levels(MoveNutsH7$landuse)<-c("Pasture","Wild")
+
+
+# Merge transplant and exclosure data sets
+names(TransNuts)
+names(MoveNutsH7)
+MoveNutsH7$site<-MoveNutsH7$site.name
+MyVars<-c("Plant.N","landuse","region","transplant","site", "block", "Tagsp")
+TransNuts2<-TransNuts[MyVars]
+MoveNutsH7b<-MoveNutsH7[MyVars]
+TransNuts3<-rbind(TransNuts2,MoveNutsH7b)
+
+# Nitrogen concentrations 
+
+# Means Plant N
+TransNutsDUNG<-aggregate(total_dungMean~landuse+region+transplant+Tagsp,TransNuts,mean)
+TransNuts3mean<-aggregate(Plant.N~landuse+region+transplant+Tagsp,TransNuts3,mean)
+TransNuts3sd<-aggregate(Plant.N~landuse+region+transplant+Tagsp,TransNuts3,sd)
+#TransNuts3mean2<-left_join(TransNuts3mean,TransNutsDUNG,by=c("landuse","region","transplant","Tagsp"))
+TransNuts3mean$sd<-TransNuts3sd$Plant.N
+
+PN<-ggplot(TransNuts3mean, aes(y=Plant.N, x = landuse, shape=transplant,colour=Tagsp))
+PN<-PN+geom_errorbar(aes(ymin=Plant.N-sd, ymax=Plant.N+sd),position=position_dodge(width=.5),width=.1,lwd=.9, alpha=.5,show.legend=F)
+PN<-PN+geom_point(stat="identity", size=4.5,position=position_dodge(.5))
+PN<-PN+facet_wrap(~region, ncol=5)
+PN<-PN+theme_classic()
+PN
+
+# Modelling plant nitrogen 
+TransNutsNA<-TransNuts3[!is.na(TransNuts3$Plant.N),]
+dim(TransNutsNA) # 117   7 (77 62 without exclosures)
+
+Nlm<-lmer(Plant.N~Tagsp+landuse+region+transplant+
+            landuse:region+ transplant:region+
+           landuse:region:transplant+
+        (1|site/block),REML=T,TransNutsNA)
+
+summary(Nlm)
+plot(Nlm)
+
+drop1(Nmixed,test="Chisq")
+
+# Checking resids vs fit
+E1 <- resid(Nlm, type = "pearson")
+F1 <- fitted(Nlm)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F1, 
+     y = E1,
+     xlab = "Fitted values",
+     ylab = "Residuals", 
+     xlim = c(min(F1), max(F1)))
+abline(v = 0, lwd = 2, col = 2)
+abline(h = 0, lty = 2, col = 1)
+
+################################################################################################################################################
+#### Moveable exclosures - N through time ####
+################################################################################################################################################
+
+setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/")
+
+#### DF dominant sp (stacked) ####
+Datastack <- read.csv("BiomassStacked2.csv",header=T)
+# Removing Ex2 - separate analysis
+Datastack <- Datastack[Datastack$treatment!="EX2",] #Removing Mesh exclosures  #300 obs
+Datastack <- Datastack[Datastack$harvest!="H0",] #removing H0                #280 obs
+Datastack <- droplevels(Datastack)
+
+# Creating factor variables
+Datastack$landuse<-as.factor(Datastack$landuse)
+Datastack$region<-as.factor(Datastack$region)
+Datastack$site.name <- as.factor(Datastack$site.name)
+Datastack$block<-as.factor(Datastack$block)
+Datastack$treatment<-as.factor(Datastack$treatment)
+Datastack$harvest<-as.factor(Datastack$harvest)
+Datastack$site.id <- as.factor(Datastack$site.id)
+Datastack$block.id.harvest <- as.factor(Datastack$block.id.harvest)
+
+#Renaming total productivity and consumption columns
+colnames(Datastack)[colnames(Datastack)=="productivity.total.g.m2.day"] <- "prodtot"
+colnames(Datastack)[colnames(Datastack)=="productivity.total.g.m2.dayWEIGHTED"] <- "prodtot.per"
+
+colnames(Datastack)[colnames(Datastack)=="consumption.total.g.m2.day"] <- "constot"
+colnames(Datastack)[colnames(Datastack)=="consumption.total.g.m2.dayWEIGHTED"] <- "constot.per"
+
+#Productivity and consumptions per harvest period
+Datastack$prodsp.sum <- Datastack$prodsp*Datastack$growth.period
+Datastack$conssp.sum <- Datastack$conssp*Datastack$growth.period
+
+Datastack$prodspper.sum <- Datastack$prodsp.per*Datastack$growth.period
+Datastack$consspper.sum <- Datastack$conssp.per*Datastack$growth.period
+
+Datastack$prodtot.sum <- Datastack$prodtot*Datastack$growth.period
+Datastack$constot.sum <- Datastack$constot*Datastack$growth.period
+Datastack$prodtotper.sum <- Datastack$prodtot.per*Datastack$growth.period
+Datastack$constotper.sum <- Datastack$constot.per*Datastack$growth.period
+
+colnames(Datastack)[colnames(Datastack)=="sand.per"] <- "sand"
+
+#Renaming levels in region, landuse and treatment columns
+levels(Datastack$region)<-c("Dry Region","Intermediate Region","Wet Region")
+levels(Datastack$landuse)<-c("pasture","wild")
+levels(Datastack$treatment)<-c("exclosed","open")
+
+#Rain per day for each harvest period
+Datastack$rain.day <- Datastack$rain.sum/Datastack$growth.period
+
+# Rdate create month column. default was (="%d.%m.%Y")
+Rdate<-strptime(as.character(Datastack$harvest.date),format="%m/%d/%Y",tz="Africa/Nairobi" )# East African time #USE
+class(Rdate) # [1] "POSIXlt" "POSIXt" # This format needs a lot of memory - but good
+Datastack$Rdate<-Rdate# Add to the dataframe #
+# Create a Yr-Month time value as experiment runs over 15 months - > 2 years
+# Rdate convert to Year-month
+Datastack$YrMonth<-format(as.Date(Rdate), "%Y-%m")
+
+# Running numeric value for months
+# turn a date into a 'monthnumber' relative to an origin
+monnb <- function(d) { lt <- as.POSIXlt(as.Date(d, origin="1900-01-01"));  lt$year*12 + lt$mon } 
+# compute a month difference as a difference between two monnb's
+mondf <- function(d1, d2) { monnb(d2) - monnb(d1) }
+Datastack$YrMonthNumber<-mondf(c(as.POSIXlt(as.Date(Datastack$harvest.date,format="%m/%d/%Y",tz="Africa/Nairobi" ))), "2017-02-01")*-1 # Need to remove lag - 1
+
+# Plot.code to follow through time
+Datastack$plot.code <- as.factor(with(Datastack,paste(region,landuse,block,treatment,pool,sep="_")))
+levels(Datastack$plot.code) #80 levels
+
+# Remove "OTHER" from pool
+Datastack2<-Datastack[!Datastack$pool=="other",]
+
+# Remove N outliers
+NutsN<-droplevels(subset(Datastack2,Plant.N<3.1 & Plant.N>0.5 | is.na(Plant.N)))
+NutsN<-droplevels(subset(NutsN,prodsp.per>-10 | is.na(prodsp.per)))
+
+names(NutsN)
+#Implementing the AR-1 autocorrelation
+cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|Tagsp/plot.code) # AR matrix needs to be unique
+cs1AR1. <- Initialize(cs1AR1, data = NutsN)
+corMatrix(cs1AR1.) #What does this give? 
+
+Datastack2NA<-NutsN[!is.na(NutsN$prodsp.per) & !is.na(NutsN$Plant.N) ,]
+names(Datastack2NA)
+Datastack2NA$prodsp.per
+Datastack2NA$Tagsp
+
+#Productivity per species - corrected for percent cover
+# LME with temporal auto-correlation (using nlme package)
+NAP.lme <- lme(prodsp.per~landuse+poly(rain.sum.1,2)+poly(zero.days,2)+Plant.N+
+                 Plant.N:landuse,
+              # Plant.N:poly(rain.sum.1,2),#+
+                # landuse:rain.sum.1+landuse:consec.NoRain.days,
+               random=~1|Tagsp, method="ML",correlation=cs1AR1,data=Datastack2NA)
+summary(NAP.lme)#for parameter estimates, don't use the p-values
+anova(NAP.lme) #get F statistics and P-values
+AIC(NAP.lme) 
+drop1(NAP.lme, test="Chisq") # Nothing important
+
+xyplot(prodsp.per~Plant.N|landuse,Datastack2NA)
+
+# Remove NAs
+Datastack2N<-NutsN[!is.na(NutsN$Plant.N),]
+
+NAP.lme <- lme(Plant.N~landuse+poly(rain.sum.1,2)+poly(consec.NoRain.days,2),#+
+               # landuse:rain.sum.1+landuse:consec.NoRain.days,
+               random=~1|Tagsp, method="ML",correlation=cs1AR1,data=Datastack2N)
+summary(NAP.lme)#for parameter estimates, don't use the p-values
+anova(NAP.lme) #get F statistics and P-values
+AIC(NAP.lme) #1185.861
+
+xyplot(Plant.N~consec.NoRain.days|landuse,Datastack2N)
+xyplot(Plant.N~rain.sum.1|landuse,Datastack2N)
+
+plot(rain.sum.1~consec.NoRain.days,Datastack2N)
+
+
+############################################
+#### OLD SCRIPT ####
+############################################
+
+# SUA and NTNU N concentrations correlations
+setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/")
+
+MoveNuts<-read.csv("MoveEx.Nuts.csv")
+
+names(MoveNuts)
+
+plot(N.target.NTNU~N.target.SUA, MoveNuts)
+identify(MoveNuts$N.target.NTNU~MoveNuts$N.target.SUA)
+#[1]   9  50  89 168 173 179 202
+MoveNuts[9,]
+MoveNuts[50,]
+MoveNuts[89,]
+MoveNuts[168,]
+MoveNuts[173,]
+MoveNuts[179,]
+MoveNuts[202,]
+
+#9 DRY_W_1_H0 = Cyn.dac
+#50 DRY_P_1_OP_H1 = Chl.pyc
+#89 DRY_W_2_EX2_H2 = Cyn.dac
+#168 WET_W_2_OP_H4 = The.tri
+#173 WET_P_1_EX_H4 = Chr.ori 
+#179 WET_P_4_EX_H4  =  Chr.ori
+#202 SE_1_EX2_H4  = Dig.mac
 
 ########################################################################
 #### END ####
