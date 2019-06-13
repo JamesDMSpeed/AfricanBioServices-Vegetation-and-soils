@@ -167,7 +167,7 @@ DataMain$froots<-as.factor(DataMain$Sign.of.roots)
 #### Graphs  ####
 #########################################################################################################
 
-#Raw mass loss graph #### 
+#Plotting- Raw mass loss graph #### 
 
 DataMain2<-droplevels(Fulldata[Fulldata$Experiment=="Main",]) #Only landuse experiement data
 
@@ -190,25 +190,43 @@ levels(DataMainmean$Season)
 Mainexp <- DataMainmean
 #Now, ready for graphing: Main experiment massloss against landuse
 #Want to reorder tea.hole to have a nicer legend:
-Mainexp$tea.hole <- ordered(Mainexp$tea.hole, levels=c("Green Exclosed", "Rooibos Exclosed","Green Open","Rooibos Open"))
-levels(Mainexp$tea.hole)
+#Want the legend title to be named Treatment so change the column already named treatment to somethin else
+colnames(Mainexp)[3]<-"Treat"
+Mainexp$Treatment <- ordered(Mainexp$tea.hole, levels=c("Green Exclosed", "Rooibos Exclosed","Green Open","Rooibos Open"))
+levels(Mainexp$Treatment)
 
 colnames(Mainexp)[1]<-"Season"
 colnames(Mainexp)[2]<-"Region"
 names(Mainexp)
 
-Mainp <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=(Massloss.per-SE),ymax=(Massloss.per+SE),
-                                  fill = tea.hole,color = Littertype,shape=Landuse))
-Mainp <- Mainp+geom_errorbar(width=.9,lwd=1,position=position_dodge(width=.35),show.legend=F)
-Mainp <- Mainp+geom_point(size=4,stroke=1.2,position=position_dodge(width=.35),show.legend=T)
-Mainp <- Mainp+facet_wrap(Region ~ Season, scale ="fixed", ncol=1, labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region"),
-                                                                             Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
+#To make a better legend:
+levels(Mainexp$Treatment) <- c("Exclosed","Open","","")
+levels(Mainexp$Littertype) <- c("Labile","Recalcitrant")
+
+
+###Raw massloss graph####
+Mainp <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=(Massloss.per-SE),ymax=(Massloss.per+SE),fill = Treatment, color = Littertype))
+Mainp <- Mainp+geom_errorbar(width=.2,lwd=1,position=position_dodge(width=.35),show.legend=F)
+Mainp <- Mainp+geom_point(size=3,stroke=1.5,position=position_dodge(width=.35),show.legend=T, shape=21)
+Mainp <- Mainp+facet_wrap(Region ~ Season, scale ="fixed", ncol=1, strip.position = "left",
+                          labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region"),Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
 Mainp <- Mainp+scale_color_manual(values=c("green4", "orangered3"))
 Mainp <- Mainp+scale_fill_manual(values=c("green4","orangered3","white","white"))
-Mainp <- Mainp+scale_shape_manual(values=c(21,22,24))
-Mainp <- Mainp+guides(fill = guide_legend(override.aes=list(shape=25, color=c("green4","orangered3","green4","orangered3"))),color=F)
+#Mainp <- Mainp+scale_fill_discrete(breaks=c("Exclosed","Open"), name="Treatment")
+Mainp <- Mainp+guides(fill=guide_legend(override.aes = 
+                                          list(shape=22,
+                                               size=4,
+                                               fill=c("black", "white",NA),
+                                               color=c("black", "black",NA))))
+Mainp <- Mainp+guides(color=guide_legend(override.aes = 
+                                          list(shape=22,
+                                               size=4,
+                                               fill=c("green4", "orangered3"),
+                                               color=c("green4", "orangered3"))))
+
 Mainp <- Mainp+scale_y_continuous(limits = c(0,100), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))
-Mainp <- Mainp+xlab("Land-use")+ylab("Mass loss (%)")
+Mainp <- Mainp+scale_x_discrete(expand = c(0,1))
+Mainp <- Mainp+xlab("Land-use")+ylab("Mass loss (%)") + ggtitle("What title here?")
 Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
                      ,panel.background=element_rect(fill="transparent")
                      ,plot.background=element_rect(fill="transparent",colour=NA)
@@ -217,38 +235,45 @@ Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
                      ,panel.border = element_blank()
                      ,panel.grid.major.x = element_blank()
                      ,panel.grid.major.y = element_blank()
-                     ,axis.text=element_text(size=12,color="black")
-                     ,axis.title.y=element_text(size=14,color="black")
-                     ,axis.title.x=element_text(size=14,vjust=-.4,color="black")
-                     ,axis.text.x = element_text(size=10,color="black",angle =90,
-                                                 margin=margin(2.5,2.5,2.5,2.5,"mm"))
-                     ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
-                     ,axis.ticks.length=unit(-1.5, "mm")
-                     #,axis.line.y = element_blank()
-                    # ,axis.line.x = element_blank()
-                     ,plot.margin = unit(c(8,50,5,5), "mm")
+                     #,axis.text=element_text(size=12,color="black")
+                     ,axis.title.y=element_text(size=14,color="black",margin=margin(2.5,2.5,2.5,2.5,"mm"))
+                     ,axis.title.x=element_blank()#element_text(size=14,vjust=-.5,color="black")
+                     ,axis.text.x = element_text(size=10,color="black",angle =90,vjust=0.6,
+                                                 margin=margin(1,1,1,1,"mm"))
+                     ,axis.text.y = element_text(size=10,color="black",margin=unit(c(0.1,0.1,0.1,0.1),"mm"))
+                     ,axis.ticks.length=unit(1.5, "mm")
+                     #,axis.line.y = element_line(colour = "black", size=0.5, linetype="solid")
+                     #,axis.line.x = element_line(colour = "black", size=0.5, linetype="solid")
+                     ,plot.margin = unit(c(1,1,1,1), "mm")
                      ,strip.background = element_blank()#element_rect(fill="transparent",colour=NA)
-                     ,strip.text.x = element_blank()#element_text(size = 14,colour = "black")
-                     ,strip.text.y = element_blank()#element_text(size = 14,colour = "black")
+                     #,strip.text.x = element_text(size = 10,colour = "black")
+                     ,strip.text.y = element_text(size = 11,colour = "black", margin = margin(2.5,1,2.5,1,"mm"))
                      ,panel.spacing = unit(1, "lines")
+                     ,strip.placement = "outside"
                      ,legend.background = element_rect(fill = "transparent")
                      ,legend.title=element_blank()
-                     ,legend.position = c(1.06,0.5)
-                     ,legend.spacing.y = unit(-0.8, "mm")
+                     ,legend.position = "right"
+                    #,legend.margin = margin(-0.6,0,0,0, unit="cm")
+                     #,legend.spacing.y = unit(-0.6, "mm")
                      ,legend.key.height=unit(7.5,"mm")
                      ,legend.key.width=unit(7.5,"mm")
                      ,legend.key = element_rect(colour = NA, fill = NA)
-                     ,legend.key.size = unit(7,"mm")
-                     ,legend.text=element_text(size=12,color="black")
+                     #,legend.key.size. = unit(5,"line")
+                     ,legend.text=element_text(size=10,color="black")
+                     ,plot.title = element_text(size = 12, face = "bold",hjust = 0.5))#,margin = margin(t = 0, r = 0, b = 0, l = 50,unit=mm))
+
                      
-)#+
-  
- # annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
-#  annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15) +
- # annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
-  #annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
+Mainp <- Mainp+annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 0.5)
+Mainp <- Mainp+annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 0.5)
 
 Mainp
+#install.packages("egg")
+#install.packages("grid")
+#library(egg)
+#library(grid)
+#Mainp <- set_panel_size(Mainp,
+ #                         width  = unit(10, "cm"),
+  #                        height = unit(4, "in"))
 
 #5     Dry    Dry      Open      Green Agriculture    24.347765 3.9036820       Green Open
 #13    Dry    Dry      Open    Rooibos Agriculture    32.199632 7.7388356     Rooibos Open
@@ -482,198 +507,79 @@ aggregate(Massloss.per~Landuse+Season+Region+Decomposer+Littertype,TM.effect,mea
 
 aggregate(Massloss.per~Season+Decomposer+Littertype,TM.effect,mean)
 
-#### BARPLOTTING - Termite effect #### 
-# Three own graphs for each Landuse#
-#Creating a fill factor:
-TMMasslossMain$LD<-as.factor(with(TMMasslossMain, paste(Decomposer, Littertype, sep=" ")))
-head(TMMasslossMain)
-#Creating error bars for stacked barplot:
-#Sort out each landuse into own dataframe
-Agri <- droplevels(TMMasslossMain[TMMasslossMain$flanduse=="Agriculture",])
-Pasture <- droplevels(TMMasslossMain[TMMasslossMain$flanduse=="Pasture",])
-Wild <- droplevels(TMMasslossMain[TMMasslossMain$flanduse=="Wild",])
+#Housekeeping
+TM.effect$Season <- as.factor(TM.effect$Season)
+levels(TM.effect$Season)
+levels(TM.effect$Landuse)
+TM.effect$Decomposer <- as.factor(TM.effect$Decomposer)
+levels(TM.effect$Decomposer)
+TM.effect$Littertype <- as.factor(TM.effect$Littertype)
+levels(TM.effect$Littertype)
+TM.effect$Region <- (as.factor(TM.effect$Region))
+levels(TM.effect$Region)
 
-#AGRICULTURE#
+#Only Main experiment
+TM.effectMain <- TM.effect[TM.effect$Region!="Intermediate",]
+TM.effectMain$Region <- droplevels(as.factor(TM.effectMain$Region))
+levels(TM.effectMain$Region)
+#Remove microbes:
+TM.effectMain <- TM.effectMain[TM.effectMain$Decomposer!="Microbe",]
+TM.effectMain$Decomposer <- droplevels(as.factor(TM.effectMain$Decomposer))
+levels(TM.effectMain$Decomposer)
+levels(TM.effectMain$Season) <- c("Dry Season","Wet Season")
+levels(TM.effectMain$Region) <- c("Dry Region","Wet Region")
 
-#Legend title:
-TitleDecomp<-"Decomposer"
-TitleLitter <- c("Litter Quality")
-
-levels(Agri$LD)
-levels(Agri$LD) <- c("Labile Microbe", "Recalcitrant Microbe","Labile Termite","Recalcitrant Termite")
-levels(Agri$LD)
-levels(Agri$fseason)
-levels(Agri$flanduse)
-levels(Agri$Decomposer)
-#Adjusting the upper SE for error bars for stacked barplot:
-Agri$SE.up <- Agri$SE
-Agri$SE.up[Agri$LD == "Labile Microbe"] <- with(Agri,SE[LD == "Labile Microbe"]+
-                                                  #SE[LD == "Labile Termite"]+
-                                                  Massloss.per[LD=="Labile Termite"])
-
-Agri$SE.up[Agri$LD == "Recalcitrant Microbe"] <- with(Agri,SE[LD == "Recalcitrant Microbe"]+
-                                                        #SE[LD == "Recalcitrant Termite"]+
-                                                        Massloss.per[LD=="Recalcitrant Termite"])
-#Adjusting the lower SE for error bars (I want the lower to be same as the mean value)
-Agri$Mass.stop <- Agri$Massloss.per
-Agri$Mass.stop[Agri$LD == "Labile Microbe"] <- with(Agri,Massloss.per[LD == "Labile Microbe"]+
-                                                      Massloss.per[LD=="Labile Termite"])
-
-Agri$Mass.stop[Agri$LD == "Recalcitrant Microbe"] <- with(Agri,Massloss.per[LD == "Recalcitrant Microbe"]+
-                                                            +Massloss.per[LD=="Recalcitrant Termite"])
-
-#Plotting
-AgriP <- ggplot(data=Agri,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE.up,ymin=Mass.stop))+
-  geom_errorbar(position="identity",width=NA,lwd=1)+
-  geom_bar(stat="identity",position="stack",width=0.9)+
-  facet_wrap(~fseason+fregion,nrow=1)+
-  scale_fill_manual(TitleLitter,values=c("Green4","Orangered3","Green4","Orangered3"))+
-  scale_alpha_discrete(TitleDecomp,range=c(0.3,1))+
-  xlab("")+ylab("Massloss (%)")+
-  theme_bw()+
-  theme(
+#Barplot: termite effect####
+TM.effectMainP <- ggplot(data=TM.effectMain,aes(x=Landuse,y=Massloss.per,fill=Littertype))
+TM.effectMainP <- TM.effectMainP + geom_bar(stat="identity",position=position_dodge(),show.legend=F)
+TM.effectMainP <- TM.effectMainP + geom_errorbar(aes(ymin=Massloss.per,ymax=Massloss.per+SE),position=position_dodge(width=0.9),width=0,lwd=1,show.legend=F)
+TM.effectMainP <- TM.effectMainP + facet_wrap(Season~Region,nrow=4, ncol=1, strip.position = "right",) #labeller(Dry= "Dry season", Wet="Wet season",Dry="Dry Region",Wet="Wet Region"))
+TM.effectMainP <- TM.effectMainP + scale_fill_manual(values=c("Green4","Orangered3"))
+TM.effectMainP <- TM.effectMainP + xlab("")+ylab("Mass loss (%)") + ggtitle("Termite effect")
+TM.effectMainP <- TM.effectMainP + scale_y_continuous(limits = c(0,100), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80),position = "right")
+TM.effectMainP <- TM.effectMainP + theme(
     rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
     ,panel.background=element_rect(fill="transparent")
     ,plot.background=element_rect(fill="transparent",colour=NA)
+    ,plot.margin = unit(c(1,1,1,1), "mm")
     ,panel.grid.minor = element_blank() # Removing all grids and borders
     ,panel.border = element_blank()
     ,panel.grid.major.x = element_blank()
     ,panel.grid.major.y = element_blank()
-    ,axis.text.x = element_blank()
+    ,panel.spacing = unit(1, "lines")
+    ,axis.text.x = element_text(size=10,color="black",angle =90,vjust=0.6,
+                                margin=margin(1,1,1,1,"mm"))
+    ,axis.text.y = element_text(size=10,color="black",margin=unit(c(0.1,0.1,0.1,0.1),"mm"))
     ,axis.ticks.x = element_blank()
+    #,axis.line.y = element_line(colour = "black", size=0.5, linetype="solid")
     ,legend.background = element_rect(fill="transparent")
-    ,legend.text = element_text(size=12,color="black")
-    ,legend.title = element_text(size=14,color="black")
-    ,axis.title.y=element_text(size=16,color="black", margin = margin(t = 0, r = 10, b = 0, l = 0))
+    ,legend.text = element_text(size=10,color="black")
+    ,legend.title = element_text(size=12,color="black")
+    ,axis.title.y.right=element_blank()#element_text(size=12,color="black", margin = margin(t = 0, r = 0, b = 0, l = 8))
+    ,strip.text = element_blank()#element_text(size=8)
+    ,strip.background = element_blank()
+    ,plot.title = element_text(size = 12, face = "bold",hjust = 0.5)#,margin = margin(t = 0, r = 0, b = 0, l = 50,unit=mm))
   )
-AgriP <-AgriP + scale_y_continuous(limits=c(0,100), breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80), expand=c(0,0),position = "right")
-AgriP <- AgriP+guides(alpha=F, fill=guide_legend(override.aes =list(size=6,fill=c("Green4","Orangered3","Green4","Orangered3"), alpha=c(0.3,0.3,1,1))))
 
-AgriP
+TM.effectMainP <- TM.effectMainP+annotate(geom = "segment", x = Inf, xend = Inf, y = -Inf, yend = Inf, size = 0.5)
+#TM.effectMainP <- TM.effectMainP+annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 0.8)
+TM.effectMainP <- TM.effectMainP+annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 0.5)
 
-# ggsave("Termites/Main & CG experiment/Agriculture_Main_experiment.png",
-#      width= 20, height = 15,units ="cm",bg ="transparent",
-#     dpi = 600, limitsize = TRUE)
+TM.effectMainP
 
-#PASTURE#
-#Legend title:
-TitleDecomp<-"Decomposer"
-TitleLitter <- c("Litter Quality")
-
-levels(Pasture$LD)
-levels(Pasture$LD) <- c("Labile Microbe", "Recalcitrant Microbe","Labile Termite","Recalcitrant Termite")
-levels(Pasture$LD)
-levels(Pasture$fseason)
-levels(Pasture$flanduse)
-levels(Pasture$Decomposer)
-#Adjusting the upper SE for error bars for stacked barplot:
-Pasture$SE.up <- Pasture$SE
-Pasture$SE.up[Pasture$LD == "Labile Microbe"] <- with(Pasture,SE[LD == "Labile Microbe"]+
-                                                        #SE[LD == "Labile Termite"]+
-                                                        Massloss.per[LD=="Labile Termite"])
-
-Pasture$SE.up[Pasture$LD == "Recalcitrant Microbe"] <- with(Pasture,SE[LD == "Recalcitrant Microbe"]+
-                                                              #SE[LD == "Recalcitrant Termite"]
-                                                              +Massloss.per[LD=="Recalcitrant Termite"])
-#Adjusting the lower SE for error bars (I want the lower to be same as the mean value)
-Pasture$Mass.stop <- Pasture$Massloss.per
-Pasture$Mass.stop[Pasture$LD == "Labile Microbe"] <- with(Pasture,Massloss.per[LD == "Labile Microbe"]+
-                                                            Massloss.per[LD=="Labile Termite"])
-
-Pasture$Mass.stop[Pasture$LD == "Recalcitrant Microbe"] <- with(Pasture,Massloss.per[LD == "Recalcitrant Microbe"]+
-                                                                  +Massloss.per[LD=="Recalcitrant Termite"])
+#ggsave("Termites/Results/Figures/Termite_Microbe_contribution_Plot.png",
+       width= 20, height = 12,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
 
 
-PastureP <- ggplot(data=Pasture,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE.up,ymin=Mass.stop))+
-  geom_errorbar(position="identity",width=NA,lwd=1)+
-  geom_bar(stat="identity",position="stack",width=0.9)+
-  facet_wrap(~fseason+fregion,nrow=1)+
-  scale_fill_manual(TitleLitter,values=c("Green4","Orangered3","Green4","Orangered3"))+
-  scale_alpha_discrete(TitleDecomp,range=c(0.3,1))+
-  xlab("")+ylab("Massloss (%)")+
-  theme_bw()+
-  theme(
-    rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
-    ,panel.background=element_rect(fill="transparent")
-    ,plot.background=element_rect(fill="transparent",colour=NA)
-    ,panel.grid.minor = element_blank() # Removing all grids and borders
-    ,panel.border = element_blank()
-    ,panel.grid.major.x = element_blank()
-    ,panel.grid.major.y = element_blank()
-    ,axis.text.x = element_blank()
-    ,axis.ticks.x = element_blank()
-    ,legend.background = element_rect(fill="transparent")
-    ,legend.text = element_text(size=12,color="black")
-    ,legend.title = element_text(size=14,color="black")
-    ,axis.title.y=element_text(size=16,color="black", margin = margin(t = 0, r = 10, b = 0, l = 0))
-  )
-PastureP <-PastureP + scale_y_continuous(limits=c(0,100), breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80), expand=c(0,0))
-PastureP <- PastureP+guides(alpha=F, fill=guide_legend(override.aes =list(size=6,fill=c("Green4","Orangered3","Green4","Orangered3"), alpha=c(0.3,0.3,1,1))))
-
-PastureP
-
-# ggsave("Termites/Main & CG experiment/Pasture_Main_experiment.png",
-#        width= 20, height = 15,units ="cm",bg ="transparent",
-#        dpi = 600, limitsize = TRUE)
-
-
-#WILD#
-#Legend title:
-TitleDecomp<-"Decomposer"
-TitleLitter <- c("Litter Quality")
-
-levels(Wild$LD)
-levels(Wild$LD) <- c("Labile Microbe", "Recalcitrant Microbe","Labile Termite","Recalcitrant Termite")
-levels(Wild$LD)
-levels(Wild$fseason)
-levels(Wild$flanduse)
-levels(Wild$Decomposer)
-#Adjusting the upper SE for error bars for stacked barplot:
-Wild$SE.up <- Wild$SE
-Wild$SE.up[Wild$LD == "Labile Microbe"] <- with(Wild,SE[LD == "Labile Microbe"]+
-                                                  #SE[LD == "Labile Termite"]+
-                                                  Massloss.per[LD=="Labile Termite"])
-
-Wild$SE.up[Wild$LD == "Recalcitrant Microbe"] <- with(Wild,SE[LD == "Recalcitrant Microbe"]+
-                                                        #SE[LD == "Recalcitrant Termite"]
-                                                        +Massloss.per[LD=="Recalcitrant Termite"])
-#Adjusting the lower SE for error bars (I want the lower to be same as the mean value)
-Wild$Mass.stop <- Wild$Massloss.per
-Wild$Mass.stop[Wild$LD == "Labile Microbe"] <- with(Wild,Massloss.per[LD == "Labile Microbe"]+
-                                                      Massloss.per[LD=="Labile Termite"])
-
-Wild$Mass.stop[Wild$LD == "Recalcitrant Microbe"] <- with(Wild,Massloss.per[LD == "Recalcitrant Microbe"]+
-                                                            +Massloss.per[LD=="Recalcitrant Termite"])
-
-
-WildP <- ggplot(data=Wild,aes(x=Littertype,y=Massloss.per,fill=LD,alpha=Decomposer,ymax=Massloss.per+SE.up,ymin=Mass.stop))+
-  geom_errorbar(position="identity",width=NA,lwd=1)+
-  geom_bar(stat="identity",position="stack",width=0.9)+
-  facet_wrap(~fseason+fregion,nrow=1)+
-  scale_fill_manual(TitleLitter,values=c("Green4","Orangered3","Green4","Orangered3"))+
-  scale_alpha_discrete(TitleDecomp,range=c(0.3,1))+
-  xlab("")+ylab("Massloss (%)")+
-  theme_bw()+
-  theme(
-    rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
-    ,panel.background=element_rect(fill="transparent")
-    ,plot.background=element_rect(fill="transparent",colour=NA)
-    ,panel.grid.minor = element_blank() # Removing all grids and borders
-    ,panel.border = element_blank()
-    ,panel.grid.major.x = element_blank()
-    ,panel.grid.major.y = element_blank()
-    ,axis.text.x = element_blank()
-    ,axis.ticks.x = element_blank()
-    ,legend.background = element_rect(fill="transparent")
-    ,legend.text = element_text(size=12,color="black")
-    ,legend.title = element_text(size=14,color="black")
-    ,axis.title.y=element_text(size=16,color="black", margin = margin(t = 0, r = 10, b = 0, l = 0))
-  )
-WildP <-WildP + scale_y_continuous(limits=c(0,100), breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80), expand=c(0,0))
-WildP <- WildP+guides(alpha=F, fill=guide_legend(override.aes =list(size=6,fill=c("Green4","Orangered3","Green4","Orangered3"), alpha=c(0.3,0.3,1,1))))
-
-WildP
-
+#Combine plots####
+#install.packages("ggpubr")
+library(ggpubr)
+ggarrange(Mainp,TM.effectMainP,nrow=1,ncol=2,common.legend = TRUE, legend="bottom")
+raw.termiteeffect <- ggarrange(Mainp,TM.effectMainP,nrow=1,ncol=2,widths=c(4, 1), heights=c(1, 4),common.legend = TRUE, legend="bottom")
+ggsave("Termites/Results/Figures/raw.termiteeffect.png",
+width= 20, height = 12,units ="cm",bg ="transparent",
+dpi = 600, limitsize = TRUE)
 
 
 #### Statistical models GLMM ####
