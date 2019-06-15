@@ -84,6 +84,8 @@ dim(TP2Cry) # 86 68
 TP0<-TP[!is.na(TP$FilVegCover),]
 dim(TP0) #139  67
 
+dim(TP) # Full design 152 plots? + Marit's
+
 ########################################################################
 #Data exploration
 # A Missing values?
@@ -274,9 +276,11 @@ names(MoveNuts)
 TransNuts<-read.csv("BioCoverSoil5cmNuts2.csv")
 names(TransNuts)
 
-# Harvest H7 ONLY and TARGET species ONLY
-MoveNutsH7<-droplevels(MoveNuts[MoveNuts$harvest=="H7" & !MoveNuts$pool=="other",])
-dim(MoveNutsH7)
+# Harvest H7 ONLY and TARGET species ONLY and no exclosures
+names(MoveNuts)
+MoveNuts$treatment
+MoveNutsH7<-droplevels(MoveNuts[MoveNuts$harvest=="H7" & !MoveNuts$pool=="other" & ! MoveNuts$treatment=="EX" & ! MoveNuts$treatment=="EX2",])
+dim(MoveNutsH7) #20 57 # 20 additional points
 levels(MoveNutsH7$landuse)<-c("Pasture","Wild")
 
 # Convert setup cover and harvest cover to same name as Transplant dataset
@@ -308,8 +312,10 @@ TransNuts3<-rbind(TransNuts2,MoveNutsH7b)
 # Rename levels for rainfall
 levels(as.factor(TransNuts$rain.sum.mm))
 aggregate(rain.sum.mm~region,TransNuts,mean) #DRY 1175.309,SE 1440.664, WET 1843.961
-levels(TransNuts3$region)<-c("Dry \n (1175 mm)","Intermediate \n (1140 mm)","Wet \n (1840 mm)")
+levels(TransNuts3$region)<-c("Dry \n (1175 mm)","Intermediate \n (1440 mm)","Wet \n (1840 mm)")
 
+# Rename treatment b/c MoveNuts has different name #"Exclosed" "Open"     "OP"  
+levels(TransNuts3$treatment)<-c("Exclosed", "Open","Open") 
 
 ########################################################################
 #### Plant cover changes ####
@@ -382,13 +388,13 @@ CCbiom
 ######################################################
 
 TransNuts3NA<-TransNuts3[!is.na(TransNuts3$CoverChange),]
-dim(TransNuts3NA) # 187  12 (77 62 without exclosures)
+dim(TransNuts3NA) # 159  12(77 62 without exclosures)
 
-CClm<-lmer(CoverChange~landuse+region+transplant+Tagsp+#treatment+
-            landuse:region+ transplant:landuse+
-            Tagsp:landuse+transplant:region+
+CClm<-lmer(CoverChange~landuse+region+transplant+Tagsp+treatment+
+            landuse:region+ Tagsp:landuse+ 
             transplant:Tagsp+
-            landuse:region:transplant+
+             transplant:Tagsp:region+
+             transplant:Tagsp:landuse+
             (1|site/block),
           na.action=na.fail,
           REML=T,TransNuts3NA)
@@ -420,11 +426,11 @@ CCcoef<-CCcoef+theme_classic()
 CCcoef
 
 # Reduced model
-CClm<-lmer(CoverChange~landuse+transplant+Tagsp+#region+#treatment+
-            # landuse:region+ #transplant:landuse+
-             Tagsp:landuse+#transplant:region+
-             transplant:Tagsp+
-             #landuse:region:transplant+
+CClm<-lmer(CoverChange~Tagsp+transplant+region+#landuse+#transplant+#region+#treatment+
+              #Tagsp:landuse+ #landuse:region+
+             #transplant:Tagsp+
+             transplant:Tagsp:region+
+             #transplant:Tagsp:landuse+
              (1|site/block),
            na.action=na.fail,
            REML=T,TransNuts3NA)
@@ -446,9 +452,10 @@ abline(v = 0, lwd = 2, col = 2)
 abline(h = 0, lty = 2, col = 1)
 
 # Reduce model
+dim(coef.CC)
 confint.CC <- confint(CClm)
 coef.CC <- summary(CClm)$coef  
-CChange<- as.data.frame(cbind(confint.CC[5:18,] , coef.CC[2:15] ))
+CChange<- as.data.frame(cbind(confint.CC[5:22,] , coef.CC[2:19] ))
 CChange$terms<-dimnames(CChange)[[1]]
 colnames(CChange)[1]<-"lowerCI"
 colnames(CChange)[2]<-"upperCI"
@@ -462,6 +469,15 @@ CCcoef<-CCcoef+geom_point(size=5, stroke=1.25)
 CCcoef<-CCcoef+coord_flip()
 CCcoef<-CCcoef+theme_classic()
 CCcoef
+
+#Pairwise contrasts *ghlt* and *lsmeans*
+library(multcomp)
+library(emmeans)
+
+# Species
+summary(glht(CClm, mcp(Tagsp="Tukey"))) # Nothing
+emm.s.recalmod <- emmeans(CClm,~Tagsp)
+pairs(emm.s.recalmod) # Nothing singificantly different
 
 ########################################################################
 #### Final plant cover  ####
@@ -529,13 +545,13 @@ CCbiomF
 ######################################################
 
 TransNuts4NA<-TransNuts3[!is.na(TransNuts3$FilTagspCover),]
-dim(TransNuts4NA) # 187  12 (77 62 without exclosures)
+dim(TransNuts4NA) # 159  12 (77 62 without exclosures)
 
-CClmFin<-lmer(FilTagspCover~landuse+region+transplant+Tagsp+#treatment+
-             landuse:region+ transplant:landuse+
-             Tagsp:landuse+transplant:region+
+CClmFin<-lmer(FilTagspCover~landuse+region+transplant+Tagsp+treatment+
+             landuse:region+Tagsp:landuse+
              transplant:Tagsp+
-             landuse:region:transplant+
+               transplant:Tagsp:region+
+               transplant:Tagsp:landuse+
              (1|site/block),
            na.action=na.fail,
            REML=T,TransNuts4NA)
@@ -544,8 +560,8 @@ summary(CClmFin)
 drop1(CClmFin, test="Chisq")
 
 # Model averaging
-modsetlmer_CClmFin <- dredge(CClmFin,trace=2) #,fixed=c("Season","Region","Landuse","Treatment","C.N","Temp","Sand")) 
-model.sel(modsetlmer_CClmFin) #Model selection table giving AIC, deltaAIC and weighting
+modsetlmer_CClmFin <- dredge(CClmFin,trace=2) 
+model.sel(modsetlmer_CClmFin) 
 modavglmer_modsetlmer_CClmFin<-model.avg(modsetlmer_CClmFin)
 importance(modavglmer_modsetlmer_CClm)
 CCimportanceFin<-as.data.frame(importance(modavglmer_modsetlmer_CClmFin))
@@ -559,12 +575,12 @@ colnames(CCFin)[2]<-"upperCI"
 
 
 # Reduced model
-CClmFin<-lmer(FilTagspCover~landuse+transplant+Tagsp+#region+#treatment+
-              transplant:landuse+#landuse:region+
-             #Tagsp:landuse+#transplant:region+
-             #transplant:Tagsp+
-             #landuse:region:transplant+
-             (1|site/block),
+CClmFin<-lmer(FilTagspCover~transplant+Tagsp+region+#+landuse+#treatment+
+                #landuse:region+Tagsp:landuse+
+                transplant:Tagsp+
+             transplant:Tagsp:region+
+              # transplant:Tagsp:landuse+
+                (1|site/block),
            na.action=na.fail,
            REML=T,TransNuts4NA)
 
@@ -586,9 +602,10 @@ abline(h = 0, lty = 2, col = 1)
 
 
 # Reduce model
+dim(coef.CCFin)
 confint.CCFin <- confint(CClmFin)
 coef.CCFin <- summary(CClmFin)$coef  
-CCFin<- as.data.frame(cbind(confint.CCFin[5:11,] , coef.CCFin[2:8] ))
+CCFin<- as.data.frame(cbind(confint.CCFin[5:22,] , coef.CCFin[2:19] ))
 CCFin$terms<-dimnames(CCFin)[[1]]
 colnames(CCFin)[1]<-"lowerCI"
 colnames(CCFin)[2]<-"upperCI"
@@ -603,15 +620,26 @@ CCcoefF<-CCcoefF+coord_flip()
 CCcoefF<-CCcoefF+theme_classic()
 CCcoefF
 
+# Interaction plots transplant and target species 
+with(TransNuts4NA, {interaction.plot(transplant,Tagsp,FilTagspCover,
+                                      xlab = "Treatment",
+                                      ylab = "Final species cover (%)",
+                                      fun=mean)})
+
+# Emmeans contrast three-way interaction
+CClmFinFINAL <- emmeans(CClmFin, pairwise~region,type="response") #Creating emmeans across the factor levels in the interaction.
+CClmFinFINAL$emmeans
+CClmFinFINAL.pairs <- pairs(CClmFinFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+CClmFinFINAL.pairs$emmeans
+plot(CClmFinFINAL, comparisons = FALSE)
 
 ################################################################################################################################################
 #### Standing biomass ####
 ################################################################################################################################################
 
-
 #### Graph biomass and probability ####
-MeanBio<-aggregate(Biomass.g.m2~landuse+region+transplant+Tagsp,TransNuts3,mean)
-MeanBio2<-aggregate(Biomass.g.m2~landuse+region+transplant+Tagsp,TransNuts3,sd)
+MeanBio<-aggregate(Biomass.g.m2~landuse+region+transplant+Tagsp+treatment,TransNuts3,mean)
+MeanBio2<-aggregate(Biomass.g.m2~landuse+region+transplant+Tagsp+treatment,TransNuts3,sd)
 MeanBio$sd<-MeanBio2$Biomass.g.m2
 
 MeanB<-aggregate(Biomass.g.m2~landuse,TransNuts3,mean)
@@ -625,13 +653,14 @@ MeanBio$Tagsp<- factor(MeanBio$Tagsp, levels = c("Chloris", "Chrysocloa", "Cynod
 MeanBio$spp.code<-as.factor(with(MeanBio, paste(Tagsp,transplant,sep="_")))
 
 # Plant cover change  graph
-TPbiom<-ggplot(MeanBio,aes(y=Biomass.g.m2,x=landuse, shape=transplant, colour=Tagsp,fill=spp.code)) # group = grouping vector for lines
+TPbiom<-ggplot(MeanBio,aes(y=Biomass.g.m2,x=landuse, shape=transplant, colour=Tagsp,fill=spp.code, alpha=treatment)) # group = grouping vector for lines
 TPbiom<-TPbiom+geom_hline(yintercept=0,linetype="dashed")
 TPbiom<-TPbiom+geom_errorbar(data=MeanBio,aes(ymin=Biomass.g.m2-sd, ymax=Biomass.g.m2+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
 TPbiom<-TPbiom+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
 TPbiom<-TPbiom+ylab(expression(paste("Plant biomass (kg ",m^-2,")")))+xlab("Land-use")
 TPbiom<-TPbiom+facet_wrap(~region, ncol=5)
 TPbiom<-TPbiom+scale_shape_manual(values=c(22,21))
+TPbiom<-TPbiom+scale_alpha_manual(values=c(.33,1))
 TPbiom<-TPbiom+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
 TPbiom<-TPbiom+scale_fill_manual(values=c("white","chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","orangered3","white"))
 #TNs<-TNs+scale_x_continuous(limits=c(0.5,2.5),breaks=c(1,2),labels=levels(SpeciesN$landuse),expand=c(0,0))
@@ -665,6 +694,7 @@ TPbiom<-TPbiom+theme_bw()+
         ,legend.spacing.x = unit(-0.25, "mm")
         ,legend.key.width = unit(1.2,"cm"))
 TPbiom<-TPbiom+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes = list(shape=c(22,21), size=3.75,fill=c("grey30","white"),col="grey30", stroke=1.25)),
+                      alpha = guide_legend("Exclosures",override.aes = list(shape=c(21), size=3.75,alpha=c(0.33,1),fill="grey30",col="grey30", stroke=1.25)),
                         colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
                                                                                   col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )
 TPbiom
@@ -674,13 +704,13 @@ TPbiom
 ######################################################
 
 TransNuts5NA<-TransNuts3[!is.na(TransNuts3$Biomass.g.m2),]
-dim(TransNuts5NA) # 125  12 (77 62 without exclosures)
+dim(TransNuts5NA) # 97 12 (77 62 without exclosures)
 
-TPbio<-lmer(Biomass.g.m2~landuse+region+transplant+Tagsp+#treatment+
-                landuse:region+ transplant:landuse+
-                Tagsp:landuse+transplant:region+
-                transplant:Tagsp+
-                landuse:region:transplant+
+TPbio<-lmer(Biomass.g.m2~landuse+region+transplant+Tagsp+treatment+
+              landuse:region+Tagsp:landuse+
+              transplant:Tagsp+
+              transplant:Tagsp:region+
+              #transplant:Tagsp:landuse+
                 (1|site/block),
               na.action=na.fail,
               REML=T,TransNuts5NA)
@@ -704,11 +734,10 @@ colnames(CCTPbio)[2]<-"upperCI"
 
 
 # Reduced model
-TPbio<-lmer(Biomass.g.m2~Tagsp+region+#landuse+#transplant+#treatment+
-               # transplant:landuse+#landuse:region+
-               # Tagsp:landuse+#transplant:region+
-                #transplant:Tagsp+
-                #landuse:region:transplant+
+TPbio<-lmer(Biomass.g.m2~region+transplant+Tagsp+treatment+#landuse+
+             # landuse:region+Tagsp:landuse+
+              transplant:Tagsp+
+              transplant:Tagsp:region+
                 (1|site/block),
               na.action=na.fail,
               REML=T,TransNuts5NA)
@@ -727,13 +756,14 @@ plot(x = F1,
      ylab = "Residuals", 
      xlim = c(min(F1), max(F1)))
 abline(v = 0, lwd = 2, col = 2)
-abline(h = 0, lty = 2, col = 1)
-
+abline(h = 0, lty = 2, col = 1) # Not good = very strongly connical 
+# Need to try Gamma distribution- will not work with rank deficiencies?
 
 # Reduce model
+dim(coef.TPbio)
 confint.TPbio <- confint(TPbio)
 coef.TPbio <- summary(TPbio)$coef  
-CCTPbio<- as.data.frame(cbind(confint.CCFin[5:10,] , coef.CCFin[2:7] ))
+CCTPbio<- as.data.frame(cbind(confint.CCFin[5:22,] , coef.CCFin[2:19] ))
 CCTPbio$terms<-dimnames(CCTPbio)[[1]]
 colnames(CCTPbio)[1]<-"lowerCI"
 colnames(CCTPbio)[2]<-"upperCI"
@@ -747,6 +777,13 @@ CCcoefTPbio<-CCcoefTPbio+geom_point(size=5, stroke=1.25)
 CCcoefTPbio<-CCcoefTPbio+coord_flip()
 CCcoefTPbio<-CCcoefTPbio+theme_classic()
 CCcoefTPbio
+
+# Emmeans contrast three-way interaction
+TPbioFINAL <- emmeans(TPbio, pairwise~region,type="response") #Creating emmeans across the factor levels in the interaction.
+TPbioFINAL$emmeans
+TPbioFINAL.pairs <- pairs(TPbioFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+TPbioFINAL.pairs$emmeans
+plot(TPbioFINAL, comparisons = FALSE)
 
 
 ###########################################################
@@ -826,7 +863,6 @@ MyData2
 TransBiomean<-aggregate(Target.weight.g~fLanduse+region+transplant+fTagsp,MyData,mean)
 TransBiosd<-aggregate(Target.weight.g~fLanduse+region+transplant+fTagsp,MyData,sd)
 TransBiomean$sd<-TransBiosd$Target.weight.g
-
 
 # Treatment code for filling symbols
 TransPmean$spp.code<-as.factor(with(TransPmean, paste(fTagsp,transplant,sep="_")))
@@ -941,25 +977,18 @@ TNs<-TNs+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes 
 TNs
 
 
-PN<-ggplot(TransNuts3mean, aes(y=Plant.N, x = landuse, shape=transplant,colour=Tagsp))
-PN<-PN+geom_errorbar(aes(ymin=Plant.N-sd, ymax=Plant.N+sd),position=position_dodge(width=.5),width=.1,lwd=.9, alpha=.5,show.legend=F)
-PN<-PN+geom_point(stat="identity", size=4.5,position=position_dodge(.5))
-PN<-PN+facet_wrap(~region, ncol=5)
-PN<-PN+theme_classic()
-PN
-
 #####################################################################
 ##### Plant nitrogen - modelling ####
 #####################################################################
 
 TransNutsNA<-TransNuts3[!is.na(TransNuts3$Plant.N),]
-dim(TransNutsNA) # 117   7 (77 62 without exclosures)
+dim(TransNutsNA) # 93 12 (77 62 without exclosures)
 
-Nlm<-lmer(Plant.N~landuse+region+transplant+Tagsp+#treatment+
-            landuse:region+ transplant:landuse+
-            Tagsp:landuse+transplant:region+
+Nlm<-lmer(Plant.N~landuse+region+transplant+Tagsp+treatment+
+            landuse:region+Tagsp:landuse+
             transplant:Tagsp+
-           landuse:region:transplant+
+            transplant:Tagsp:region+
+            #transplant:Tagsp:landuse+
          (1|site/block),
          na.action=na.fail,
          REML=T,TransNutsNA)
@@ -976,11 +1005,11 @@ PlantNimportance<-as.data.frame(importance(modavglmer_modsetlmer_Nlm))
 plot(PlantNimportance)           
 
 # Reduced model
-Nlm<-lmer(Plant.N~landuse+region+transplant+#Tagsp+#treatment+
-            landuse:region+# transplant:landuse+
-           # Tagsp:landuse+transplant:region+
-            #transplant:Tagsp+
-            #landuse:region:transplant+
+Nlm<-lmer(Plant.N~landuse+region+transplant+Tagsp+#treatment+
+            landuse:region+#Tagsp:landuse+
+            transplant:Tagsp+
+            #transplant:Tagsp:region+
+            #transplant:Tagsp:landuse+
             (1|site/block),
           na.action=na.fail,
           REML=T,TransNutsNA)
@@ -999,12 +1028,13 @@ plot(x = F1,
      ylab = "Residuals", 
      xlim = c(min(F1), max(F1)))
 abline(v = 0, lwd = 2, col = 2)
-abline(h = 0, lty = 2, col = 1)
+abline(h = 0, lty = 2, col = 1) # Very good
 
 # Reduce model
+dim(coef.Nlm )
 confint.Nlm <- confint(Nlm)
 coef.Nlm <- summary(Nlm)$coef  
-CCNlm<- as.data.frame(cbind(confint.Nlm[5:9,] , coef.Nlm[2:6] ))
+CCNlm<- as.data.frame(cbind(confint.Nlm[5:17,] , coef.Nlm[2:14] ))
 CCNlm$terms<-dimnames(CCNlm)[[1]]
 colnames(CCNlm)[1]<-"lowerCI"
 colnames(CCNlm)[2]<-"upperCI"
@@ -1018,6 +1048,14 @@ CCcoefNlm<-CCcoefNlm+geom_point(size=5, stroke=1.25)
 CCcoefNlm<-CCcoefNlm+coord_flip()
 CCcoefNlm<-CCcoefNlm+theme_classic()
 CCcoefNlm
+
+# Interaction plot transplant x species
+with(TransNutsNA, {interaction.plot(transplant,Tagsp,Plant.N,
+                                     xlab = "Treatment",
+                                     ylab = "Plant.N (%)",
+                                     fun=mean)})
+
+
 
 
 # Plant Biomass and N conc
@@ -1067,11 +1105,12 @@ TNBio
 
 
 TransNuts5NA<-TransNuts3[!is.na(TransNuts3$Biomass.g.m2) & !is.na(TransNuts3$Plant.N),]
-dim(TransNuts5NA) # 125  12 (77 62 without exclosures)
+dim(TransNuts5NA) # 90 13 (77 62 without exclosures)
 
 NlmBio<-lmer(Plant.N~Biomass.g.m2+
-            Biomass.g.m2:region+
-             # Biomass.g.m2:landuse+
+              # Biomass.g.m2:Tagsp+
+           # Biomass.g.m2:region+
+            #  Biomass.g.m2:landuse+
             (1|site/block),
           na.action=na.fail,
           REML=T,TransNuts5NA)
