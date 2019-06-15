@@ -84,7 +84,15 @@ dim(TP2Cry) # 86 68
 TP0<-TP[!is.na(TP$FilVegCover),]
 dim(TP0) #139  67
 
-dim(TP) # Full design 152 plots? + Marit's
+# Missing data
+dim(TP) # Full design 152 plots + 20 = 172 FULL DESIGN 
+
+# Not found
+summary(is.na(TP$weight.g))
+TPnofind<-TP[!is.na(TP$weight.g),]
+# Missing target species
+dim(TPnofind[TPnofind$FilTagspCover==0,])
+# 53 have zero cover
 
 ########################################################################
 #Data exploration
@@ -637,7 +645,7 @@ plot(CClmFinFINAL, comparisons = FALSE)
 #### Standing biomass ####
 ################################################################################################################################################
 
-#### Graph biomass and probability ####
+#### Graph biomass ####
 MeanBio<-aggregate(Biomass.g.m2~landuse+region+transplant+Tagsp+treatment,TransNuts3,mean)
 MeanBio2<-aggregate(Biomass.g.m2~landuse+region+transplant+Tagsp+treatment,TransNuts3,sd)
 MeanBio$sd<-MeanBio2$Biomass.g.m2
@@ -1056,8 +1064,6 @@ with(TransNutsNA, {interaction.plot(transplant,Tagsp,Plant.N,
                                      fun=mean)})
 
 
-
-
 # Plant Biomass and N conc
 TransNuts3$spp.code<-as.factor(with(TransNuts3, paste(Tagsp,treatment,sep="_")))
 TNBio<-ggplot(TransNuts3,aes(y=Biomass.g.m2,x=Plant.N, shape=transplant, colour=Tagsp, fill=Tagsp)) # group = grouping vector for lines
@@ -1107,10 +1113,10 @@ TNBio
 TransNuts5NA<-TransNuts3[!is.na(TransNuts3$Biomass.g.m2) & !is.na(TransNuts3$Plant.N),]
 dim(TransNuts5NA) # 90 13 (77 62 without exclosures)
 
-NlmBio<-lmer(Plant.N~Biomass.g.m2+
-              # Biomass.g.m2:Tagsp+
-           # Biomass.g.m2:region+
-            #  Biomass.g.m2:landuse+
+NlmBio<-lmer(Biomass.g.m2~Plant.N+
+              # Plant.N:Tagsp+
+           # Plant.N:region+
+            #  Plant.N:landuse+
             (1|site/block),
           na.action=na.fail,
           REML=T,TransNuts5NA)
@@ -1118,56 +1124,212 @@ NlmBio<-lmer(Plant.N~Biomass.g.m2+
 summary(NlmBio)
 drop1(NlmBio, test="Chisq")
 
+#### CARBON TO NITROGEN ####
+
+# Means Plant CN
+names(TransNuts3)
+TransNuts3mean<-aggregate(Plant.CN~landuse+region+transplant+Tagsp,TransNuts3,mean)
+TransNuts3sd<-aggregate(Plant.N~landuse+region+transplant+Tagsp,TransNuts3,sd)
+#TransNuts3mean2<-left_join(TransNuts3mean,TransNutsDUNG,by=c("landuse","region","transplant","Tagsp"))
+TransNuts3mean$sd<-TransNuts3sd$Plant.N
+
+# Relevel so that other
+levels(TransNuts3mean$Tagsp)<- c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda")
+TransNuts3mean$Tagsp<- factor(TransNuts3mean$Tagsp, levels = c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda"))
+
+# Treatment code for filling symbols
+TransNuts3mean$spp.code<-as.factor(with(TransNuts3mean, paste(Tagsp,transplant,sep="_")))
+
+# Plant Nitrogen concentrations graph
+TNs<-ggplot(TransNuts3mean,aes(y=Plant.N,x=landuse, shape=transplant, colour=Tagsp,fill=spp.code)) # group = grouping vector for lines
+TNs<-TNs+geom_errorbar(data=TransNuts3mean,aes(ymin=Plant.N-sd, ymax=Plant.N+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
+TNs<-TNs+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
+TNs<-TNs+ylab("Plant nitrogen concentration (%)")+xlab("Land-use")
+TNs<-TNs+facet_wrap(~region, ncol=5)
+TNs<-TNs+scale_shape_manual(values=c(22,21))
+TNs<-TNs+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+TNs<-TNs+scale_fill_manual(values=c("white","chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","orangered3","white"))
+#TNs<-TNs+scale_x_continuous(limits=c(0.5,2.5),breaks=c(1,2),labels=levels(SpeciesN$landuse),expand=c(0,0))
+TNs<-TNs+theme_bw()+
+  theme(rect = element_rect(fill ="transparent")
+        ,panel.background=element_rect(fill="transparent")
+        ,plot.background=element_rect(fill="transparent",colour=NA)
+        ,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank()
+        ,axis.text=element_text(size=13,color="black")
+        ,axis.title.y=element_text(size=13,color="black")
+        ,axis.title.x=element_text(size=13,color="black")
+        ,axis.text.x=element_text(size=13,color="black",
+                                  margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.ticks.length=unit(-1.5, "mm")
+        ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.text.y.right =element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.line = element_line(color="black", size = .5)
+        ,plot.margin = unit(c(1,1.5,5,1.5), "mm")
+        ,strip.background = element_rect(fill="transparent",colour=NA)
+        ,legend.text = element_text(size=13,color="black")
+        ,legend.title = element_text(size=13,color="black")
+        ,strip.text = element_text(size=13,color="black")
+        ,legend.key = element_rect(colour = NA, fill = NA)
+        ,legend.position = "right"
+        ,legend.justification = "top"
+        ,legend.direction="vertical"
+        ,legend.spacing.x = unit(-0.25, "mm")
+        ,legend.key.width = unit(1.2,"cm"))
+TNs<-TNs+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes = list(shape=c(22,21), size=3.75,fill=c("grey30","white"),col="grey30", stroke=1.25)),
+                colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
+                                                                          col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )
+TNs
+
+
 ########################################################################
 #### Transplant soil properties ####
 ########################################################################
 
-TP2c<-TP2[TP2$Trasnplant=="Control",] # Controls only...
+
+levels(TP2$region)<-c("Dry \n (1175 mm)","Intermediate \n (1440 mm)","Wet \n (1840 mm)")
 
 #### Soil bulk density ####
 
-BD<-aggregate(BD.gcm3~fTagsp+fLanduse,TP2, mean)
-BDc<-aggregate(BD.gcm3~fTagsp+fLanduse,TP2c, mean)
-BDSe<-aggregate(BD.gcm3~fTagsp+fLanduse,TP2, sd)
-BDcSe<-aggregate(BD.gcm3~fTagsp+fLanduse,TP2c, sd)
-BD$Sd<-BDSe$BD.gcm3
-BDc$Sd<-BDcSe$BD.gcm3
-BD$transplanted<-"trasnplanted"
-BDc$transplanted<-"control"
+# Graph soil bulk density
+BD<-aggregate(BD.gcm3~landuse+region+transplant+Tagsp,TP2, mean)
+BDSe<-aggregate(BD.gcm3~landuse+region+transplant+Tagsp,TP2, sd)
+BD$sd<-BDSe$BD.gcm3
 
-BD<-rbind(BD, BDc)
+# Relevel so that other
+levels(BD$Tagsp)<- c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda")
+BD$Tagsp<- factor(BD$Tagsp, levels = c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda"))
 
-TPBD<-ggplot(BD,aes(y=BD.gcm3, x=fLanduse, colour=transplanted, fill=transplanted))
-TPBD<-TPBD+geom_point(stat="identity", size=4,position=position_dodge(width=.6))
-TPBD<-TPBD+geom_errorbar(aes(ymin = BD.gcm3-Sd,ymax = BD.gcm3+Sd),position=position_dodge(width=.6),width=.1,show.legend=F) 
-TPBD<-TPBD+ylab("Bulk density (g cm3)")+xlab("Target species")
-TPBD<-TPBD+facet_wrap(~fTagsp)
-#TPBD<-TPBD+scale_y_continuous(limits=c(-5,80))
-TPBD<-TPBD+theme_classic()
+# Treatment code for filling symbols
+BD$spp.code<-as.factor(with(BD, paste(Tagsp,transplant,sep="_")))
+
+# Soil bulk density graph
+TPBD<-ggplot(BD,aes(y=BD.gcm3,x=landuse, shape=transplant, colour=Tagsp,fill=spp.code)) # group = grouping vector for lines
+TPBD<-TPBD+geom_errorbar(data=BD,aes(ymin=BD.gcm3-sd, ymax=BD.gcm3+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
+TPBD<-TPBD+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
+TPBD<-TPBD+ylab(expression(paste("Soil bulk density (g ",cm^-3,")")))+xlab("Land-use")
+TPBD<-TPBD+facet_wrap(~region, ncol=5)
+TPBD<-TPBD+scale_shape_manual(values=c(22,21))
+TPBD<-TPBD+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+TPBD<-TPBD+scale_fill_manual(values=c("white","chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","orangered3","white"))
+TPBD<-TPBD+theme_bw()+
+  theme(rect = element_rect(fill ="transparent")
+        ,panel.background=element_rect(fill="transparent")
+        ,plot.background=element_rect(fill="transparent",colour=NA)
+        ,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank()
+        ,axis.text=element_text(size=13,color="black")
+        ,axis.title.y=element_text(size=13,color="black")
+        ,axis.title.x=element_text(size=13,color="black")
+        ,axis.text.x=element_text(size=13,color="black",
+                                  margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.ticks.length=unit(-1.5, "mm")
+        ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.text.y.right =element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.line = element_line(color="black", size = .5)
+        ,plot.margin = unit(c(1,1.5,5,1.5), "mm")
+        ,strip.background = element_rect(fill="transparent",colour=NA)
+        ,legend.text = element_text(size=13,color="black")
+        ,legend.title = element_text(size=13,color="black")
+        ,strip.text = element_text(size=13,color="black")
+        ,legend.key = element_rect(colour = NA, fill = NA)
+        ,legend.position = "right"
+        ,legend.justification = "top"
+        ,legend.direction="vertical"
+        ,legend.spacing.x = unit(-0.25, "mm")
+        ,legend.key.width = unit(1.2,"cm"))
+TPBD<-TPBD+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes = list(shape=c(22,21), size=3.75,fill=c("grey30","white"),col="grey30", stroke=1.25)),
+                      colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
+                                                                                col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )
 TPBD
 
+#### Soil  pH ####
 
-#### Ph ####
+# Graph soil bulk density
+pH<-aggregate(pH~landuse+region+transplant+Tagsp,TP2, mean)
+pHSe<-aggregate(pH~landuse+region+transplant+Tagsp,TP2, sd)
+pH$sd<-pHSe$pH
 
-pH<-aggregate(pH~fTagsp+fLanduse,TP2, mean)
-pHc<-aggregate(pH~fTagsp+fLanduse,TP2c, mean)
-pHSe<-aggregate(pH~fTagsp+fLanduse,TP2, sd)
-pHcSe<-aggregate(pH~fTagsp+fLanduse,TP2c, sd)
-pH$Sd<-pHSe$pH
-pHc$Sd<-pHcSe$pH
-pH$transplanted<-"trasnplanted"
-pHc$transplanted<-"control"
+# Relevel so that other
+levels(pH$Tagsp)<- c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda")
+pH$Tagsp<- factor(pH$Tagsp, levels = c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda"))
 
-pH<-rbind(pH, pHc)
+# Treatment code for filling symbols
+pH$spp.code<-as.factor(with(pH, paste(Tagsp,transplant,sep="_")))
 
-TPpH<-ggplot(pH,aes(y=pH, x=fLanduse, colour=transplanted, fill=transplanted))
-TPpH<-TPpH+geom_point(stat="identity", size=4,position=position_dodge(width=.6))
-TPpH<-TPpH+geom_errorbar(aes(ymin = pH-Sd,ymax = pH+Sd),position=position_dodge(width=.6),width=.1,show.legend=F) 
-TPpH<-TPpH+ylab("pH")+xlab("Target species")
-TPpH<-TPpH+facet_wrap(~fTagsp)
-#TPBD<-TPBD+scale_y_continuous(limits=c(-5,80))
-TPpH<-TPpH+theme_classic()
+
+# Soil pH  graph
+TPpH<-ggplot(pH,aes(y=pH,x=landuse, shape=transplant, colour=Tagsp,fill=spp.code)) # group = grouping vector for lines
+TPpH<-TPpH+geom_errorbar(data=pH,aes(ymin=pH-sd, ymax=pH+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
+TPpH<-TPpH+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
+TPpH<-TPpH+ylab("pH")+xlab("Land-use")
+TPpH<-TPpH+facet_wrap(~region, ncol=5)
+TPpH<-TPpH+scale_shape_manual(values=c(22,21))
+TPpH<-TPpH+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+TPpH<-TPpH+scale_fill_manual(values=c("white","chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","orangered3","white"))
+TPpH<-TPpH+theme_bw()+
+  theme(rect = element_rect(fill ="transparent")
+        ,panel.background=element_rect(fill="transparent")
+        ,plot.background=element_rect(fill="transparent",colour=NA)
+        ,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank()
+        ,axis.text=element_text(size=13,color="black")
+        ,axis.title.y=element_text(size=13,color="black")
+        ,axis.title.x=element_text(size=13,color="black")
+        ,axis.text.x=element_text(size=13,color="black",
+                                  margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.ticks.length=unit(-1.5, "mm")
+        ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.text.y.right =element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.line = element_line(color="black", size = .5)
+        ,plot.margin = unit(c(1,1.5,5,1.5), "mm")
+        ,strip.background = element_rect(fill="transparent",colour=NA)
+        ,legend.text = element_text(size=13,color="black")
+        ,legend.title = element_text(size=13,color="black")
+        ,strip.text = element_text(size=13,color="black")
+        ,legend.key = element_rect(colour = NA, fill = NA)
+        ,legend.position = "right"
+        ,legend.justification = "top"
+        ,legend.direction="vertical"
+        ,legend.spacing.x = unit(-0.25, "mm")
+        ,legend.key.width = unit(1.2,"cm"))
+TPpH<-TPpH+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes = list(shape=c(22,21), size=3.75,fill=c("grey30","white"),col="grey30", stroke=1.25)),
+                  colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
+                                                                            col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )
 TPpH
+
+
+names(TP2)
+MyEnv<-c("Target.weight.g","FilTagspCover","Plant.N" ,        
+         "BD.gcm3", "pH")
+pairs(TP2[,MyEnv], lower.panel= panel.cor)
+
+plot(Plant.N~pH,col=c(Tagsp),TP2)
+
+TP2NA<-TP2[!is.na(TP2$Plant.N),]
+pHlm<-lmer(pH~landuse+region+transplant+Tagsp+pH+
+            # pH:region+pH:landuse+pH:transplant+
+             #pH:Tagsp+
+            (1|site/block),
+          na.action=na.fail,
+          REML=T,TP2NA)
+summary(pHlm)
+drop1(pHlm, test="Chisq")
+
+
+################################################################################################################################################
+#### OLD SCRIPT ####
+################################################################################################################################################
+
 
 #### Selecting Dig mac only ####
 #### Select controls ####
