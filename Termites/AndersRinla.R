@@ -203,30 +203,41 @@ names(Mainexp)
 levels(Mainexp$Treatment) <- c("Exclosed","Open","","")
 levels(Mainexp$Littertype) <- c("Labile","Recalcitrant")
 
+#To make a better panel titles:
+levels(Mainexp$Season) <- c("Dry Season","Wet Season")
+levels(Mainexp$Region) <- c("Dry Region","Wet Region")
+Mainexp$panel.titles<-as.factor(with(Mainexp, paste(Season, Region, sep=" - ")))
+levels(Mainexp$panel.titles)
+#Adding rainfall text to the panels using facet wrap:
+Mainexp$rainfall.text <- as.factor(with(Mainexp, ifelse(panel.titles %in% c("Dry Season - Dry Region"), "Rainfall 8mm",
+                                                        ifelse(panel.titles %in% c("Dry Season - Wet Region"), "Rainfall 150mm",
+                                                               ifelse(panel.titles %in% c("Wet Season - Dry Region"), "Rainfall 197mm",
+                                                                      ifelse(panel.titles %in% c("Wet Season - Wet Region"), "Rainfall 196mm","WRONG"))))))
 
+levels(Mainexp$rainfall.text)
 ###Raw massloss graph####
 Mainp <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=(Massloss.per-SE),ymax=(Massloss.per+SE),fill = Treatment, color = Littertype))
-Mainp <- Mainp+geom_errorbar(width=.2,lwd=1,position=position_dodge(width=.35),show.legend=F)
-Mainp <- Mainp+geom_point(size=3,stroke=1.5,position=position_dodge(width=.35),show.legend=T, shape=21)
-Mainp <- Mainp+facet_wrap(Region ~ Season, scale ="fixed", ncol=1, strip.position = "left",
-                          labeller=labeller(Region = c(`Dry`= "Dry Region", `Wet`="Wet Region"),Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
+Mainp <- Mainp+geom_errorbar(width=0.5,size=0.5,position=position_dodge(width=.35),show.legend=F)
+Mainp <- Mainp+geom_point(size=2.2,stroke=1,position=position_dodge(width=.35),show.legend=T, shape=21)
+Mainp <- Mainp+facet_wrap(panel.titles~rainfall.text, scale ="fixed", ncol=1)
 Mainp <- Mainp+scale_color_manual(values=c("green4", "orangered3"))
 Mainp <- Mainp+scale_fill_manual(values=c("green4","orangered3","white","white"))
 #Mainp <- Mainp+scale_fill_discrete(breaks=c("Exclosed","Open"), name="Treatment")
 Mainp <- Mainp+guides(fill=guide_legend(override.aes = 
                                           list(shape=22,
                                                size=4,
-                                               fill=c("black", "white",NA),
-                                               color=c("black", "black",NA))))
-Mainp <- Mainp+guides(color=guide_legend(override.aes = 
-                                          list(shape=22,
-                                               size=4,
-                                               fill=c("green4", "orangered3"),
-                                               color=c("green4", "orangered3"))))
+                                               fill=c("grey50", "white",NA),
+                                               color=c("grey50", "grey50",NA))))
+                                     
+Mainp <- Mainp+guides(color=FALSE)#guide_legend(override.aes = 
+                                  #        list(shape=21,
+                                   #            size=4,
+                                    #           fill=c("green4", "orangered3"),
+                                     #          color=c("green4", "orangered3"))))
 
-Mainp <- Mainp+scale_y_continuous(limits = c(0,100), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))
-Mainp <- Mainp+scale_x_discrete(expand = c(0,1))
-Mainp <- Mainp+xlab("Land-use")+ylab("Mass loss (%)") + ggtitle("What title here?")
+Mainp <- Mainp+scale_y_continuous(limits = c(0,max(Mainexp$Massloss.per+Mainexp$SE+10)), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))
+#Mainp <- Mainp+scale_x_discrete(expand = c(0,0))
+Mainp <- Mainp+xlab("Land-use")+ylab("Mass loss (%)") #+ ggtitle("What title here?")
 Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
                      ,panel.background=element_rect(fill="transparent")
                      ,plot.background=element_rect(fill="transparent",colour=NA)
@@ -235,31 +246,29 @@ Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
                      ,panel.border = element_blank()
                      ,panel.grid.major.x = element_blank()
                      ,panel.grid.major.y = element_blank()
+                     ,plot.margin = unit(c(2.5,2.5,.5,2.5), "mm")
                      #,axis.text=element_text(size=12,color="black")
-                     ,axis.title.y=element_text(size=14,color="black",margin=margin(2.5,2.5,2.5,2.5,"mm"))
+                     ,axis.title.y=element_text(size=8,color="black",margin=margin(2.5,2.5,2.5,2.5,"mm"))
                      ,axis.title.x=element_blank()#element_text(size=14,vjust=-.5,color="black")
-                     ,axis.text.x = element_text(size=10,color="black",angle =90,vjust=0.6,
-                                                 margin=margin(1,1,1,1,"mm"))
-                     ,axis.text.y = element_text(size=10,color="black",margin=unit(c(0.1,0.1,0.1,0.1),"mm"))
+                     ,axis.text.x = element_text(size=6,color="black",angle =30,vjust=0.6,margin=unit(c(0.1,0.1,0.1,0.1),"mm"))
+                     ,axis.text.y = element_text(size=6,color="black",margin=unit(c(0.1,0.1,0.1,0.1),"mm"))
+                     ,axis.ticks = element_line(colour = "black", size = 0.5)
                      ,axis.ticks.length=unit(1.5, "mm")
-                     #,axis.line.y = element_line(colour = "black", size=0.5, linetype="solid")
-                     #,axis.line.x = element_line(colour = "black", size=0.5, linetype="solid")
-                     ,plot.margin = unit(c(1,1,1,1), "mm")
-                     ,strip.background = element_blank()#element_rect(fill="transparent",colour=NA)
-                     #,strip.text.x = element_text(size = 10,colour = "black")
-                     ,strip.text.y = element_text(size = 11,colour = "black", margin = margin(2.5,1,2.5,1,"mm"))
+                     ,strip.background =element_blank() #element_rect(fill="transparent",colour="black",size=10)
+                     ,strip.text = element_text(size = 8,colour = "black", margin = unit(c(.5,.5,.5,.5),"mm"))
                      ,panel.spacing = unit(1, "lines")
-                     ,strip.placement = "outside"
+                     #,strip.placement = "outside"
                      ,legend.background = element_rect(fill = "transparent")
                      ,legend.title=element_blank()
-                     ,legend.position = "right"
-                    #,legend.margin = margin(-0.6,0,0,0, unit="cm")
-                     #,legend.spacing.y = unit(-0.6, "mm")
-                     ,legend.key.height=unit(7.5,"mm")
-                     ,legend.key.width=unit(7.5,"mm")
+                     ,legend.position = "bottom"
+                     #,legend.margin = margin(-0.6,0,0,0, unit="cm")
+                     #,legend.spacing.y = unit(2.5, "mm")
+                     ,legend.spacing.x = unit(2.5, "mm")
+                     ,legend.key.height=unit(0.5,"mm")
+                     ,legend.key.width=unit(0.5,"mm")
                      ,legend.key = element_rect(colour = NA, fill = NA)
-                     #,legend.key.size. = unit(5,"line")
-                     ,legend.text=element_text(size=10,color="black")
+                     ,legend.justification = "right"
+                     ,legend.text=element_text(size=8,color="black", hjust=0.5)
                      ,plot.title = element_text(size = 12, face = "bold",hjust = 0.5))#,margin = margin(t = 0, r = 0, b = 0, l = 50,unit=mm))
 
                      
@@ -529,36 +538,63 @@ levels(TM.effectMain$Decomposer)
 levels(TM.effectMain$Season) <- c("Dry Season","Wet Season")
 levels(TM.effectMain$Region) <- c("Dry Region","Wet Region")
 
+#To make a better panel titles:
+levels(TM.effectMain$Season) <- c("Dry Season","Wet Season")
+levels(TM.effectMain$Region) <- c("Dry Region","Wet Region")
+TM.effectMain$panel.titles<-as.factor(with(TM.effectMain, paste(Season, Region, sep=" - ")))
+levels(TM.effectMain$panel.titles)
+#Adding rainfall text to the panels using facet wrap:
+TM.effectMain$rainfall.text <- as.factor(with(TM.effectMain, ifelse(panel.titles %in% c("Dry Season - Dry Region"), "Rainfall 8mm",
+                                                        ifelse(panel.titles %in% c("Dry Season - Wet Region"), "Rainfall 150mm",
+                                                               ifelse(panel.titles %in% c("Wet Season - Dry Region"), "Rainfall 197mm",
+                                                                      ifelse(panel.titles %in% c("Wet Season - Wet Region"), "Rainfall 196mm","WRONG"))))))
+
+levels(TM.effectMain$rainfall.text)
+
+View(TM.effectMain)
 #Barplot: termite effect####
 TM.effectMainP <- ggplot(data=TM.effectMain,aes(x=Landuse,y=Massloss.per,fill=Littertype))
-TM.effectMainP <- TM.effectMainP + geom_bar(stat="identity",position=position_dodge(),show.legend=F)
+TM.effectMainP <- TM.effectMainP + geom_bar(stat="identity",position=position_dodge(),show.legend=T)
 TM.effectMainP <- TM.effectMainP + geom_errorbar(aes(ymin=Massloss.per,ymax=Massloss.per+SE),position=position_dodge(width=0.9),width=0,lwd=1,show.legend=F)
-TM.effectMainP <- TM.effectMainP + facet_wrap(Season~Region,nrow=4, ncol=1, strip.position = "right",) #labeller(Dry= "Dry season", Wet="Wet season",Dry="Dry Region",Wet="Wet Region"))
-TM.effectMainP <- TM.effectMainP + scale_fill_manual(values=c("Green4","Orangered3"))
-TM.effectMainP <- TM.effectMainP + xlab("")+ylab("Mass loss (%)") + ggtitle("Termite effect")
-TM.effectMainP <- TM.effectMainP + scale_y_continuous(limits = c(0,100), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80),position = "right")
+TM.effectMainP <- TM.effectMainP + facet_wrap(panel.titles~rainfall.text,ncol=1)
+TM.effectMainP <- TM.effectMainP + scale_fill_manual(values=c("green4","orangered3"))
+TM.effectMainP <- TM.effectMainP + ylab("Termite and macro-fauna only mass loss (%)")# + ggtitle("Termite effect")
+TM.effectMainP <- TM.effectMainP + scale_y_continuous(limits = c(0,max(TM.effectMain$Massloss.per+TM.effectMain$SE+10)), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80),position = "right")
+TM.effectMainP <- TM.effectMainP + guides(fill=guide_legend(override.aes = 
+                            list(shape=21,
+                                 size=4,
+                                 fill=c("green4", "orangered3"),
+                                 color=c("green4", "orangered3"))))
 TM.effectMainP <- TM.effectMainP + theme(
     rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
     ,panel.background=element_rect(fill="transparent")
     ,plot.background=element_rect(fill="transparent",colour=NA)
-    ,plot.margin = unit(c(1,1,1,1), "mm")
+    ,plot.margin = unit(c(2.5,2.5,.5,2.5), "mm")
     ,panel.grid.minor = element_blank() # Removing all grids and borders
     ,panel.border = element_blank()
     ,panel.grid.major.x = element_blank()
     ,panel.grid.major.y = element_blank()
     ,panel.spacing = unit(1, "lines")
-    ,axis.text.x = element_text(size=10,color="black",angle =90,vjust=0.6,
-                                margin=margin(1,1,1,1,"mm"))
-    ,axis.text.y = element_text(size=10,color="black",margin=unit(c(0.1,0.1,0.1,0.1),"mm"))
+    ,axis.text.x = element_text(size=6,color="black",angle =30,vjust=0.6,margin=unit(c(0.1,0.1,0.1,0.1),"mm"))
+    ,axis.text.y = element_text(size=6,color="black",margin=unit(c(0.1,0.1,0.1,0.1),"mm"))
     ,axis.ticks.x = element_blank()
-    #,axis.line.y = element_line(colour = "black", size=0.5, linetype="solid")
-    ,legend.background = element_rect(fill="transparent")
-    ,legend.text = element_text(size=10,color="black")
-    ,legend.title = element_text(size=12,color="black")
-    ,axis.title.y.right=element_blank()#element_text(size=12,color="black", margin = margin(t = 0, r = 0, b = 0, l = 8))
-    ,strip.text = element_blank()#element_text(size=8)
+    ,axis.ticks = element_line(colour = "black", size = 0.5)
+    ,legend.background = element_rect(fill = "transparent")
+    ,legend.title=element_blank()
+    ,legend.position = "bottom"
+    #,legend.margin = margin(-0.6,0,0,0, unit="cm")
+   #,legend.spacing.y = unit(2.5, "mm")
+    ,legend.spacing.x = unit(2.5, "mm")
+    ,legend.key.height=unit(0.5,"mm")
+    ,legend.key.width=unit(0.5,"mm")
+    ,legend.key = element_rect(colour = NA, fill = NA)
+    ,legend.justification = "left"
+    ,legend.text=element_text(size=8,color="black", hjust=0.5)
+    ,axis.title.y.right=element_text(size=8,color="black",margin = margin(t = 0, r = 0, b = 0, l = 8))
+   ,axis.title.x=element_blank()
+   ,strip.text = element_text(size = 8,colour = "black", margin = unit(c(.5,.5,.5,.5),"mm"))
     ,strip.background = element_blank()
-    ,plot.title = element_text(size = 12, face = "bold",hjust = 0.5)#,margin = margin(t = 0, r = 0, b = 0, l = 50,unit=mm))
+    ,plot.title = element_text(size = 8, face = "bold",hjust = 0.5)#,margin = margin(t = 0, r = 0, b = 0, l = 50,unit=mm))
   )
 
 TM.effectMainP <- TM.effectMainP+annotate(geom = "segment", x = Inf, xend = Inf, y = -Inf, yend = Inf, size = 0.5)
@@ -573,12 +609,13 @@ TM.effectMainP
 
 
 #Combine plots####
-#install.packages("ggpubr")
-library(ggpubr)
-ggarrange(Mainp,TM.effectMainP,nrow=1,ncol=2,common.legend = TRUE, legend="bottom")
-raw.termiteeffect <- ggarrange(Mainp,TM.effectMainP,nrow=1,ncol=2,widths=c(4, 1), heights=c(1, 4),common.legend = TRUE, legend="bottom")
-ggsave("Termites/Results/Figures/raw.termiteeffect.png",
-width= 20, height = 12,units ="cm",bg ="transparent",
+#install.packages("egg")
+library(egg)
+egg::ggarrange(Mainp,TM.effectMainP,
+               nrow=1,ncol=2)
+ggsave("Termites/Results/Figures/raw.termiteeffect.plot.png",
+       plot=egg::ggarrange(Mainp,TM.effectMainP,nrow=1,ncol=2),
+width= 12.2, height = 14.5,units ="cm",bg ="transparent",
 dpi = 600, limitsize = TRUE)
 
 
