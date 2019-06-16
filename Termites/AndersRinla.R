@@ -224,7 +224,7 @@ Mainp <- Mainp+scale_color_manual(values=c("green4", "orangered3"))
 Mainp <- Mainp+scale_fill_manual(values=c("green4","orangered3","white","white"))
 #Mainp <- Mainp+scale_fill_discrete(breaks=c("Exclosed","Open"), name="Treatment")
 Mainp <- Mainp+guides(fill=guide_legend(override.aes = 
-                                          list(shape=22,
+                                          list(shape=21,
                                                size=4,
                                                fill=c("grey50", "white",NA),
                                                color=c("grey50", "grey50",NA))))
