@@ -347,29 +347,34 @@ sum(-18.750000,-25.333333,20.250000,-15.75000)/4 # -9.895833
 sum(-13.750000,-33.750000, 3.666667,-3.250000)/4 #-11.77083
 
 
-landuse                    region transplant   Tagsp CoverChange
-19    Wild Intermediate \n (1440 mm)    Control Dig mac    1.250000
-20 Pasture          Dry \n (1175 mm) Transplant Dig mac  -16.000000
-21    Wild          Dry \n (1175 mm) Transplant Dig mac   -3.250000
-22 Pasture          Wet \n (1840 mm) Transplant Dig mac  -17.750000
-23    Wild          Wet \n (1840 mm) Transplant Dig mac   -9.375000
-24    Wild          Wet \n (1840 mm)    Control The tri    0.875000
-25 Pasture          Dry \n (1175 mm) Transplant The tri  -50.000000
-26    Wild          Dry \n (1175 mm) Transplant The tri  -40.666667
-27    Wild Intermediate \n (1440 mm) Transplant The tri   28.500000
-28 Pasture          Wet \n (1840 mm) Transplant The tri   -4.800000
-29    Wild          Wet \n (1840 mm) Transplant The tri  -18.250000
+#landuse                    region transplant   Tagsp CoverChange
+#19    Wild Intermediate \n (1440 mm)    Control Dig mac    1.250000
+#20 Pasture          Dry \n (1175 mm) Transplant Dig mac  -16.000000
+#21    Wild          Dry \n (1175 mm) Transplant Dig mac   -3.250000
+#22 Pasture          Wet \n (1840 mm) Transplant Dig mac  -17.750000
+#23    Wild          Wet \n (1840 mm) Transplant Dig mac   -9.375000
+#24    Wild          Wet \n (1840 mm)    Control The tri    0.875000
+#25 Pasture          Dry \n (1175 mm) Transplant The tri  -50.000000
+#26    Wild          Dry \n (1175 mm) Transplant The tri  -40.666667
+#27    Wild Intermediate \n (1440 mm) Transplant The tri   28.500000
+#28 Pasture          Wet \n (1840 mm) Transplant The tri   -4.800000
+#29    Wild          Wet \n (1840 mm) Transplant The tri  -18.250000
 
 ######################################################
 #### Plant cover change modelling ####
 ######################################################
 
+# Remove NAS
 TransNuts3NA<-TransNuts3[!is.na(TransNuts3$CoverChange),]
 dim(TransNuts3NA) # 159  12(77 62 without exclosures)
 
-CClm<-lmer(CoverChange~landuse+region+transplant+Tagsp+treatment+
-            landuse:region+ Tagsp:landuse+ 
-            transplant:Tagsp+
+# Remove Seronera
+names(TransNuts3NA)
+TransNuts3NA<-droplevels(TransNuts3NA[!TransNuts3NA$region=="Intermediate \n (1440 mm)",])
+
+CClm<-lmer(CoverChange~landuse+region+transplant+Tagsp+#Treatment+
+             landuse:region+ Tagsp:landuse+
+              transplant:Tagsp+
              transplant:Tagsp:region+
              transplant:Tagsp:landuse+
             (1|site/block),
