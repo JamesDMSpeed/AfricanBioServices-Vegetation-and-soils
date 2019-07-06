@@ -45,6 +45,10 @@ Massloss$CLAY.. <- NULL
 dim(Massloss) # 1760 
 summary(is.na(Massloss$Massloss.per)) # 1604 litterbags
 
+aggregate(Massloss.per~Treatment+Littertype, Massloss, mean)
+#44.72916-24.23438
+#20.49478
+
 ####Merge data####
 Data <- Massloss
 DataCG<-droplevels(Data[Data$Experiment=="CG",]) # Only commongarden data
@@ -162,6 +166,10 @@ DataMain$fblockcode<-as.factor(DataMain$Blockcode)
 DataMain$fholes<-as.factor(DataMain$Sign.of.hole.s.)
 DataMain$fcheeting<-as.factor(DataMain$Sign.of.termite.cheeting)
 DataMain$froots<-as.factor(DataMain$Sign.of.roots)
+
+aggregate(Massloss.per~Season+Region+Littertype+Treatment, DataMain, mean)
+45.29739-23.72783
+#21.56956
 
 #########################################################################################################
 #### Graphs  ####
@@ -1223,6 +1231,27 @@ xyplot(Moisture~Temp|Landuse*Season*Region,DataMainM)
 xyplot(Moisture~C.N|Landuse*Season,DataMainM)
 
 
+ggplot(data=DataMainM, aes(y=Moisture, x=Landuse))+geom_point()+facet_wrap(~Season+Region)
+aggregate(Moisture~Landuse+Block+Region+Season,DataMainM,mean)
+# Dry region + Dry Season
+#1  Agriculture     1          Dry    Dry  3.350000
+#2      Pasture     1          Dry    Dry  3.278571
+#3         Wild     1          Dry    Dry  9.242857
+#4  Agriculture     2          Dry    Dry  4.371429
+#5      Pasture     2          Dry    Dry  4.221429
+#6         Wild     2          Dry    Dry 10.835714
+#7  Agriculture     3          Dry    Dry 14.807143 * Vert
+#8      Pasture     3          Dry    Dry  5.892857
+#9         Wild     3          Dry    Dry 10.871429 
+#10 Agriculture     4          Dry    Dry 11.064286 * vert
+#11     Pasture     4          Dry    Dry  5.400000
+#12        Wild     4          Dry    Dry  9.407143
+
+#(14.8+11.1)/2 = 13% Vert farm - Bonifas
+#(3.350000+4.371429)/2 = 3.8% non vert
+aggregate(Moisture~Landuse+Region+Season,DataMainM,mean)
+# Pasture 5% and Wild 10% 
+
 with(DataMainM, {interaction.plot(Region,Landuse,Moisture,
                                   xlab = "Region",
                                   ylab = "Moisture",
@@ -1234,7 +1263,6 @@ with(DataMainM, {interaction.plot(Season,Region,Moisture,
                                   ylab = "Moisture",
                                   main="Soil Moisture",
                                   fun=mean)})
-
 
 #### Temperature model ####
 DataMainC<-DataMain[!is.na(DataMain$Temp),]
@@ -1535,7 +1563,6 @@ DeltaMoistsub2$Moisture.m3.m3[DeltaMoistsub2$region_code == "pasture-Wet Region"
 DeltaMoistsub2$Moisture.m3.m3[DeltaMoistsub2$region_code == "wild-Wet Region"] <- DeltaMoistsub2$Moisture.m3.m3[DeltaMoistsub2$region_code == "wild-Wet Region"] - 0.04
 DeltaMoistsub2$Moisture.m3.m3[DeltaMoistsub2$region_code == "wild-Intermediate Region"] <-DeltaMoistsub2$Moisture.m3.m3[DeltaMoistsub2$region_code == "wild-Intermediate Region"] - 0.092
 
-
 # Scaling factors
 # Change scaling facotr...
 scaleFactorM <-  max(MeanM$moist,na.rm=T)/mean(DeltaMoistsub2$Moisture.m3.m3,na.rm=T)
@@ -1606,10 +1633,12 @@ ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Publications/TBI_land
        dpi = 400, limitsize = TRUE)
 
 # Average Temp and mosisture
-aggregate(moist~Season+Region+landuse,MeanM,mean)
+aggregate(moist~Region+Season,MeanM,mean)
+
+aggregate(moist~Season,MeanM,mean)
 
 # Seasons - 
-aggregate(temperature.C~Season,MeanT,mean)
+aggregate(temperature.C~Region+Season,MeanT,mean)
 29.40288-27.18085 # warmer in dry season
 aggregate(moist~Season,MeanM,mean)
 7.227545-20.499242 # -13.2717
