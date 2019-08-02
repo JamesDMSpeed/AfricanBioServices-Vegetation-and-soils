@@ -1799,14 +1799,21 @@ DeltaMoistsub3<-DeltaMoistsub2[DeltaMoistsub2$date2<"2017-12-31",]
 dim(DeltaMoistsub2)
 dim(DeltaMoistsub3)
 
+# Symbol legend for different measurement types
+DeltaMoistsub2$Season1<-as.factor(DeltaMoistsub2$block.rep)
+levels(DeltaMoistsub2$Season1)<-c("Permanent logger","Spot measurement","Wet Season","Dry Season")
+MeanM$Season1<-as.factor(rep(1:4))
+levels(MeanM$Season1)<-c("Permanent logger","Spot measurement","Wet Season","Dry Season")
+
+
 # Soil moisture logger and spot measuregement graph
-pM<-ggplot(data=DeltaMoistsub2,aes(x=date2,y=Moisture.m3.m3))
+pM<-ggplot(data=DeltaMoistsub2,aes(x=date2,y=Moisture.m3.m3, fill=Season1))
 pM<-pM+geom_rect(aes(xmin =as.Date("2017-01-26"), xmax =as.Date("2017-03-27"), ymin=-0.02,ymax=max(DeltaMoistsub2$Moisture.m3.m3)),fill = "light grey", colour="grey")
 pM<-pM+geom_rect(aes(xmin =as.Date("2017-07-21"), xmax =as.Date("2017-10-03"), ymin=-0.02,ymax=max(DeltaMoistsub2$Moisture.m3.m3)),fill = NA, colour="grey")
 pM<-pM+scale_y_continuous(limits=c(-0.02,max(DeltaMoistsub2$Moisture.m3.m3)+0.01),sec.axis = sec_axis(~ .*scaleFactorM, breaks = c(0,50,100), labels = c(0,50,100), name="Spot measure soil moisture (%)" ), expand=c(0,0))
-pM<-pM+geom_point(fill="white", colour="grey50", shape=21, size=1.5)
+pM<-pM+geom_point(fill="white", colour="grey50", shape=21, size=1.5, show.legend=T)
 pM<-pM+geom_errorbar(data=MeanM,aes(y=moist/scaleFactorM,ymax=SeUp/scaleFactorM,ymin=SeLo/scaleFactorM),colour="black",width=.1)
-pM<-pM+geom_point(data=MeanM,aes(y=moist/scaleFactorM),size=3,colour="black",fill="black",shape=22,stroke=1,show.legend=F)
+pM<-pM+geom_point(data=MeanM,aes(y=moist/scaleFactorM),size=3,colour="black",fill="black",shape=22,stroke=1,show.legend=T)
 pM<-pM+facet_wrap(~Landuse+Region,ncol=2, scale="fixed")
 pM<-pM+scale_x_date(date_breaks = "3 month", date_labels = "%b", limits=c(as.Date("2017-01-01"),max=as.Date("2017-12-31")))
 pM<-pM+ylab(expression(paste("Logger soil moisture (",m^-3," ",m^-3,")"))) + xlab("   Time (month)")
@@ -1829,6 +1836,8 @@ pM<-pM+theme_classic() +
         ,plot.margin = unit(c(5,5,5,5), "mm")
         ,strip.text = element_text(size = 10,hjust=0,angle=0)
         ,strip.background = element_blank()
+        ,legend.position = c(.86, .1)
+        ,legend.spacing.y = unit(1, "mm")
         #,strip.placement = 
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
@@ -1836,6 +1845,13 @@ pM<-pM+theme_classic() +
 pM<-pM+annotate(geom = 'segment', y = -0.02, yend = -0.02, color = 'black', x = as.Date("2017-01-01"), xend = as.Date("2017-12-31"), size = .75) 
 #pM<-pM+annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = as.Date("2017-01-01"), xend = as.Date("2017-01-01"), size = .5) 
 #pM<-pM+annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = as.Date("2017-12-31"), xend = as.Date("2017-12-31"), size = .5) 
+
+pM<-pM+guides(fill=guide_legend("Measurement type & Season",override.aes = 
+                                          list(shape=c(21,22,22,22),
+                                               stroke=1,
+                                               size=c(2.5,3,4,4),
+                                               fill=c("white", "black","grey","white"),
+                                               color=c("grey50", "black","grey","grey"))))
 
 pM
 
@@ -1931,17 +1947,25 @@ levels(MeanT$Landuse)<-c("Agriculture", "Pasture", "Wildlife protected","Common 
 TinyTagTempNA<-TinyTagTempNA[TinyTagTempNA$temperature.C>18,]
 
 minTempC<-min(min(MeanT$temperature.C)-MeanT$sd)
+maxTempC<-max(max(MeanT$temperature.C)+MeanT$sd)
+
+# Symbol legend for different measurement types
+TinyTagTempNA$Season1<-as.factor(TinyTagTempNA$block.rep)
+levels(TinyTagTempNA$Season1)<-c("Permanent logger","Spot measurement","Wet Season","Dry Season")
+MeanT$Season1<-as.factor(rep(1:4))
+levels(MeanT$Season1)<-c("Permanent logger","Spot measurement","Wet Season","Dry Season")
+
 
 # Temperature logger and spot measurement graph
-pT<-ggplot(data=TinyTagTempNA,aes(x=date2,y=temperature.C))
-pT<-pT+geom_rect(aes(xmin =as.Date("2017-01-26"), xmax =as.Date("2017-03-27"), ymin=17,ymax=max(TinyTagTempNA$temperature.C)),fill = "light grey", colour="grey")
-pT<-pT+geom_rect(aes(xmin =as.Date("2017-07-21"), xmax =as.Date("2017-10-03"), ymin=17,ymax=max(TinyTagTempNA$temperature.C)),fill = NA, colour="grey")
-pT<-pT+geom_point(fill="white", colour="grey50",shape=21, size=1.5)
+pT<-ggplot(data=TinyTagTempNA,aes(x=date2,y=temperature.C, fill=Season1))
+pT<-pT+geom_rect(aes(xmin =as.Date("2017-01-26"), xmax =as.Date("2017-03-27"), ymin=17,ymax=38),fill = "light grey", colour="grey")
+pT<-pT+geom_rect(aes(xmin =as.Date("2017-07-21"), xmax =as.Date("2017-10-03"), ymin=17,ymax=38),fill = NA, colour="grey")
+pT<-pT+geom_point(fill="white", colour="grey50",shape=21, size=1.5, show.legend=T)
 pT<-pT+geom_errorbar(data=MeanT,aes(x=date2,y=temperature.C,ymax=temperature.C+sd, ymin=temperature.C-sd), colour="black",width=.1)
-pT<-pT+geom_point(data=MeanT,fill="black", colour="black",shape=22, size=3.5, stroke=1)
+pT<-pT+geom_point(data=MeanT,fill="black", colour="black",shape=22, size=3.5, stroke=1, show.legend=T)
 pT<-pT+facet_wrap(~Landuse+Region, ncol=2)
 pT<-pT+scale_x_date(date_breaks = "3 month", date_labels = "%b", limits=c(as.Date("2017-01-01"),max=as.Date("2017-12-31")))
-pT<-pT+scale_y_continuous(limits=c(17,max(TinyTagTempNA$temperature.C)), expand=c(0,0))
+pT<-pT+scale_y_continuous(limits=c(17,38), expand=c(0,0))
 pT<-pT+ylab(expression(paste("Soil temperature (",degree,"C)"))) + xlab("   Time (month)")
 pT<-pT+theme_classic() +
   theme(plot.background = element_blank()
@@ -1964,12 +1988,23 @@ pT<-pT+theme_classic() +
         ,strip.text = element_text(size = 10,hjust=0,angle=0)
         ,strip.background = element_blank()
         #,strip.placement = 
+        ,legend.position = c(.78, .1)
+        ,legend.spacing.y = unit(1, "mm")
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
 
 pT<-pT+annotate(geom = 'segment', y = 17, yend =17, color = 'black', x = as.Date("2017-01-01"), xend = as.Date("2017-12-31"), size = .75) 
-pT
 
+pT<-pT+guides(fill=guide_legend("Measurement type & Season",override.aes = 
+                                  list(shape=c(21,22,22,22),
+                                       stroke=1,
+                                       size=c(2.5,3,4,4),
+                                       fill=c("white", "black","grey","white"),
+                                       color=c("grey50", "black","grey","grey"))))
+
+
+
+pT
 
 ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Publications/TBI_landuse/Soil.temp.TBI.jpeg", 
        width= 13, height = 16.5,units ="cm",
