@@ -10,6 +10,7 @@ library(glmmADMB)
 library(glmmTMB)
 library(multcomp)
 library(lme4)
+library(MuMIn)
 ########################################################################
 ##### Aboveground plant cover, aboveground biomass and soil properties ####
 #TP<-read.csv(file="Transplant experiment/Aboveground.survey.May2018.csv", sep=",",header=TRUE)
@@ -94,6 +95,8 @@ TPnofind<-TP[!is.na(TP$weight.g),]
 dim(TPnofind[TPnofind$FilTagspCover==0,])
 # 53 have zero cover
 
+
+
 ########################################################################
 #Data exploration
 # A Missing values?
@@ -115,6 +118,7 @@ colSums(is.na(TP))
 # Check for outliers
 dotchart(TP$FilTagspCover)
 dotchart(TP$Target.weight.g)
+dotchart(TP$Plant.N)
 
 # C Collinearity X
 names(TP)
@@ -242,12 +246,18 @@ names(TransNuts)
 colnames(MoveNutsH7)[23]<-"InitialTagSpcover" 
 colnames(MoveNutsH7)[27]<-"FilTagspCover"
 
+MoveNutsH7$biomass.total.g
+MoveNutsH7$biomass.sp
+
 # Convert biomass to standard kg m-2
 # Transplant 25 cm diameter # ((pi/4)*.25^2)
 # Moveable exclosures 60 x 60 cm # .6*.6
-MoveNutsH7$Biomass.g.m2<-(MoveNutsH7$biomass.total.g/0.36)/1000
+MoveNutsH7$Biomass.g.m2<-(MoveNutsH7$biomass.sp/((0.36/100)*MoveNutsH7$FilTagspCover))/1000
 TransNuts$Biomass.g.m2<-(TransNuts$Target.weight.g/((pi/4)*.25^2))/1000  
 
+ggplot(data=MoveNutsH7, aes(x=biomass.sp))+geom_histogram()
+MoveNutsH7[MoveNutsH7$biomass.sp<5,] # 4 samples < 5 grams
+  
 # Merge transplant and exclosure data sets
 names(TransNuts)
 names(MoveNutsH7)
@@ -260,10 +270,57 @@ TransNuts3<-rbind(TransNuts2,MoveNutsH7b)
 # Rename levels for rainfall
 levels(as.factor(TransNuts$rain.sum.mm))
 aggregate(rain.sum.mm~region,TransNuts,mean) #DRY 1175.309,SE 1440.664, WET 1843.961
-levels(TransNuts3$region)<-c("Dry \n (1175 mm)","Intermediate \n (1440 mm)","Wet \n (1840 mm)")
+
+# Change Seronera = wet region 
+levels(TransNuts3$region)<-c("Mesic","Wet","Wet")
 
 # Rename treatment b/c MoveNuts has different name #"Exclosed" "Open"     "OP"  
 levels(TransNuts3$treatment)<-c("Exclosed", "Open","Open") 
+
+#write.csv(TransNuts3,"/Users/anotherswsmith/Documents/AfricanBioServices/Data/VegSoil_AfricanBioServices/AfricanBioServices-Vegetation-and-soils/Transplant experiment/TransMove.csv",row.names = FALSE, sep=",")
+
+################################################################################################################################################
+#### Recovery of transplant plots ####
+################################################################################################################################################
+
+# Transplant experiment only
+TPNA<-TP %>% group_by(transplant,fregion, fLanduse, fTagsp) %>% summarise_each(funs(sum(is.na(.))))
+TPNA<-TP %>% group_by(transplant,fregion, fLanduse, fTagsp) %>% filter(is.na(FilTagspCover)) %>% summarize(N = n())
+TPNA
+TPzeros<-TP %>% group_by(transplant,fregion, fLanduse, fTagsp) %>% filter(FilTagspCover==0) %>% summarize(N = n())
+TPfull<-TP %>% group_by(transplant,fregion, fLanduse, fTagsp) %>% summarize(N = n())
+TPzeros
+print(tbl_df(TPzeros), n=30)
+print(tbl_df(TPfull), n=30)
+
+Merg1<-merge(TPfull,TPNA, by=c("transplant","fregion", "fLanduse", "fTagsp"), all=T)
+Merg2<-merge(Merg1,TPzeros, by=c("transplant","fregion", "fLanduse", "fTagsp"), all=T)
+colnames(Merg2)<-c("transplant","fregion", "fLanduse", "fTagsp", "Full", "Missing", "Zero")
+
+# Full desing
+# Missing plots
+sum(Merg2$Full) # 152 + 20 = 172
+sum(Merg2$Missing, na.rm=T)
+100-(13/172*100) # 7.6% missing # 92% recovery
+
+sum(Merg2$Zero, na.rm=T) # 55 
+55/172*100
+
+# Transplant + Marit's data
+TPNA<-TransNuts3 %>%group_by(transplant,region, landuse, Tagsp) %>% filter(is.na(FilTagspCover)) %>% summarize(N = n())
+TPzeros<-TransNuts3 %>% group_by(transplant,region, landuse, Tagsp) %>% filter(FilTagspCover==0) %>% summarize(N = n())
+TPfull<-TransNuts3 %>% group_by(transplant,region, landuse, Tagsp) %>% summarize(N = n())
+TPzeros
+print(tbl_df(TPzeros), n=30)
+print(tbl_df(TPfull), n=30)
+
+# Initial plant cover averages
+mean(TransNuts3$InitialTagSpcover) #  24.68605
+sd(TransNuts3$InitialTagSpcover)
+se(TransNuts3$InitialTagSpcover)
+aggregate(InitialTagSpcover~transplant,TransNuts3,mean)
+aggregate(InitialTagSpcover~transplant,TransNuts3,sd)
+aggregate(InitialTagSpcover~transplant,TransNuts3,se)
 
 ########################################################################
 #### Plant cover changes ####
@@ -278,9 +335,16 @@ CC<-aggregate(CoverChange~landuse+region+transplant+Tagsp,TransNuts3,mean)
 CCsd<-aggregate(CoverChange~landuse+region+transplant+Tagsp,TransNuts3,sd)
 CC$sd<-CCsd$CoverChange
 
-# Relevel so that other
+aggregate(CoverChange~transplant,TransNuts3,mean)
+aggregate(CoverChange~transplant,TransNuts3,sd)
+aggregate(CoverChange~transplant,TransNuts3,se)
+
+# Relevel species
 levels(CC$Tagsp)<- c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda")
 CC$Tagsp<- factor(CC$Tagsp, levels = c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda"))
+
+#Rename rainfall regions
+levels(CC$region)<-c("Mesic region", "Wet region")
 
 # Treatment code for filling symbols
 CC$spp.code<-as.factor(with(CC, paste(Tagsp,transplant,sep="_")))
@@ -296,6 +360,7 @@ CCbiom<-CCbiom+scale_shape_manual(values=c(22,21))
 CCbiom<-CCbiom+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
 CCbiom<-CCbiom+scale_fill_manual(values=c("white","chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","orangered3","white"))
 #TNs<-TNs+scale_x_continuous(limits=c(0.5,2.5),breaks=c(1,2),labels=levels(SpeciesN$landuse),expand=c(0,0))
+CCbiom<-CCbiom+ggtitle("(a) Plant cover change")
 CCbiom<-CCbiom+theme_bw()+
   theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="transparent")
@@ -369,14 +434,11 @@ TransNuts3NA<-TransNuts3[!is.na(TransNuts3$CoverChange),]
 dim(TransNuts3NA) # 159  12(77 62 without exclosures)
 
 # Remove Seronera
-names(TransNuts3NA)
-TransNuts3NA<-droplevels(TransNuts3NA[!TransNuts3NA$region=="Intermediate \n (1440 mm)",])
 
-CClm<-lmer(CoverChange~landuse+region+transplant+Tagsp+#Treatment+
-             landuse:region+ Tagsp:landuse+
-              transplant:Tagsp+
-             transplant:Tagsp:region+
-             transplant:Tagsp:landuse+
+CClm<-lmer(CoverChange~landuse+region+transplant+Tagsp+treatment+
+              Tagsp:landuse+ Tagsp:region+
+              transplant:Tagsp+ landuse:region+
+            # transplant:landuse:region+
             (1|site/block),
           na.action=na.fail,
           REML=T,TransNuts3NA)
@@ -408,11 +470,9 @@ CCcoef<-CCcoef+theme_classic()
 CCcoef
 
 # Reduced model
-CClm<-lmer(CoverChange~Tagsp+transplant+region+#landuse+#transplant+#region+#treatment+
-              #Tagsp:landuse+ #landuse:region+
-             #transplant:Tagsp+
-             transplant:Tagsp:region+
-             #transplant:Tagsp:landuse+
+CClm<-lmer(CoverChange~transplant+#Tagsp+region+landuse+treatment+
+             #Tagsp:landuse+ Tagsp:region+
+             #transplant:Tagsp+ landuse:region+
              (1|site/block),
            na.action=na.fail,
            REML=T,TransNuts3NA)
@@ -433,33 +493,14 @@ plot(x = F1,
 abline(v = 0, lwd = 2, col = 2)
 abline(h = 0, lty = 2, col = 1)
 
-# Reduce model
-dim(coef.CC)
-confint.CC <- confint(CClm)
-coef.CC <- summary(CClm)$coef  
-CChange<- as.data.frame(cbind(confint.CC[5:22,] , coef.CC[2:19] ))
-CChange$terms<-dimnames(CChange)[[1]]
-colnames(CChange)[1]<-"lowerCI"
-colnames(CChange)[2]<-"upperCI"
-colnames(CChange)[3]<-"Estimate"
 
-# Coef
-CCcoef<-ggplot(CChange, aes(x=terms, y=Estimate))
-CCcoef<-CCcoef+geom_hline(yintercept=0,linetype="dashed")
-CCcoef<-CCcoef+geom_errorbar(data=CChange,aes(ymin=lowerCI, ymax=upperCI),stat = "identity",width=.2,lwd=1,show.legend=F)
-CCcoef<-CCcoef+geom_point(size=5, stroke=1.25)
-CCcoef<-CCcoef+coord_flip()
-CCcoef<-CCcoef+theme_classic()
-CCcoef
+# Generate model p-values - change in plant cover
+CClm2 <- update(CClm, .~. -transplant)
+anova(CClm,CClm2)
 
-#Pairwise contrasts *ghlt* and *lsmeans*
-library(multcomp)
-library(emmeans)
-
-# Species
-summary(glht(CClm, mcp(Tagsp="Tukey"))) # Nothing
-emm.s.recalmod <- emmeans(CClm,~Tagsp)
-pairs(emm.s.recalmod) # Nothing singificantly different
+#      Df    AIC    BIC  logLik deviance  Chisq Chi Df Pr(>Chisq)    
+#CClm2  4 1112.3 1123.3 -552.17   1104.3                             
+#CClm   5 1542.0 1557.3 -765.97   1532.0 6.8362      1   0.008933 ** # Transplant
 
 ########################################################################
 #### Final plant cover  ####
@@ -469,6 +510,21 @@ pairs(emm.s.recalmod) # Nothing singificantly different
 CCFin<-aggregate(FilTagspCover~landuse+region+transplant+Tagsp,TransNuts3,mean)
 CCFinsd<-aggregate(FilTagspCover~landuse+region+transplant+Tagsp,TransNuts3,sd)
 CCFin$sd<-CCFinsd$FilTagspCover
+
+# Chloris plant cover outside of its 'home' region
+TransNuts3PD<-TransNuts3[!TransNuts3$landuse=="Pasture" | !TransNuts3$region=="Mesic", ]
+aggregate(FilTagspCover~Tagsp+transplant,TransNuts3PD,mean)
+aggregate(FilTagspCover~Tagsp+transplant,TransNuts3PD,sd)
+
+# Themeda plant cover outside of its 'home' region
+TransNuts3WW<-TransNuts3[!TransNuts3$landuse=="Wild" | !TransNuts3$region=="Wet", ]
+aggregate(FilTagspCover~Tagsp+transplant,TransNuts3WW,mean)
+aggregate(FilTagspCover~Tagsp+transplant,TransNuts3PD,sd)
+
+# All other species - besides Chloris
+TransNuts3Cp<-TransNuts3[!TransNuts3$Tagsp=="Chl pyc",]
+mean(TransNuts3Cp$FilTagspCover, na.rm=T)
+sd(TransNuts3Cp$FilTagspCover, na.rm=T)
 
 # Relevel so that other
 levels(CCFin$Tagsp)<- c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda")
@@ -486,12 +542,13 @@ CCFin$sdLo[CCFin$sdLo<0]<--3
 CCbiomF<-ggplot(CCFin,aes(y=FilTagspCover,x=landuse, shape=transplant, colour=Tagsp,fill=spp.code)) # group = grouping vector for lines
 CCbiomF<-CCbiomF+geom_errorbar(data=CCFin,aes(ymin=sdLo, ymax=sdHi),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
 CCbiomF<-CCbiomF+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
-CCbiomF<-CCbiomF+ylab("Final relative cover (%)")+xlab("")
+CCbiomF<-CCbiomF+ylab("Relative cover (%)")+xlab("")
 CCbiomF<-CCbiomF+facet_wrap(~region, ncol=5)
 CCbiomF<-CCbiomF+scale_shape_manual(values=c(22,21))
 CCbiomF<-CCbiomF+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
 CCbiomF<-CCbiomF+scale_fill_manual(values=c("white","chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","orangered3","white"))
 CCbiomF<-CCbiomF+scale_y_continuous(limits=c(-3,102),breaks=c(0,25,50,75,100),labels=c(0,25,50,75,100),expand=c(0,0))
+CCbiomF<-CCbiomF+ggtitle("(b) Final plant cover")
 CCbiomF<-CCbiomF+theme_bw()+
   theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="transparent")
@@ -529,13 +586,12 @@ CCbiomF
 ######################################################
 
 TransNuts4NA<-TransNuts3[!is.na(TransNuts3$FilTagspCover),]
-dim(TransNuts4NA) # 159  12 (77 62 without exclosures)
+dim(TransNuts4NA) # 159  13 (77 62 without exclosures)
 
-CClmFin<-lmer(FilTagspCover~landuse+region+transplant+Tagsp+treatment+
-             landuse:region+Tagsp:landuse+
-             transplant:Tagsp+
-               transplant:Tagsp:region+
-               transplant:Tagsp:landuse+
+CClmFin<-lmer(FilTagspCover~region+transplant+Tagsp+landuse+treatment+
+             Tagsp:landuse+Tagsp:region+
+              transplant:Tagsp+landuse:region+
+               transplant:landuse:region+
              (1|site/block),
            na.action=na.fail,
            REML=T,TransNuts4NA)
@@ -557,14 +613,15 @@ CCFin$terms<-dimnames(CCFin)[[1]]
 colnames(CCFin)[1]<-"lowerCI"
 colnames(CCFin)[2]<-"upperCI"
 
-
 # Reduced model
-CClmFin<-lmer(FilTagspCover~transplant+Tagsp+region+#+landuse+#treatment+
-                #landuse:region+Tagsp:landuse+
-                transplant:Tagsp+
-             transplant:Tagsp:region+
-              # transplant:Tagsp:landuse+
+#TransNuts4NA$FilTagspCover[TransNuts4NA$FilTagspCover==0]<-1
+TransNuts4NA$FilTagspCover
+CClmFin<-glmmTMB(FilTagspCover~transplant+Tagsp+landuse+#region+treatment+
+                   Tagsp:landuse+#Tagsp:region+
+                transplant:Tagsp+#landuse:region+
+                 # transplant:landuse:region+
                 (1|site/block),
+                family=list(family="nbinom2",link="log"),
            na.action=na.fail,
            REML=T,TransNuts4NA)
 
@@ -582,7 +639,12 @@ plot(x = F1,
      ylab = "Residuals", 
      xlim = c(min(F1), max(F1)))
 abline(v = 0, lwd = 2, col = 2)
-abline(h = 0, lty = 2, col = 1)
+abline(h = 0, lty = 2, col = 1) # Looks great - follows nbiom
+
+# Model deviance
+summary(CClmFin)
+-2*logLik(CClmFin) # 'log Lik.' 1064.893 (df=18)
+(1064.893-0.332)/1064.893# 0.9996882 
 
 
 # Reduce model
@@ -611,15 +673,54 @@ with(TransNuts4NA, {interaction.plot(transplant,Tagsp,FilTagspCover,
                                       fun=mean)})
 
 # Emmeans contrast three-way interaction
-CClmFinFINAL <- emmeans(CClmFin, pairwise~region,type="response") #Creating emmeans across the factor levels in the interaction.
+CClmFinFINAL <- emmeans(CClmFin, pairwise~Tagsp:landuse,type="response") #Creating emmeans across the factor levels in the interaction.
 CClmFinFINAL$emmeans
 CClmFinFINAL.pairs <- pairs(CClmFinFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
 CClmFinFINAL.pairs$emmeans
 plot(CClmFinFINAL, comparisons = FALSE)
 
+# landuse Tagsp   contrast             ratio       SE  df t.ratio p.value
+#Wild    .       Chl pyc / Chr ori 1.04e-02 1.16e-02 156 -4.082  0.0018 
+#Wild    .       Chl pyc / Cyn dac 1.69e-02 1.81e-02 156 -3.814  0.0049 
+#Wild    .       Chl pyc / Dig mac 2.24e-02 2.14e-02 156 -3.986  0.0026 
+#Wild    .       Chl pyc / The tri 7.85e-03 7.86e-03 156 -4.839  0.0001 
+#.       Chl pyc Pasture / Wild    1.33e+02 1.60e+02 156  4.091  0.0017 
+
+CClmFinFINAL <- emmeans(CClmFin, pairwise~Tagsp:transplant,type="response") #Creating emmeans across the factor levels in the interaction.
+CClmFinFINAL$emmeans
+CClmFinFINAL.pairs <- pairs(CClmFinFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+CClmFinFINAL.pairs$emmeans
+plot(CClmFinFINAL, comparisons = FALSE)
+
+#transplant Tagsp   contrast             ratio     SE  df t.ratio p.value
+#Transplant .       Chl pyc / The tri    0.105 0.0660 156 -3.580  0.0115 
+
+# Generate model p-values - change in plant cover
+CClmFin2 <- update(CClmFin, .~. -transplant:Tagsp)
+CClmFin3 <- update(CClmFin, .~. -Tagsp:landuse)
+CClmFin4 <- update(CClmFin2, .~. -Tagsp:landuse)
+CClmFin5 <- update(CClmFin4, .~. -Tagsp)
+CClmFin6 <- update(CClmFin4, .~. -transplant)
+CClmFin7 <- update(CClmFin4, .~. -landuse)
+
+anova(CClmFin,CClmFin2) #transplant:Tagsp
+anova(CClmFin,CClmFin3) #Tagsp:landuse
+anova(CClmFin4,CClmFin5) #Tagsp
+anova(CClmFin4,CClmFin6)
+anova(CClmFin4,CClmFin7)
+
+#      Df    AIC    BIC  logLik deviance  Chisq Chi Df Pr(>Chisq)    
+#CClmFin  18 1100.9 1156.1 -532.45   1064.9 10.495      4    0.03287 * # transplant:Tagsp
+#CClmFin  18 1100.9 1156.1 -532.45   1064.9 33.196      4  1.089e-06 *** # Tagsp:landuse
+#CClmFin4 10 1127.7 1158.4 -553.84   1107.7 7.7626      4     0.1007# Spp
+#CClmFin4 10 1127.7 1158.4 -553.84   1107.7 8.0417      1   0.004571 ** transplant 
+#CClmFin4 10 1127.7 1158.4 -553.84   1107.7 0.7911      1     0.3738 # Landuse
+
+
 ################################################################################################################################################
-#### Standing biomass ####
+#### Final plant biomass ####
 ################################################################################################################################################
+levels(TransNuts3$treatment)<-c("Exclosed","Open","Open")
 
 #### Graph biomass ####
 MeanBio<-aggregate(Biomass.g.m2~landuse+region+transplant+Tagsp+treatment,TransNuts3,mean)
@@ -640,13 +741,14 @@ MeanBio$spp.code<-as.factor(with(MeanBio, paste(Tagsp,transplant,sep="_")))
 TPbiom<-ggplot(MeanBio,aes(y=Biomass.g.m2,x=landuse, shape=transplant, colour=Tagsp,fill=spp.code, alpha=treatment)) # group = grouping vector for lines
 TPbiom<-TPbiom+geom_errorbar(data=MeanBio,aes(ymin=Biomass.g.m2-sd, ymax=Biomass.g.m2+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
 TPbiom<-TPbiom+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
-TPbiom<-TPbiom+ylab(expression(paste("Aboveground biomass (kg ",m^-2,")")))+xlab("")
+TPbiom<-TPbiom+ylab(expression(paste("Biomass (kg ",m^-2,")")))+xlab("")
 TPbiom<-TPbiom+facet_wrap(~region, ncol=5)
 TPbiom<-TPbiom+scale_shape_manual(values=c(22,21))
 TPbiom<-TPbiom+scale_alpha_manual(values=c(.33,1))
 TPbiom<-TPbiom+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
 TPbiom<-TPbiom+scale_fill_manual(values=c("white","chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","orangered3","white"))
 TPbiom<-TPbiom+scale_y_continuous(limits=c(-.1,1.85),breaks=c(0,.5,1.,1.5),labels=c(0,.5,1.,1.5),expand=c(0,0))
+TPbiom<-TPbiom+ggtitle("(c) Aboveground biomass")
 TPbiom<-TPbiom+theme_bw()+
   theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="transparent")
@@ -680,17 +782,16 @@ TPbiom<-TPbiom+guides(fill=F,linetype=F,shape = guide_legend("Treatment",overrid
 TPbiom
 
 ######################################################
-#### Plant Biomass  modelling ####
+#### Plant Biomass modelling ####
 ######################################################
 
 TransNuts5NA<-TransNuts3[!is.na(TransNuts3$Biomass.g.m2),]
-dim(TransNuts5NA) # 97 12 (77 62 without exclosures)
+dim(TransNuts5NA) # 94 13 (77 62 without exclosures)
 
 TPbio<-lmer(Biomass.g.m2~landuse+region+transplant+Tagsp+treatment+
-              landuse:region+Tagsp:landuse+
-              transplant:Tagsp+
-              transplant:Tagsp:region+
-              #transplant:Tagsp:landuse+
+              Tagsp:landuse+Tagsp:region+
+              transplant:Tagsp+landuse:region+
+              transplant:landuse:region+
                 (1|site/block),
               na.action=na.fail,
               REML=T,TransNuts5NA)
@@ -714,13 +815,15 @@ colnames(CCTPbio)[2]<-"upperCI"
 
 
 # Reduced model
-TPbio<-lmer(Biomass.g.m2~region+transplant+Tagsp+treatment+#landuse+
-             # landuse:region+Tagsp:landuse+
-              transplant:Tagsp+
-              transplant:Tagsp:region+
+library(glmmTMB)
+levels(TransNuts5NA$region)<-c("Mesic","Wet", "Wet" )
+TPbio<-glmmTMB(Biomass.g.m2~transplant+Tagsp+treatment+landuse+region+
+                 #Tagsp:landuse+#Tagsp:region+
+                 #transplant:Tagsp+landuse:region+
+                 #transplant:landuse:region+
                 (1|site/block),
-              na.action=na.fail,
-              REML=T,TransNuts5NA)
+            family=list(family="Gamma",link="logit"),
+              na.action=na.fail,TransNuts5NA)
 
 summary(TPbio)
 drop1(TPbio, test="Chisq")
@@ -736,35 +839,49 @@ plot(x = F1,
      ylab = "Residuals", 
      xlim = c(min(F1), max(F1)))
 abline(v = 0, lwd = 2, col = 2)
-abline(h = 0, lty = 2, col = 1) # Not good = very strongly connical 
-# Need to try Gamma distribution- will not work with rank deficiencies?
+abline(h = 0, lty = 2, col = 1) # OK with gamma (conical gaussian)
 
-# Reduce model
-dim(coef.TPbio)
-confint.TPbio <- confint(TPbio)
-coef.TPbio <- summary(TPbio)$coef  
-CCTPbio<- as.data.frame(cbind(confint.CCFin[5:22,] , coef.CCFin[2:19] ))
-CCTPbio$terms<-dimnames(CCTPbio)[[1]]
-colnames(CCTPbio)[1]<-"lowerCI"
-colnames(CCTPbio)[2]<-"upperCI"
-colnames(CCTPbio)[3]<-"Estimate"
+#TPbio2<-glmmTMB(Biomass.g.m2~transplant+Tagsp+treatment+landuse+
+#                   (1|site/block),family=list(family="Gamma",link="logit"),
+#                 na.action=na.fail,TransNuts5NA)
+  
+# Generate model p-values - change in plant cover
+#TPbio2 <- update(TPbio, .~. -Tagsp:landuse)
+TPbio3 <- update(TPbio, .~. -treatment)
+TPbio4 <- update(TPbio, .~. -landuse)
+TPbio5 <- update(TPbio, .~. -Tagsp)
+TPbio6 <- update(TPbio, .~. -transplant)
 
-# Coef
-CCcoefTPbio<-ggplot(CCTPbio, aes(x=terms, y=Estimate))
-CCcoefTPbio<-CCcoefTPbio+geom_hline(yintercept=0,linetype="dashed")
-CCcoefTPbio<-CCcoefTPbio+geom_errorbar(data=CCTPbio,aes(ymin=lowerCI, ymax=upperCI),stat = "identity",width=.2,lwd=1,show.legend=F)
-CCcoefTPbio<-CCcoefTPbio+geom_point(size=5, stroke=1.25)
-CCcoefTPbio<-CCcoefTPbio+coord_flip()
-CCcoefTPbio<-CCcoefTPbio+theme_classic()
-CCcoefTPbio
+#anova(TPbio,TPbio2)
+anova(TPbio,TPbio3)
+anova(TPbio,TPbio4)
+anova(TPbio,TPbio5)
+anova(TPbio,TPbio6)
 
-# Emmeans contrast three-way interaction
-TPbioFINAL <- emmeans(TPbio, pairwise~region,type="response") #Creating emmeans across the factor levels in the interaction.
-TPbioFINAL$emmeans
-TPbioFINAL.pairs <- pairs(TPbioFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
-TPbioFINAL.pairs$emmeans
-plot(TPbioFINAL, comparisons = FALSE)
+#       Df     AIC     BIC logLik deviance  Chisq Chi Df Pr(>Chisq)  
+#TPbio  12 -83.579 -53.06 53.790 -107.579 8.6832      1   0.003212 ** # Treatment
+#TPbio  12 -83.579 -53.06 53.790 -107.579 8.6832      1   0.003212 ** Landuse
+#TPbio  12 -83.579 -53.060 53.790 -107.579 14.462      4   0.005958 ** # Spp
+#TPbio  12 -83.579 -53.060 53.790 -107.579 13.687      1  0.0002159 *** # Transplant
 
+# Landuse influence on plant biomass
+aggregate(Biomass.g.m2~landuse, TransNuts5NA,mean)
+aggregate(Biomass.g.m2~landuse, TransNuts5NA,sd)
+#landuse Biomass.g.m2
+#1 Pasture    0.1675247
+#2    Wild    0.4007787
+aggregate(Biomass.g.m2~landuse+region, TransNuts5NA,mean)
+
+# Exclosure and plant biomass averages
+names(TransNuts5NA)
+TransNuts5NAS<-TransNuts5NA[TransNuts5NA$site=="Seronera",]
+aggregate(Biomass.g.m2~treatment, TransNuts5NAS,mean)
+#treatment Biomass.g.m2
+#1  Exclosed    0.6566011
+#2      Open    0.3392480
+(0.6566011-0.3392480)/0.3392480
+0.3392480+(0.3392480/100)*0.9354605
+0.3392480/100*194
 
 ###########################################################
 #### Determine species differences in biomass ####
@@ -798,7 +915,6 @@ anova(TPbio3)
 summary(TPbio3) # No difference in cover - marginal
 drop1(TPbio3,test="Chi")
 plot(Target.weight.g~live_grazerTot,TP2b)
-
 
 # Interaction plot
 TP3<-TP2[!is.na(TP2$Target.weight.g),]
@@ -850,7 +966,7 @@ TransPmean$spp.code<-as.factor(with(TransPmean, paste(fTagsp,transplant,sep="_")
 TPs<-ggplot(TransPmean,aes(y=Pi,x=fLanduse, shape=transplant, colour=fTagsp,fill=spp.code)) # group = grouping vector for lines
 TPs<-TPs+geom_errorbar(data=TransPmean,aes(ymin=Pi-sd, ymax=Pi+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
 TPs<-TPs+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
-TPs<-TPs+ylab("Probability (%)")+xlab("Land-use")
+TPs<-TPs+ylab("Probability (%)")+xlab("Landuse")
 TPs<-TPs+facet_wrap(~region, ncol=5)
 TPs<-TPs+scale_shape_manual(values=c(22,21))
 TPs<-TPs+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
@@ -894,7 +1010,6 @@ TPs
 # Plant Nitrogen concencentrations #
 ################################################################################################################################################
 
-
 ##########################################
 # GRAPH: Nitrogen concentrations 
 ##########################################
@@ -916,12 +1031,13 @@ TransNuts3mean$spp.code<-as.factor(with(TransNuts3mean, paste(Tagsp,transplant,s
 TNs<-ggplot(TransNuts3mean,aes(y=Plant.N,x=landuse, shape=transplant, colour=Tagsp,fill=spp.code)) # group = grouping vector for lines
 TNs<-TNs+geom_errorbar(data=TransNuts3mean,aes(ymin=Plant.N-sd, ymax=Plant.N+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
 TNs<-TNs+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
-TNs<-TNs+ylab("Leaf nitrogen concentration (%)")+xlab("")
+TNs<-TNs+ylab("Nitrogen concentration (%)")+xlab("")
 TNs<-TNs+facet_wrap(~region, ncol=5)
 TNs<-TNs+scale_shape_manual(values=c(22,21))
 TNs<-TNs+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
 TNs<-TNs+scale_fill_manual(values=c("white","chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","orangered3","white"))
 #TNs<-TNs+scale_x_continuous(limits=c(0.5,2.5),breaks=c(1,2),labels=levels(SpeciesN$landuse),expand=c(0,0))
+TNs<-TNs+ggtitle("(e) Leaf nitrogen concentration")
 TNs<-TNs+theme_bw()+
   theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="transparent")
@@ -959,13 +1075,12 @@ TNs
 #####################################################################
 
 TransNutsNA<-TransNuts3[!is.na(TransNuts3$Plant.N),]
-dim(TransNutsNA) # 93 12 (77 62 without exclosures)
+dim(TransNutsNA) # 93 13 (77 62 without exclosures)
 
 Nlm<-lmer(Plant.N~landuse+region+transplant+Tagsp+treatment+
-            landuse:region+Tagsp:landuse+
+            Tagsp:region+Tagsp:landuse+
             transplant:Tagsp+
-            transplant:Tagsp:region+
-            #transplant:Tagsp:landuse+
+            transplant:landuse:region+
          (1|site/block),
          na.action=na.fail,
          REML=T,TransNutsNA)
@@ -982,11 +1097,11 @@ PlantNimportance<-as.data.frame(importance(modavglmer_modsetlmer_Nlm))
 plot(PlantNimportance)           
 
 # Reduced model
-Nlm<-lmer(Plant.N~landuse+region+transplant+Tagsp+#treatment+
-            landuse:region+#Tagsp:landuse+
-            transplant:Tagsp+
-            #transplant:Tagsp:region+
-            #transplant:Tagsp:landuse+
+levels(TransNutsNA$region)<-c("Mesic","Wet" )
+Nlm<-lmer(Plant.N~landuse+region+transplant+#Tagsp+#treatment+
+            #Tagsp:region+Tagsp:landuse+
+            #transplant:Tagsp+
+            transplant:landuse:region+
             (1|site/block),
           na.action=na.fail,
           REML=T,TransNutsNA)
@@ -1007,40 +1122,71 @@ plot(x = F1,
 abline(v = 0, lwd = 2, col = 2)
 abline(h = 0, lty = 2, col = 1) # Very good
 
-# Reduce model
-dim(coef.Nlm )
-confint.Nlm <- confint(Nlm)
-coef.Nlm <- summary(Nlm)$coef  
-CCNlm<- as.data.frame(cbind(confint.Nlm[5:17,] , coef.Nlm[2:14] ))
-CCNlm$terms<-dimnames(CCNlm)[[1]]
-colnames(CCNlm)[1]<-"lowerCI"
-colnames(CCNlm)[2]<-"upperCI"
-colnames(CCNlm)[3]<-"Estimate"
-
-# Coef
-CCcoefNlm<-ggplot(CCNlm, aes(x=terms, y=Estimate))
-CCcoefNlm<-CCcoefNlm+geom_hline(yintercept=0,linetype="dashed")
-CCcoefNlm<-CCcoefNlm+geom_errorbar(data=CCNlm,aes(ymin=lowerCI, ymax=upperCI),stat = "identity",width=.2,lwd=1,show.legend=F)
-CCcoefNlm<-CCcoefNlm+geom_point(size=5, stroke=1.25)
-CCcoefNlm<-CCcoefNlm+coord_flip()
-CCcoefNlm<-CCcoefNlm+theme_classic()
-CCcoefNlm
-
 # Interaction plot transplant x species
-with(TransNutsNA, {interaction.plot(transplant,Tagsp,Plant.N,
-                                     xlab = "Treatment",
-                                     ylab = "Plant.N (%)",
-                                     fun=mean)})
+with(TransNutsNA, {interaction.plot(region,landuse,Plant.N,
+                                    xlab = "Land-use",
+                                    ylab = "Plant.N (%)",
+                                    fun=mean)})
+
+Nlm2<-lmer(Plant.N~landuse+region+transplant+
+            (1|site/block),na.action=na.fail,REML=T,TransNutsNA)
+  
+# Generate model p-values - change in plant cover
+Nlm2 <- update(Nlm, .~. -transplant:landuse:region)
+Nlm3 <- update(Nlm2, .~. -transplant)
+Nlm4 <- update(Nlm2, .~. -landuse)
+Nlm5 <- update(Nlm2, .~. -region)
+
+anova(Nlm,Nlm2)
+anova(Nlm2,Nlm3)
+anova(Nlm2,Nlm4)
+anova(Nlm2,Nlm5)
+
+#     Df    AIC    BIC  logLik deviance  Chisq Chi Df Pr(>Chisq) 
+#Nlm  11 31.184 59.043  -4.5921    9.184 24.361      4   6.76e-05 *** #transplant:landuse:region
+#Nlm2  7 47.545 65.274 -16.773   33.545 2.1344      1      0.144 # transplant
+#Nlm2  7 47.545 65.274 -16.773   33.545 0.471      1     0.4925 # landuse
+#Nlm2  7 47.545 65.274 -16.773   33.545 4.4411      1    0.03508 * # region
+
+# Emmeans contrast three-way interaction
+NlmFINAL <- emmeans(Nlm, pairwise~transplant:Tagsp,type="response") #Creating emmeans across the factor levels in the interaction.
+NlmFINAL$emmeans
+NlmFINAL.pairs <- pairs(NlmFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+NlmFINAL.pairs$emmeans
+plot(NlmFINAL, comparisons = FALSE)
+
+NlmFINAL <- emmeans(Nlm, pairwise~transplant:landuse:region,type="response") #Creating emmeans across the factor levels in the interaction.
+NlmFINAL$emmeans
+NlmFINAL.pairs <- pairs(NlmFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+NlmFINAL.pairs$emmeans
+plot(NlmFINAL, comparisons = FALSE)
+
+# TagSpp contrast
+library(MuMIn)
+summary(glht(Nlm, mcp(Tagsp="Tukey"))) 
+#Estimate Std. Error z value Pr(>|z|)  
+#Cyn dac - Chl pyc == 0  0.59212    0.18526   3.196   0.0120 *
+#Cyn dac - Chr ori == 0  0.52642    0.20349   2.587   0.0722 .
 
 
+# Average of combined rainfall region and land-use
+aggregate(Plant.N~region+landuse,TransNutsNA,mean)
+aggregate(Plant.N~region+landuse,TransNutsNA,sd)
+
+#region landuse   Plant.N
+#1  Mesic Pasture 1.2045555
+#2    Wet Pasture 1.1797805
+#3  Mesic    Wild 1.9647881
+#4    Wet    Wild 0.8987178
+
+##############################################################
+#### Biomass in relation to plant nitrogen ####
+##############################################################
 
 TransNuts5NA<-TransNuts3[!is.na(TransNuts3$Biomass.g.m2) & !is.na(TransNuts3$Plant.N),]
-dim(TransNuts5NA) # 90 13 (77 62 without exclosures)
+dim(TransNuts5NA) # 90 13
 
 NlmBio<-lmer(Biomass.g.m2~Plant.N+
-              # Plant.N:Tagsp+
-          # Plant.N:region+
-            #  Plant.N:landuse+
             (1|site/block),
           na.action=na.fail,
           REML=T,TransNuts5NA)
@@ -1048,62 +1194,69 @@ NlmBio<-lmer(Biomass.g.m2~Plant.N+
 summary(NlmBio)
 drop1(NlmBio, test="Chisq")
 
-
-mod <- nls(Biomass.g.m2 ~ exp(a + b * Plant.N), data = TransNuts5NA, start = list(a = 0, b = 0))
-summary(mod)
-coef(mod)
-av<-seq(0.5,2.5,.05)
-A.nls<-predict(mod, list(Plant.N.cm=av))
-A.nls
-plot(Biomass.g.m2~Plant.N, data =TransNuts5NA)
-lines(av,A.nls,lty = 1, lwd =1.75, col = "black")
-
-
-# Plot predicted vs actual data
-MyData5 <- expand.grid(Plant.N=seq(min(TransNuts5NA$Plant.N),max(TransNuts5NA$Plant.N), length=25))
-
-#Create X matrix with expand.grid
-X5 <- model.matrix(~Plant.N, data =MyData5)
-head(X5)
-
-#Calculate predicted values from beta distribution
-#var[Y_i] = P_i * (1 - Pi) / (1 + phi) # Beta
-
+plot(predict(NlmBio))
+     
+#Model matrix
+MyData <- expand.grid(Plant.N = seq(min(TransNuts5NA$Plant.N),max(TransNuts5NA$Plant.N),length= 50))
+head(MyData)
+     
+#Convert the covariate values into an X matrix
+     Xp <- model.matrix(~ Plant.N, data = MyData)
+     
 #Extract parameters and parameter covariance matrix
-betas2    <- fixef(NlmBio)
-Covbetas2 <- vcov(NlmBio)
+betas    <- fixef(NlmBio)
+Covbetas <- vcov(NlmBio)
 
 #Calculate the fitted values in the predictor scale
-MyData5$eta <- X5 %*% betas2
-MyData5$Pi  <- exp(MyData5$eta ) / (1 + exp(MyData5$eta))
+ MyData$eta <- Xp %*% betas
+     
+     #Calculate the SEs on the scale of the predictor function
+     MyData$se    <- sqrt(diag(Xp %*% Covbetas %*% t(Xp)))
+     MyData$SeUp  <- exp(MyData$eta + 1.96 *MyData$se) / 
+       (1 + exp(MyData$eta  + 1.96 *MyData$se))
+     MyData$SeLo  <- exp(MyData$eta - 1.96 *MyData$se) / 
+       (1 + exp(MyData$eta  - 1.96 *MyData$se))
+     
+MyData
+MyData<-as.data.frame(MyData)
+plot(MyData$eta~MyData$Plant.N ) # Linear decline
+     
+# Non-linear model for plant biomass and plant N
+fit <- nls(Biomass.g.m2~ SSasymp(Plant.N, yf, y0, log_alpha), data = TransNuts5NA)
+fit
+phm <- nls(Biomass.g.m2~ yf + (y0 - yf)*exp(-b *Plant.N), data = TransNuts5NA, start = list(yf=0.09446,y0=1.47027,b=1.71611317))
+summary(phm)
+#        yf         y0          b 
+#0.09445743 1.47022371 1.71605234
+coef(phm)
+plot(phm)
+predict(phm)
 
-#NLS
+newph <- data.frame(Plant.N=seq(min(TransNuts5NA$Plant.N),max(TransNuts5NA$Plant.N),length= 50))
+Discharge.pred <- predict(phm, newdata=newph)
+Discharge.pred
+#plot(Biomass.g.m2~Plant.N, data =TransNuts5NA)
+#lines(newph$Plant.N,Discharge.pred,lty = 1, lwd =1.75, col = "black")
+#plot(newph$Plant.N~Discharge.pred) # Follows decay function - plant N diluted at higher biomasses
+TNBioNls<-cbind(newph,Discharge.pred )
+colnames(TNBioNls)[2]<-"Biomass.g.m2"
 
-Covbetas2 <- vcov(mod)
-MyData5$eta <- X5 %*% coef(mod)
-MyData5$Pi  <- exp(MyData5$eta ) / (1 + exp(MyData5$eta))
+# Treatment code for filling symbols
+TransNuts3$spp.code<-as.factor(with(TransNuts3, paste(Tagsp,transplant,sep="_")))
 
-
-#Calculate the SEs on the scale of the predictor function
-MyData5$se    <- sqrt(diag(X5 %*% Covbetas2 %*% t(X5)))
-MyData5$SeUp  <- exp(MyData5$eta + 1.96 *MyData5$se) / 
-  (1 + exp(MyData5$eta  + 1.96 *MyData5$se))
-MyData5$SeLo  <- exp(MyData5$eta - 1.96 *MyData5$se) / 
-  (1 + exp(MyData5$eta  - 1.96 *MyData5$se))
-
-colnames(MyData5)[3]<-"Biomass.g.m2"
-
+# Relevel so that other
+levels(TransNuts3$Tagsp)<- c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda")
 
 # Plant Biomass and N conc
-TransNuts3$spp.code<-as.factor(with(TransNuts3, paste(Tagsp,treatment,sep="_")))
+TransNuts3$spp.code<-as.factor(with(TransNuts3, paste(Tagsp,transplant,sep="_")))
 TNBio<-ggplot(TransNuts3,aes(y=Biomass.g.m2,x=Plant.N)) # group = grouping vector for lines
-TNBio<-TNBio+geom_point(aes(shape=transplant, colour=Tagsp, fill=Tagsp),size=3.5, stroke=1.25)
+TNBio<-TNBio+geom_point(aes(shape=transplant, colour=Tagsp, fill=spp.code),size=3.5, stroke=1.25)
+TNBio<-TNBio+geom_line(data=TNBioNls,aes(y=Biomass.g.m2,x=Plant.N), colour="black",size=1)
 TNBio<-TNBio+ylab(expression(paste("Aboveground biomass (kg ",m^-2,")")))+xlab("Leaf nitrogen concentration (%)")
 #TNBio<-TNBio+facet_wrap(~region, ncol=5)
-TNBio<-TNBio+geom_line(data=MyData5,aes(y=Biomass.g.m2,x=Plant.N), colour="black",size=1)
 TNBio<-TNBio+scale_shape_manual(values=c(22,21))
 TNBio<-TNBio+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
-TNBio<-TNBio+scale_fill_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+TNBio<-TNBio+scale_fill_manual(values=c("white","chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","orangered3","white"))
 TNBio<-TNBio+theme_bw()+
   theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="transparent")
@@ -1127,35 +1280,46 @@ TNBio<-TNBio+theme_bw()+
         ,legend.title = element_text(size=13,color="black")
         ,strip.text = element_text(size=13,color="black")
         ,legend.key = element_rect(colour = NA, fill = NA)
-        ,legend.position = "right"
+        ,legend.position = c(.8, .99)
         ,legend.justification = "top"
         ,legend.direction="vertical"
         ,legend.spacing.x = unit(-0.25, "mm")
         ,legend.key.width = unit(1.2,"cm"))
-TNBio<-TNBio+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes = list(shape=c(22,21), size=3.75,fill=c("grey30","white"),col="grey30", stroke=1.25)),
+TNBio<-TNBio+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes = list(shape=c(22,21), size=3.75,fill=c("white","grey30"),col="grey30", stroke=1.25)),
                     colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
                                                                               col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )
 TNBio
 
+ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Data/VegSoil_AfricanBioServices/AfricanBioServices-Vegetation-and-soils/Transplant experiment/Biomass.PlantN.jpeg",
+       width= 11, height = 13,units ="cm",
+       dpi = 600, limitsize = TRUE)
+
+
+
 # Marginal density plot of x (top panel) and y (right panel)
-xplot <- ggdensity(TransNuts3, "Plant.N",color="Tagsp", fill = "Tagsp")+scale_fill_manual("Tagsp",values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))+
-  scale_colour_manual("Tagsp",values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
-yplot <- ggdensity(TransNuts3, "Biomass.g.m2", color="Tagsp",fill = "Tagsp") +scale_fill_manual("Tagsp",values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))+
-  scale_colour_manual("Tagsp",values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))+ rotate()
+names(TransNuts3)
+xplot <- ggdensity(TransNuts3, "Plant.N",color="landuse", fill = "landuse")
+yplot <- ggdensity(TransNuts3, "Biomass.g.m2", color="landuse", fill = "landuse")+ rotate()
+
+xplot <- ggdensity(TransNuts3, "Plant.N",color="region", fill = "region")
+yplot <- ggdensity(TransNuts3, "Biomass.g.m2", color="region", fill = "region")+ rotate()
+
 
 # Cleaning the plots
 yplot <- yplot + clean_theme() 
 xplot <- xplot + clean_theme()
 
 detach(package:egg)
-
 # Arranging the plot
 ggarrange(xplot, NULL, TNBio, yplot, 
           ncol = 2, nrow = 2,  align = "hv", 
           widths = c(2, .75), heights = c(.75, 2),
           common.legend = TRUE)
 
+
+################################################################################################
 #### CARBON TO NITROGEN RATIO ####
+################################################################################################
 
 # Means Plant CN
 names(TransNuts3)
@@ -1175,12 +1339,13 @@ TransCNmean$spp.code<-as.factor(with(TransCNmean, paste(Tagsp,transplant,sep="_"
 TCNs<-ggplot(TransCNmean,aes(y=Plant.CN,x=landuse, shape=transplant, colour=Tagsp,fill=spp.code)) # group = grouping vector for lines
 TCNs<-TCNs+geom_errorbar(data=TransCNmean,aes(ymin=Plant.CN-sd, ymax=Plant.CN+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
 TCNs<-TCNs+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
-TCNs<-TCNs+ylab("C:N ratio")+xlab("Land-use")
+TCNs<-TCNs+ylab("C:N ratio")+xlab("Landuse")
 TCNs<-TCNs+facet_wrap(~region, ncol=5)
 TCNs<-TCNs+scale_shape_manual(values=c(22,21))
 TCNs<-TCNs+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
 TCNs<-TCNs+scale_fill_manual(values=c("white","chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","orangered3","white"))
 #TNs<-TNs+scale_x_continuous(limits=c(0.5,2.5),breaks=c(1,2),labels=levels(SpeciesN$landuse),expand=c(0,0))
+TCNs<-TCNs+ggtitle("(e) C:N ratio")
 TCNs<-TCNs+theme_bw()+
   theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="transparent")
@@ -1215,6 +1380,109 @@ TCNs<-TCNs+theme_bw()+
 TCNs<-TCNs+guides(fill=F,linetype=F,shape =F, colour=F)
 TCNs
 
+#####################################################################
+##### Plant nitrogen to carbon ratio - modelling ####
+#####################################################################
+
+TransNutsCNA<-TransNuts3[!is.na(TransNuts3$Plant.CN),]
+dim(TransNutsCNA) # 90 14
+
+CNlm<-lmer(Plant.CN~landuse+region+transplant+Tagsp+treatment+
+             Tagsp:region+Tagsp:landuse+
+             transplant:Tagsp+
+             transplant:landuse:region+
+            (1|site/block),
+          na.action=na.fail,
+          REML=T,TransNutsCNA)
+
+summary(CNlm)
+drop1(CNlm, test="Chisq")
+
+# Model averaging
+modsetlmer_CNlm <- dredge(CNlm,trace=2) #,fixed=c("Season","Region","Landuse","Treatment","C.N","Temp","Sand")) 
+model.sel(modsetlmer_CNlm) #Model selection table giving AIC, deltaAIC and weighting
+modavglmer_modsetlmer_CNlm<-model.avg(modsetlmer_CNlm)
+importance(modavglmer_modsetlmer_CNlm)
+PlantCNimportance<-as.data.frame(importance(modavglmer_modsetlmer_CNlm))
+plot(PlantCNimportance)           
+
+# Reduced CN ratio model
+CNlm<-lmer(Plant.CN~landuse+region+transplant+Tagsp+#treatment+
+             #Tagsp:region+Tagsp:landuse+
+             transplant:Tagsp+
+             transplant:landuse:region+
+            (1|site/block),
+          na.action=na.fail,
+          REML=T,TransNutsCNA)
+
+summary(CNlm)
+drop1(CNlm, test="Chisq")
+
+# Checking resids vs fit
+E1 <- resid(CNlm, type = "pearson")
+F1 <- fitted(CNlm)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F1, 
+     y = E1,
+     xlab = "Fitted values",
+     ylab = "Residuals", 
+     xlim = c(min(F1), max(F1)))
+abline(v = 0, lwd = 2, col = 2)
+abline(h = 0, lty = 2, col = 1) # Very good
+
+# Interaction plot transplant x species
+with(TransNutsCNA, {interaction.plot(transplant,Tagsp,Plant.CN,
+                                    xlab = "Treatment",
+                                    ylab = "Plant.CN",
+                                    fun=mean)})
+
+# Generate model p-values - change in plant cover
+Nlm2 <- update(Nlm, .~. -transplant:landuse:region)
+Nlm3 <- update(Nlm2, .~. -transplant)
+Nlm4 <- update(Nlm2, .~. -landuse)
+Nlm5 <- update(Nlm2, .~. -region)
+
+anova(Nlm,Nlm2)
+anova(Nlm2,Nlm3)
+anova(Nlm2,Nlm4)
+anova(Nlm2,Nlm5)
+
+# Generate model p-values - change in C:N ratio 
+CNlm2 <- update(CNlm, .~. -transplant:landuse:region)
+CNlm3 <- update(CNlm2, .~. -transplant:Tagsp)
+CNlm4 <- update(CNlm2, .~. -landuse)
+CNlm5 <- update(CNlm2, .~. -region)
+CNlm6 <- update(CNlm3, .~. -transplant)
+CNlm7 <- update(CNlm3, .~. -Tagsp)
+
+anova(CNlm,CNlm2)
+anova(CNlm2,CNlm3)
+anova(CNlm2,CNlm4)
+anova(CNlm2,CNlm5)
+anova(CNlm3,CNlm6)
+anova(CNlm3,CNlm7)
+
+#      Df    AIC    BIC  logLik deviance  Chisq Chi Df Pr(>Chisq) 
+#CNlm  16 704.95 744.94 -336.47   672.95 12.09      1  0.0005069 *** #transplant:landuse:region
+#CNlm2 15 715.04 752.53 -342.52   685.04 13.326      4   0.009789 ** #transplant:Tagsp
+#CNlm2 15 715.04 752.53 -342.52   685.04 0.6465      1     0.4214  #landuse
+#CNlm2 15 715.04 752.53 -342.52   685.04 4.6006      1    0.03196 * #region
+#CNlm3 11 720.36 747.86 -349.18   698.36 3.1857      1    0.07429 .#transplant
+#CNlm3 11 720.36 747.86 -349.18   698.36 6.0929      4     0.1923 #Tagsp
+
+# Emmeans contrast three-way interaction
+CNlmFINAL <- emmeans(CNlm, pairwise~transplant:Tagsp,type="response") #Creating emmeans across the factor levels in the interaction.
+CNlmFINAL$emmeans
+CNlmFINAL.pairs <- pairs(CNlmFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+CNlmFINAL.pairs$emmeans
+plot(CNlmFINAL, comparisons = FALSE)
+
+CNlmFINAL <- emmeans(CNlm, pairwise~transplant:landuse:region,type="response") #Creating emmeans across the factor levels in the interaction.
+CNlmFINAL$emmeans
+CNlmFINAL.pairs <- pairs(CNlmFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+CNlmFINAL.pairs$emmeans
+plot(CNlmFINAL, comparisons = FALSE)
 
 #### Combining aboveground graphs ####
 
@@ -1238,13 +1506,11 @@ dev.off()
 #layout_matrix = cbind(c(1,NA), c(2,NA),c(3,6), c(4,NA), c(5,NA))) #common.legend = T)
 #grid.arrange(p1)
 
-
 ########################################################################
-#### Transplant soil properties ####
+#### SOIL PROPERTIES ####
 ########################################################################
 
-
-levels(TP2$region)<-c("Dry \n (1175 mm)","Intermediate \n (1440 mm)","Wet \n (1840 mm)")
+levels(TP2$region)<-c("Mesic","Wet","Wet")
 
 #### Soil bulk density ####
 
@@ -1263,12 +1529,13 @@ BD$spp.code<-as.factor(with(BD, paste(Tagsp,transplant,sep="_")))
 # Soil bulk density graph
 TPBD<-ggplot(BD,aes(y=BD.gcm3,x=landuse, shape=transplant, colour=Tagsp,fill=spp.code)) # group = grouping vector for lines
 TPBD<-TPBD+geom_errorbar(data=BD,aes(ymin=BD.gcm3-sd, ymax=BD.gcm3+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
-TPBD<-TPBD+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
-TPBD<-TPBD+ylab(expression(paste("Soil bulk density (g ",cm^-3,")")))+xlab("Land-use")
+TPBD<-TPBD+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25,show.legend=F)
+TPBD<-TPBD+ylab(expression(paste("Soil bulk density (g ",cm^-3,")")))+xlab("Landuse")
 TPBD<-TPBD+facet_wrap(~region, ncol=5)
 TPBD<-TPBD+scale_shape_manual(values=c(22,21))
 TPBD<-TPBD+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
 TPBD<-TPBD+scale_fill_manual(values=c("white","chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","orangered3","white"))
+TPBD<-TPBD+ggtitle("(b) Bulk density")
 TPBD<-TPBD+theme_bw()+
   theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="transparent")
@@ -1291,7 +1558,7 @@ TPBD<-TPBD+theme_bw()+
         ,strip.background = element_rect(fill="transparent",colour=NA)
         ,legend.text = element_text(size=13,color="black")
         ,legend.title = element_text(size=13,color="black")
-        ,strip.text = element_text(size=13,color="black")
+        ,strip.text =  element_blank()
         ,legend.key = element_rect(colour = NA, fill = NA)
         ,legend.position = "right"
         ,legend.justification = "top"
@@ -1303,14 +1570,93 @@ TPBD<-TPBD+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.ae
                                                                                 col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )
 TPBD
 
+#### Bulk density modelling ####
+TP2BDNA<-TP2[!is.na(TP2$BD.gcm3),]
+BDlm<-lmer(BD.gcm3~landuse+region+transplant+Tagsp+treatment+
+             Tagsp:region+Tagsp:landuse+
+             transplant:Tagsp+landuse:region+
+             transplant:landuse:region+
+             (1|site/block),
+           na.action=na.fail,
+           REML=T,TP2BDNA)
+summary(BDlm)
+drop1(BDlm, test="Chisq")
+
+# Model averaging
+modsetlmer_BDlm <- dredge(BDlm,trace=2) #,fixed=c("Season","Region","Landuse","Treatment","C.N","Temp","Sand")) 
+model.sel(modsetlmer_BDlm) #Model selection table giving AIC, deltaAIC and weighting
+modavglmer_modsetlmer_BDlm<-model.avg(modsetlmer_BDlm)
+importance(modavglmer_modsetlmer_BDlm)
+PlantBDimportance<-as.data.frame(importance(modavglmer_modsetlmer_BDlm))
+plot(PlantBDimportance)           
+
+# Reduced Soil pH  model
+BDlm<-lmer(BD.gcm3~region+Tagsp+transplant+#landuse+treatment+
+             #Tagsp:landuse+Tagsp:region+
+             transplant:Tagsp+#landuse:region+
+             # transplant:landuse:region+
+             (1|site/block),
+           na.action=na.fail,
+           REML=T,TP2BDNA)
+
+summary(BDlm)
+drop1(BDlm, test="Chisq")
+
+# Checking resids vs fit
+E1 <- resid(BDlm, type = "pearson")
+F1 <- fitted(BDlm)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F1, 
+     y = E1,
+     xlab = "Fitted values",
+     ylab = "Residuals", 
+     xlim = c(min(F1), max(F1)))
+abline(v = 0, lwd = 2, col = 2)
+abline(h = 0, lty = 2, col = 1) # Good
+
+
+BDlm2<-lmer(pH~region+Tagsp+transplant+(1|site/block),na.action=na.fail,REML=T,TP2pHNA)
+
+# Generate model p-values - bulk density
+BDlm2 <- update(BDlm, .~. -transplant:Tagsp)
+BDlm3 <- update(BDlm2, .~. -region)
+BDlm4 <- update(BDlm2, .~. -Tagsp)
+BDlm5 <- update(BDlm2, .~. -transplant)
+
+anova(BDlm,BDlm2)
+anova(BDlm2,BDlm3)
+anova(BDlm2,BDlm4)
+anova(BDlm2,BDlm5)
+
+# Soil pH analysis 
+#     Df    AIC    BIC   logLik deviance  Chisq Chi Df Pr(>Chisq)  
+#BDlm  14 -272.79 -231.91 150.39  -300.79 15.197      4   0.004309 ** # transplant:Tagsp
+#BDlm2 10 -265.59 -236.39 142.79  -285.59 7.9792      1   0.004732 ** # region
+#BDlm2 10 -265.59 -236.39 142.79  -285.59 2.3933      4     0.6638 # Tagsp
+#BDlm2 10 -265.59 -236.39 142.79  -285.59 0.7062      1     0.4007 # transplant
+
+
+# Emmeans contrast
+BDlmFinFINAL <- emmeans(BDlm, pairwise~transplant:Tagsp,type="response") #Creating emmeans across the factor levels in the interaction.
+BDlmFinFINAL$emmeans
+BDlmFinFINAL.pairs <- pairs(BDlmFinFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+BDlmFinFINAL.pairs$emmeans
+plot(pHlmFinFINAL, comparisons = FALSE)
+
+#Tagsp   transplant contrast             estimate     SE    df t.ratio p.value
+#Chl pyc .          Control - Transplant  0.19673 0.0536 115.6  3.668  0.0093 
+#.       Control    Chl pyc - The tri     0.22404 0.0677 112.4  3.311  0.0312 
+
+
 #### Soil  pH ####
 
-# Graph soil bulk density
+# Graph soil pH
 pH<-aggregate(pH~landuse+region+transplant+Tagsp,TP2, mean)
 pHSe<-aggregate(pH~landuse+region+transplant+Tagsp,TP2, sd)
 pH$sd<-pHSe$pH
 
-# Relevel so that other
+# Relevel spp
 levels(pH$Tagsp)<- c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda")
 pH$Tagsp<- factor(pH$Tagsp, levels = c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda"))
 
@@ -1318,15 +1664,18 @@ pH$Tagsp<- factor(pH$Tagsp, levels = c("Chloris", "Chrysocloa", "Cynodon", "Digi
 pH$spp.code<-as.factor(with(pH, paste(Tagsp,transplant,sep="_")))
 
 
+levels(pH$region)<-c("Mesic region","Wet region")
+
 # Soil pH  graph
 TPpH<-ggplot(pH,aes(y=pH,x=landuse, shape=transplant, colour=Tagsp,fill=spp.code)) # group = grouping vector for lines
 TPpH<-TPpH+geom_errorbar(data=pH,aes(ymin=pH-sd, ymax=pH+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
 TPpH<-TPpH+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
-TPpH<-TPpH+ylab("pH")+xlab("Land-use")
+TPpH<-TPpH+ylab("pH")+xlab("")#+xlab("Land-use")
 TPpH<-TPpH+facet_wrap(~region, ncol=5)
 TPpH<-TPpH+scale_shape_manual(values=c(22,21))
 TPpH<-TPpH+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
 TPpH<-TPpH+scale_fill_manual(values=c("white","chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","orangered3","white"))
+TPpH<-TPpH+ggtitle("(a) pH")
 TPpH<-TPpH+theme_bw()+
   theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="transparent")
@@ -1339,8 +1688,7 @@ TPpH<-TPpH+theme_bw()+
         ,axis.text=element_text(size=13,color="black")
         ,axis.title.y=element_text(size=13,color="black")
         ,axis.title.x=element_text(size=13,color="black")
-        ,axis.text.x=element_text(size=13,color="black",
-                                  margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.text.x=element_blank()
         ,axis.ticks.length=unit(-1.5, "mm")
         ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
         ,axis.text.y.right =element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
@@ -1361,24 +1709,228 @@ TPpH<-TPpH+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.ae
                                                                             col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )
 TPpH
 
+#### pH modelling ####
+TP2pHNA<-TP2[!is.na(TP2$pH),]
+pHlm<-lmer(pH~landuse+region+transplant+Tagsp+treatment+
+             Tagsp:region+Tagsp:landuse+
+             transplant:Tagsp+landuse:region+
+             transplant:landuse:region+
+            (1|site/block),
+          na.action=na.fail,
+          REML=T,TP2pHNA)
+summary(pHlm)
+drop1(pHlm, test="Chisq")
 
-names(TP2)
+# Model averaging
+modsetlmer_pHlm <- dredge(pHlm,trace=2) #,fixed=c("Season","Region","Landuse","Treatment","C.N","Temp","Sand")) 
+model.sel(modsetlmer_pHlm) #Model selection table giving AIC, deltaAIC and weighting
+modavglmer_modsetlmer_pHlm<-model.avg(modsetlmer_pHlm)
+importance(modavglmer_modsetlmer_pHlm)
+PlantpHimportance<-as.data.frame(importance(modavglmer_modsetlmer_pHlm))
+plot(PlantpHimportance)           
+
+# Reduced Soil pH  model
+pHlm<-lmer(pH~landuse+region+Tagsp+#transplant+treatment+
+             #Tagsp:landuse+Tagsp:region+
+            #transplant:Tagsp+landuse:region+
+            # transplant:landuse:region+
+             (1|site/block),
+           na.action=na.fail,
+           REML=T,TP2pHNA)
+
+summary(pHlm)
+drop1(pHlm, test="Chisq")
+
+# Checking resids vs fit
+E1 <- resid(pHlm, type = "pearson")
+F1 <- fitted(pHlm)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F1, 
+     y = E1,
+     xlab = "Fitted values",
+     ylab = "Residuals", 
+     xlim = c(min(F1), max(F1)))
+abline(v = 0, lwd = 2, col = 2)
+abline(h = 0, lty = 2, col = 1) # Good
+
+
+pHlm2<-lmer(pH~landuse+region+(1|site/block),na.action=na.fail,REML=T,TP2pHNA)
+
+# Generate model p-values - change in plant cover
+pHlm2 <- update(pHlm, .~. -Tagsp)
+pHlm3 <- update(pHlm2, .~. -region)
+pHlm4 <- update(pHlm2, .~. -landuse)
+
+anova(pHlm,pHlm2)
+anova(pHlm2,pHlm3)
+anova(pHlm2,pHlm4)
+
+# Soil pH analysis 
+#     Df    AIC    BIC   logLik deviance  Chisq Chi Df Pr(>Chisq)  
+#pHlm  10 104.36 133.49 -42.181   84.361 67.65      4  7.111e-14 *** #Tagsp
+#pHlm2  6 164.01 181.49 -76.006   152.01 7.2908      1   0.006931 ** # region
+#pHlm2  6 164.01 181.49 -76.006   152.01 4.0011      1    0.04547 * # landuse
+
+# Emmeans contrast
+pHlmFinFINAL <- emmeans(pHlm, pairwise~Tagsp,type="response") #Creating emmeans across the factor levels in the interaction.
+pHlmFinFINAL$emmeans
+pHlmFinFINAL.pairs <- pairs(pHlmFinFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+pHlmFinFINAL.pairs$emmeans
+plot(pHlmFinFINAL, comparisons = FALSE)
+
+#contrast          estimate     SE  df t.ratio p.value
+#Chl pyc - Dig mac    0.365 0.0872 119  4.184  0.0006 
+#Chl pyc - The tri    0.501 0.0915 116  5.476  <.0001 
+#Chr ori - Cyn dac   -0.399 0.0908 113 -4.390  0.0003 
+#Chr ori - The tri    0.310 0.0898 113  3.449  0.0079 
+#Cyn dac - Dig mac    0.572 0.0827 116  6.916  <.0001 
+#Cyn dac - The tri    0.708 0.0880 113  8.046  <.0001 
+
+aggregate(pH~landuse, TP2pHNA,mean)
+#  landuse       pH
+#1 Pasture 6.204255
+#2    Wild 6.346404
+
+aggregate(pH~region, TP2pHNA,mean)
+#region       pH
+#1  Mesic 6.506170
+#2    Wet 6.186966
+
+# Correlations
 MyEnv<-c("Target.weight.g","FilTagspCover","Plant.N" ,        
          "BD.gcm3", "pH")
 pairs(TP2[,MyEnv], lower.panel= panel.cor)
 
 plot(Plant.N~pH,col=c(Tagsp),TP2)
+abline(lm(Plant.N~pH,TP2pHNA))
+summary(lm(Plant.N~pH,TP2pHNA))
 
-TP2NA<-TP2[!is.na(TP2$Plant.N),]
-pHlm<-lmer(pH~landuse+region+transplant+Tagsp+pH+
-            # pH:region+pH:landuse+pH:transplant+
-             #pH:Tagsp+
-            (1|site/block),
-          na.action=na.fail,
-          REML=T,TP2NA)
-summary(pHlm)
-drop1(pHlm, test="Chisq")
+aggregate(pH~Tagsp,TP2pHNA,mean)
+#    Tagsp       pH
+#1 Chl pyc 6.476522
+#2 Chr ori 6.254167
+#3 Cyn dac 6.730385
+#4 Dig mac 6.154167
+#5 The tri 5.956667
 
+#### Combining soil property graphs ####
+
+# Extra legend from legend plot
+library(grid)
+library(gridExtra)
+library(ggpubr)
+library(egg)
+legend2 <- get_legend(TPpH)
+arrangeGrob(legend2)
+
+filename <- paste0("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/", "Transplant.Soil.properties", "_",Sys.Date(), ".jpeg" )
+jpeg (filename, width=16, height=22, res=400, unit="cm")
+egg::ggarrange(TPpH, TPBD,ncol=1) #common.legend = T,legend="right")
+dev.off()
+
+
+################################################################################################################################################
+#### HOME FIELD ADVANTAGE (HFA) ####
+################################################################################################################################################
+
+setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/VegSoil_AfricanBioServices/AfricanBioServices-Vegetation-and-soils/")
+# Combined species, aboveground biomass and 5 cm soil
+HFA<-read.csv(file="Transplant experiment/HFA.csv", sep=",",header=TRUE)
+
+names(HFA)
+str(HFA)
+
+# Rename species and relevel spp
+levels(HFA$Spp)<- c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda")
+HFA$Spp<- factor(HFA$Spp, levels = c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda"))
+
+# Rename and relevel plant.measure
+levels(HFA$Plant.measure)<-c("Plant biomass", "Plant cover", "Plant nitrogen")
+HFA$Plant.measure<- factor(HFA$Plant.measure, levels = c("Plant cover","Plant biomass", "Plant nitrogen"))
+
+# Treatment code for filling symbols
+HFA$spp.code<-as.factor(with(HFA, paste(Spp,HFAfactor,sep="_")))
+HFA$spp.code.measure<-as.factor(with(HFA, paste(Spp,HFAfactor,Plant.measure,sep="_")))
+
+levels(HFA$Plant.measure)<-c("(a) Plant cover", "(b) Plant biomass", "(c) Leaf nitrogen concentration")
+
+# Home Field Advantage - 
+HFABar<-ggplot(HFA,aes(y=HA,x=Spp, colour=Spp,shape=HFAfactor,fill=spp.code)) # group = grouping vector for lines
+HFABar<-HFABar+geom_hline(yintercept=0,linetype="solid", colour="black")
+HFABar<-HFABar+geom_bar(stat="identity",width=.01,linetype="dashed",position=position_dodge(width=.5), alpha=.5,show.legend=F)
+HFABar<-HFABar+geom_point(size=4,position=position_dodge(width=.5), stroke =1)
+HFABar<-HFABar+facet_wrap(~Plant.measure, scale="free", ncol=3)
+HFABar<-HFABar+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+HFABar<-HFABar+scale_fill_manual(values=c("white","chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","orangered3","white"))
+HFABar<-HFABar+scale_shape_manual(values=c(21,21))
+HFABar<-HFABar+xlab("Species")+ylab("Homefield advantage")
+HFABar<-HFABar+coord_flip()
+HFABar<-HFABar+theme_bw()+
+  theme(rect = element_rect(fill ="transparent")
+        ,panel.background=element_rect(fill="transparent")
+        ,plot.background=element_rect(fill="transparent",colour=NA)
+        ,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank()
+        ,axis.text=element_text(size=12,color="black")
+        ,axis.title.y=element_text(size=12.5,color="black")
+        ,axis.title.x=element_text(size=12.5,color="black")
+        ,axis.text.x=element_text(size=12,color="black",
+                                  margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.ticks.length=unit(-1.25, "mm")
+        ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.text.y.right =element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.line = element_line(color="black", size = .5)
+        ,plot.margin = unit(c(1,1.5,5,1.5), "mm")
+        ,strip.background = element_rect(fill="transparent",colour=NA)
+        ,legend.text = element_text(size=12,color="black")
+        ,legend.title = element_text(size=12,color="black")
+        ,strip.text = element_text(size=12,color="black",hjust = 0)
+        ,legend.key = element_rect(colour = NA, fill = NA)
+        ,legend.position = "right"
+        ,legend.justification = "top"
+        ,legend.direction="vertical"
+        ,legend.spacing.x = unit(1, "mm")
+        ,legend.key.width = unit(1,"cm"))
+HFABar<-HFABar+guides(fill=F,linetype=F, shape = guide_legend("HFA origin",override.aes = list(shape=c(21,21), size=3.75,fill=c("white","grey"),col="grey", stroke=.75, alpha=1)),
+                  colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
+                                                                            col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=.75)) )
+HFABar
+
+ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/HFABar.jpeg",
+       width= 32, height = 11,units ="cm",
+       dpi = 600, limitsize = TRUE)
+
+# Average HFA
+se<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+aggregate(HA~Plant.measure+HFAfactor, HFA,mean)
+aggregate(HA~Plant.measure+HFAfactor, HFA,se)
+#   Plant.measure   HFAfactor          HA
+#1    Plant cover    Land-use -22.9833339
+#2  Plant biomass    Land-use   0.5464801
+#3 Plant nitrogen    Land-use  -0.9161356
+#4    Plant cover Rain region 119.6666669
+#5  Plant biomass Rain region   0.8278415
+#6 Plant nitrogen Rain region   0.5510434
+
+aggregate(HA~Spp+Plant.measure, HFA,mean)
+
+HFAcov<-HFA[HFA$Plant.measure=="Plant cover",]
+HFAbio<-HFA[HFA$Plant.measure=="Plant biomass",]
+HFAN<-HFA[HFA$Plant.measure=="Plant nitrogen",]
+
+aggregate(HA~HFAfactor, HFAcov,mean)
+#HFAfactor        HA
+#1    Land-use -22.98333
+#2 Rain region 119.66667
+
+aggregate(HA~HFAfactor, HFAN,mean)
+#HFAfactor         HA
+#1    Land-use -0.9161356
+#2 Rain region  0.5510434
 
 ################################################################################################################################################
 #### OLD SCRIPT ####
@@ -1452,6 +2004,71 @@ levels(Datastack$treatment)<-c("exclosed","open")
 #Rain per day for each harvest period
 Datastack$rain.day <- Datastack$rain.sum/Datastack$growth.period
 
+names(Datastack)
+table(Datastack$harvest,Datastack$harvest.date)
+ProdAvg<-aggregate(prodtot~harvest+region+landuse+block+treatment,Datastack,mean)
+colnames(ProdAvg)<-c("Season","Region","Landuse","Block","Exclosure","Productivity")
+ProdAvgH<-droplevels(ProdAvg[ProdAvg$Season=="H1" | ProdAvg$Season=="H4",])
+#ProdAvgH<-droplevels(ProdAvgH[ !ProdAvgH$Region=="SE",])
+levels(ProdAvgH$Season)<-c("Wet","Dry")
+levels(ProdAvgH$Region)<-c("Dry","SE","Wet")
+levels(ProdAvgH$Landuse)<-c("Pasture","Wild")
+
+DecompProd<-merge(MassAvg,ProdAvgH, by=c("Season","Region","Landuse","Block"))
+levels(DecompProd$Treatment)<-c("No termite", "Termite")
+levels(DecompProd$Exclosure)<-c("Exclosed herbivore", "Herbivory")
+#DecompProd<-DecompProd[!DecompProd$Littertype=="Green",] # Green tea too rapid mass loss
+ggplot(DecompProd, aes(x=Massloss.per, y=Productivity, colour=Landuse))+geom_point()+
+  facet_wrap(~Littertype+Treatment)+
+  theme_classic()
+
+DecompProd10<-DecompProd[DecompProd$Massloss.per>10,]
+ProdMass<-lmer(Productivity~Massloss.per+Treatment+Landuse+#Exclosure+#Landuse+
+                 Massloss.per:Treatment+
+                # Exclosure:Treatment+
+                 #Massloss.per:Exclosure:Treatment+
+                 (1|Block),
+     na.action=na.fail,
+     REML=T,data=DecompProd10)
+summary(ProdMass)
+drop1(ProdMass,test="Chisq")
+
+
+# Plot predicted vs actual data
+MyData <- expand.grid(Treatment=levels(DecompProd10$Treatment),
+                     Landuse=levels(DecompProd10$Landuse),
+                      #Exclosure = levels(DecompProd10$Exclosure),
+                      Massloss.per = seq(min(DecompProd10$Massloss.per), max(DecompProd10$Massloss.per), length = 25))
+#fSpecies.fHoles=interaction(SerRootmain2$fSpecies,
+#                            SerRootmain2$fHoles)
+
+#Create X matrix with expand.grid
+X <- model.matrix(~Massloss.per+Treatment+ Massloss.per:Treatment+Landuse , data = MyData)
+head(X)
+
+#Calculate predicted values
+#NewData$Pred <- predict(M4, NewData, level = 0)
+#The level = 0 ensure that we fit the fixed effects
+#Or:
+MyData$Pred <- X %*% fixef(ProdMass)  # = X * beta
+
+#D. Calculate standard errors (SE) for predicted values
+#   SE of fitted values are given by the square root of
+#   the diagonal elements of: X * cov(betas) * t(X)  
+#   Take this for granted!
+MyData$SE <- sqrt(  diag(X %*% vcov(ProdMass) %*% t(X))  )
+
+#And using the Pred and SE values, we can calculate
+#a 95% confidence interval
+MyData$SeUp <- MyData$Pred + 1.96 * MyData$SE
+MyData$SeLo <- MyData$Pred - 1.96 * MyData$SE
+
+colnames(MyData)[4]<-"Productivity"
+
+ggplot(DecompProd, aes(x=Massloss.per, y=Productivity, colour=Landuse))+geom_point()+
+  facet_wrap(~Treatment)+#geom_line(data=MyData,aes(x=Massloss.per, y=Productivity))+
+  theme_classic()
+
 # Rdate create month column. default was (="%d.%m.%Y")
 Rdate<-strptime(as.character(Datastack$harvest.date),format="%m/%d/%Y",tz="Africa/Nairobi" )# East African time #USE
 class(Rdate) # [1] "POSIXlt" "POSIXt" # This format needs a lot of memory - but good
@@ -1479,6 +2096,7 @@ NutsN<-droplevels(subset(Datastack2,Plant.N<3.1 & Plant.N>0.5 | is.na(Plant.N)))
 NutsN<-droplevels(subset(NutsN,prodsp.per>-10 | is.na(prodsp.per)))
 
 names(NutsN)
+
 #Implementing the AR-1 autocorrelation
 cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|Tagsp/plot.code) # AR matrix needs to be unique
 cs1AR1. <- Initialize(cs1AR1, data = NutsN)
@@ -1534,7 +2152,7 @@ SpeciesN$spp.code<-as.factor(with(SpeciesN, paste(target.sp.,treatment,sep="_"))
 TNs<-ggplot(SpeciesN,aes(y=N.conc.adj,x=landuse, colour=target.sp.,fill=spp.code, shape=treatment)) # group = grouping vector for lines
 TNs<-TNs+geom_errorbar(data=SpeciesN,aes(ymin=N.conc.adj-SE, ymax=N.conc.adj+SE),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
 TNs<-TNs+geom_point(position=position_dodge(width=.45),size=5, stroke=1)
-TNs<-TNs+ylab("Plant nitrogen concentration (%)")+xlab("Land-use")
+TNs<-TNs+ylab("Plant nitrogen concentration (%)")+xlab("Landuse")
 TNs<-TNs+scale_shape_manual(values=c(22,21))
 TNs<-TNs+scale_fill_manual(values=c("chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","grey50","white","orangered3","white"))
 TNs<-TNs+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3","grey50"))

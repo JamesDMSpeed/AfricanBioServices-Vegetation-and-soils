@@ -1,0 +1,345 @@
+"Plant.N","landuse","region","transplant","site","block","Tagsp","treatment","InitialTagSpcover","FilTagspCover","Biomass.g.m2","Plant.CN"
+1.93,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",1,"Dig mac","Open",45,2,0.00875988806777792,20.33262099
+1.99,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",1,"Dig mac","Open",26,3,0.125897926183413,19.7538464
+NA,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",2,"Dig mac","Open",38,10,0.141380519047392,NA
+NA,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",2,"Dig mac","Open",14,0,NA,NA
+NA,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",3,"Dig mac","Open",19,0,NA,NA
+NA,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",3,"Dig mac","Open",10,0,NA,NA
+1.05,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",4,"Dig mac","Open",7,30,0.133639222615403,37.88784161
+0.87,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",4,"Dig mac","Open",24,10,0.130990884362354,43.84118108
+NA,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",1,"Dig mac","Open",39,0,NA,NA
+1.45,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",1,"Dig mac","Open",25,80,0.286427967983622,24.8997179
+1.85,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",2,"Dig mac","Open",16,10,0.121212404658787,19.74643036
+1.7,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",2,"Dig mac","Open",14,10,0.153807337004008,22.63416788
+NA,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",3,"Dig mac","Open",11,0,NA,NA
+2.49,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",3,"Dig mac","Open",16,2,0.119175221387211,15.18220303
+NA,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",4,"Dig mac","Open",5,0,NA,NA
+2.08,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",4,"Dig mac","Open",14,12,0.130787166035196,18.49555622
+1.36,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",1,"Dig mac","Open",36,0,0.11754547476995,28.51631564
+NA,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",1,"Dig mac","Open",9,2,NA,NA
+NA,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",2,"Dig mac","Open",38,2,NA,NA
+1.09,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",2,"Dig mac","Open",12,20,0.13812102581287,35.27098843
+NA,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",3,"Dig mac","Open",44,NA,NA,NA
+NA,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",3,"Dig mac","Open",18,NA,NA,NA
+NA,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",4,"Dig mac","Open",45,NA,NA,NA
+NA,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",4,"Dig mac","Open",11,NA,NA,NA
+0.89,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",1,"Dig mac","Open",27,20,0.388083413235278,38.58175484
+0.67,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",1,"Dig mac","Open",20,35,NA,57.31716251
+0.73,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",2,"Dig mac","Open",7,20,0.369952482118249,49.4173745
+0.98,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",2,"Dig mac","Open",40,10,0.342450507951969,37.24539563
+1,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",3,"Dig mac","Open",22,15,0.245276865897782,39.05697334
+0.86,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",3,"Dig mac","Open",30,5,0.194958439089848,42.21811361
+NA,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",4,"Dig mac","Open",22,0,NA,NA
+NA,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",4,"Dig mac","Open",12,0,NA,NA
+1.17,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",1,"The tri","Open",55,10,0.150547843769486,30.38474306
+NA,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",1,"Chr ori","Open",12,0,NA,NA
+NA,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",1,"Cyn dac","Open",20,0,NA,NA
+1.6,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",1,"Chl pyc","Open",17,25,0.179068409571553,24.79827027
+0.85,"Pasture","Dry 
+ (1175 mm)","Control","Makao",1,"Chl pyc","Open",19,85,0.300484532557498,48.12760814
+NA,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",2,"The tri","Open",51,0,NA,NA
+NA,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",2,"Chr ori","Open",7,0,NA,NA
+1.03,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",2,"Cyn dac","Open",13,5,0.126509081164886,39.76832852
+NA,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",2,"Chl pyc","Open",7,8,0.123045869603206,NA
+1.51,"Pasture","Dry 
+ (1175 mm)","Control","Makao",2,"Chl pyc","Open",48,15,0.237331851138634,25.80234308
+1.34,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",3,"The tri","Open",74,5,0.139547054102974,29.64715559
+NA,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",3,"Chr ori","Open",25,0,NA,NA
+NA,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",3,"Cyn dac","Open",22,0,NA,NA
+NA,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",3,"Chl pyc","Open",15,20,NA,NA
+0.78,"Pasture","Dry 
+ (1175 mm)","Control","Makao",3,"Chl pyc","Open",15,80,0.258925993817343,52.35077019
+NA,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",4,"The tri","Open",35,0,NA,NA
+NA,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",4,"Chr ori","Open",31,0,NA,NA
+1.2,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",4,"Cyn dac","Open",20,15,0.141787955701708,34.90220836
+1.13,"Pasture","Dry 
+ (1175 mm)","Transplant","Makao",4,"Chl pyc","Open",25,NA,0.173160578083982,35.43428004
+NA,"Pasture","Dry 
+ (1175 mm)","Control","Makao",4,"Chl pyc","Open",16,NA,NA,NA
+1.91,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",1,"The tri","Open",45,3,0.101859163578813,21.40848207
+NA,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",1,"Chr ori","Open",23,0,NA,NA
+NA,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",1,"Cyn dac","Open",18,10,0.114693418189743,NA
+NA,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",1,"Chl pyc","Open",10,0,NA,NA
+1.79,"Wild","Dry 
+ (1175 mm)","Control","Maswa",1,"Cyn dac","Open",20,30,0.205348073774887,22.11794688
+NA,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",2,"The tri","Open",39,NA,NA,NA
+NA,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",2,"Chr ori","Open",22,NA,NA,NA
+NA,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",2,"Cyn dac","Open",25,NA,NA,NA
+NA,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",2,"Chl pyc","Open",33,NA,NA,NA
+NA,"Wild","Dry 
+ (1175 mm)","Control","Maswa",2,"Cyn dac","Open",18,NA,NA,NA
+NA,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",3,"The tri","Open",55,0,NA,NA
+NA,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",3,"Chr ori","Open",44,0,NA,NA
+1.98,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",3,"Cyn dac","Open",23,20,0.158696576855791,19.57298839
+NA,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",3,"Chl pyc","Open",9,0,NA,NA
+2.44,"Wild","Dry 
+ (1175 mm)","Control","Maswa",3,"Cyn dac","Open",30,23,0.12956485607225,16.42945483
+1.89,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",4,"The tri","Open",40,15,0.122230996294576,21.82393303
+NA,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",4,"Chr ori","Open",9,0,NA,NA
+1.47,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",4,"Cyn dac","Open",17,60,0.209015003663724,27.64985631
+NA,"Wild","Dry 
+ (1175 mm)","Transplant","Maswa",4,"Chl pyc","Open",14,0,NA,NA
+2.1,"Wild","Dry 
+ (1175 mm)","Control","Maswa",4,"Cyn dac","Open",25,50,0.272575121736904,17.61063531
+0.67,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",1,"The tri","Exclosed",8,35,0.431067980265537,60.81897985
+1.09,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",1,"Chr ori","Exclosed",50,50,0.461422011012023,36.51995931
+0.81,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",1,"Cyn dac","Exclosed",35,5,0.218997201694448,52.01230193
+1.08,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",1,"Chl pyc","Exclosed",19,2,0.115100854844059,37.39275708
+0.81,"Wild","Intermediate 
+ (1440 mm)","Control","Seronera",1,"Dig mac","Exclosed",14,70,1.48979212650372,49.42117395
+0.93,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",1,"The tri","Open",8,55,0.478738068820421,44.00058576
+1.44,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",1,"Chr ori","Open",23,70,0.200866270577419,27.50311976
+1.09,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",1,"Cyn dac","Open",7,3,0.125897926183413,37.06722288
+NA,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",1,"Chl pyc","Open",15,0,NA,NA
+NA,"Wild","Intermediate 
+ (1440 mm)","Control","Seronera",1,"Dig mac","Open",18,20,NA,NA
+NA,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",2,"The tri","Exclosed",16,15,NA,NA
+0.84,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",2,"Chr ori","Exclosed",18,80,0.381768145093391,49.29353479
+0.83,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",2,"Cyn dac","Exclosed",24,8,0.335116648174295,46.54003842
+NA,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",2,"Chl pyc","Exclosed",15,0,NA,NA
+NA,"Wild","Intermediate 
+ (1440 mm)","Control","Seronera",2,"Dig mac","Exclosed",10,0,NA,NA
+1.5,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",2,"The tri","Open",15,5,0.127527672800674,27.02245145
+1.22,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",2,"Chr ori","Open",20,55,0.176420071318504,32.28712736
+0.7,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",2,"Cyn dac","Open",71,5,0.128342546109304,57.48943345
+NA,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",2,"Chl pyc","Open",57,0,NA,NA
+NA,"Wild","Intermediate 
+ (1440 mm)","Control","Seronera",2,"Dig mac","Open",4,0,NA,NA
+0.82,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",3,"The tri","Exclosed",17,60,1.13287761732356,48.19122689
+NA,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",3,"Chr ori","Exclosed",9,0,NA,NA
+NA,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",3,"Cyn dac","Exclosed",7,0,NA,NA
+NA,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",3,"Chl pyc","Exclosed",10,0,NA,NA
+1.22,"Wild","Intermediate 
+ (1440 mm)","Control","Seronera",3,"Dig mac","Exclosed",16,5,0.147288350534964,31.46966968
+0.77,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",3,"The tri","Open",31,90,1.46554964557196,51.56231692
+1.13,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",3,"Chr ori","Open",11,70,0.200662552250262,35.72843549
+NA,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",3,"Cyn dac","Open",44,0,NA,NA
+0.79,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",3,"Chl pyc","Open",38,1,0.123453306257521,49.35309846
+NA,"Wild","Intermediate 
+ (1440 mm)","Control","Seronera",3,"Dig mac","Open",12,0,NA,NA
+0.91,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",4,"The tri","Exclosed",7,80,1.59633681160716,43.97525814
+NA,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",4,"Chr ori","Exclosed",22,0,NA,NA
+0.97,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",4,"Cyn dac","Exclosed",45,2,0.0281131291477524,42.46676998
+NA,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",4,"Chl pyc","Exclosed",43,0,NA,NA
+0.79,"Wild","Intermediate 
+ (1440 mm)","Control","Seronera",4,"Dig mac","Exclosed",25,60,1.5413328632746,49.38378684
+NA,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",4,"The tri","Open",10,0,NA,NA
+NA,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",4,"Chr ori","Open",10,0,NA,NA
+NA,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",4,"Cyn dac","Open",60,0,NA,NA
+NA,"Wild","Intermediate 
+ (1440 mm)","Transplant","Seronera",4,"Chl pyc","Open",53,0,NA,NA
+NA,"Wild","Intermediate 
+ (1440 mm)","Control","Seronera",4,"Dig mac","Open",6,0,NA,NA
+1.31,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",1,"The tri","Open",47,85,0.18192046615176,28.08810416
+1.21,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",1,"Chr ori","Open",6,8,0.167049028269253,27.22822619
+1.74,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",1,"Cyn dac","Open",12,3,0.112248798263852,23.08401435
+NA,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",1,"Chl pyc","Open",29,0,NA,NA
+0.92,"Pasture","Wet 
+ (1840 mm)","Control","Mwantimba",1,"Chr ori","Open",22,95,NA,33.96357242
+1.37,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",2,"The tri","Open",35,45,0.251184697385353,29.03305159
+1.06,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",2,"Chr ori","Open",9,80,0.204533200466257,37.3869966
+NA,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",2,"Cyn dac","Open",15,0,NA,NA
+1,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",2,"Chl pyc","Open",10,3,0.122842151276049,40.60057747
+1.2,"Pasture","Wet 
+ (1840 mm)","Control","Mwantimba",2,"Chr ori","Open",10,70,NA,33.5083178
+1.33,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",3,"The tri","Open",22,10,0.212478215225404,28.32675238
+NA,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",3,"Chl pyc","Open",8,0,NA,NA
+1.14,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",3,"Cyn dac","Open",30,65,0.230609146342433,30.5275453
+1.09,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",3,"Chl pyc","Open",32,90,0.315967125421478,35.13234248
+NA,"Pasture","Wet 
+ (1840 mm)","Control","Mwantimba",3,"Chr ori","Open",30,45,NA,NA
+NA,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",4,"The tri","Open",40,0,NA,NA
+NA,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",4,"Chr ori","Open",42,0,NA,NA
+NA,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",4,"The tri","Open",20,0,NA,NA
+NA,"Pasture","Wet 
+ (1840 mm)","Transplant","Mwantimba",4,"Chr ori","Open",20,NA,NA,NA
+NA,"Pasture","Wet 
+ (1840 mm)","Control","Mwantimba",4,"Chr ori","Open",33,NA,NA,NA
+1.02,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",1,"The tri","Open",25,35,0.44879147472825,37.53710437
+NA,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",1,"Chr ori","Open",5,0,NA,NA
+1.04,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",1,"Cyn dac","Open",13,13,0.35609963587153,35.43232208
+NA,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",1,"Chl pyc","Open",9,0,NA,NA
+0.72,"Wild","Wet 
+ (1840 mm)","Control","Handajega",1,"The tri","Open",75,85,1.10252358657707,55.83628458
+0.74,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",2,"The tri","Open",53,5,0.144640012281914,53.23263394
+0.75,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",2,"Chr ori","Open",8,2,0.109193023356488,36.99723315
+0.44,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",2,"Cyn dac","Open",25,18,0.310874167242537,96.64972647
+NA,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",2,"Chl pyc","Open",22,0,NA,NA
+0.66,"Wild","Wet 
+ (1840 mm)","Control","Handajega",2,"The tri","Open",65,2,0.203107172176153,59.53677282
+0.86,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",3,"The tri","Open",40,15,0.164196971689047,46.26045458
+NA,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",3,"Chr ori","Open",40,0,NA,NA
+NA,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",3,"Cyn dac","Open",4,0,NA,NA
+NA,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",3,"Chl pyc","Open",12,0,NA,NA
+1.04,"Wild","Wet 
+ (1840 mm)","Control","Handajega",3,"The tri","Open",40,92,0.695901805570451,39.25367663
+0.67,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",4,"The tri","Open",30,20,0.685308452558254,62.95476443
+NA,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",4,"Chr ori","Open",12,0,NA,NA
+1.31,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",4,"Cyn dac","Open",7,5,0.209829876972355,24.05991052
+NA,"Wild","Wet 
+ (1840 mm)","Transplant","Handajega",4,"Chl pyc","Open",29,0,NA,NA
+0.9,"Wild","Wet 
+ (1840 mm)","Control","Handajega",4,"The tri","Open",42,55,0.993126844893427,46.98037563
+0.676337552,"Wild","Wet 
+ (1840 mm)","Control","Handajega",1,"The tri","Open",30,40,0.307013888888889,60.05196984
+0.557645739,"Wild","Wet 
+ (1840 mm)","Control","Handajega",2,"The tri","Open",35,20,0.938611111111111,75.45222059
+0.505247717,"Wild","Wet 
+ (1840 mm)","Control","Handajega",3,"The tri","Open",30,5,0.999444444444444,80.66871847
+0.612236637,"Wild","Wet 
+ (1840 mm)","Control","Handajega",4,"The tri","Open",30,55,0.232929292929293,68.07707365
+1.12,"Pasture","Wet 
+ (1840 mm)","Control","Mwantimba",1,"Chr ori","Open",59,90,0.138333333333333,NA
+0.756707634,"Pasture","Wet 
+ (1840 mm)","Control","Mwantimba",2,"Chr ori","Open",50,80,0.227881944444444,52.39067817
+NA,"Pasture","Wet 
+ (1840 mm)","Control","Mwantimba",3,"Chr ori","Open",75,0,NA,NA
+NA,"Pasture","Wet 
+ (1840 mm)","Control","Mwantimba",4,"Chr ori","Open",52,0,NA,NA
+NA,"Wild","Dry 
+ (1175 mm)","Control","Maswa",1,"Cyn dac","Open",5,7,0.421031746031746,NA
+1.892486023,"Wild","Dry 
+ (1175 mm)","Control","Maswa",2,"Cyn dac","Open",12,45,0.248148148148148,19.96974481
+1.963985736,"Wild","Dry 
+ (1175 mm)","Control","Maswa",3,"Cyn dac","Open",10,15,0.284814814814815,0
+2.465350355,"Wild","Dry 
+ (1175 mm)","Control","Maswa",4,"Cyn dac","Open",10,10,0.376388888888889,19.155779
+0.75228658,"Pasture","Dry 
+ (1175 mm)","Control","Makao",1,"Chl pyc","Open",25,30,0.136944444444444,64.34219028
+1.37,"Pasture","Dry 
+ (1175 mm)","Control","Makao",2,"Chl pyc","Open",10,40,0.187916666666667,NA
+0.77,"Pasture","Dry 
+ (1175 mm)","Control","Makao",3,"Chl pyc","Open",15,45,0.135185185185185,NA
+1.135156648,"Pasture","Dry 
+ (1175 mm)","Control","Makao",4,"Chl pyc","Open",10,45,0.108950617283951,35.53947725
+1.132984945,"Wild","Intermediate 
+ (1440 mm)","Control","Seronera",1,"Dig mac","Open",25,15,0.624074074074074,35.1985441
+1.162520842,"Wild","Intermediate 
+ (1440 mm)","Control","Seronera",2,"Dig mac","Open",10,5,0.158888888888889,31.34358416
+1.004044199,"Wild","Intermediate 
+ (1440 mm)","Control","Seronera",3,"Dig mac","Open",15,20,0.260555555555556,38.80816288
+NA,"Wild","Intermediate 
+ (1440 mm)","Control","Seronera",4,"Dig mac","Open",25,0,NA,NA
