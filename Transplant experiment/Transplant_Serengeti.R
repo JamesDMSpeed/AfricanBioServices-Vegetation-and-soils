@@ -11,6 +11,7 @@ library(glmmTMB)
 library(multcomp)
 library(lme4)
 library(MuMIn)
+library(emmeans)
 ########################################################################
 ##### Aboveground plant cover, aboveground biomass and soil properties ####
 #TP<-read.csv(file="Transplant experiment/Aboveground.survey.May2018.csv", sep=",",header=TRUE)
@@ -95,8 +96,6 @@ TPnofind<-TP[!is.na(TP$weight.g),]
 dim(TPnofind[TPnofind$FilTagspCover==0,])
 # 53 have zero cover
 
-
-
 ########################################################################
 #Data exploration
 # A Missing values?
@@ -165,52 +164,52 @@ boxplot(total_dungTot~ landuse,
 names(TP2)
 TP2$FinalPresAb
 names(TP2)
-TPprob<- glmmadmb(FinalPresAb~fTagsp+fLanduse+region+#treatemnt+transplant
-                    fTagsp:region+ 
-                    fTagsp:fLanduse+ 
-                     (1|fSite/fBlock), 
-                        family="binomial",#zeroInflation = TRUE,
-                        #admb.opts=admbControl(shess=FALSE,noinit=FALSE),
-                          admb.opts=admbControl(shess=FALSE,noinit=FALSE, impSamp=200,maxfn=500,imaxfn=500,maxph=5),
-                        data=TP2)
-summary(TPprob) # No difference in probabilty of species 
+#TPprob<- glmmadmb(FinalPresAb~fTagsp+fLanduse+region+#treatemnt+transplant
+#                    fTagsp:region+ 
+#                    fTagsp:fLanduse+ 
+#                     (1|fSite/fBlock), 
+#                        family="binomial",#zeroInflation = TRUE,
+#                        #admb.opts=admbControl(shess=FALSE,noinit=FALSE),
+#                          admb.opts=admbControl(shess=FALSE,noinit=FALSE, impSamp=200,maxfn=500,imaxfn=500,maxph=5),
+#                        data=TP2)
+#summary(TPprob) # No difference in probabilty of species 
 #drop1(TPprob,test="Chi")
-summary(glht(TPprob, mcp(fTagsp="Tukey"))) 
+#summary(glht(TPprob, mcp(fTagsp="Tukey"))) 
 
 # RANK DEFICIENCY - CANNOT TEST THIS WITH JUST TRANSPLANT PLOTS...NEED INCLUDE CONTROLS...
 # RANK DEFICIENCY - CANNOT TEST INTERACTIONS SPP x REGION and SPP X LANDUSE
 
 
 #Model matrix
-MyData <- expand.grid(fTagsp = levels(TP2$fTagsp),
-                      fLanduse = levels(TP2$fLanduse),
-                      #treatment = levels(TP2$treatment),
-                     # transplant= levels(TP2$transplant),
-                      region = levels(TP2$region))
-head(MyData)
+#MyData <- expand.grid(fTagsp = levels(TP2$fTagsp),
+#                      fLanduse = levels(TP2$fLanduse),
+#                      #treatment = levels(TP2$treatment),
+#                     # transplant= levels(TP2$transplant),
+#                      region = levels(TP2$region))
+#head(MyData)
 
 #Convert the covariate values into an X matrix
-Xp <- model.matrix(~ fTagsp+fLanduse+region+#treatemnt+transplant
-                     fTagsp:region+ 
-                     fTagsp:fLanduse, data = MyData)
+#Xp <- model.matrix(~ fTagsp+fLanduse+region+#treatemnt+transplant
+#                     fTagsp:region+ 
+#                     fTagsp:fLanduse, data = MyData)
 
 #Extract parameters and parameter covariance matrix
-betas    <- fixef(TPprob)
-Covbetas <- vcov(TPprob)
+#betas    <- fixef(TPprob)
+#Covbetas <- vcov(TPprob)
 
 #Calculate the fitted values in the predictor scale
-MyData$eta <- Xp %*% betas
-MyData$Pi  <- exp(MyData$eta) / (1 + exp(MyData$eta))
+#MyData$eta <- Xp %*% betas
+#MyData$Pi  <- exp(MyData$eta) / (1 + exp(MyData$eta))
 
 #Calculate the SEs on the scale of the predictor function
-MyData$se    <- sqrt(diag(Xp %*% Covbetas %*% t(Xp)))
-MyData$SeUp  <- exp(MyData$eta + 1.96 *MyData$se) / 
-  (1 + exp(MyData$eta  + 1.96 *MyData$se))
-MyData$SeLo  <- exp(MyData$eta - 1.96 *MyData$se) / 
-  (1 + exp(MyData$eta  - 1.96 *MyData$se))
+#MyData$se    <- sqrt(diag(Xp %*% Covbetas %*% t(Xp)))
+#MyData$SeUp  <- exp(MyData$eta + 1.96 *MyData$se) / 
+ # (1 + exp(MyData$eta  + 1.96 *MyData$se))
+#MyData$SeLo  <- exp(MyData$eta - 1.96 *MyData$se) / 
+#  (1 + exp(MyData$eta  - 1.96 *MyData$se))
 
-MyData
-MyData<-as.data.frame(MyData)
+#MyData
+#MyData<-as.data.frame(MyData)
 # No difference in probabilty of species being present after trasnplant
 # Species from pastures do worse in wildlife, most species do worse in pasture,
 # Chl pyc does poorly in Seronera exclosures
@@ -220,12 +219,12 @@ MyData<-as.data.frame(MyData)
 ################################################################################################################################################
 
 # Use moveable exclosure data as CONTROL 
-setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/")
+setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/VegSoil_AfricanBioServices/AfricanBioServices-Vegetation-and-soils/Transplant experiment/")
 
 MoveNuts<-read.csv("BiomassStacked2.csv")
 names(MoveNuts)
 
-TransNuts<-read.csv("BioCoverSoil5cmNuts2.csv")
+TransNuts<-read.csv("BioCoverSoil5cmNuts.csv")
 names(TransNuts)
 
 # Harvest H7 ONLY and TARGET species ONLY and no exclosures
@@ -239,6 +238,9 @@ levels(MoveNutsH7$landuse)<-c("Pasture","Wild")
 names(MoveNutsH7)
 #[23] "target.sp.cover.setup" 
 #[27] "target.sp.cover.harvest.."   
+
+#[24]"total.veg.cover.setup" 
+#
 names(TransNuts)
 #[19] "InitialTagSpcover" 
 #[21] "FilTagspCover"
@@ -246,8 +248,8 @@ names(TransNuts)
 colnames(MoveNutsH7)[23]<-"InitialTagSpcover" 
 colnames(MoveNutsH7)[27]<-"FilTagspCover"
 
-MoveNutsH7$biomass.total.g
-MoveNutsH7$biomass.sp
+MoveNutsH7$biomass.total.g # Total biomass
+MoveNutsH7$biomass.sp # Target species biomass
 
 # Convert biomass to standard kg m-2
 # Transplant 25 cm diameter # ((pi/4)*.25^2)
@@ -257,7 +259,7 @@ TransNuts$Biomass.g.m2<-(TransNuts$Target.weight.g/((pi/4)*.25^2))/1000
 
 ggplot(data=MoveNutsH7, aes(x=biomass.sp))+geom_histogram()
 MoveNutsH7[MoveNutsH7$biomass.sp<5,] # 4 samples < 5 grams
-  
+
 # Merge transplant and exclosure data sets
 names(TransNuts)
 names(MoveNutsH7)
@@ -354,13 +356,13 @@ CCbiom<-ggplot(CC,aes(y=CoverChange,x=landuse, shape=transplant, colour=Tagsp,fi
 CCbiom<-CCbiom+geom_hline(yintercept=0,linetype="dashed")
 CCbiom<-CCbiom+geom_errorbar(data=CC,aes(ymin=CoverChange-sd, ymax=CoverChange+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
 CCbiom<-CCbiom+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
-CCbiom<-CCbiom+ylab("Change in relative cover (%)")+xlab("") #+xlab("Land-use")
+CCbiom<-CCbiom+ylab("Change in plant cover (%)")+xlab("") #+xlab("Land-use")
 CCbiom<-CCbiom+facet_wrap(~region, ncol=5)
 CCbiom<-CCbiom+scale_shape_manual(values=c(22,21))
 CCbiom<-CCbiom+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
 CCbiom<-CCbiom+scale_fill_manual(values=c("white","chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","orangered3","white"))
 #TNs<-TNs+scale_x_continuous(limits=c(0.5,2.5),breaks=c(1,2),labels=levels(SpeciesN$landuse),expand=c(0,0))
-CCbiom<-CCbiom+ggtitle("(a) Plant cover change")
+CCbiom<-CCbiom+ggtitle("(a) Change in plant cover")
 CCbiom<-CCbiom+theme_bw()+
   theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="transparent")
@@ -431,7 +433,7 @@ sum(-13.750000,-33.750000, 3.666667,-3.250000)/4 #-11.77083
 
 # Remove NAS
 TransNuts3NA<-TransNuts3[!is.na(TransNuts3$CoverChange),]
-dim(TransNuts3NA) # 159  12(77 62 without exclosures)
+dim(TransNuts3NA) # 159  13
 
 # Remove Seronera
 
@@ -502,6 +504,11 @@ anova(CClm,CClm2)
 #CClm2  4 1112.3 1123.3 -552.17   1104.3                             
 #CClm   5 1542.0 1557.3 -765.97   1532.0 6.8362      1   0.008933 ** # Transplant
 
+# Remove control plots
+TransNuts3NAcc<-droplevels(TransNuts3[!TransNuts3$transplant=="Control",])
+dim(TransNuts3NAcc) # 159  13
+mean(TransNuts3NAcc$CoverChange, na.rm=T)
+sd(TransNuts3NAcc$CoverChange, na.rm=T)
 ########################################################################
 #### Final plant cover  ####
 ########################################################################
@@ -538,11 +545,11 @@ CCFin$sdHi<-CCFin$sd+CCFin$FilTagspCover
 CCFin$sdLo<-CCFin$FilTagspCover-CCFin$sd
 CCFin$sdLo[CCFin$sdLo<0]<--3
 
-# Plant cover change  graph
+# Final plant cover graph
 CCbiomF<-ggplot(CCFin,aes(y=FilTagspCover,x=landuse, shape=transplant, colour=Tagsp,fill=spp.code)) # group = grouping vector for lines
 CCbiomF<-CCbiomF+geom_errorbar(data=CCFin,aes(ymin=sdLo, ymax=sdHi),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
 CCbiomF<-CCbiomF+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
-CCbiomF<-CCbiomF+ylab("Relative cover (%)")+xlab("")
+CCbiomF<-CCbiomF+ylab("Plant cover (%)")+xlab("")
 CCbiomF<-CCbiomF+facet_wrap(~region, ncol=5)
 CCbiomF<-CCbiomF+scale_shape_manual(values=c(22,21))
 CCbiomF<-CCbiomF+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
@@ -582,7 +589,7 @@ CCbiomF<-CCbiomF+guides(fill=F,linetype=F,shape = F, colour=F)
 CCbiomF
 
 ######################################################
-#### Final target species cover  modelling ####
+#### Final target species cover modelling ####
 ######################################################
 
 TransNuts4NA<-TransNuts3[!is.na(TransNuts3$FilTagspCover),]
@@ -645,7 +652,6 @@ abline(h = 0, lty = 2, col = 1) # Looks great - follows nbiom
 summary(CClmFin)
 -2*logLik(CClmFin) # 'log Lik.' 1064.893 (df=18)
 (1064.893-0.332)/1064.893# 0.9996882 
-
 
 # Reduce model
 dim(coef.CCFin)
@@ -723,8 +729,8 @@ anova(CClmFin4,CClmFin7)
 levels(TransNuts3$treatment)<-c("Exclosed","Open","Open")
 
 #### Graph biomass ####
-MeanBio<-aggregate(Biomass.g.m2~landuse+region+transplant+Tagsp+treatment,TransNuts3,mean)
-MeanBio2<-aggregate(Biomass.g.m2~landuse+region+transplant+Tagsp+treatment,TransNuts3,sd)
+MeanBio<-aggregate(Biomass.g.m2~landuse+region+transplant+Tagsp+treatment,TransNuts3,na.rm=TRUE,mean)
+MeanBio2<-aggregate(Biomass.g.m2~landuse+region+transplant+Tagsp+treatment,na.rm=TRUE,TransNuts3,sd)
 MeanBio$sd<-MeanBio2$Biomass.g.m2
 
 MeanB<-aggregate(Biomass.g.m2~landuse,TransNuts3,mean)
@@ -737,17 +743,20 @@ MeanBio$Tagsp<- factor(MeanBio$Tagsp, levels = c("Chloris", "Chrysocloa", "Cynod
 # Treatment code for filling symbols
 MeanBio$spp.code<-as.factor(with(MeanBio, paste(Tagsp,transplant,sep="_")))
 
-# Plant cover change  graph
-TPbiom<-ggplot(MeanBio,aes(y=Biomass.g.m2,x=landuse, shape=transplant, colour=Tagsp,fill=spp.code, alpha=treatment)) # group = grouping vector for lines
+# Open plots - not exclosures at Seronera
+MeanBio<-MeanBio[!MeanBio$treatment=="Exclosed",]
+
+# Plant biomass  graph
+TPbiom<-ggplot(MeanBio,aes(y=Biomass.g.m2,x=landuse, shape=transplant, colour=Tagsp,fill=spp.code)) # alpha=treatment ## group = grouping vector for lines
 TPbiom<-TPbiom+geom_errorbar(data=MeanBio,aes(ymin=Biomass.g.m2-sd, ymax=Biomass.g.m2+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
 TPbiom<-TPbiom+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
 TPbiom<-TPbiom+ylab(expression(paste("Biomass (kg ",m^-2,")")))+xlab("")
 TPbiom<-TPbiom+facet_wrap(~region, ncol=5)
 TPbiom<-TPbiom+scale_shape_manual(values=c(22,21))
-TPbiom<-TPbiom+scale_alpha_manual(values=c(.33,1))
+#TPbiom<-TPbiom+scale_alpha_manual(values=c(.33,1))
 TPbiom<-TPbiom+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
 TPbiom<-TPbiom+scale_fill_manual(values=c("white","chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","orangered3","white"))
-TPbiom<-TPbiom+scale_y_continuous(limits=c(-.1,1.85),breaks=c(0,.5,1.,1.5),labels=c(0,.5,1.,1.5),expand=c(0,0))
+TPbiom<-TPbiom+scale_y_continuous(limits=c(0,1.1),breaks=c(0,.25,.5,.75,1.),labels=c(0,.25,.5,.75,1.),expand=c(0,0))
 TPbiom<-TPbiom+ggtitle("(c) Aboveground biomass")
 TPbiom<-TPbiom+theme_bw()+
   theme(rect = element_rect(fill ="transparent")
@@ -775,8 +784,8 @@ TPbiom<-TPbiom+theme_bw()+
         ,legend.direction="vertical"
         ,legend.spacing.x = unit(-0.25, "mm")
         ,legend.key.width = unit(1.2,"cm"))
-TPbiom<-TPbiom+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes = list(shape=c(22,21), size=3.75,fill=c("grey30","white"),col="grey30", stroke=1.25)),
-                      alpha = guide_legend("Exclosures",override.aes = list(shape=c(21), size=3.75,alpha=c(0.33,1),fill="grey30",col="grey30", stroke=1.25)),
+TPbiom<-TPbiom+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes = list(shape=c(22,21), size=3.75,fill=c("white","grey30"),col="grey30", stroke=1.25)),
+                      #alpha = guide_legend("Exclosures",override.aes = list(shape=c(21), size=3.75,alpha=c(0.33,1),fill="grey30",col="grey30", stroke=1.25)),
                         colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
                                                                                   col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )
 TPbiom
@@ -786,18 +795,31 @@ TPbiom
 ######################################################
 
 TransNuts5NA<-TransNuts3[!is.na(TransNuts3$Biomass.g.m2),]
-dim(TransNuts5NA) # 94 13 (77 62 without exclosures)
+dim(TransNuts5NA) # 148 13 (77 62 without exclosures)
 
 TPbio<-lmer(Biomass.g.m2~landuse+region+transplant+Tagsp+treatment+
-              Tagsp:landuse+Tagsp:region+
-              transplant:Tagsp+landuse:region+
-              transplant:landuse:region+
+              #Tagsp:landuse+Tagsp:region+
+              #transplant:Tagsp+landuse:region+
+              #transplant:landuse:region+
                 (1|site/block),
               na.action=na.fail,
               REML=T,TransNuts5NA)
 
 summary(TPbio)
 drop1(TPbio, test="Chisq")
+
+# Checking resids vs fit
+E1 <- resid(TPbio, type = "pearson")
+F1 <- fitted(TPbio)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F1, 
+     y = E1,
+     xlab = "Fitted values",
+     ylab = "Residuals", 
+     xlim = c(min(F1), max(F1)))
+abline(v = 0, lwd = 2, col = 2)
+abline(h = 0, lty = 2, col = 1) # OK with gamma (conical gaussian)
 
 # Model averaging
 modsetlmer_TPbio <- dredge(TPbio,trace=2) #,fixed=c("Season","Region","Landuse","Treatment","C.N","Temp","Sand")) 
@@ -813,11 +835,14 @@ CCTPbio$terms<-dimnames(CCTPbio)[[1]]
 colnames(CCTPbio)[1]<-"lowerCI"
 colnames(CCTPbio)[2]<-"upperCI"
 
-
 # Reduced model
 library(glmmTMB)
-levels(TransNuts5NA$region)<-c("Mesic","Wet", "Wet" )
-TPbio<-glmmTMB(Biomass.g.m2~transplant+Tagsp+treatment+landuse+region+
+min(TransNuts5NA$Biomass.g.m2)
+TransNuts5NAz<-TransNuts5NA[!TransNuts5NA$Biomass.g.m2<.1,]
+min(TransNuts5NAz$Biomass.g.m2)
+TransNuts5NA$Biomass.g.m2[TransNuts5NA$Biomass.g.m2<.1]<-0.1
+#levels(TransNuts5NA$region)<-c("Mesic","Wet", "Wet" )
+TPbio<-glmmTMB(Biomass.g.m2~transplant+Tagsp+treatment+region+#landuse+
                  #Tagsp:landuse+#Tagsp:region+
                  #transplant:Tagsp+landuse:region+
                  #transplant:landuse:region+
@@ -844,11 +869,11 @@ abline(h = 0, lty = 2, col = 1) # OK with gamma (conical gaussian)
 #TPbio2<-glmmTMB(Biomass.g.m2~transplant+Tagsp+treatment+landuse+
 #                   (1|site/block),family=list(family="Gamma",link="logit"),
 #                 na.action=na.fail,TransNuts5NA)
-  
+
 # Generate model p-values - change in plant cover
 #TPbio2 <- update(TPbio, .~. -Tagsp:landuse)
 TPbio3 <- update(TPbio, .~. -treatment)
-TPbio4 <- update(TPbio, .~. -landuse)
+TPbio4 <- update(TPbio, .~. -region)
 TPbio5 <- update(TPbio, .~. -Tagsp)
 TPbio6 <- update(TPbio, .~. -transplant)
 
@@ -859,10 +884,17 @@ anova(TPbio,TPbio5)
 anova(TPbio,TPbio6)
 
 #       Df     AIC     BIC logLik deviance  Chisq Chi Df Pr(>Chisq)  
-#TPbio  12 -83.579 -53.06 53.790 -107.579 8.6832      1   0.003212 ** # Treatment
-#TPbio  12 -83.579 -53.06 53.790 -107.579 8.6832      1   0.003212 ** Landuse
-#TPbio  12 -83.579 -53.060 53.790 -107.579 14.462      4   0.005958 ** # Spp
-#TPbio  12 -83.579 -53.060 53.790 -107.579 13.687      1  0.0002159 *** # Transplant
+#TPbio  11 -235.45 -202.48 128.73  -257.45 12.589      1   0.000388 *** # Treatment
+#TPbio  11 -235.45 -202.48 128.73  -257.45 6.8718      1   0.008757 ** Region
+#TPbio  11 -235.45 -202.48 128.73  -257.45 42.371      4  1.397e-08 ***# Spp
+#TPbio  11 -235.45 -202.48 128.73  -257.45 34.744      1   3.76e-09 *** # Transplant
+
+# Rainfall region influence on plant biomass
+aggregate(Biomass.g.m2~region, TransNuts5NA,mean)
+aggregate(Biomass.g.m2~region, TransNuts5NA,sd)
+# region Biomass.g.m2
+#1  Mesic    0.1506507
+#2    Wet    0.2987374
 
 # Landuse influence on plant biomass
 aggregate(Biomass.g.m2~landuse, TransNuts5NA,mean)
@@ -883,7 +915,6 @@ aggregate(Biomass.g.m2~treatment, TransNuts5NAS,mean)
 0.3392480+(0.3392480/100)*0.9354605
 0.3392480/100*194
 
-###########################################################
 #### Determine species differences in biomass ####
 names(TP2)
 TPbio<- lmer(Target.weight.g~fTagsp+Treatment+#fLanduse+Year.of.last.fire+
@@ -1007,12 +1038,10 @@ TPs<-TPs+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes 
 TPs
 
 ################################################################################################################################################
-# Plant Nitrogen concencentrations #
+#### Plant Nitrogen concencentrations ####
 ################################################################################################################################################
+#### GRAPH: Nitrogen concentrations ####
 
-##########################################
-# GRAPH: Nitrogen concentrations 
-##########################################
 # Means Plant N
 TransNutsDUNG<-aggregate(total_dungMean~landuse+region+transplant+Tagsp,TransNuts,mean)
 TransNuts3mean<-aggregate(Plant.N~landuse+region+transplant+Tagsp,TransNuts3,mean)
@@ -1037,7 +1066,7 @@ TNs<-TNs+scale_shape_manual(values=c(22,21))
 TNs<-TNs+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
 TNs<-TNs+scale_fill_manual(values=c("white","chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","orangered3","white"))
 #TNs<-TNs+scale_x_continuous(limits=c(0.5,2.5),breaks=c(1,2),labels=levels(SpeciesN$landuse),expand=c(0,0))
-TNs<-TNs+ggtitle("(e) Leaf nitrogen concentration")
+TNs<-TNs+ggtitle("(d) Leaf nitrogen concentration")
 TNs<-TNs+theme_bw()+
   theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="transparent")
@@ -1155,7 +1184,7 @@ NlmFINAL.pairs <- pairs(NlmFINAL,simple = "each", combine =TRUE) # THIS IS A GRE
 NlmFINAL.pairs$emmeans
 plot(NlmFINAL, comparisons = FALSE)
 
-NlmFINAL <- emmeans(Nlm, pairwise~transplant:landuse:region,type="response") #Creating emmeans across the factor levels in the interaction.
+NlmFINAL <- emmeans(Nlm, pairwise~region:transplant:landuse,type="response") #Creating emmeans across the factor levels in the interaction.
 NlmFINAL$emmeans
 NlmFINAL.pairs <- pairs(NlmFINAL,simple = "each", combine =TRUE) # THIS IS A GREATE OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
 NlmFINAL.pairs$emmeans
@@ -1507,10 +1536,309 @@ dev.off()
 #grid.arrange(p1)
 
 ########################################################################
+#### SERONERA EXCLOSURES ONLY ####
+########################################################################
+
+# Seronera only data
+Sero<-TransNuts3[TransNuts3$site=="Seronera",]
+
+# Relevel species
+levels(Sero$Tagsp)<- c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda")
+Sero$Tagsp<- factor(Sero$Tagsp, levels = c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda"))
+
+# Treatment code for filling symbols
+Sero$spp.code<-as.factor(with(Sero, paste(Tagsp,transplant,sep="_")))
+
+# Seronera means
+names(Sero)
+# Change in plant cover
+SeroCC<-aggregate(CoverChange~transplant+Tagsp+treatment+spp.code,Sero,mean)
+SeroCCsd<-aggregate(CoverChange~transplant+Tagsp+treatment+spp.code,Sero,sd)
+SeroCC$sd<-SeroCCsd$CoverChange
+#SeroCC$Plant.measure<-"CoverChange"
+#colnames(SeroCC)[4]<-"Value"
+# Final plant cover
+SeroFC<-aggregate(FilTagspCover~transplant+Tagsp+treatment+spp.code,Sero,mean)
+SeroFCsd<-aggregate(FilTagspCover~transplant+Tagsp+treatment+spp.code,Sero,sd)
+SeroFC$sd<-SeroFCsd$FilTagspCover
+#SeroFC$Plant.measure<-"Finalcover"
+#colnames(SeroFC)[4]<-"Value"
+# Plant biomass
+SeroBio<-aggregate(Biomass.g.m2~transplant+Tagsp+treatment+spp.code,Sero,mean)
+SeroBiosd<-aggregate(Biomass.g.m2~transplant+Tagsp+treatment+spp.code,Sero,sd)
+SeroBio$sd<-SeroBiosd$Biomass.g.m2
+#SeroBio$Plant.measure<-"PlantBiomass"
+#colnames(SeroBio)[4]<-"Value"
+# Plant nitrogen
+SeroN<-aggregate(Plant.N~transplant+Tagsp+treatment+spp.code,Sero,mean)
+SeroNsd<-aggregate(Plant.N~transplant+Tagsp+treatment+spp.code,Sero,sd)
+SeroN$sd<-SeroNsd$Plant.N
+#SeroN$Plant.measure<-"PlantNitrogen"
+#colnames(SeroN)[4]<-"Value"
+# Plant CN ratio
+SeroCN<-aggregate(Plant.CN~transplant+Tagsp+treatment+spp.code,Sero,mean)
+SeroCNsd<-aggregate(Plant.CN~transplant+Tagsp+treatment+spp.code,Sero,sd)
+SeroCN$sd<-SeroCNsd$Plant.CN
+#SeroCN$Plant.measure<-"CNratio"
+#colnames(SeroCN)[4]<-"Value"
+
+# Combine datasets
+#SeroMean<-rbind(SeroCC,SeroFC,SeroBio,SeroN,SeroCN)
+# Relevel 
+#SeroMean$Plant.measure<-as.factor(SeroMean$Plant.measure)
+#levels(SeroMean$Plant.measure)
+#SeroMean$Plant.measure<- factor(SeroMean$Plant.measure, levels = c(
+#  "CoverChange","Finalcover","PlantBiomass","PlantNitrogen","CNratio"))
+#SeroMean$f2 <- factor(SeroMean$Plant.measure, labels = c("Plant cover change (%)", "Relative cover (%)",expression(paste("Biomass (kg ",m^-2,")")), "Nitrogen (%)", "C:N ratio"))
+
+# Seronera exclosure graphs: Change in cover, Final cover, biomass, plant N and CN ratio
+# Seronera - Change in plant cover
+SerCC<-ggplot(SeroCC,aes(y=CoverChange,x=treatment, shape=transplant, colour=Tagsp,fill=spp.code)) # group = grouping vector for lines
+SerCC<-SerCC+geom_hline(yintercept=0,linetype="dashed")
+SerCC<-SerCC+geom_errorbar(data=SeroCC,aes(ymin=CoverChange-sd, ymax=CoverChange+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
+SerCC<-SerCC+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
+SerCC<-SerCC+ylab("Change in plant cover (%)")+xlab("")
+#TPbiom<-TPbiom+ylab(expression(paste("Biomass (kg ",m^-2,")")))+xlab("")
+SerCC<-SerCC+scale_shape_manual(values=c(22,21))
+SerCC<-SerCC+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+SerCC<-SerCC+scale_fill_manual(values=c("chartreuse3","hotpink1","cadetblue3","white","orangered3"))
+#SerCC<-SerCC+scale_y_continuous(limits=c(-.1,1.85),breaks=c(0,.5,1.,1.5),labels=c(0,.5,1.,1.5),expand=c(0,0))
+SerCC<-SerCC+ggtitle("(a) Change in plant cover")
+SerCC<-SerCC+theme_bw()+
+  theme(rect = element_rect(fill ="transparent")
+        ,panel.background=element_rect(fill="transparent")
+        ,plot.background=element_rect(fill="transparent",colour=NA)
+        ,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank()
+        ,axis.title.x=element_text(size=14,color="black")
+        ,axis.title.y=element_text(size=14,color="black")
+        ,axis.ticks.length=unit(-1.5, "mm")
+        ,axis.text.x =  element_blank()
+        ,axis.text.y = element_text(size=13,margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.line = element_line(color="black", size = .5)
+        ,plot.margin = unit(c(1,1.5,5,1.5), "mm")
+        ,strip.background = element_rect(fill="transparent",colour=NA)
+        ,legend.text = element_text(size=14,color="black")
+        ,legend.title = element_text(size=14,color="black")
+        ,strip.text =  element_blank()
+        ,legend.key = element_rect(colour = NA, fill = NA)
+        ,legend.position = "right"
+        ,legend.justification = "top"
+        ,legend.direction="vertical"
+        ,legend.spacing.x = unit(-0.25, "mm")
+        ,legend.key.width = unit(1.2,"cm"))
+SerCC<-SerCC+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes = list(shape=c(22,21), size=3.75,fill=c("white","grey30"),col="grey30", stroke=1.25)),
+                      colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
+                                                                                col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )
+SerCC<-SerCC+guides(fill=F,linetype=F,shape =F, colour=F)
+SerCC
+
+# Final plant cover graph
+SeroF<-ggplot(SeroFC,aes(y=FilTagspCover,x=treatment, shape=transplant, colour=Tagsp,fill=spp.code)) # group = grouping vector for lines
+SeroF<-SeroF+geom_errorbar(data=SeroFC,aes(ymin=FilTagspCover-sd, ymax=FilTagspCover+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
+SeroF<-SeroF+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
+SeroF<-SeroF+ylab("Plant cover (%)")+xlab("")
+SeroF<-SeroF+scale_shape_manual(values=c(22,21))
+SeroF<-SeroF+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+SeroF<-SeroF+scale_fill_manual(values=c("chartreuse3","hotpink1","cadetblue3","white","orangered3"))
+SeroF<-SeroF+scale_y_continuous(limits=c(-3,102),breaks=c(0,25,50,75,100),labels=c(0,25,50,75,100),expand=c(0,0))
+SeroF<-SeroF+ggtitle("(b) Final plant cover")
+SeroF<-SeroF+theme_bw()+
+  theme(rect = element_rect(fill ="transparent")
+        ,panel.background=element_rect(fill="transparent")
+        ,plot.background=element_rect(fill="transparent",colour=NA)
+        ,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank()
+        ,axis.title.x=element_text(size=14,color="black")
+        ,axis.title.y=element_text(size=14,color="black")
+        ,axis.ticks.length=unit(-1.5, "mm")
+        ,axis.text.x =  element_blank()
+        ,axis.text.y = element_text(size=13,margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.line = element_line(color="black", size = .5)
+        ,plot.margin = unit(c(1,1.5,5,1.5), "mm")
+        ,strip.background = element_rect(fill="transparent",colour=NA)
+        ,legend.text = element_text(size=14,color="black")
+        ,legend.title = element_text(size=14,color="black")
+        ,strip.text = element_blank()
+        ,legend.key = element_rect(colour = NA, fill = NA)
+        ,legend.position = "right"
+        ,legend.justification = "top"
+        ,legend.direction="vertical"
+        ,legend.spacing.x = unit(-0.25, "mm")
+        ,legend.key.width = unit(1.2,"cm"))
+SeroF<-SeroF+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes = list(shape=c(22,21), size=3.75,fill=c("grey30","white"),col="grey30", stroke=1.25)),
+                        colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
+                                                                                  col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )
+SeroF<-SeroF+guides(fill=F,linetype=F,shape = F, colour=F)
+SeroF
+
+# Seronera plant biomass
+Serob<-ggplot(SeroBio,aes(y=Biomass.g.m2,x=treatment, shape=transplant, colour=Tagsp,fill=spp.code)) # group = grouping vector for lines
+Serob<-Serob+geom_errorbar(data=SeroBio,aes(ymin=Biomass.g.m2-sd, ymax=Biomass.g.m2+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
+Serob<-Serob+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
+Serob<-Serob+ylab(expression(paste("Biomass (kg ",m^-2,")")))+xlab("")
+Serob<-Serob+scale_shape_manual(values=c(22,21))
+Serob<-Serob+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+Serob<-Serob+scale_fill_manual(values=c("chartreuse3","hotpink1","cadetblue3","white","orangered3"))
+Serob<-Serob+scale_y_continuous(limits=c(-.1,1.85),breaks=c(0,.5,1.,1.5),labels=c(0,.5,1.,1.5),expand=c(0,0))
+Serob<-Serob+ggtitle("(c) Aboveground biomass")
+Serob<-Serob+theme_bw()+
+  theme(rect = element_rect(fill ="transparent")
+        ,panel.background=element_rect(fill="transparent")
+        ,plot.background=element_rect(fill="transparent",colour=NA)
+        ,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank()
+        ,axis.title.x=element_text(size=14,color="black")
+        ,axis.title.y=element_text(size=14,color="black")
+        ,axis.ticks.length=unit(-1.5, "mm")
+        ,axis.text.x =  element_blank()
+        ,axis.text.y = element_text(size=13,margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.line = element_line(color="black", size = .5)
+        ,plot.margin = unit(c(1,1.5,5,1.5), "mm")
+        ,strip.background = element_rect(fill="transparent",colour=NA)
+        ,legend.text = element_text(size=14,color="black")
+        ,legend.title = element_text(size=14,color="black")
+        ,strip.text = element_blank()
+        ,legend.key = element_rect(colour = NA, fill = NA)
+        ,legend.position = "right"
+        ,legend.justification = "top"
+        ,legend.direction="vertical"
+        ,legend.spacing.x = unit(-0.25, "mm")
+        ,legend.key.width = unit(1.2,"cm"))
+Serob<-Serob+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes = list(shape=c(22,21), size=3.75,fill=c("white","grey30"),col="grey30", stroke=1.25)),
+                      colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
+                                                                                col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )
+Serob
+
+# Seronera Plant Nitrogen concentrations graph
+SeroNs<-ggplot(SeroN,aes(y=Plant.N,x=treatment, shape=transplant, colour=Tagsp,fill=spp.code)) # group = grouping vector for lines
+SeroNs<-SeroNs+geom_errorbar(data=SeroN,aes(ymin=Plant.N-sd, ymax=Plant.N+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
+SeroNs<-SeroNs+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
+SeroNs<-SeroNs+ylab("Nitrogen concentration (%)")+xlab("")
+SeroNs<-SeroNs+scale_shape_manual(values=c(22,21))
+SeroNs<-SeroNs+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+SeroNs<-SeroNs+scale_fill_manual(values=c("chartreuse3","hotpink1","cadetblue3","white","orangered3"))
+#TNs<-TNs+scale_x_continuous(limits=c(0.5,2.5),breaks=c(1,2),labels=levels(SpeciesN$landuse),expand=c(0,0))
+SeroNs<-SeroNs+ggtitle("(d) Leaf nitrogen concentration")
+SeroNs<-SeroNs+theme_bw()+
+  theme(rect = element_rect(fill ="transparent")
+        ,panel.background=element_rect(fill="transparent")
+        ,plot.background=element_rect(fill="transparent",colour=NA)
+        ,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank()
+        ,axis.title.x=element_text(size=14,color="black")
+        ,axis.title.y=element_text(size=14,color="black")
+        ,axis.ticks.length=unit(-1.5, "mm")
+        ,axis.text.x =  element_blank()
+        ,axis.text.y = element_text(size=13,margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.line = element_line(color="black", size = .5)
+        ,plot.margin = unit(c(1,1.5,5,1.5), "mm")
+        ,strip.background = element_rect(fill="transparent",colour=NA)
+        ,legend.text = element_text(size=14,color="black")
+        ,legend.title = element_text(size=14,color="black")
+        ,strip.text = element_blank()
+        ,legend.key = element_rect(colour = NA, fill = NA)
+        ,legend.position = "right"
+        ,legend.justification = "top"
+        ,legend.direction="vertical"
+        ,legend.spacing.x = unit(-0.25, "mm")
+        ,legend.key.width = unit(1.2,"cm"))
+#TNs<-TNs+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes = list(shape=c(22,21), size=3.75,fill=c("grey30","white"),col="grey30", stroke=1.25)),
+#                colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
+#                                                                             col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )
+SeroNs<-SeroNs+guides(fill=F,linetype=F,shape =F, colour=F)
+SeroNs
+
+# Seronera Plant Carbon-to-Nitrogen ratio graph
+SeroCNs<-ggplot(SeroCN,aes(y=Plant.CN,x=treatment, shape=transplant, colour=Tagsp,fill=spp.code)) # group = grouping vector for lines
+SeroCNs<-SeroCNs+geom_errorbar(data=SeroCN,aes(ymin=Plant.CN-sd, ymax=Plant.CN+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
+SeroCNs<-SeroCNs+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
+SeroCNs<-SeroCNs+ylab("C:N ratio")+xlab("Herbivore exclosure (Seronera only)")
+SeroCNs<-SeroCNs+scale_shape_manual(values=c(22,21))
+SeroCNs<-SeroCNs+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+SeroCNs<-SeroCNs+scale_fill_manual(values=c("chartreuse3","hotpink1","cadetblue3","white","orangered3"))
+#TNs<-TNs+scale_x_continuous(limits=c(0.5,2.5),breaks=c(1,2),labels=levels(SpeciesN$landuse),expand=c(0,0))
+SeroCNs<-SeroCNs+ggtitle("(e) C:N ratio")
+SeroCNs<-SeroCNs+theme_bw()+
+  theme(rect = element_rect(fill ="transparent")
+        ,panel.background=element_rect(fill="transparent")
+        ,plot.background=element_rect(fill="transparent",colour=NA)
+        ,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank()
+        ,axis.text=element_text(size=14,color="black")
+        ,axis.title.y=element_text(size=14,color="black")
+        ,axis.title.x=element_text(size=14,color="black")
+        ,axis.text.x=element_text(size=14,color="black",
+                                  margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.ticks.length=unit(-1.5, "mm")
+        ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.line = element_line(color="black", size = .5)
+        ,plot.margin = unit(c(1,1.5,5,1.5), "mm")
+        ,strip.background = element_rect(fill="transparent",colour=NA)
+        ,legend.text = element_text(size=14,color="black")
+        ,legend.title = element_text(size=14,color="black")
+        ,strip.text = element_blank()
+        ,legend.key = element_rect(colour = NA, fill = NA)
+        ,legend.position = "right"
+        ,legend.justification = "top"
+        ,legend.direction="vertical"
+        ,legend.spacing.x = unit(-0.25, "mm")
+        ,legend.key.width = unit(1.2,"cm"))
+#TCNs<-TCNs+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes = list(shape=c(22,21), size=3.75,fill=c("grey30","white"),col="grey30", stroke=1.25)),
+#                colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
+#                                                                          col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )
+SeroCNs<-SeroCNs+guides(fill=F,linetype=F,shape =F, colour=F)
+SeroCNs
+
+#### Combining Seronera graphs ####
+
+# Extra legend from legend plot
+library(grid)
+library(gridExtra)
+library(ggpubr)
+library(egg)
+legend <- get_legend(Serob)
+arrangeGrob(legend)
+
+filename <- paste0("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/", "Sero.Excl", "_",Sys.Date(), ".jpeg" )
+jpeg (filename, width=18, height=37.6, res=400, unit="cm")
+egg::ggarrange(SerCC,SeroF,Serob,SeroNs,SeroCNs, ncol=1) #common.legend = T,legend="right")
+dev.off()
+
+
+##### Seronera only linear model ####
+names(Sero)
+SeroCovMod<-lm(FilTagspCover~treatment+Tagsp+treatment:Tagsp,Sero)
+anova(SeroCovMod)
+plot(SeroCovMod)
+drop1(SeroCovMod, test="Chisq") # Interaction NS
+
+SeroBioMod<-lm(Biomass.g.m2~treatment+Tagsp+treatment:Tagsp,Sero)
+anova(SeroBioMod)
+plot(SeroBioMod)
+drop1(SeroBioMod, test="Chisq") # Interaction NS
+
+########################################################################
 #### SOIL PROPERTIES ####
 ########################################################################
 
 levels(TP2$region)<-c("Mesic","Wet","Wet")
+
 
 #### Soil bulk density ####
 
@@ -1831,7 +2159,7 @@ dev.off()
 
 
 ################################################################################################################################################
-#### HOME FIELD ADVANTAGE (HFA) ####
+#### HOME FIELD ADVANTAGE ####
 ################################################################################################################################################
 
 setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/VegSoil_AfricanBioServices/AfricanBioServices-Vegetation-and-soils/")
@@ -1953,13 +2281,15 @@ write.csv(NminSelect, "Transplant experiment/NminSelect.csv",row.names=F) #,sep 
 
 
 ################################################################################################################################################
-#### Moveable exclosures - N through time ####
+#### TEMPORAL PRODUCTIVITY, CONSUMPTION AND N ####
 ################################################################################################################################################
 
-setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/")
+# Use moveable exclosure data as CONTROL 
+setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/VegSoil_AfricanBioServices/AfricanBioServices-Vegetation-and-soils/Transplant experiment/")
 
-#### DF dominant sp (stacked) ####
-Datastack <- read.csv("BiomassStacked2.csv",header=T)
+Datastack <-read.csv("BiomassStacked2.csv")
+names(Datastack)
+
 # Removing Ex2 - separate analysis
 Datastack <- Datastack[Datastack$treatment!="EX2",] #Removing Mesh exclosures  #300 obs
 Datastack <- Datastack[Datastack$harvest!="H0",] #removing H0                #280 obs
@@ -1976,6 +2306,7 @@ Datastack$site.id <- as.factor(Datastack$site.id)
 Datastack$block.id.harvest <- as.factor(Datastack$block.id.harvest)
 
 #Renaming total productivity and consumption columns
+names(Datastack)
 colnames(Datastack)[colnames(Datastack)=="productivity.total.g.m2.day"] <- "prodtot"
 colnames(Datastack)[colnames(Datastack)=="productivity.total.g.m2.dayWEIGHTED"] <- "prodtot.per"
 
@@ -1996,10 +2327,134 @@ Datastack$constotper.sum <- Datastack$constot.per*Datastack$growth.period
 
 colnames(Datastack)[colnames(Datastack)=="sand.per"] <- "sand"
 
+# Rdate create month column. default was (="%d.%m.%Y")
+Rdate<-strptime(as.character(Datastack$harvest.date),format="%m/%d/%Y",tz="Africa/Nairobi" )# East African time #USE
+class(Rdate) # [1] "POSIXlt" "POSIXt" # This format needs a lot of memory - but good
+#Datastack$Rdate<-Rdate# Add to the dataframe #
+# Create a Yr-Month time value as experiment runs over 15 months - > 2 years
+# Rdate convert to Year-month
+Datastack$YrMonth<-format(as.Date(Rdate), "%Y-%m")
+class(Datastack$YrMonth)
+
 #Renaming levels in region, landuse and treatment columns
-levels(Datastack$region)<-c("Dry Region","Intermediate Region","Wet Region")
-levels(Datastack$landuse)<-c("pasture","wild")
-levels(Datastack$treatment)<-c("exclosed","open")
+levels(Datastack$region)<-c("Dry Region","Wet Region","Wet Region")
+levels(Datastack$landuse)<-c("Pasture","Wildlife protected")
+levels(Datastack$treatment)<-c("Exclosed","Open")
+
+#### Plot Target NAP and CON seasonal WEIGHTED #### 
+DatastackT <- Datastack[Datastack$pool=="target",]
+names(Datastack)
+AvgprodWT<-aggregate(prodtot.per~YrMonth+landuse+region+site.id+Tagsp,Datastack,mean)
+AvgprodWTsd<-aggregate(prodtot.per~YrMonth+landuse+region+site.id+Tagsp,Datastack,sd)
+AvgprodWT$sd<-AvgprodWTsd$prodtot.per
+
+AvgconWT<-aggregate(constot.per~YrMonth+landuse+region+site.id+Tagsp,Datastack,mean)
+AvgconWTsd<-aggregate(constot.per~YrMonth+landuse+region+site.id+Tagsp,Datastack,sd)
+AvgconWT$sd<-AvgconWTsd$constot.per
+colnames(AvgconWT)[6]<-"prodtot.per"
+
+# Rainfall
+names(Datastack)
+Datastack$rain.day <- Datastack$rain.sum/Datastack$growth.period
+
+AvgprodWT$YrMonth<-as.Date(paste(AvgprodWT$YrMonth,"-01",sep=""))
+AvgconWT$YrMonth<-as.Date(paste(AvgconWT$YrMonth,"-01",sep=""))
+Datastack$YrMonth<-as.Date(paste(Datastack$YrMonth,"-01",sep=""))
+
+AvgprodWT$spp.code<-as.factor(with(AvgprodWT, paste(site.id,Tagsp,sep="_")))
+AvgconWT$spp.code<-as.factor(with(AvgconWT, paste(site.id,Tagsp,sep="_")))
+Datastack$spp.code<-as.factor(with(Datastack, paste(site.id,Tagsp,sep="_")))
+
+# Relevel so that other
+levels(AvgprodWT$Tagsp)<- c("Chloris", "Chrysochloa", "Cynodon", "Digitaria", "Themeda")
+levels(AvgconWT$Tagsp)<- c("Chloris", "Chrysochloa", "Cynodon", "Digitaria", "Themeda")
+levels(Datastack$Tagsp)<- c("Chloris", "Chrysochloa", "Cynodon", "Digitaria", "Themeda")
+
+# Scale factor
+scaleFactor <- max(Datastack$rain.day,na.rm=T)/mean(Datastack$prodtot.per,na.rm=T)
+
+
+# Productivity and consumption per target spp
+NAPdom<- ggplot(AvgprodWT, aes(x=YrMonth, y=prodtot.per, colour=Tagsp, group=spp.code))
+NAPdom<-NAPdom+ geom_line(data=Datastack,aes(y = rain.day/.85),colour="dark blue",linetype=1,size=1, alpha=.1)
+NAPdom<-NAPdom+ geom_point(data=Datastack,aes(y = rain.day/.85),colour="dark blue",size=.9,alpha=.1)
+NAPdom<-NAPdom+ geom_hline(yintercept = 0, size =.5, linetype="dashed", colour="black")
+NAPdom<-NAPdom+geom_line(linetype="dashed",size=1.2, alpha=.5, show.legend=F)
+NAPdom<-NAPdom+geom_errorbar(aes(ymin=prodtot.per-sd, ymax=prodtot.per+sd),linetype="solid",width=.2,lwd=1.1,show.legend=F)
+NAPdom<-NAPdom+geom_point(aes(shape=treatment),shape=22, size=4, fill="white", stroke=1)
+NAPdom<-NAPdom+geom_line(data=AvgconWT,linetype="dashed",size=1.2, alpha=.5, show.legend=F)
+NAPdom<-NAPdom+geom_errorbar(data=AvgconWT,aes(ymin=prodtot.per-sd, ymax=prodtot.per+sd),linetype="solid",width=.2,lwd=1.1,show.legend=F)
+NAPdom<-NAPdom+geom_point(data=AvgconWT,aes(colour=Tagsp,fill=Tagsp),shape=21, size=3, stroke=1)
+NAPdom<-NAPdom+facet_wrap(~Tagsp,ncol=1,scales='fixed', drop=F)
+NAPdom<-NAPdom+ scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(as.Date("2017-02-10"),max=as.Date("2018-05-31")), expand=c(0,0)) 
+NAPdom<-NAPdom+scale_y_continuous(limits=c(-3,9),sec.axis = sec_axis(~ . *.85, breaks = c(0,2,4,6), labels = c(0,2,4,6), name = "Precipitation (mm)"))
+NAPdom<-NAPdom+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+NAPdom<-NAPdom+scale_fill_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+NAPdom<-NAPdom+scale_linetype_manual(values = c(wild = "solid", pasture = "dashed"))
+NAPdom<-NAPdom+ xlab("Month|Year") + ylab(expression(paste("Productivity & consumption (g ",m^-2," ",day^-1,")")))
+NAPdom<-NAPdom+ theme_bw() +
+  theme(plot.background = element_blank()
+        #,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank() 
+        ,axis.text.y=element_text(size=12)
+        ,axis.text.x=element_text(size=10,angle=35, hjust=1)
+        ,axis.line=element_line( size=.5)
+        ,axis.title=element_text(size=14)
+        ,legend.text=element_text(size=12)
+        ,legend.title=element_text(size=14)
+        #,legend.position = c(0.25, 0.82)
+        ,plot.margin = unit(c(5,5,7,5), "mm")
+        ,strip.background = element_blank()
+        ,strip.text = element_text(hjust=0,size=12)
+        #,axis.text.x=element_blank()
+        #,axis.ticks.x=element_blank()
+        ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
+  theme(axis.line = element_line(color = 'black'))
+#NAPdom<-NAPdom+  annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
+#NAPdom <- NAPdom+ annotate(geom="text",x=as.Date("2017-02-28"),y=8)
+#NAPdom<-NAPdom+  annotate(geom="text", x=as.Date("2017-02-28"), y=8, label=c("(a)",""),color="black",fontface="bold", size=6)
+NAPdom<-NAPdom+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes = list(shape=c(22,21), size=3.75,fill=c("white","grey30"),col="grey30", stroke=1)),
+                    colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
+                                                                              col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )                                                       
+NAPdom
+
+ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/TargetSpp.Prod.Con.jpeg",
+       width=15, height=25,units ="cm",dpi = 600, limitsize = TRUE)
+
+#### Plot spatial and temporal Nitrogen ####
+DatastackTop <- droplevels(DatastackT[DatastackT$treatment=="Open",])
+TransTop <- droplevels(TransNuts3[TransNuts3$treatment=="Open",])
+
+DatastackTopN<-droplevels(subset(DatastackTop,Plant.N<3.6 | Plant.N>0.51 | is.na(Plant.N))) 
+dim(DatastackTop)
+dim(DatastackTopN)
+
+MeanTrans<-aggregate(Plant.N~Tagsp,TransTop,mean)
+MoveTrans<-aggregate(Plant.N~Tagsp,DatastackTopN,mean)
+
+MeanTransSD<-aggregate(Plant.N~Tagsp,TransTop,sd)
+MoveTransSD<-aggregate(Plant.N~Tagsp,DatastackTopN,sd)
+
+MeanTrans$Plant.N.MOVE<-MoveTrans$Plant.N
+MeanTrans$Plant.N.TransSD<-MeanTransSD$Plant.N
+MeanTrans$Plant.N.MoveSD<-MoveTransSD$Plant.N
+
+ggplot(MeanTrans, aes(x=Plant.N, y=Plant.N.MOVE, colour=Tagsp))+
+  geom_abline(slope=1, intercept=0, size =.5)+geom_point(size=4.5)+
+  xlab("Transplant leaf nitrogen (%)")+ylab("Temporal open plot leaf nitrogen (%)")+
+  scale_colour_manual("Species",values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))+
+ geom_errorbar(aes(ymin = Plant.N.MOVE-Plant.N.MoveSD,ymax = Plant.N.MOVE+Plant.N.MoveSD),width=.01,size=0.5,show.legend=F) +
+geom_errorbarh(aes(xmin = Plant.N-Plant.N.TransSD,xmax = Plant.N+Plant.N.TransSD),height=.01,size=0.5,show.legend=F)+
+  theme_classic()
+
+ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/Spatial.temp.plant.N.jpeg",
+       width=15, height=15,units ="cm",dpi = 600, limitsize = TRUE)
+
+
+
 
 #Rain per day for each harvest period
 Datastack$rain.day <- Datastack$rain.sum/Datastack$growth.period
@@ -2145,7 +2600,7 @@ SpeciesNSE<-aggregate(N.conc.adj~target.sp.+landuse+treatment,TargetNavgYm,sd)
 SpeciesN$SE<-SpeciesNSE$N.conc.adj
 
 # Relevel so that other
-SpeciesN$target.sp.<- factor(SpeciesN$target.sp., levels = c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda","Other"))
+SpeciesN$target.sp.<- factor(SpeciesN$target.sp., levels = c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda")
 
 # Treatment code for filling symbols
 SpeciesN$spp.code<-as.factor(with(SpeciesN, paste(target.sp.,treatment,sep="_")))
@@ -2185,7 +2640,6 @@ TNs<-TNs+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes 
                 colour = guide_legend("Dominant species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3", "grey50"),
                                                                              col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3", "grey50"), stroke=1)) )
 TNs
-
 
 ############################################
 #### OLD SCRIPT ####
