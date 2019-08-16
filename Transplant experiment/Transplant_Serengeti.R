@@ -915,6 +915,18 @@ aggregate(Biomass.g.m2~treatment, TransNuts5NAS,mean)
 0.3392480+(0.3392480/100)*0.9354605
 0.3392480/100*194
 
+#Pairwise contrasts *ghlt* and *lsmeans*
+library(emmeans)
+
+# Species differences
+emm.s.recalmod <- emmeans(TPbio,~Tagsp)
+pairs(emm.s.recalmod) # Nothing singificantly different
+# Spp differences
+#Chl pyc - The tri   -1.251 0.215 137 -5.811  <.0001 
+#Chr ori - The tri   -1.162 0.219 137 -5.315  <.0001 
+#Cyn dac - The tri   -0.932 0.217 137 -4.303  0.0003 
+#Dig mac - The tri   -0.798 0.214 137 -3.726  0.0026 
+
 #### Determine species differences in biomass ####
 names(TP2)
 TPbio<- lmer(Target.weight.g~fTagsp+Treatment+#fLanduse+Year.of.last.fire+
@@ -2107,6 +2119,7 @@ pHlmFinFINAL.pairs <- pairs(pHlmFinFINAL,simple = "each", combine =TRUE) # THIS 
 pHlmFinFINAL.pairs$emmeans
 plot(pHlmFinFINAL, comparisons = FALSE)
 
+# Soil pH species differences
 #contrast          estimate     SE  df t.ratio p.value
 #Chl pyc - Dig mac    0.365 0.0872 119  4.184  0.0006 
 #Chl pyc - The tri    0.501 0.0915 116  5.476  <.0001 
@@ -2142,6 +2155,8 @@ aggregate(pH~Tagsp,TP2pHNA,mean)
 #4 Dig mac 6.154167
 #5 The tri 5.956667
 
+aggregate(pH~landuse,TP2pHNA,mean)
+aggregate(pH~region,TP2pHNA,mean)
 #### Combining soil property graphs ####
 
 # Extra legend from legend plot
@@ -2354,7 +2369,6 @@ AvgconWT$sd<-AvgconWTsd$constot.per
 colnames(AvgconWT)[6]<-"prodtot.per"
 
 # Rainfall
-names(Datastack)
 Datastack$rain.day <- Datastack$rain.sum/Datastack$growth.period
 
 AvgprodWT$YrMonth<-as.Date(paste(AvgprodWT$YrMonth,"-01",sep=""))
@@ -2370,12 +2384,33 @@ levels(AvgprodWT$Tagsp)<- c("Chloris", "Chrysochloa", "Cynodon", "Digitaria", "T
 levels(AvgconWT$Tagsp)<- c("Chloris", "Chrysochloa", "Cynodon", "Digitaria", "Themeda")
 levels(Datastack$Tagsp)<- c("Chloris", "Chrysochloa", "Cynodon", "Digitaria", "Themeda")
 
+# Panel titles
+AvgprodWT$Panel.titles<-AvgprodWT$Tagsp
+AvgconWT$Panel.titles<-AvgconWT$Tagsp
+Datastack$Panel.titles<-Datastack$Tagsp
+
+levels(AvgprodWT$Panel.titles)<-c("Mesic pastures", "Wet pasture", "Mesic wild", "Wet wild Seronera", "Wet wild")
+levels(AvgconWT$Panel.titles)<-c("Mesic pastures", "Wet pasture", "Mesic wild", "Wet wild Seronera", "Wet wild")
+levels(Datastack$Panel.titles)<-c("Mesic pastures", "Wet pasture", "Mesic wild", "Wet wild Seronera", "Wet wild")
+
+AvgprodWT$Panel.titles<- factor(AvgprodWT$Panel.titles, levels = c("Mesic pastures", "Mesic wild","Wet pasture", "Wet wild","Wet wild Seronera"))
+AvgconWT$Panel.titles<- factor(AvgconWT$Panel.titles, levels = c("Mesic pastures", "Mesic wild","Wet pasture", "Wet wild","Wet wild Seronera"))
+Datastack$Panel.titles<- factor(Datastack$Panel.titles, levels = c("Mesic pastures", "Mesic wild","Wet pasture", "Wet wild","Wet wild Seronera"))
+
+# Productivity vs consumption symbols
+AvgprodWT$ProdCON<-AvgprodWT$landuse
+AvgconWT$ProdCON<-AvgconWT$landuse
+Datastack$ProdCON<-Datastack$landuse
+
+levels(AvgprodWT$ProdCON)<-c("Productivity", "Consumption")
+levels(AvgconWT$ProdCON)<-c("Productivity", "Consumption")
+levels(Datastack$ProdCON)<-c("Productivity", "Consumption")
+
 # Scale factor
 scaleFactor <- max(Datastack$rain.day,na.rm=T)/mean(Datastack$prodtot.per,na.rm=T)
 
-
 # Productivity and consumption per target spp
-NAPdom<- ggplot(AvgprodWT, aes(x=YrMonth, y=prodtot.per, colour=Tagsp, group=spp.code))
+NAPdom<- ggplot(AvgprodWT, aes(x=YrMonth, y=prodtot.per, colour=Tagsp, group=spp.code, shape=ProdCON))
 NAPdom<-NAPdom+ geom_line(data=Datastack,aes(y = rain.day/.85),colour="dark blue",linetype=1,size=1, alpha=.1)
 NAPdom<-NAPdom+ geom_point(data=Datastack,aes(y = rain.day/.85),colour="dark blue",size=.9,alpha=.1)
 NAPdom<-NAPdom+ geom_hline(yintercept = 0, size =.5, linetype="dashed", colour="black")
@@ -2385,12 +2420,11 @@ NAPdom<-NAPdom+geom_point(aes(shape=treatment),shape=22, size=4, fill="white", s
 NAPdom<-NAPdom+geom_line(data=AvgconWT,linetype="dashed",size=1.2, alpha=.5, show.legend=F)
 NAPdom<-NAPdom+geom_errorbar(data=AvgconWT,aes(ymin=prodtot.per-sd, ymax=prodtot.per+sd),linetype="solid",width=.2,lwd=1.1,show.legend=F)
 NAPdom<-NAPdom+geom_point(data=AvgconWT,aes(colour=Tagsp,fill=Tagsp),shape=21, size=3, stroke=1)
-NAPdom<-NAPdom+facet_wrap(~Tagsp,ncol=1,scales='fixed', drop=F)
+NAPdom<-NAPdom+facet_wrap(~Panel.titles,ncol=1,scales='fixed', drop=F)
 NAPdom<-NAPdom+ scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(as.Date("2017-02-10"),max=as.Date("2018-05-31")), expand=c(0,0)) 
-NAPdom<-NAPdom+scale_y_continuous(limits=c(-3,9),sec.axis = sec_axis(~ . *.85, breaks = c(0,2,4,6), labels = c(0,2,4,6), name = "Precipitation (mm)"))
+NAPdom<-NAPdom+scale_y_continuous(limits=c(-3,9),sec.axis = sec_axis(~ . *.85, breaks = c(0,2,4,6), labels = c(0,2,4,6), name = expression(paste("Precipitation (mm ",day^-1,")"))))
 NAPdom<-NAPdom+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
 NAPdom<-NAPdom+scale_fill_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
-NAPdom<-NAPdom+scale_linetype_manual(values = c(wild = "solid", pasture = "dashed"))
 NAPdom<-NAPdom+ xlab("Month|Year") + ylab(expression(paste("Productivity & consumption (g ",m^-2," ",day^-1,")")))
 NAPdom<-NAPdom+ theme_bw() +
   theme(plot.background = element_blank()
@@ -2416,7 +2450,7 @@ NAPdom<-NAPdom+ theme_bw() +
 #NAPdom<-NAPdom+  annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
 #NAPdom <- NAPdom+ annotate(geom="text",x=as.Date("2017-02-28"),y=8)
 #NAPdom<-NAPdom+  annotate(geom="text", x=as.Date("2017-02-28"), y=8, label=c("(a)",""),color="black",fontface="bold", size=6)
-NAPdom<-NAPdom+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes = list(shape=c(22,21), size=3.75,fill=c("white","grey30"),col="grey30", stroke=1)),
+NAPdom<-NAPdom+guides(fill=F,linetype=F,shape = guide_legend("Biomass change",override.aes = list(shape=c(22,21), size=3.75,fill=c("white","grey"),col="grey", stroke=1, alpha=1)),
                     colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
                                                                               col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )                                                       
 NAPdom
@@ -2454,12 +2488,115 @@ ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Seren
        width=15, height=15,units ="cm",dpi = 600, limitsize = TRUE)
 
 
-
-
-#Rain per day for each harvest period
-Datastack$rain.day <- Datastack$rain.sum/Datastack$growth.period
-
+#### Plant nitrogen through time ####
+DatastackT <- Datastack[Datastack$pool=="target",]
 names(Datastack)
+dotchart(DatastackT$Plant.N)
+DatastackTn<-droplevels(subset(DatastackT,Plant.N<3.6 & Plant.N>0.51 | is.na(Plant.N)))
+
+AvgTN<-aggregate(Plant.N~YrMonth+landuse+region+site.id+Tagsp+treatment+Panel.titles,DatastackTn,mean)
+AvgTNsd<-aggregate(Plant.N~YrMonth+landuse+region+site.id+Tagsp+treatment+Panel.titles,DatastackTn,sd)
+AvgTN$sd<-AvgTNsd$Plant.N
+
+AvgTN$YrMonth<-as.Date(paste(AvgTN$YrMonth,"-01",sep=""))
+
+AvgTN$spp.code<-as.factor(with(AvgTN, paste(site.id,Tagsp,sep="_")))
+AvgTN$spp.code2<-as.factor(with(AvgTN, paste(Tagsp,treatment,sep="_")))
+Datastack$spp.code2<-as.factor(with(Datastack, paste(Tagsp,treatment,sep="_")))
+
+Ndom<- ggplot(AvgTN, aes(x=YrMonth, y=Plant.N, colour=Tagsp, group=spp.code, shape=treatment, fill=spp.code2))
+Ndom<-Ndom+ geom_line(data=Datastack,aes(y = rain.day/2.5),colour="dark blue",linetype=1,size=1, alpha=.1)
+Ndom<-Ndom+ geom_point(data=Datastack,aes(y = rain.day/2.5),colour="dark blue",fill="dark blue",size=.9,alpha=.1)
+Ndom<-Ndom+ geom_line(linetype="dashed",size=1.2, alpha=.5, show.legend=F)
+Ndom<-Ndom+ geom_errorbar(aes(ymin=Plant.N-sd, ymax=Plant.N+sd),linetype="solid",width=.2,lwd=1.1,show.legend=F)
+Ndom<-Ndom+ geom_point(aes(shape=treatment),size=4, stroke=1)
+Ndom<-Ndom+ facet_wrap(~Panel.titles,ncol=1,scales='fixed', drop=F)
+Ndom<-Ndom+ scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(as.Date("2017-02-10"),max=as.Date("2018-05-31")), expand=c(0,0)) 
+Ndom<-Ndom+scale_y_continuous(limits=c(0,3.1),sec.axis = sec_axis(~ . *2.5, breaks = c(0,2,4,6), labels = c(0,2,4,6), name = expression(paste("Precipitation (mm ",day^-1,")"))))
+Ndom<-Ndom+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+Ndom<-Ndom+scale_fill_manual(values=c("white","chartreuse3","white","hotpink1","white","cadetblue3","white","green4","white","orangered3","white"))
+Ndom<-Ndom+scale_shape_manual(values = c(22,21))
+Ndom<-Ndom+xlab("Month|Year") + ylab("Leaf nitrogen concentration (%)")
+Ndom<-Ndom+theme_bw() +
+  theme(plot.background = element_blank()
+        #,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank() 
+        ,axis.text.y=element_text(size=12)
+        ,axis.text.x=element_text(size=10,angle=35, hjust=1)
+        ,axis.line=element_line( size=.5)
+        ,axis.title=element_text(size=14)
+        ,legend.text=element_text(size=12)
+        ,legend.title=element_text(size=14)
+        #,legend.position = c(0.25, 0.82)
+        ,plot.margin = unit(c(5,5,7,5), "mm")
+        ,strip.background = element_blank()
+        ,strip.text = element_text(hjust=0,size=12)
+        #,axis.text.x=element_blank()
+        #,axis.ticks.x=element_blank()
+        ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
+  theme(axis.line = element_line(color = 'black'))
+#NAPdom<-NAPdom+  annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
+#NAPdom <- NAPdom+ annotate(geom="text",x=as.Date("2017-02-28"),y=8)
+#NAPdom<-NAPdom+  annotate(geom="text", x=as.Date("2017-02-28"), y=8, label=c("(a)",""),color="black",fontface="bold", size=6)
+Ndom<-Ndom+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes = list(shape=c(22,21), size=3.75,fill=c("white","grey"),col="grey", stroke=1, alpha=1)),
+                      colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
+                                                                                col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )                                                       
+Ndom
+
+ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/TargetSpp.Nitrogen.jpeg",
+       width=15, height=25,units ="cm",dpi = 600, limitsize = TRUE)
+
+##################################################################################################
+#### Modelling target species productivity, nutrients and nitrogen #####
+##################################################################################################
+
+# Running numeric value for months
+# turn a date into a 'monthnumber' relative to an origin
+monnb <- function(d) { lt <- as.POSIXlt(as.Date(d, origin="1900-01-01"));  lt$year*12 + lt$mon } 
+# compute a month difference as a difference between two monnb's
+mondf <- function(d1, d2) { monnb(d2) - monnb(d1) }
+DatastackT$YrMonthNumber<-mondf(c(as.POSIXlt(as.Date(DatastackT$harvest.date,format="%m/%d/%Y",tz="Africa/Nairobi" ))), "2017-02-01")*-1 # Need to remove lag - 1
+
+# Plot.code to follow through time
+DatastackT$plot.code <- as.factor(with(DatastackT,paste(region,landuse,block,treatment,sep="_")))
+levels(DatastackT$plot.code) #32 levels
+
+# Remove "OTHER" from pool
+Datastack2<-Datastack[!Datastack$pool=="other",]
+
+# Remove N outliers
+NutsN<-droplevels(subset(Datastack2,Plant.N<3.1 & Plant.N>0.5 | is.na(Plant.N)))
+NutsN<-droplevels(subset(NutsN,prodsp.per>-10 | is.na(prodsp.per)))
+
+names(NutsN)
+
+#Implementing the AR-1 autocorrelation
+cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|Tagsp/plot.code) # AR matrix needs to be unique
+cs1AR1. <- Initialize(cs1AR1, data = NutsN)
+corMatrix(cs1AR1.) #What does this give? 
+
+Datastack2NA<-NutsN[!is.na(NutsN$prodsp.per) & !is.na(NutsN$Plant.N) ,]
+names(Datastack2NA)
+Datastack2NA$prodsp.per
+Datastack2NA$Tagsp
+
+#Productivity per species - corrected for percent cover
+# LME with temporal auto-correlation (using nlme package)
+NAP.lme <- lme(prodsp.per~landuse+poly(rain.sum.1,2)+poly(zero.days,2)+Plant.N+
+                 Plant.N:landuse,
+               # Plant.N:poly(rain.sum.1,2),#+
+               # landuse:rain.sum.1+landuse:consec.NoRain.days,
+               random=~1|Tagsp, method="ML",correlation=cs1AR1,data=Datastack2N)
+summary(NAP.lme)#for parameter estimates, don't use the p-values
+anova(NAP.lme) #get F statistics and P-values
+AIC(NAP.lme) 
+drop1(NAP.lme, test="Chisq") # Nothing important
+
+
+##################################################################################################
 table(Datastack$harvest,Datastack$harvest.date)
 ProdAvg<-aggregate(prodtot~harvest+region+landuse+block+treatment,Datastack,mean)
 colnames(ProdAvg)<-c("Season","Region","Landuse","Block","Exclosure","Productivity")
@@ -2537,11 +2674,11 @@ Datastack$YrMonth<-format(as.Date(Rdate), "%Y-%m")
 monnb <- function(d) { lt <- as.POSIXlt(as.Date(d, origin="1900-01-01"));  lt$year*12 + lt$mon } 
 # compute a month difference as a difference between two monnb's
 mondf <- function(d1, d2) { monnb(d2) - monnb(d1) }
-Datastack$YrMonthNumber<-mondf(c(as.POSIXlt(as.Date(Datastack$harvest.date,format="%m/%d/%Y",tz="Africa/Nairobi" ))), "2017-02-01")*-1 # Need to remove lag - 1
+DatastackT$YrMonthNumber<-mondf(c(as.POSIXlt(as.Date(DatastackT$harvest.date,format="%m/%d/%Y",tz="Africa/Nairobi" ))), "2017-02-01")*-1 # Need to remove lag - 1
 
 # Plot.code to follow through time
-Datastack$plot.code <- as.factor(with(Datastack,paste(region,landuse,block,treatment,pool,sep="_")))
-levels(Datastack$plot.code) #80 levels
+DatastackT$plot.code <- as.factor(with(DatastackT,paste(region,landuse,block,treatment,sep="_")))
+levels(DatastackT$plot.code) #32 levels
 
 # Remove "OTHER" from pool
 Datastack2<-Datastack[!Datastack$pool=="other",]
