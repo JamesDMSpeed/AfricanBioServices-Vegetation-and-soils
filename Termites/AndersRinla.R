@@ -30,7 +30,8 @@ Massloss <-read.csv('Termites/Main & CG experiment/Massloss_data_CGMain.csv', se
 #Loading rainfalldata
 precip <- read.csv('Termites/Precipitation data/Rainfalldata.csv', sep=';',dec='.')
 #Loading soil texture data
-soiltext <- read.csv('Termites/Soil data/Soil_texture_corrected.csv', sep=',',dec='.')
+soiltext <- read.csv('Termites/Soil data/Soil_texture_corrected.correctedo100percenttotal.final.csv', sep=';',dec='.')
+head(soiltext)
 #Loading Soil Nutrient data
 soilnut <- read.csv('Termites/Soil data/Soil_Nutrient.csv', sep=';',dec='.')
 
@@ -2765,6 +2766,23 @@ I5a2$summary.hyperpar               # Precision
 #Convert them into sigma
 1 / sqrt(I5a2$summary.hyperpar[,1]) # sigma
 #0.5798671       NaN 0.5197873 # Random component - sptail matrix
+
+
+#---------------------------------------------------------####
+#Cleaning dataset for ABS deliverable####
+head(Fulldata) #This is data with all variables: 
+Fulldata2 <- Fulldata
+write.csv(Fulldata,file="Termites/Fulldata.csv")
+Fire.data <- read.csv("Termites/Fire data.csv",sep=";")
+Soilclass.data <- read.csv("Termites/soil data/Soil class_characterisitc.csv",sep=";")
+
+names(Fulldata)
+names(Fire.data)
+levels(Fulldata$Landuse)
+levels(Fire.data$Landuse)
+
+Fulldata2 <- left_join(Fulldata,Fire.data,by=c("Season","Site","Region","Landuse"))
+View(Fulldata2)
 
 
 
