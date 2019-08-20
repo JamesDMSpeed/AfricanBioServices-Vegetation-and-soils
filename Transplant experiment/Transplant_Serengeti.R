@@ -2296,7 +2296,7 @@ write.csv(NminSelect, "Transplant experiment/NminSelect.csv",row.names=F) #,sep 
 
 
 ################################################################################################################################################
-#### TEMPORAL PRODUCTIVITY, CONSUMPTION AND N ####
+#### TEMPORAL PRODUCTIVITY, CONSUMPTION AND PLANT N ####
 ################################################################################################################################################
 
 # Use moveable exclosure data as CONTROL 
@@ -2407,12 +2407,67 @@ levels(AvgconWT$ProdCON)<-c("Productivity", "Consumption")
 levels(Datastack$ProdCON)<-c("Productivity", "Consumption")
 
 # Scale factor
-scaleFactor <- max(Datastack$rain.day,na.rm=T)/mean(Datastack$prodtot.per,na.rm=T)
+scaleFactor <- max(Datastack$rain.sum,na.rm=T)/mean(Datastack$prodtot.per,na.rm=T)
+max(Datastack$rain.sum,na.rm=T)/90
 
 # Productivity and consumption per target spp
 NAPdom<- ggplot(AvgprodWT, aes(x=YrMonth, y=prodtot.per, colour=Tagsp, group=spp.code, shape=ProdCON))
-NAPdom<-NAPdom+ geom_line(data=Datastack,aes(y = rain.day/.85),colour="dark blue",linetype=1,size=1, alpha=.1)
-NAPdom<-NAPdom+ geom_point(data=Datastack,aes(y = rain.day/.85),colour="dark blue",size=.9,alpha=.1)
+NAPdom<-NAPdom+ geom_line(data=Datastack,aes(y = rain.sum/90),colour="dark blue",linetype=1,size=1, alpha=.1)
+NAPdom<-NAPdom+ geom_point(data=Datastack,aes(y = rain.sum/90),colour="dark blue",size=.9,alpha=.1)
+NAPdom<-NAPdom+ geom_hline(yintercept = 0, size =.5, linetype="dashed", colour="black")
+NAPdom<-NAPdom+geom_line(linetype="dashed",size=1.2, alpha=.5, show.legend=F)
+NAPdom<-NAPdom+geom_errorbar(aes(ymin=prodtot.per-sd, ymax=prodtot.per+sd),linetype="solid",width=.2,lwd=1.1,show.legend=F)
+NAPdom<-NAPdom+geom_point(aes(shape=treatment),shape=22, size=4, fill="white", stroke=1)
+NAPdom<-NAPdom+geom_line(data=AvgconWT,linetype="dashed",size=1.2, alpha=.5, show.legend=F)
+NAPdom<-NAPdom+geom_errorbar(data=AvgconWT,aes(ymin=prodtot.per-sd, ymax=prodtot.per+sd),linetype="solid",width=.2,lwd=1.1,show.legend=F)
+NAPdom<-NAPdom+geom_point(data=AvgconWT,aes(colour=Tagsp,fill=Tagsp),shape=21, size=3, stroke=1)
+NAPdom<-NAPdom+facet_wrap(~Panel.titles,ncol=1,scales='fixed', drop=F)
+NAPdom<-NAPdom+ scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y", limits=c(as.Date("2017-02-10"),max=as.Date("2018-05-31")), expand=c(0,0)) 
+#NAPdom<-NAPdom+scale_y_continuous(limits=c(-3,9),sec.axis = sec_axis(~ . *450, breaks = c(0,2,4,6), labels = c(0,2,4,6), name = expression(paste("Precipitation (mm ",day^-1,")"))))
+NAPdom<-NAPdom+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+NAPdom<-NAPdom+scale_fill_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+NAPdom<-NAPdom+ xlab("Month|Year") + ylab(expression(paste("Productivity & consumption (g ",m^-2," ",day^-1,")")))
+NAPdom<-NAPdom+ theme_bw() +
+  theme(plot.background = element_blank()
+        #,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank() 
+        ,axis.text.y=element_text(size=12)
+        ,axis.text.x=element_text(size=10,angle=35, hjust=1)
+        ,axis.line=element_line( size=.5)
+        ,axis.title=element_text(size=14)
+        ,legend.text=element_text(size=12)
+        ,legend.title=element_text(size=14)
+        #,legend.position = c(0.25, 0.82)
+        ,plot.margin = unit(c(5,5,7,5), "mm")
+        ,strip.background = element_blank()
+        ,strip.text = element_text(hjust=0,size=12)
+        #,axis.text.x=element_blank()
+        #,axis.ticks.x=element_blank()
+        ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
+  theme(axis.line = element_line(color = 'black'))
+#NAPdom<-NAPdom+  annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
+#NAPdom <- NAPdom+ annotate(geom="text",x=as.Date("2017-02-28"),y=8)
+#NAPdom<-NAPdom+  annotate(geom="text", x=as.Date("2017-02-28"), y=8, label=c("(a)",""),color="black",fontface="bold", size=6)
+NAPdom<-NAPdom+guides(fill=F,linetype=F,shape = guide_legend("Biomass change",override.aes = list(shape=c(22,21), size=3.75,fill=c("white","grey"),col="grey", stroke=1, alpha=1)),
+                    colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
+                                                                              col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )                                                       
+NAPdom
+
+ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/TargetSpp.Prod.Con.jpeg",
+       width=15, height=25,units ="cm",dpi = 600, limitsize = TRUE)
+
+
+# Scale factor
+scaleFactor <- max(Datastack$zero.days,na.rm=T)/mean(Datastack$prodtot.per,na.rm=T)
+
+
+# Productivity and consumption per target spp - ZERO DAYs
+NAPdom<- ggplot(AvgprodWT, aes(x=YrMonth, y=prodtot.per, colour=Tagsp, group=spp.code, shape=ProdCON))
+NAPdom<-NAPdom+ geom_line(data=Datastack,aes(y = zero.days/62),colour="dark blue",linetype=1,size=1, alpha=.1)
+NAPdom<-NAPdom+ geom_point(data=Datastack,aes(y = zero.days/62),colour="dark blue",size=.9,alpha=.1)
 NAPdom<-NAPdom+ geom_hline(yintercept = 0, size =.5, linetype="dashed", colour="black")
 NAPdom<-NAPdom+geom_line(linetype="dashed",size=1.2, alpha=.5, show.legend=F)
 NAPdom<-NAPdom+geom_errorbar(aes(ymin=prodtot.per-sd, ymax=prodtot.per+sd),linetype="solid",width=.2,lwd=1.1,show.legend=F)
@@ -2451,12 +2506,9 @@ NAPdom<-NAPdom+ theme_bw() +
 #NAPdom <- NAPdom+ annotate(geom="text",x=as.Date("2017-02-28"),y=8)
 #NAPdom<-NAPdom+  annotate(geom="text", x=as.Date("2017-02-28"), y=8, label=c("(a)",""),color="black",fontface="bold", size=6)
 NAPdom<-NAPdom+guides(fill=F,linetype=F,shape = guide_legend("Biomass change",override.aes = list(shape=c(22,21), size=3.75,fill=c("white","grey"),col="grey", stroke=1, alpha=1)),
-                    colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
-                                                                              col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )                                                       
+                      colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
+                                                                                col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )                                                       
 NAPdom
-
-ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/TargetSpp.Prod.Con.jpeg",
-       width=15, height=25,units ="cm",dpi = 600, limitsize = TRUE)
 
 #### Plot spatial and temporal Nitrogen ####
 DatastackTop <- droplevels(DatastackT[DatastackT$treatment=="Open",])
@@ -2504,9 +2556,9 @@ AvgTN$spp.code<-as.factor(with(AvgTN, paste(site.id,Tagsp,sep="_")))
 AvgTN$spp.code2<-as.factor(with(AvgTN, paste(Tagsp,treatment,sep="_")))
 Datastack$spp.code2<-as.factor(with(Datastack, paste(Tagsp,treatment,sep="_")))
 
-Ndom<- ggplot(AvgTN, aes(x=YrMonth, y=Plant.N, colour=Tagsp, group=spp.code, shape=treatment, fill=spp.code2))
-Ndom<-Ndom+ geom_line(data=Datastack,aes(y = rain.day/2.5),colour="dark blue",linetype=1,size=1, alpha=.1)
-Ndom<-Ndom+ geom_point(data=Datastack,aes(y = rain.day/2.5),colour="dark blue",fill="dark blue",size=.9,alpha=.1)
+Ndom<- ggplot(AvgTN, aes(x=YrMonth, y=Plant.N, colour=Tagsp, group=spp.code, fill=spp.code2))
+Ndom<-Ndom+ geom_line(data=Datastack,aes(y = rain.sum/190),colour="dark blue",linetype=1,size=1, alpha=.1)
+Ndom<-Ndom+ geom_point(data=Datastack,aes(y = rain.sum/190),colour="dark blue",fill="dark blue",size=.9,alpha=.1)
 Ndom<-Ndom+ geom_line(linetype="dashed",size=1.2, alpha=.5, show.legend=F)
 Ndom<-Ndom+ geom_errorbar(aes(ymin=Plant.N-sd, ymax=Plant.N+sd),linetype="solid",width=.2,lwd=1.1,show.legend=F)
 Ndom<-Ndom+ geom_point(aes(shape=treatment),size=4, stroke=1)
@@ -2553,6 +2605,14 @@ ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Seren
 #### Modelling target species productivity, nutrients and nitrogen #####
 ##################################################################################################
 
+# Rain and no rain days
+plot( rain.sum~zero.days,DatastackT)
+MyVar<-c("rain.sum","zero.days")
+corvif(DatastackT[,MyVar]) 
+#              GVIF
+#rain.sum.1 1.457471
+#zero.days  1.457471 # Variance inflation issues - check with and without in models
+
 # Running numeric value for months
 # turn a date into a 'monthnumber' relative to an origin
 monnb <- function(d) { lt <- as.POSIXlt(as.Date(d, origin="1900-01-01"));  lt$year*12 + lt$mon } 
@@ -2561,39 +2621,575 @@ mondf <- function(d1, d2) { monnb(d2) - monnb(d1) }
 DatastackT$YrMonthNumber<-mondf(c(as.POSIXlt(as.Date(DatastackT$harvest.date,format="%m/%d/%Y",tz="Africa/Nairobi" ))), "2017-02-01")*-1 # Need to remove lag - 1
 
 # Plot.code to follow through time
-DatastackT$plot.code <- as.factor(with(DatastackT,paste(region,landuse,block,treatment,sep="_")))
-levels(DatastackT$plot.code) #32 levels
+names(DatastackT)
+DatastackT$site.id
+DatastackT$plot.code <- as.factor(with(DatastackT,paste(site.id,block,sep="_")))
+levels(DatastackT$plot.code) #20 levels - productivity and consumption
 
-# Remove "OTHER" from pool
-Datastack2<-Datastack[!Datastack$pool=="other",]
+#### Productivity- repeat measure lme ####
 
-# Remove N outliers
-NutsN<-droplevels(subset(Datastack2,Plant.N<3.1 & Plant.N>0.5 | is.na(Plant.N)))
-NutsN<-droplevels(subset(NutsN,prodsp.per>-10 | is.na(prodsp.per)))
-
-names(NutsN)
+# Remove missing productivity data
+DatastackTprod<-droplevels(subset(DatastackT, !is.na(prodsp.per)))
 
 #Implementing the AR-1 autocorrelation
-cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|Tagsp/plot.code) # AR matrix needs to be unique
-cs1AR1. <- Initialize(cs1AR1, data = NutsN)
+library(nlme)
+cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|plot.code) # AR matrix needs to be unique
+cs1AR1. <- Initialize(cs1AR1, data = DatastackTprod)
 corMatrix(cs1AR1.) #What does this give? 
 
-Datastack2NA<-NutsN[!is.na(NutsN$prodsp.per) & !is.na(NutsN$Plant.N) ,]
-names(Datastack2NA)
-Datastack2NA$prodsp.per
-Datastack2NA$Tagsp
-
-#Productivity per species - corrected for percent cover
-# LME with temporal auto-correlation (using nlme package)
-NAP.lme <- lme(prodsp.per~landuse+poly(rain.sum.1,2)+poly(zero.days,2)+Plant.N+
-                 Plant.N:landuse,
-               # Plant.N:poly(rain.sum.1,2),#+
-               # landuse:rain.sum.1+landuse:consec.NoRain.days,
-               random=~1|Tagsp, method="ML",correlation=cs1AR1,data=Datastack2N)
-summary(NAP.lme)#for parameter estimates, don't use the p-values
+# Productivity per species in relaiton to rainfall
+NAP.lme <- lme(prodsp.per~Tagsp+
+                 zero.days+Tagsp:zero.days+
+               rain.sum+ Tagsp:rain.sum,
+               random=~1|plot.code, method="ML",correlation=cs1AR1,data=DatastackTprod)
+summary(NAP.lme)
 anova(NAP.lme) #get F statistics and P-values
 AIC(NAP.lme) 
-drop1(NAP.lme, test="Chisq") # Nothing important
+drop1(NAP.lme, test="Chisq") # Rainfall and rainfall x species - as well as no rainfall
+# Chloris is first in model
+
+# Checking resids vs fit
+E1 <- resid(NAP.lme, type = "pearson")
+F1 <- fitted(NAP.lme)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F1, 
+     y = E1,
+     xlab = "Fitted values",
+     ylab = "Residuals", 
+     xlim = c(min(F1), max(F1)))
+abline(v = 0, lwd = 2, col = 2)
+abline(h = 0, lty = 2, col = 1) # Strong negative values - try model without outliers? 
+
+# Generate model p-values - productivity
+NAP.lme2 <- update(NAP.lme, .~. -Tagsp:rain.sum)
+NAP.lme3 <- update(NAP.lme, .~. -Tagsp:zero.days)
+NAP.lme4 <- update(NAP.lme2, .~. -Tagsp:zero.days)
+NAP.lme5 <- update(NAP.lme4, .~. -Tagsp)
+NAP.lme6 <- update(NAP.lme4, .~. -rain.sum)
+NAP.lme7 <- update(NAP.lme4, .~. -zero.days)
+
+anova(NAP.lme,NAP.lme2) #transplant:Tagsp
+anova(NAP.lme,NAP.lme3) #Tagsp:landuse
+anova(NAP.lme4,NAP.lme5) #Tagsp
+anova(NAP.lme4,NAP.lme6) # Rain
+anova(NAP.lme4,NAP.lme7) # No rainfall days
+
+#         Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+#NAP.lme2     2 14 730.0660 768.4951 -351.0330 1 vs 2 10.10566  0.0387 * # Tagsp:rain
+#NAP.lme3     2 14 753.0898 791.5188 -362.5449 1 vs 2 33.12938  <.0001 ***# Tagsp:zero.days
+#NAP.lme5     2  6 744.5382 761.0078 -366.2691 1 vs 2 3.436904  0.4875 # Species
+#NAP.lme6     2  9 748.0976 772.8020 -365.0488 1 vs 2 0.9962723  0.3182 # Rain
+#NAP.lme7     2  9 747.7881 772.4925 -364.8941 1 vs 2 0.6868109  0.4073 # No rainfall days
+
+# Emmeans contrast two-way interaction
+NAP.lmeFINAL <- emmeans(NAP.lme , pairwise~Tagsp:rain.sum,type="response") #Creating emmeans across the factor levels in the interaction.
+NAP.lmeFINAL$emmeans
+NAP.lmeFINAL.pairs <- pairs(NAP.lmeFINAL,simple = "each", combine =TRUE) # THIS IS A GREAT OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+NAP.lmeFINAL.pairs$emmeans
+plot(NAP.lmeFINAL, comparisons = FALSE) # None of the comparisons significant
+
+NAP.lmeFINAL <- emmeans(NAP.lme , pairwise~Tagsp:zero.days,type="response") #Creating emmeans across the factor levels in the interaction.
+NAP.lmeFINAL$emmeans
+NAP.lmeFINAL.pairs <- pairs(NAP.lmeFINAL,simple = "each", combine =TRUE) # THIS IS A GREAT OUTPUT TO USE! Compare the EMMs of predictor factors in the model with one another. The use of simple="each"  generates all simple main-effect comparisons. Useage of combine=TRUE generates all contrasts combined into one family. The dots (.) in this result correspond to which factor is being contrasted. 
+NAP.lmeFINAL.pairs$emmeans
+plot(NAP.lmeFINAL, comparisons = FALSE) ## None of the comparisons significant
+
+xyplot(prodsp.per~zero.days|Tagsp,DatastackTprod)
+xyplot(prodsp.per~rain.sum|Tagsp,DatastackTprod)
+
+### Productivity - per sp - remove outliers ####
+
+# Remove missing productivity data
+DatastackTprodOUT<-droplevels(subset(DatastackT, prodsp.per>-10 & !is.na(prodsp.per)))
+dotchart(DatastackTprodOUT$prodsp.per)
+
+#Implementing the AR-1 autocorrelation
+library(nlme)
+cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|plot.code) # AR matrix needs to be unique
+table(DatastackTprodOUT$YrMonthNumber,DatastackTprodOUT$plot.code)
+cs1AR1. <- Initialize(cs1AR1, data = DatastackTprodOUT)
+corMatrix(cs1AR1.) #What does this give? 
+
+# Productivity per species in relaiton to rainfall
+NAP.lmeOUT <- lme(prodsp.per~#Tagsp+
+                    zero.days,#Tagsp:zero.days,
+                  #rain.sum, #Tagsp:rain.sum,
+                  random=~1|plot.code, method="ML",correlation=cs1AR1,data=DatastackTprodOUT)
+summary(NAP.lmeOUT)
+anova(NAP.lmeOUT) # only zero days significant - no species differences...
+AIC(NAP.lmeOUT) # High
+drop1(NAP.lmeOUT, test="Chisq") 
+# Only zero days significant without very low minus productivity values
+
+# Checking resids vs fit
+E1 <- resid(NAP.lmeOUT, type = "pearson")
+F1 <- fitted(NAP.lmeOUT)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F1, 
+     y = E1,
+     xlab = "Fitted values",
+     ylab = "Residuals", 
+     xlim = c(min(F1), max(F1)))
+abline(v = 0, lwd = 2, col = 2)
+abline(h = 0, lty = 2, col = 1) # Good without outliers! 
+
+# Generate model p-values - productivity
+NAP.lmeOUT2 <- update(NAP.lmeOUT, .~. -zero.days)
+anova(NAP.lmeOUT,NAP.lmeOUT2) #transplant:Tagsp
+
+#            Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+#NAP.lmeOUT      1  5 521.7448 535.2925 -255.8724                        
+#NAP.lmeOUT2     2  4 542.9237 553.7619 -267.4619 1 vs 2 23.17892  <.0001
+
+DatastackTnOUT<-droplevels(subset(DatastackT, prodsp.per>-10 & !is.na(Plant.N)))
+
+plot(prodsp.per~Plant.N,col=c(DatastackTnOUT$treatment),DatastackTnOUT)
+abline(lm(prodsp.per~Plant.N,DatastackTnOUT))
+summary(lm(prodsp.per~Plant.N,DatastackTnOUT)) #NS
+
+#### Consumption - repeat measure lme ####
+# Remove missing conumption data
+DatastackTcon<-droplevels(subset(DatastackT, !is.na(conssp.per)))
+
+#Implementing the AR-1 autocorrelation
+library(nlme)
+cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|plot.code) # AR matrix needs to be unique
+table(DatastackTcon$YrMonthNumber,DatastackTcon$plot.code)
+cs1AR1. <- Initialize(cs1AR1, data = DatastackTcon)
+corMatrix(cs1AR1.) #What does this give? 
+
+# Consumption model
+dotchart(DatastackTcon$conssp.per)
+Con.lme <- lme(conssp.per~Tagsp+
+                 zero.days+#Tagsp:zero.days+
+                 rain.sum, #Tagsp:rain.sum,
+               random=~1|plot.code, method="ML",correlation=cs1AR1,data=DatastackTcon)
+summary(Con.lme)#rain significant 
+anova(Con.lme) #Nothing significant
+AIC(Con.lme) 
+drop1(Con.lme, test="Chisq") # Nothing significant....
+
+# Checking resids vs fit
+E1 <- resid(Con.lme, type = "pearson")
+F1 <- fitted(Con.lme)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F1, 
+     y = E1,
+     xlab = "Fitted values",
+     ylab = "Residuals", 
+     xlim = c(min(F1), max(F1)))
+abline(v = 0, lwd = 2, col = 2)
+abline(h = 0, lty = 2, col = 1) # Good
+
+DatastackTconOUT<-droplevels(subset(DatastackT, prodsp.per>-10 ))
+plot(conssp.per~prodsp.per,DatastackTconOUT)
+
+#### Plant Nitrogen - repeat measure ####
+
+# Plot.code to follow through tim - add treatment for plant N
+DatastackT$plot.codeN <- as.factor(with(DatastackT,paste(site.id,block,treatment,sep="_")))
+levels(DatastackT$plot.codeN) #40 levels - plant N, includes treatment
+
+# Remove missing productivity data
+DatastackTn<-droplevels(subset(DatastackT, !is.na(Plant.N)))
+
+#Implementing the AR-1 autocorrelation
+library(nlme)
+cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|plot.codeN) # AR matrix needs to be unique
+table(DatastackTn$YrMonthNumber,DatastackTn$plot.codeN)
+cs1AR1. <- Initialize(cs1AR1, data = DatastackTn)
+corMatrix(cs1AR1.) #What does this give? 
+
+# N model - test with linear and nolinear
+Pn.lme <- lme(Plant.N~Tagsp+#treatment+
+                 zero.days+#zero.days:treatment+#Tagsp:zero.days+
+                 rain.sum,#rain.sum:treatment+#Tagsp:rain.sum,
+               random=~1|plot.codeN, method="ML",correlation=cs1AR1,data=DatastackTn)
+summary(Pn.lme)#Tag sp, rain, zero days - no interactions
+anova(Pn.lme) #get F statistics and P-values
+AIC(Pn.lme) #High
+drop1(Pn.lme, test="Chisq") # Rainfall and rainfall x species - as well as no rainfall
+
+# Non linear rainfall variables
+# Cannot have poly rain and poly zero days interactions in the same graph - collinear
+Pn.lme <- lme(Plant.N~Tagsp+#treatment+
+                poly(zero.days,2)+poly(rain.sum,2),
+              random=~1|plot.codeN, method="ML",correlation=cs1AR1,data=DatastackTn)
+summary(Pn.lme)#Tag sp, rain, zero days - no interactions
+anova(Pn.lme) #get F statistics and P-values
+AIC(Pn.lme) #High
+drop1(Pn.lme, test="Chisq")
+
+# Checking resids vs fit
+E1 <- resid(Pn.lme, type = "pearson")
+F1 <- fitted(Pn.lme)
+
+par(mfrow = c(1, 1), mar = c(5, 5, 2, 2), cex.lab = 1.5)
+plot(x = F1, 
+     y = E1,
+     xlab = "Fitted values",
+     ylab = "Residuals", 
+     xlim = c(min(F1), max(F1)))
+abline(v = 0, lwd = 2, col = 2)
+abline(h = 0, lty = 2, col = 1) # Conical when poly - hmmm
+
+# Species differences
+emm.plantN <- emmeans(Pn.lme,~Tagsp)
+pairs(emm.plantN) # Nothing singificantly different
+# Spp differences
+# Chloris - Themeda         0.3972 0.124 35  3.203  0.0227 
+#Chrysochloa - Digitaria   0.4400 0.120 35  3.654  0.0070 
+#Chrysochloa - Themeda     0.5209 0.118 35  4.419  0.0008 
+#Cynodon - Themeda         0.3914 0.125 35  3.140  0.0265 
+
+# Generate model p-values - productivity
+NAP.lme2 <- update(NAP.lme, .~. -Tagsp:rain.sum)
+NAP.lme3 <- update(NAP.lme, .~. -Tagsp:zero.days)
+NAP.lme4 <- update(NAP.lme2, .~. -Tagsp:zero.days)
+NAP.lme5 <- update(NAP.lme4, .~. -Tagsp)
+NAP.lme6 <- update(NAP.lme4, .~. -rain.sum)
+NAP.lme7 <- update(NAP.lme4, .~. -zero.days)
+
+anova(NAP.lme,NAP.lme2) #transplant:Tagsp
+anova(NAP.lme,NAP.lme3) #Tagsp:landuse
+anova(NAP.lme4,NAP.lme5) #Tagsp
+anova(NAP.lme4,NAP.lme6) # Rain
+anova(NAP.lme4,NAP.lme7) # No rainfall days
+
+plot(Plant.N~rain.sum,DatastackTn)
+abline(lm(Plant.N~rain.sum,DatastackTn))
+plot(Plant.N~zero.days,DatastackTn)
+abline(lm(Plant.N~zero.days,DatastackTn))
+
+##################################################################################################
+#### Prod and Plant N in relation to rainfall and no rain days #####
+##################################################################################################
+
+# Remove missing productivity data
+DatastackTprod<-droplevels(subset(DatastackT, !is.na(prodsp.per)))
+
+DatastackTprodOUT<-droplevels(subset(DatastackT, prodsp.per>-10 & !is.na(prodsp.per)))
+
+# Productivity and rain
+cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|plot.code) # AR matrix needs to be unique
+table(DatastackTprod$YrMonthNumber,DatastackTprod$plot.code)
+cs1AR1. <- Initialize(cs1AR1, data = DatastackTprod)
+corMatrix(cs1AR1.) #What does this give? 
+NAP.lme2 <- lme(prodsp.per~Tagsp+ rain.sum+Tagsp:rain.sum,
+               random=~1|plot.code, method="ML",correlation=cs1AR1,data=DatastackTprod)
+
+# Plot predicted vs actual data
+ProdData <- expand.grid(Tagsp=levels(DatastackTprod$Tagsp),
+                      rain.sum = seq(min(DatastackTprod$rain.sum), max(DatastackTprod$rain.sum), length = 25))
+
+#Create X matrix with expand.grid
+X <- model.matrix(~Tagsp+ rain.sum+Tagsp:rain.sum, data = ProdData)
+head(X)
+
+#Calculate predicted values
+ProdData$Pred <- X %*% fixef(NAP.lme2 )  # = X * beta
+
+#D. Calculate standard errors (SE) for predicted values
+ProdData$SE <- sqrt(  diag(X %*% vcov(NAP.lme2) %*% t(X))  )
+
+#And using the Pred and SE values, we can calculate
+#a 95% confidence interval
+ProdData$SeUp <- ProdData$Pred + 1.96 *ProdData$SE
+ProdData$SeLo <- ProdData$Pred - 1.96 *ProdData$SE
+
+# Column title
+colnames(ProdData)[3]<-"prodsp.per"
+
+# Panel titles
+DatastackTprodOUT$Panel.titles<-DatastackTprodOUT$Tagsp
+ProdData$Panel.titles<-ProdData$Tagsp
+
+levels(DatastackTprodOUT$Panel.titles)<-c("Mesic pastures", "Wet pasture", "Mesic wild", "Wet wild Seronera", "Wet wild")
+levels(ProdData$Panel.titles)<-c("Mesic pastures", "Wet pasture", "Mesic wild", "Wet wild Seronera", "Wet wild")
+
+DatastackTprodOUT$Panel.titles<- factor(DatastackTOUT$Panel.titles, levels = c("Mesic pastures", "Mesic wild","Wet pasture", "Wet wild","Wet wild Seronera"))
+ProdData$Panel.titles<- factor(ProdData$Panel.titles, levels = c("Mesic pastures", "Mesic wild","Wet pasture", "Wet wild","Wet wild Seronera"))
+
+# Productivity and precipitation
+Prodom<- ggplot(DatastackTprodOUT, aes(x=rain.sum, y=prodsp.per, colour=Tagsp))
+#Prodom<-Prodom+geom_ribbon(data=ProdData,aes(ymin=SeLo,ymax=SeUp, fill=Tagsp),alpha=0.1,colour=NA)
+Prodom<-Prodom+geom_point(size=3.5, stroke=1)
+#Prodom<-Prodom+geom_line(data=ProdData,size=.75, alpha=.8, show.legend=F)
+Prodom<-Prodom+facet_wrap(~Panel.titles, ncol=5)
+Prodom<-Prodom+scale_x_continuous(limits=c(-14,500), breaks = c(0,100,200,300,400,500), labels = c(0,100,200,300,400,500), expand=c(0,0))
+Prodom<-Prodom+scale_y_continuous(limits=c(-10,10), breaks = c(0,-10,-5,0,5,10), labels = c(0,-10,-5,0,5,10), expand=c(0,0))
+Prodom<-Prodom+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+Prodom<-Prodom+scale_fill_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+Prodom<-Prodom+xlab("Precipitation (mm)") + ylab(expression(paste("Productivity (g ",m^-2," ",day^-1,")")))
+Prodom<-Prodom+ggtitle("(a) Precipitation")
+Prodom<-Prodom+theme_bw() +
+  theme(plot.background = element_blank()
+        #,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank() 
+        ,axis.text.y=element_text(size=12)
+        ,axis.text.x=element_text(size=10,hjust=1)
+        ,axis.line=element_line( size=.5)
+        ,axis.title=element_text(size=14)
+        ,legend.text=element_text(size=12)
+        ,legend.title=element_text(size=14)
+        #,legend.position = c(0.25, 0.82)
+        ,plot.margin = unit(c(5,5,7,5), "mm")
+        ,strip.background = element_blank()
+        ,strip.text = element_text(hjust=0,size=12)
+        #,axis.text.x=element_blank()
+        #,axis.ticks.x=element_blank()
+        ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
+  theme(axis.line = element_line(color = 'black'))
+#NAPdom<-NAPdom+  annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
+#NAPdom <- NAPdom+ annotate(geom="text",x=as.Date("2017-02-28"),y=8)
+#NAPdom<-NAPdom+  annotate(geom="text", x=as.Date("2017-02-28"), y=8, label=c("(a)",""),color="black",fontface="bold", size=6)
+Prodom<-Prodom+guides(fill=F,linetype=F,shape = F, colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
+                                                                            col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)))                                                       
+Prodom
+
+# NO RAIN DAYS
+# Productivity and NO rain days
+NAP.lmeZ <- lme(prodsp.per~ zero.days+Tagsp,
+                random=~1|plot.code, method="ML",correlation=cs1AR1,data=DatastackTprodOUT)
+
+# Plot predicted vs actual data
+ProdDataZ<- expand.grid(Tagsp=levels(DatastackTprodOUT$Tagsp),
+                        zero.days = seq(min(DatastackTprodOUT$zero.days), max(DatastackTprod$zero.days), length = 25))
+
+#Create X matrix with expand.grid
+Xz <- model.matrix(~zero.days+Tagsp, data = ProdDataZ)
+head(Xz)
+
+#Calculate predicted values
+ProdDataZ$Pred <- Xz %*% fixef(NAP.lmeZ )  # = X * beta
+
+#D. Calculate standard errors (SE) for predicted values
+ProdDataZ$SE <- sqrt(  diag(Xz %*% vcov(NAP.lmeZ) %*% t(Xz)))
+
+#And using the Pred and SE values, we can calculate
+#a 95% confidence interval
+ProdDataZ$SeUp <- ProdDataZ$Pred + 1.96 *ProdDataZ$SE
+ProdDataZ$SeLo <- ProdDataZ$Pred - 1.96 *ProdDataZ$SE
+
+# Column titles
+colnames(ProdDataZ)[3]<-"prodsp.per"
+
+# Panel titles
+DatastackTprodOUT$Panel.titles<-DatastackTprod$Tagsp
+ProdDataZ$Panel.titles<-ProdDataZ$Tagsp
+
+levels(DatastackTprodOUT$Panel.titles)<-c("Mesic pastures", "Wet pasture", "Mesic wild", "Wet wild Seronera", "Wet wild")
+levels(ProdDataZ$Panel.titles)<-c("Mesic pastures", "Wet pasture", "Mesic wild", "Wet wild Seronera", "Wet wild")
+
+DatastackTprodOUT$Panel.titles<- factor(DatastackTprodOUT$Panel.titles, levels = c("Mesic pastures", "Mesic wild","Wet pasture", "Wet wild","Wet wild Seronera"))
+ProdDataZ$Panel.titles<- factor(ProdDataZ$Panel.titles, levels = c("Mesic pastures", "Mesic wild","Wet pasture", "Wet wild","Wet wild Seronera"))
+
+# Productivity and no rainfall days
+ProdomZ<- ggplot(DatastackTprodOUT, aes(x=zero.days, y=prodsp.per))
+ProdomZ<-ProdomZ+geom_ribbon(data=ProdDataZ,aes(ymin=SeLo,ymax=SeUp),fill="grey",alpha=0.5,colour=NA)
+ProdomZ<-ProdomZ+geom_point(aes(colour=Tagsp),size=3.5, stroke=1,show.legend=F)
+ProdomZ<-ProdomZ+geom_line(data=ProdDataZ,colour="dark grey",size=.75, alpha=.8, show.legend=F)
+ProdomZ<-ProdomZ+facet_wrap(~Tagsp, ncol=5)
+ProdomZ<-ProdomZ+scale_x_continuous(limits=c(-5,75), breaks = c(0,25,50,75), labels = c(0,25,50,75), expand=c(0,0))
+ProdomZ<-ProdomZ+scale_y_continuous(limits=c(-10,10), breaks = c(0,-10,-5,0,5,10), labels = c(0,-10,-5,0,5,10), expand=c(0,0))
+ProdomZ<-ProdomZ+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+ProdomZ<-ProdomZ+scale_fill_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+ProdomZ<-ProdomZ+xlab("Number of no rain days") + ylab(expression(paste("Productivity (g ",m^-2," ",day^-1,")")))
+ProdomZ<-ProdomZ+ggtitle("(b) Days without rain")
+ProdomZ<-ProdomZ+theme_bw() +
+  theme(plot.background = element_blank()
+        #,panel.grid.major = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank() 
+        ,axis.text.y=element_text(size=12)
+        ,axis.text.x=element_text(size=10, hjust=1)
+        ,axis.line=element_line( size=.5)
+        ,axis.title=element_text(size=14)
+        ,legend.text=element_text(size=12)
+        ,legend.title=element_text(size=14)
+        #,legend.position = c(0.25, 0.82)
+        ,plot.margin = unit(c(5,5,7,5), "mm")
+        ,strip.background = element_blank()
+        ,strip.text =  element_blank()
+        #,axis.text.x=element_blank()
+        #,axis.ticks.x=element_blank()
+        ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
+  theme(axis.line = element_line(color = 'black'))
+#NAPdom<-NAPdom+  annotate(geom = "segment", x = as.Date("2017-02-10"), xend =as.Date("2017-02-10"), y = -Inf, yend = Inf, size = .6) 
+#NAPdom <- NAPdom+ annotate(geom="text",x=as.Date("2017-02-28"),y=8)
+#NAPdom<-NAPdom+  annotate(geom="text", x=as.Date("2017-02-28"), y=8, label=c("(a)",""),color="black",fontface="bold", size=6)
+ProdomZ<-ProdomZ+guides(fill=F,linetype=F,shape = F, colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
+                                                                                                             col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)))                                                       
+ProdomZ
+
+# Extra legend from legend plot
+library(grid)
+library(gridExtra)
+library(ggpubr)
+library(egg)
+
+filename <- paste0("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/", "Productivity.Rain.NoRainDays", "_",Sys.Date(), ".jpeg" )
+jpeg (filename, width=30, height=20, res=400, unit="cm")
+egg::ggarrange(Prodom,ProdomZ, ncol=1) #common.legend = T,legend="right")
+dev.off()
+
+############################################################################
+# Plant Nitrogen 
+#Implementing the AR-1 autocorrelation
+library(nlme)
+cs1AR1 <- corAR1(0.2, form = ~YrMonthNumber|plot.codeN) # AR matrix needs to be unique
+table(DatastackTn$YrMonthNumber,DatastackTn$plot.codeN)
+cs1AR1. <- Initialize(cs1AR1, data = DatastackTn)
+corMatrix(cs1AR1.) #What does this give? 
+
+names(DatastackTn)
+
+# N model
+Pn.lme <- lme(Plant.N~Tagsp+ poly(rain.day,2),#+treatment,#zero.days
+              random=~1|plot.codeN, method="ML",correlation=cs1AR1,data=DatastackTn)
+summary(Pn.lme)#Tag sp, rain, zero days - no interactions
+anova(Pn.lme) #get F statistics and P-values
+AIC(Pn.lme) #High
+drop1(Pn.lme, test="Chisq")
+
+# Plot predicted vs actual data
+NData <- expand.grid(Tagsp=levels(DatastackTn$Tagsp),
+                     #treatment=levels(DatastackTn$treatment),
+                     rain.day= seq(min(DatastackTn$rain.day), max(DatastackTn$rain.day), length = 25))
+
+#Create X matrix with expand.grid
+Xn <- model.matrix(~Tagsp+poly(rain.day,2),data = NData)
+head(Xn)
+
+#Calculate predicted values
+NData$Pred <- Xn %*% fixef(Pn.lme)  # = X * beta
+
+#D. Calculate standard errors (SE) for predicted values
+NData$SE <- sqrt(  diag(Xn %*% vcov(Pn.lme) %*% t(Xn))  )
+
+#And using the Pred and SE values, we can calculate
+#a 95% confidence interval
+MyData$SeUp <- MyData$Pred + 1.96 * MyData$SE
+MyData$SeLo <- MyData$Pred - 1.96 * MyData$SE
+
+colnames(NData)[3]<-"Plant.N"
+
+ProdomN<- ggplot(DatastackTn, aes(x=rain.day, y=Plant.N, colour=Tagsp))
+ProdomN<-ProdomN+geom_point(aes(shape=treatment,fill=spp.code),size=4, stroke=1)
+ProdomN<-ProdomN+geom_line(data=NData,size=1)
+ProdomN<-ProdomN+facet_wrap(~Tagsp)
+ProdomN
+
+
+ProdomNz<- ggplot(DatastackTn, aes(x=zero.days, y=Plant.N, colour=Tagsp))
+ProdomNz<-ProdomNz+geom_point(aes(shape=treatment,fill=spp.code),size=4, stroke=1)
+ProdomNz<-ProdomNz+facet_wrap(~Tagsp)
+ProdomNz
+
+
+#### Cumulative productivity and consumption####
+require(dplyr)
+
+# Cumulative consumption
+
+# Negative values to zero
+DatastackTcon0<-droplevels(subset(DatastackT, !is.na(conssp.per)))
+DatastackTcon0$conssp.per[DatastackTcon0$conssp.per<0]<-0
+
+DatastackTcon0cum<-DatastackTcon0 %>% group_by(Tagsp,block.id) %>% mutate(csum = cumsum(conssp.per))
+plot(DatastackTcon0cum$csum, col=c(DatastackTcon0cum$Tagsp)) # Cumulative - max value = max for 15 months
+DatastackTcon0Days<-DatastackTcon0 %>% group_by(Tagsp,block.id) %>% mutate(csum = cumsum(growth.period))
+plot(DatastackTcon0Days$csum, col=c(DatastackTcon0cum$Tagsp))     
+
+# Cumulative consumption means
+ConCumBlock<-aggregate(csum~Tagsp+block.id, DatastackTcon0cum, max)
+CumCon<-aggregate(csum~Tagsp, ConCumBlock, mean)
+CumConsd<-aggregate(csum~Tagsp, ConCumBlock, sd)
+CumCon$sd<-CumConsd$csum
+
+ConCumBlockGROWTH<-aggregate(csum~Tagsp+block.id,DatastackTcon0Days, max)
+ConCumGrowth<-aggregate(csum~Tagsp,ConCumBlockGROWTH, mean)
+
+# Annual consumption + sd
+CumCon$Annual<-(CumCon$csum/ConCumGrowth$csum)*365
+CumCon$AnnualSD<-(CumCon$sd/ConCumGrowth$csum)*365
+CumCon$growth<-"consumption"
+
+# Cumulative productivity
+# Negative values to zero
+DatastackTprod0<-droplevels(subset(DatastackT, !is.na(prodsp.per)))
+DatastackTprod0$prodsp.per[DatastackTprod0$prodsp.per<0]<-0
+
+DatastackTprod0cum<-DatastackTprod0 %>% group_by(Tagsp,block.id) %>% mutate(csum = cumsum(prodsp.per))
+plot(DatastackTprod0cum$csum, col=c(DatastackTprod0cum$Tagsp)) # Cumulative - max value = max for 15 months
+DatastackTprod0Days<-DatastackTprod0 %>% group_by(Tagsp,block.id) %>% mutate(csum = cumsum(growth.period))
+plot(DatastackTprod0Days$csum, col=c(DatastackTprod0cum$Tagsp))     
+# Cumulative productivity means
+ProdCumBlock<-aggregate(csum~Tagsp+block.id, DatastackTprod0cum, max)
+CumProd<-aggregate(csum~Tagsp, ProdCumBlock, mean)
+CumProdsd<-aggregate(csum~Tagsp, ProdCumBlock, sd)
+CumProd$sd<-CumProdsd$csum
+
+ProdCumBlockGROWTH<-aggregate(csum~Tagsp+block.id,DatastackTprod0Days, max)
+CumGrowth<-aggregate(csum~Tagsp,ProdCumBlockGROWTH, mean) # This is not right - missing values- use consumption values
+
+# Annual productivity + sd
+CumProd$Annual<-(CumProd$csum/ConCumGrowth$csum)*365 # Productivity growth period does not make sense
+CumProd$AnnualSD<-(CumProd$sd/ConCumGrowth$csum)*365
+CumProd$growth<-"productivity"
+
+mean(CumCon$Annual) # 0.6477945
+mean(CumProd$Annual) # 7.61001
+7.61001/10 # 0.76 mg/cm2 - similar to mid and tall grasslands (i.e. low McNaugthon 1984)
+
+# Annual consumption + sd
+ProdCon2<-rbind(CumCon,CumProd)
+ProdCon2$growth<-as.factor(ProdCon2$growth)
+levels(ProdCon2$growth)<-c("Consumption", "Productivity")
+
+ProdCon2$fill.code<-as.factor(with(ProdCon2, paste(Tagsp,growth,sep="_")))
+
+NAPtot <- ggplot(ProdCon2, aes(x=Tagsp, y=Annual, colour=Tagsp, fill=fill.code, group=growth, shape=growth))
+NAPtot <- NAPtot+geom_errorbar(aes(ymin=Annual, ymax=Annual+sd),width=.2,lwd=1.1,show.legend=F, alpha=1) # ymin=Cum_prod-Cumprod_SE
+NAPtot <- NAPtot+geom_bar(stat="identity", position="identity",size=1.2, show.legend=T, alpha=1)
+NAPtot <- NAPtot+scale_colour_manual(values=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"))
+NAPtot <- NAPtot+scale_fill_manual(values=c("chartreuse3",NA,"hotpink1",NA,"cadetblue3",NA,"green4",NA,"orangered3",NA))
+NAPtot <- NAPtot+xlab("Species") + ylab(expression(paste("Productivity & consumption (g ",m^-2," ",year^-1,")")))
+NAPtot <- NAPtot+scale_y_continuous(limits=c(0,14),breaks=c(0,4,8,12),labels=c(0,4,8,12),expand=c(0,0))
+NAPtot <- NAPtot+theme_bw() +
+  theme(plot.background = element_blank()
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank() 
+        ,axis.text.y=element_text(size=12)
+        ,axis.text.x=element_text(size=12,face = "italic")
+        ,axis.line=element_line( size=.5)
+        ,axis.title=element_text(size=14)
+        ,legend.text=element_text(size=12)
+        ,legend.title=element_text(size=14)
+        ,plot.margin = unit(c(5,5,7,5), "mm")
+        ,strip.background = element_blank()
+        ,strip.text = element_text(hjust=0,size=12)
+        ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
+  theme(axis.line = element_line(color = 'black'))
+NAPtot <- NAPtot+guides(linetype=F,fill= F, shape=guide_legend("Biomass change",override.aes = list(shape=c(22,22), size=3.75,fill=c("grey","white"),col="grey", stroke=1, alpha=1)),
+                  colour = guide_legend("Grass species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"),
+                                                                            col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3"), stroke=1.25)) )                                                       
+NAPtot
+
+ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Serengeti/CumulativeProdCon.jpeg",
+       width= 18, height = 13,units ="cm",
+       dpi = 600, limitsize = TRUE)
+
 
 
 ##################################################################################################
@@ -2712,6 +3308,9 @@ AIC(NAP.lme)
 drop1(NAP.lme, test="Chisq") # Nothing important
 
 xyplot(prodsp.per~Plant.N|landuse,Datastack2NA)
+
+plot()
+
 
 # Remove NAs
 Datastack2N<-NutsN[!is.na(NutsN$Plant.N),]
