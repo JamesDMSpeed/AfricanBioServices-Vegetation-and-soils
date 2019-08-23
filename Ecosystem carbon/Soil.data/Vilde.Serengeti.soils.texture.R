@@ -12,6 +12,7 @@ Soil.texture <- Soil.texture[,c(1:3,5:8)]
 Soil.texture <- na.omit(Soil.texture)
 
 Texture.sum<-aggregate(cbind(Soil.texture$Clay.pip.per,Soil.texture$Silt.pip.per,Soil.texture$Sand.pip.per), by=list(Soil.texture$Region), mean)
+Texture.sd<-aggregate(cbind(Soil.texture$Clay.pip.per,Soil.texture$Silt.pip.per,Soil.texture$Sand.pip.per), by=list(Soil.texture$Region), sd)
 
 colnames(Texture.sum)<-c("Region","Clay","Silt","Sand")
 Texture.sum
@@ -24,6 +25,17 @@ Texture.sum
 # 5    Mwantimba 31.9150 20.4025 47.6850
 # 6 Park Nyigoti 31.5350 36.5550 31.9075
 # 7     Seronera 20.1675 18.0725 61.7600
+
+colnames(Texture.sd)<-c("Region","Clay","Silt","Sand")
+Texture.sd
+#        Region      Clay     Silt      Sand
+#1    Handajega  2.362786 1.774681  3.863712
+#2     Ikorongo  4.074861 4.605789  5.277142
+#3        Makao  3.866040 1.882383  4.114965
+#4        Maswa 13.778917 5.435117 10.812201
+#5    Mwantimba  4.065083 4.350068  6.549328
+#6 Park Nyigoti 10.685705 4.535258  7.877192
+#7     Seronera  5.538245 1.018639  5.529858
 
 # # Loading soil texture graphics
 library(soiltexture)
