@@ -24,7 +24,7 @@ library(gstat)
 library(sp)
 library(sjstats)
 ###############################################################
-setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/VegSoil_AfricanBioServices/AfricanBioServices-Vegetation-and-soils/")
+#setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/VegSoil_AfricanBioServices/AfricanBioServices-Vegetation-and-soils/")
 #Loading masslossdata
 Massloss <-read.csv('Termites/Main & CG experiment/Massloss_data_CGMain.csv', sep=';',dec='.')
 #Loading rainfalldata
@@ -185,10 +185,10 @@ names(DataMain2)
 se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Standard Error
 
 #Creating means by landuse (excluding blocks)
-DataMainmean<-aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataMain, mean)
-DataMainse <-aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataMain, se)
-#Creating new column with the SE in the Mainmean dataset.
-DataMainmean$SE <- DataMainse$Massloss.per 
+DataMainmean<-aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataMain2, mean)
+DataMainsd <-aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataMain2, sd)
+#Creating new column with the sd in the Mainmean dataset.
+DataMainmean$sd <- DataMainsd$Massloss.per 
 # Fill by termite * landuse = empty = absence, filled = prescence 
 DataMainmean$tea.hole<-as.factor(with(DataMainmean, paste(Littertype, Treatment, sep=" ")))
 levels(DataMainmean$tea.hole)
@@ -197,6 +197,7 @@ DataMainmean$Region <- as.factor(DataMainmean$Region)#Need to "re-factor" the re
 levels(DataMainmean$Region)
 levels(DataMainmean$Season)
 Mainexp <- DataMainmean
+
 #Now, ready for graphing: Main experiment massloss against landuse
 #Want to reorder tea.hole to have a nicer legend:
 #Want the legend title to be named Treatment so change the column already named treatment to somethin else
@@ -240,7 +241,7 @@ levels(Mainexp$panel.titles3)
 
 
 ###Raw massloss graph####
-Mainp <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=(Massloss.per-SE),ymax=(Massloss.per+SE),fill = Treatment, color = Littertype,alpha=Littertype))
+Mainp <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=(Massloss.per-sd),ymax=(Massloss.per+sd),fill = Treatment, color = Littertype,alpha=Littertype))
 Mainp <- Mainp+geom_errorbar(width=0.5,size=0.5,position=position_dodge(width=.35),show.legend=F)
 Mainp <- Mainp+geom_point(size=2.2,stroke=1,position=position_dodge(width=.35),show.legend=T, shape=21)
 Mainp <- Mainp+facet_wrap(~panel.titles3, scale ="fixed", ncol=1)
@@ -262,7 +263,7 @@ Mainp <- Mainp+guides(color=FALSE)#guide_legend(override.aes =
 #           fill=c("green4", "orangered3"),
 #          color=c("green4", "orangered3"))))
 
-Mainp <- Mainp+scale_y_continuous(limits = c(0,max(Mainexp$Massloss.per+Mainexp$SE+10)), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))
+Mainp <- Mainp+scale_y_continuous(limits = c(0,max(Mainexp$Massloss.per+Mainexp$sd+10)), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))
 #Mainp <- Mainp+scale_x_discrete(expand = c(0,0))
 Mainp <- Mainp+xlab("Land-use")+ylab("Mass loss (%)") #+ ggtitle("What title here?")
 Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
@@ -308,7 +309,7 @@ Mainp
 
 #BLACK AND WHITE VERSION####
 ###Raw massloss graph####
-Mainp.BW <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=(Massloss.per-SE),ymax=(Massloss.per+SE),fill = Treatment, color = Littertype))#,alpha=Littertype))
+Mainp.BW <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=(Massloss.per-sd),ymax=(Massloss.per+sd),fill = Treatment, color = Littertype))#,alpha=Littertype))
 Mainp.BW <- Mainp.BW+geom_errorbar(width=0.5,size=0.5,position=position_dodge(width=.35),show.legend=F)
 Mainp.BW <- Mainp.BW+geom_point(size=2.2,stroke=1,position=position_dodge(width=.35),show.legend=T, shape=21)
 Mainp.BW <- Mainp.BW+facet_wrap(~panel.titles3, scale ="fixed", ncol=1)
@@ -330,7 +331,7 @@ Mainp.BW <- Mainp.BW+guides(color=FALSE)#guide_legend(override.aes =
 #           fill=c("green4", "orangered3"),
 #          color=c("green4", "orangered3"))))
 
-Mainp.BW <- Mainp.BW+scale_y_continuous(limits = c(0,max(Mainexp$Massloss.per+Mainexp$SE+10)), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))
+Mainp.BW <- Mainp.BW+scale_y_continuous(limits = c(0,max(Mainexp$Massloss.per+Mainexp$sd+10)), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))
 #Mainp.BW <- Mainp.BW+scale_x_discrete(expand = c(0,0))
 Mainp.BW <- Mainp.BW+xlab("Land-use")+ylab("Mass loss (%)") #+ ggtitle("What title here?")
 Mainp.BW <- Mainp.BW+theme(rect = element_rect(fill ="transparent")
@@ -398,7 +399,10 @@ Mainp.BW
 28.581530-13.251911 # 15% more in pasture
 11.830754- 8.981508 # 3% more wildlife protected
 
-### Barplots: termite effect- scrip here not using for the final barplot. See next similar chapter####
+#######
+### Barplots: termite effect not in use for the final barplot.####
+#### See next similar chapter####
+####Starting from "Termitee effect dataset (CG+MAin)####
 
 #Seperate out datasets####
 Greenop<-DataMain[DataMain$Littertype=="Green" & DataMain$Treatment=="Open",] # Only Green Open data
@@ -426,13 +430,13 @@ ReddataT$Massloss.per[ReddataT$Massloss.per<0] <- 0
 se<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 #Redtea
 MeanReddataM<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataM,mean)
-MeanReddataMSE<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataM,se)
-MeanReddataM$SE<-MeanReddataMSE$Massloss.per
+MeanReddataMSE<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataM,sd)
+MeanReddataM$sd<-MeanReddataMSE$Massloss.per
 MeanReddataM$Decomposer <- "Microbe"
 
 MeanReddataT<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataT,mean)
-MeanReddataTSE<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataT,se)
-MeanReddataT$SE<-MeanReddataTSE$Massloss.per
+MeanReddataTSE<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataT,sd)
+MeanReddataT$sd<-MeanReddataTSE$Massloss.per
 MeanReddataT$Decomposer <- "Termite"
 
 
@@ -441,13 +445,13 @@ ReddataTM <- rbind(MeanReddataM,MeanReddataT)
 ReddataTM$Littertype <- "Recalcitrant"
 #Green tea
 MeanGreendataM<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataM,mean)
-MeanGreendataMSE<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataM,se)
-MeanGreendataM$SE<-MeanGreendataMSE$Massloss.per
+MeanGreendataMSE<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataM,sd)
+MeanGreendataM$sd<-MeanGreendataMSE$Massloss.per
 MeanGreendataM$Decomposer <- "Microbe"
 
 MeanGreendataT<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataT,mean)
-MeanGreendataTSE<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataT,se)
-MeanGreendataT$SE<-MeanGreendataTSE$Massloss.per
+MeanGreendataTSE<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataT,sd)
+MeanGreendataT$sd<-MeanGreendataTSE$Massloss.per
 MeanGreendataT$Decomposer <- "Termite"
 
 #Combine decomposition of red tea by termite and microbe:
@@ -564,16 +568,16 @@ Microbe.effect.Red <- RedOpEx$Microbe.effect <- (RedOpEx$Open.Massloss)
 #Agregatin the 4 varialbes
 #MICROBE GREEN
 SUM.Microbe.effect.green<-aggregate(Microbe.effect~Season+Region+Landuse,GreenOpEx,mean)
-SUM.Microbe.effect.greenSE<-aggregate(Microbe.effect~Season+Region+Landuse,GreenOpEx,se)
-SUM.Microbe.effect.green$SE<-SUM.Microbe.effect.greenSE$Microbe.effect
+SUM.Microbe.effect.greenSD<-aggregate(Microbe.effect~Season+Region+Landuse,GreenOpEx,sd)
+SUM.Microbe.effect.green$sd<-SUM.Microbe.effect.greenSD$Microbe.effect
 SUM.Microbe.effect.green$Decomposer <- "Microbe"
 SUM.Microbe.effect.green$LD <- "Labile Microbe"
 SUM.Microbe.effect.green$Littertype <- "Labile"
 colnames(SUM.Microbe.effect.green)[(names(SUM.Microbe.effect.green)== "Microbe.effect")] <- "Massloss.per"
 #MICROBE RED
 SUM.Microbe.effect.red<-aggregate(Microbe.effect~Season+Region+Landuse,RedOpEx,mean)
-SUM.Microbe.effect.redSE<-aggregate(Microbe.effect~Season+Region+Landuse,RedOpEx,se)
-SUM.Microbe.effect.red$SE<-SUM.Microbe.effect.redSE$Microbe.effect
+SUM.Microbe.effect.redSD<-aggregate(Microbe.effect~Season+Region+Landuse,RedOpEx,sd)
+SUM.Microbe.effect.red$sd<-SUM.Microbe.effect.redSD$Microbe.effect
 SUM.Microbe.effect.red$Decomposer <- "Microbe"
 SUM.Microbe.effect.red$LD <- "Recalcitrant Microbe"
 SUM.Microbe.effect.red$Littertype <- "Recalcitrant"
@@ -581,16 +585,16 @@ colnames(SUM.Microbe.effect.red)[(names(SUM.Microbe.effect.red)== "Microbe.effec
 
 #TERMITE GREEN
 SUM.Termite.effect.green<-aggregate(Termite.effect~Season+Region+Landuse,GreenOpEx,mean)
-SUM.Termite.effect.greenSE<-aggregate(Termite.effect~Season+Region+Landuse,GreenOpEx,se)
-SUM.Termite.effect.green$SE<-SUM.Termite.effect.greenSE$Termite.effect
+SUM.Termite.effect.greenSD<-aggregate(Termite.effect~Season+Region+Landuse,GreenOpEx,sd)
+SUM.Termite.effect.green$sd<-SUM.Termite.effect.greenSD$Termite.effect
 SUM.Termite.effect.green$Decomposer <- "Termite"
 SUM.Termite.effect.green$LD <- "Labile Termite"
 SUM.Termite.effect.green$Littertype <- "Labile"
 colnames(SUM.Termite.effect.green)[(names(SUM.Termite.effect.green)== "Termite.effect")] <- "Massloss.per"
 #TERMITE RED
 SUM.Termite.effect.red<-aggregate(Termite.effect~Season+Region+Landuse,RedOpEx,mean)
-SUM.Termite.effect.redSE<-aggregate(Termite.effect~Season+Region+Landuse,RedOpEx,se)
-SUM.Termite.effect.red$SE<-SUM.Termite.effect.redSE$Termite.effect
+SUM.Termite.effect.redSD<-aggregate(Termite.effect~Season+Region+Landuse,RedOpEx,sd)
+SUM.Termite.effect.red$sd<-SUM.Termite.effect.redSD$Termite.effect
 SUM.Termite.effect.red$Decomposer <- "Termite"
 SUM.Termite.effect.red$LD <- "Recalcitrant Termite"
 SUM.Termite.effect.red$Littertype <- "Recalcitrant"
@@ -671,7 +675,7 @@ TM.effectMain$panel.titles3 <- factor(TM.effectMain$panel.titles3, levels = c("g
 
 
 #Barplot: termite effect####
-TM.effectMainP <- ggplot(data=TM.effectMain,aes(x=Landuse,y=Massloss.per,fill=Littertype,color=Littertype,alpha=Littertype,ymin=Massloss.per,ymax=Massloss.per+SE))
+TM.effectMainP <- ggplot(data=TM.effectMain,aes(x=Landuse,y=Massloss.per,fill=Littertype,color=Littertype,alpha=Littertype,ymin=Massloss.per,ymax=Massloss.per+sd))
 TM.effectMainP <- TM.effectMainP + geom_bar(stat="identity",position=position_dodge(),show.legend=T)
 TM.effectMainP <- TM.effectMainP + geom_errorbar(position=position_dodge(width=0.9),width=0,lwd=1,show.legend=F)
 TM.effectMainP <- TM.effectMainP + facet_wrap(~panel.titles3,ncol=1)
@@ -679,7 +683,7 @@ TM.effectMainP <- TM.effectMainP + scale_color_manual(values=c("palegreen4","ora
 TM.effectMainP <- TM.effectMainP + scale_fill_manual(values=c("green4","orangered3"))
 TM.effectMainP <- TM.effectMainP + scale_alpha_discrete(range=c(0.5,1))
 TM.effectMainP <- TM.effectMainP + ylab("Termite and macro-fauna only mass loss (%)")# + ggtitle("Termite effect")
-TM.effectMainP <- TM.effectMainP + scale_y_continuous(limits = c(0,max(TM.effectMain$Massloss.per+TM.effectMain$SE+20)),  expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80),position = "right")
+TM.effectMainP <- TM.effectMainP + scale_y_continuous(limits = c(0,max(TM.effectMain$Massloss.per+TM.effectMain$sd+20)),  expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80),position = "right")
 TM.effectMainP <- TM.effectMainP + guides(fill=guide_legend(override.aes = 
                                                               list(shape=21,
                                                                    size=4,
@@ -733,7 +737,7 @@ dpi = 600, limitsize = TRUE)
 
 #BLACK AND WHITE VERSION####
 #Barplot: termite effect####
-TM.effectMainP.BW <- ggplot(data=TM.effectMain,aes(x=Landuse,y=Massloss.per,fill=Littertype,color=Littertype,ymin=Massloss.per,ymax=Massloss.per+SE))#alpha=Littertype
+TM.effectMainP.BW <- ggplot(data=TM.effectMain,aes(x=Landuse,y=Massloss.per,fill=Littertype,color=Littertype,ymin=Massloss.per,ymax=Massloss.per+sd))#alpha=Littertype
 TM.effectMainP.BW <- TM.effectMainP.BW + geom_bar(stat="identity",position=position_dodge(width=0.9),show.legend=T)
 TM.effectMainP.BW <- TM.effectMainP.BW + geom_errorbar(position=position_dodge(width=0.9),width=0,lwd=1,show.legend=F)
 TM.effectMainP.BW <- TM.effectMainP.BW + facet_wrap(~panel.titles3,ncol=1)
@@ -741,7 +745,7 @@ TM.effectMainP.BW <- TM.effectMainP.BW + scale_color_manual(values=c("grey50","g
 TM.effectMainP.BW <- TM.effectMainP.BW + scale_fill_manual(values=c("grey50","grey20"))
 #TM.effectMainP.BW <- TM.effectMainP.BW + scale_alpha_discrete(range=c(0.5,1))
 TM.effectMainP.BW <- TM.effectMainP.BW + ylab("Termite and macro-fauna only mass loss (%)")# + ggtitle("Termite effect")
-TM.effectMainP.BW <- TM.effectMainP.BW + scale_y_continuous(limits = c(0,max(TM.effectMain$Massloss.per+TM.effectMain$SE+20)),  expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80),position = "right")
+TM.effectMainP.BW <- TM.effectMainP.BW + scale_y_continuous(limits = c(0,max(TM.effectMain$Massloss.per+TM.effectMain$sd+20)),  expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80),position = "right")
 TM.effectMainP.BW <- TM.effectMainP.BW + guides(fill=guide_legend(override.aes = 
                                                               list(shape=21,
                                                                    size=4,
@@ -826,9 +830,9 @@ se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Stand
 names(DataMain2)
 #Creating means by landuse (excluding blocks)
 DataMainmean2<-aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataMain2, mean)
-DataMainse2 <-aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataMain2, se)
-#Creating new column with the SE in the Mainmean dataset.
-DataMainmean2$SE <- DataMainse2$Massloss.per 
+DataMainsd2 <-aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataMain2, sd)
+#Creating new column with the sd in the Mainmean dataset.
+DataMainmean2$sd <- DataMainsd2$Massloss.per 
 # Fill by termite * landuse = empty = absence, filled = prescence 
 DataMainmean2$tea.hole<-as.factor(with(DataMainmean2, paste(Littertype, Treatment, sep=" ")))
 levels(DataMainmean2$tea.hole)
@@ -838,9 +842,9 @@ levels(DataMainmean2$Season)
 #Common garden means and standard error (Exclude blocks)
 names(DataCG)
 DataCGmean2 <- aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataCG, mean)
-DataCGse2 <-aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataCG, se)
-#Creating new column with the SE in the CGmean dataset.
-DataCGmean2$SE <- DataCGse2$Massloss.per
+DataCGsd2 <-aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataCG, sd)
+#Creating new column with the sd in the CGmean dataset.
+DataCGmean2$sd <- DataCGsd2$Massloss.per
 # Fill by termite * landuse = empty = absence, filled = prescence 
 DataCGmean2$tea.hole<-as.factor(with(DataCGmean2, paste(Littertype, Treatment, sep=" ")))
 levels(DataCGmean2$tea.hole)
@@ -875,16 +879,16 @@ DataCGmean3<-droplevels(DataCGmean2[DataCGmean2$Region!="Intermediate",])
 levels(DataCGmean3$Region)
 DataCGmean3<-rbind(DataCGmean3,wetregionCG,dryregionCG)
 
-#Putting CG means and SE with Main means and Se in the same dataset
+#Putting CG means and sd with Main means and sd in the same dataset
 names(DataMainmean2)
 names(DataCGmean2)
 length(DataCGmean3$Massloss.per)
 length(DataMainmean2$Massloss.per)
-#Renaming colums to restrict merging of the Massloss and SE from the two experiments, when using merge() later.
+#Renaming colums to restrict merging of the Massloss and sd from the two experiments, when using merge() later.
 colnames(DataMainmean2)[6]<-"massloss.perMain"
-colnames(DataMainmean2)[7]<-"SEMain"
+colnames(DataMainmean2)[7]<-"SDMain"
 colnames(DataCGmean3)[6]<-"massloss.perCG"
-colnames(DataCGmean3)[7]<-"SECG"
+colnames(DataCGmean3)[7]<-"SDCG"
 #Now that we have same amount of observations in both CG and Main dataset, we combine the massloss columns to create on dataset:
 MainCG <- left_join(DataMainmean2,DataCGmean3)
 
@@ -910,8 +914,8 @@ levels(MainCG$Landuse)#ok
 
 MainCGp <- ggplot(MainCG, aes(x=massloss.perMain, y=massloss.perCG, fill = tea.hole2, color = Littertype, alpha=Littertype, shape=Landuse))
 MainCGp <- MainCGp+geom_abline(slope=1, intercept=0, size =.95) 
-MainCGp <- MainCGp+geom_errorbar(aes(ymin = massloss.perCG-SECG,ymax = massloss.perCG+SECG),size=0.5,show.legend=F) 
-MainCGp <- MainCGp+geom_errorbarh(aes(xmin = massloss.perMain-SEMain,xmax = massloss.perMain+SEMain),size=0.5,show.legend=F)
+MainCGp <- MainCGp+geom_errorbar(aes(ymin = massloss.perCG-SDCG,ymax = massloss.perCG+SDCG),size=0.5,show.legend=F) 
+MainCGp <- MainCGp+geom_errorbarh(aes(xmin = massloss.perMain-SDMain,xmax = massloss.perMain+SDMain),size=0.5,show.legend=F)
 MainCGp <- MainCGp+geom_point(data=MainCG,size=4,stroke=1.5,show.legend=T)
 MainCGp <- MainCGp+scale_fill_manual(values=c("green4","orangered3","white","white"))
 MainCGp <- MainCGp+scale_color_manual(values=c("palegreen4","orangered3"))
@@ -994,8 +998,8 @@ ggsave("Termites/Results/Figures/CommongardenvsMain.png",
 #Plotting CG####
 MainCGp.BW <- ggplot(MainCG, aes(x=massloss.perMain, y=massloss.perCG, fill = tea.hole2, color = Littertype, shape=Landuse))#alpha=Littertype
 MainCGp.BW <- MainCGp.BW+geom_abline(slope=1, intercept=0, size =.95) 
-MainCGp.BW <- MainCGp.BW+geom_errorbar(aes(ymin = massloss.perCG-SECG,ymax = massloss.perCG+SECG),size=0.5,show.legend=F) 
-MainCGp.BW <- MainCGp.BW+geom_errorbarh(aes(xmin = massloss.perMain-SEMain,xmax = massloss.perMain+SEMain),size=0.5,show.legend=F)
+MainCGp.BW <- MainCGp.BW+geom_errorbar(aes(ymin = massloss.perCG-SDCG,ymax = massloss.perCG+SDCG),size=0.5,show.legend=F) 
+MainCGp.BW <- MainCGp.BW+geom_errorbarh(aes(xmin = massloss.perMain-SDMain,xmax = massloss.perMain+SDMain),size=0.5,show.legend=F)
 MainCGp.BW <- MainCGp.BW+geom_point(data=MainCG,size=4,stroke=1.5,show.legend=T)
 MainCGp.BW <- MainCGp.BW+scale_fill_manual(values=c("grey50","grey20","white","white"))
 MainCGp.BW <- MainCGp.BW+scale_color_manual(values=c("grey50","grey20"))
@@ -1070,6 +1074,7 @@ MainCGp.BW
 ggsave("Termites/Results/Figures/BW.CommongardenvsMain.png",
        width= 20, height = 18,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
+
 
 #### Statistical models GLMM ####
 #General massloss models, using Massloss.per as response varible####
@@ -2769,20 +2774,120 @@ I5a2$summary.hyperpar               # Precision
 
 
 #---------------------------------------------------------####
+#For descripton table in paper####
+
+#Creating a texture table####
+head(Soildata)
+Soil.nut.sum <- aggregate(cbind(N.per,C.per,C.N,OC..)~Season+Region+Site+Landuse,Soildata,mean)
+Soil.nut.sum.se <- aggregate(cbind(N.per,C.per,C.N,OC..) ~Season+Region+Site+Landuse,Soildata,se)
+Soil.nut.sum.sd <- aggregate(cbind(N.per,C.per,C.N,OC..) ~Season+Region+Site+Landuse,Soildata,sd)
+
+Soil.nut.sum$SE.N <- Soil.nut.sum.se$N.per
+Soil.nut.sum$SE.C <- Soil.nut.sum.se$C.per
+Soil.nut.sum$SE.C.N <- Soil.nut.sum.se$C.N
+Soil.nut.sum$SE.OC <- Soil.nut.sum.se$OC..
+
+Soil.nut.sum$SD.N <- Soil.nut.sum.sd$N.per
+Soil.nut.sum$SD.C <- Soil.nut.sum.sd$C.per
+Soil.nut.sum$SD.C.N <- Soil.nut.sum.sd$C.N
+Soil.nut.sum$SD.OC <- Soil.nut.sum.sd$OC
+
+head(Soil.nut.sum)
+
+write.csv(Soil.nut.sum,file="Termites/Results/Soil.nutrient_Summary.csv")
+
+Soiltext.sum <- aggregate(cbind(Sandcorr, Siltcorr, Claycorr)~Region+Site+Landuse,Soildata,mean)
+Soiltext.sum.se <- aggregate(cbind(Sandcorr, Siltcorr, Claycorr)~Region+Site+Landuse,Soildata,se)
+Soiltext.sum.sd <- aggregate(cbind(Sandcorr, Siltcorr, Claycorr)~Region+Site+Landuse,Soildata,sd)
+
+Soiltext.sum$SE.Sand <- Soiltext.sum.se$Sandcorr
+Soiltext.sum$SE.Silt <- Soiltext.sum.se$Siltcorr
+Soiltext.sum$SE.Clay <- Soiltext.sum.se$Claycorr
+Soiltext.sum$SD.Sand <- Soiltext.sum.sd$Sandcorr
+Soiltext.sum$SD.Silt <- Soiltext.sum.sd$Siltcorr
+Soiltext.sum$SD.Clay <- Soiltext.sum.sd$Claycorr
+Soiltext.sum$sum <- Soiltext.sum$Sandcorr + Soiltext.sum$Siltcorr + Soiltext.sum$Claycorr
+View(Soiltext.sum)
+Soiltext.sum<- Soiltext.sum[,c(1,2,3,4,7,10,5,8,11,6,9,12)] #Reorder columns
+
+write.csv(Soiltext.sum,file="Termites/Results/Soiltext_Summary.csv")
+
+#Separate agriculture blocks 
+Soiltext.Ag <- droplevels(Soildata[Soildata$Landuse=="Agriculture",])
+#Create a new columns refering to who owns which block (Shabani, Mzee etc)
+Soiltext.Ag$Landowner <- as.factor(with(Soiltext.Ag,
+                                        ifelse(Site %in% c("Makao") &
+                                                 Block == "1", 
+                                               "Shabani",
+                                               ifelse(Site %in% c("Makao") &
+                                                        Block == "2", 
+                                                      "Shabani",
+                                                      ifelse(Site %in% c("Makao") &
+                                                               Block == "3",
+                                                             "Bonifas",
+                                                             ifelse(Site %in% c("Makao") &
+                                                                      Block == "4",
+                                                                    "Bonifas",
+                                                                    ifelse(Site %in% c("Mwantimba") &
+                                                                             Block == "1",
+                                                                           "Mzee Shabani",
+                                                                           ifelse(Site %in% c("Mwantimba") &
+                                                                                    Block == "2",
+                                                                                  "Mzee Shabani",
+                                                                                  ifelse(Site %in% c("Mwantimba") &
+                                                                                           Block == "3",
+                                                                                         "Mzee Majebere",
+                                                                                         ifelse(Site %in% c("Mwantimba") &
+                                                                                                  Block == "4",
+                                                                                                "Mzee Majebere","WRONG"))))))))))
+Soiltext.Ag.sum <- aggregate(cbind(Sandcorr, Siltcorr, Claycorr)~Region+Site+Landowner,Soiltext.Ag,mean)
+Soiltext.Ag.sum.se <- aggregate(cbind(Sandcorr, Siltcorr, Claycorr)~Region+Site+Landowner,Soiltext.Ag,se)
+Soiltext.Ag.sum.sd <- aggregate(cbind(Sandcorr, Siltcorr, Claycorr)~Region+Site+Landowner,Soiltext.Ag,sd)
+
+Soiltext.Ag.sum$SE.Sand <- Soiltext.Ag.sum.se$Sandcorr
+Soiltext.Ag.sum$SE.Silt <- Soiltext.Ag.sum.se$Siltcorr
+Soiltext.Ag.sum$SE.Clay <- Soiltext.Ag.sum.se$Claycorr
+Soiltext.Ag.sum$SD.Sand <- Soiltext.Ag.sum.sd$Sandcorr
+Soiltext.Ag.sum$SD.Silt <- Soiltext.Ag.sum.sd$Siltcorr
+Soiltext.Ag.sum$SD.Clay <- Soiltext.Ag.sum.sd$Claycorr
+
+Soiltext.Ag.sum<- Soiltext.Ag.sum[,c(1,2,3,4,7,10,5,8,11,6,9,12)] #Reorder columns
+Soiltext.Ag.sum$Field <- c(2,2,1,1)
+View(Soiltext.Ag.sum)
+write.csv(Soiltext.Ag.sum,file="Termites/Results/Soiltext_Summary_subset_agriculture.csv")
+
+#PH soil####
+soil.ph <- read.csv('Termites/Soil data/soil_pH.csv', sep=';',dec='.')
+head(soil.ph)
+soil.ph.sum <- aggregate(pH~Season+Region+Landuse,soil.ph,mean)
+soil.ph.sum.se <- aggregate(pH~Season+Region+Landuse,soil.ph,se)
+soil.ph.sum.sd <- aggregate(pH~Season+Region+Landuse,soil.ph,sd)
+
+soil.ph.sum$SE.pH <- soil.ph.sum.se$pH
+soil.ph.sum$SD.pH <- soil.ph.sum.sd$pH
+head(soil.ph.sum)
+write.csv(soil.ph.sum,file="Termites/Soil data/soil_pH.mean.se.sd.csv")
+
+
 #Cleaning dataset for ABS deliverable####
 head(Fulldata) #This is data with all variables: 
 Fulldata2 <- Fulldata
 write.csv(Fulldata,file="Termites/Fulldata.csv")
-Fire.data <- read.csv("Termites/Fire data.csv",sep=";")
+Fire.herb.data <- read.csv("Termites/Fire data.csv",sep=";")
 Soilclass.data <- read.csv("Termites/soil data/Soil class_characterisitc.csv",sep=";")
 
+
 names(Fulldata)
-names(Fire.data)
+names(Soilclass.data)
 levels(Fulldata$Landuse)
-levels(Fire.data$Landuse)
+levels(Fire.herb.data$Landuse)
+colnames(Fire.herb.data)[(names(Fire.herb.data) == "ï..Experiment")] <- "Experiment"
+colnames(Soilclass.data)[(names(Soilclass.data) == "ï..Experiment")] <- "Experiment"
+Fire.herb.data$Experiment <- factor(Fire.herb.data$Experiment,levels=c("Main","CG"))
+Soilclass.data$Block <- as.factor(Soilclass.data$Block)
+Fulldata2 <- left_join(Fulldata,Fire.herb.data,by=c("Experiment","Season","Site","Region","Landuse"))
+Fulldata3 <- left_join(Fulldata2,Soilclass.data,by=c("Site","Region","Block","Landuse"))
 
-Fulldata2 <- left_join(Fulldata,Fire.data,by=c("Season","Site","Region","Landuse"))
-View(Fulldata2)
-
+write.csv(Fulldata3,file="Termites/Fulldata.csv")
 
 
