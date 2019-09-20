@@ -1311,7 +1311,6 @@ anova(LabileMainModFINAL2b,Labmod5)
 anova(LabileMainModFINAL2b,Labmod6)
 anova(LabileMainModFINAL2b,Labmod7)
 
-
 #                    Df     AIC     BIC logLik deviance  Chisq Chi Df Pr(>Chisq)    
 #LabileMainModFINAL2 15 -1335.2 -1267.1 682.62  -1365.2 51.077      2  8.106e-12 *** #Season:Region:Landuse
 #Labmod  13 -1288.16 -1229.13 657.08 -1314.16 505.51      1  < 2.2e-16 *** # Season:Region
@@ -1793,10 +1792,10 @@ levels(DeltaMoistsub$landuse)[DeltaMoistsub$area=="Seronera"]
 DeltaMoistsub2$Landuse<-as.factor(with(DeltaMoistsub2, paste(area,landuse, sep="-")))
 MeanM$Landuse<-as.factor(with(MeanM, paste(Region, landuse, sep="-")))
 
-levels(DeltaMoistsub2$Landuse)<-c("Agriculture", "Pasture", "Wildlife protected", "Agriculture",
-"Pasture", "Common garden","Wildlife protected")
-levels(MeanM$Landuse)<-c("Agriculture", "Pasture", "Wildlife protected","Common garden", "Agriculture",
-                         "Pasture","Wildlife protected")
+levels(DeltaMoistsub2$Landuse)<-c("Agriculture", "Pasture", "Wildlife", "Agriculture",
+"Pasture", "Common garden","Wildlife")
+levels(MeanM$Landuse)<-c("Agriculture", "Pasture", "Wildlife","Common garden", "Agriculture",
+                         "Pasture","Wildlife")
 
 max(DeltaMoistsub2$Moisture.m3.m3)
 tail(DeltaMoistsub2$date2)
@@ -1811,7 +1810,19 @@ levels(DeltaMoistsub2$Season1)<-c("Permanent logger","Spot measurement","Wet Sea
 MeanM$Season1<-as.factor(rep(1:4))
 levels(MeanM$Season1)<-c("Permanent logger","Spot measurement","Wet Season","Dry Season")
 
+# Combine landuse and rainfaill
+DeltaMoistsub2$LandRain<-as.factor(with(DeltaMoistsub2, paste(Region,Landuse, sep="-")))
+MeanM$LandRain<-as.factor(with(MeanM, paste(Region,Landuse, sep="-")))
 
+levels(DeltaMoistsub2$LandRain)
+DeltaMoistsub2$LandRain<- factor(DeltaMoistsub2$LandRain, levels = c(
+"Mesic region-Agriculture","Wet region-Agriculture" ,   "Mesic region-Pasture",  "Wet region-Pasture" ,"Mesic region-Wildlife","Wet region-Wildlife","Mesic-wet region-Common garden"))
+MeanM$LandRain<- factor(MeanM$LandRain, levels = c(
+  "Mesic region-Agriculture","Wet region-Agriculture" ,   "Mesic region-Pasture",  "Wet region-Pasture" ,"Mesic region-Wildlife","Wet region-Wildlife","Mesic-wet region-Common garden"))
+levels(DeltaMoistsub2$LandRain)<-c("Mesic region - Agriculture","Wet region - Agriculture" ,   "Mesic region - Pasture",  "Wet region - Pasture" ,"Mesic region - Wildlife","Wet region - Wildlife","Mesic-wet region - \n Common garden")
+levels(MeanM$LandRain)<-c("Mesic region - Agriculture","Wet region - Agriculture" ,   "Mesic region - Pasture",  "Wet region - Pasture" ,"Mesic region - Wildlife","Wet region - Wildlife","Mesic-wet region - \n Common garden")
+
+#library(lemon) # Facet wrap repeat
 # Soil moisture logger and spot measuregement graph
 pM<-ggplot(data=DeltaMoistsub2,aes(x=date2,y=Moisture.m3.m3, fill=Season1))
 pM<-pM+geom_rect(aes(xmin =as.Date("2017-01-26"), xmax =as.Date("2017-03-27"), ymin=-0.02,ymax=max(DeltaMoistsub2$Moisture.m3.m3)),fill = "light grey", colour="grey")
@@ -1820,12 +1831,12 @@ pM<-pM+scale_y_continuous(limits=c(-0.02,max(DeltaMoistsub2$Moisture.m3.m3)+0.01
 pM<-pM+geom_point(fill="white", colour="grey50", shape=21, size=1.5, show.legend=T)
 pM<-pM+geom_errorbar(data=MeanM,aes(y=moist/scaleFactorM,ymax=SeUp/scaleFactorM,ymin=SeLo/scaleFactorM),colour="black",width=.1)
 pM<-pM+geom_point(data=MeanM,aes(y=moist/scaleFactorM),size=3,colour="black",fill="black",shape=22,stroke=1,show.legend=T)
-pM<-pM+facet_wrap(~Landuse+Region,ncol=2, scale="fixed")
+#pM<-pM+facet_rep_wrap(~LandRain,ncol=2,scales="fixed",repeat.tick.labels = 'x')
+pM<-pM+facet_wrap(~LandRain,ncol=2, scale="fixed")
 pM<-pM+scale_x_date(date_breaks = "3 month", date_labels = "%b", limits=c(as.Date("2017-01-01"),max=as.Date("2017-12-31")))
 pM<-pM+ylab(expression(paste("Logger soil moisture (",m^-3," ",m^-3,")"))) + xlab("   Time (month)")
 pM<-pM+theme_classic() +
   theme(plot.background = element_blank()
-        #,panel.grid.major = element_blank()
         ,panel.grid.minor = element_blank()
         ,panel.border = element_blank() 
         ,panel.grid.major.x = element_blank() 
@@ -1838,19 +1849,22 @@ pM<-pM+theme_classic() +
         ,axis.text.x = element_text(size=10,margin=margin(2.5,2.5,2.5,2.5,"mm"))
         ,axis.text.y = element_text(size=10,margin=margin(2.5,2.5,2.5,2.5,"mm"))
         ,axis.text.y.right =element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
-        #,legend.position = c(0.25, 0.82)
         ,plot.margin = unit(c(5,5,5,5), "mm")
         ,strip.text = element_text(size = 10,hjust=0,angle=0)
         ,strip.background = element_blank()
         ,legend.position = c(.86, .1)
         ,legend.spacing.y = unit(1, "mm")
-        #,strip.placement = 
         ,strip.text.x = element_text(margin = margin(.5,.5,.5,.5, "mm"))) +
   theme(axis.line = element_line(color = 'black'))
 
-pM<-pM+annotate(geom = 'segment', y = -0.02, yend = -0.02, color = 'black', x = as.Date("2017-01-01"), xend = as.Date("2017-12-31"), size = .75) 
+pM<-pM+annotate(geom = 'segment', y = -0.02, yend = -0.02, color = 'black', x = as.Date("2017-01-01"), xend = as.Date("2017-12-31"), size = .755) 
 #pM<-pM+annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = as.Date("2017-01-01"), xend = as.Date("2017-01-01"), size = .5) 
 #pM<-pM+annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = as.Date("2017-12-31"), xend = as.Date("2017-12-31"), size = .5) 
+
+pM<-pM+annotate("text",x=c(as.Date("2017-01-10")),
+                y=c(0.385), label=c("a","b","c","d","e","f","g"),
+                family = "", fontface = "bold", size=4)
+
 
 pM<-pM+guides(fill=guide_legend("Measurement type & Season",override.aes = 
                                           list(shape=c(21,22,22,22),
