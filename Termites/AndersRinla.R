@@ -239,9 +239,18 @@ Mainexp$panel.titles3 <- as.factor(with(Mainexp, ifelse(panel.titles2 %in% c("Dr
                                                                                   ifelse(panel.titles2 %in% c("Wet Season - Wet Region - Rainfall 196mm"), "Wet Season - Wet Re","WRONG"))))))
 levels(Mainexp$panel.titles3)
 
+#Adjusting the SD error to not be below zero or above 100%
+Mainexp$sdlow <- Mainexp$Massloss.per - Mainexp$sd
+Mainexp$sdhigh <- Mainexp$Massloss.per+Mainexp$sd
+Mainexp$sdlow[Mainexp$sdlow<0] <- 0
+Mainexp$sdhigh[Mainexp$sdhigh>100] <- 100 
+
+#Minor change in landuse name#
+dummy <- Mainexp$Landuse
+Mainexp$Landuse <- gsub("Wild","Wildlife",Mainexp$Landuse)
 
 ###Raw massloss graph####
-Mainp <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=(Massloss.per-sd),ymax=(Massloss.per+sd),fill = Treatment, color = Littertype,alpha=Littertype))
+Mainp <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=sdlow,ymax=sdhigh,fill = Treatment, color = Littertype,alpha=Littertype))
 Mainp <- Mainp+geom_errorbar(width=0.5,size=0.5,position=position_dodge(width=.35),show.legend=F)
 Mainp <- Mainp+geom_point(size=2.2,stroke=1,position=position_dodge(width=.35),show.legend=T, shape=21)
 Mainp <- Mainp+facet_wrap(~panel.titles3, scale ="fixed", ncol=1)
@@ -263,7 +272,7 @@ Mainp <- Mainp+guides(color=FALSE)#guide_legend(override.aes =
 #           fill=c("green4", "orangered3"),
 #          color=c("green4", "orangered3"))))
 
-Mainp <- Mainp+scale_y_continuous(limits = c(0,max(Mainexp$Massloss.per+Mainexp$sd+10)), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))
+Mainp <- Mainp+scale_y_continuous(limits = c(0,100),expand = c(0,0),breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100))
 #Mainp <- Mainp+scale_x_discrete(expand = c(0,0))
 Mainp <- Mainp+xlab("Land-use")+ylab("Mass loss (%)") #+ ggtitle("What title here?")
 Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
@@ -301,7 +310,7 @@ Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
 Mainp <- Mainp+annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 0.8)
 Mainp <- Mainp+annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 0.8)
 
-Mainp <- Mainp+annotate("text",x=.6:.6:.6:.6,y=80:80:80:80, label=c("a","b","c","d"),
+Mainp <- Mainp+annotate("text",x=.6:.6:.6:.6,y=90:90:90:90, label=c("a","b","c","d"),
                         family = "", fontface = "bold", size=4)
 
 Mainp
@@ -309,7 +318,7 @@ Mainp
 
 #BLACK AND WHITE VERSION####
 ###Raw massloss graph####
-Mainp.BW <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=(Massloss.per-sd),ymax=(Massloss.per+sd),fill = Treatment, color = Littertype))#,alpha=Littertype))
+Mainp.BW <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=sdlow,ymax=sdhigh,fill = Treatment, color = Littertype))#,alpha=Littertype))
 Mainp.BW <- Mainp.BW+geom_errorbar(width=0.5,size=0.5,position=position_dodge(width=.35),show.legend=F)
 Mainp.BW <- Mainp.BW+geom_point(size=2.2,stroke=1,position=position_dodge(width=.35),show.legend=T, shape=21)
 Mainp.BW <- Mainp.BW+facet_wrap(~panel.titles3, scale ="fixed", ncol=1)
@@ -331,7 +340,7 @@ Mainp.BW <- Mainp.BW+guides(color=FALSE)#guide_legend(override.aes =
 #           fill=c("green4", "orangered3"),
 #          color=c("green4", "orangered3"))))
 
-Mainp.BW <- Mainp.BW+scale_y_continuous(limits = c(0,max(Mainexp$Massloss.per+Mainexp$sd+10)), expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80))
+Mainp.BW <- Mainp.BW+scale_y_continuous(limits = c(0,100),expand = c(0,0),breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100))
 #Mainp.BW <- Mainp.BW+scale_x_discrete(expand = c(0,0))
 Mainp.BW <- Mainp.BW+xlab("Land-use")+ylab("Mass loss (%)") #+ ggtitle("What title here?")
 Mainp.BW <- Mainp.BW+theme(rect = element_rect(fill ="transparent")
@@ -369,7 +378,7 @@ Mainp.BW <- Mainp.BW+theme(rect = element_rect(fill ="transparent")
 Mainp.BW <- Mainp.BW+annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 0.8)
 Mainp.BW <- Mainp.BW+annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 0.8)
 
-Mainp.BW <- Mainp.BW+annotate("text",x=.6:.6:.6:.6,y=80:80:80:80, label=c("a","b","c","d"),
+Mainp.BW <- Mainp.BW+annotate("text",x=.6:.6:.6:.6,y=90:90:90:90, label=c("a","b","c","d"),
                         family = "", fontface = "bold", size=4)
 
 Mainp.BW
@@ -400,68 +409,68 @@ Mainp.BW
 11.830754- 8.981508 # 3% more wildlife protected
 
 #######
-### Barplots: termite effect not in use for the final barplot.####
-#### See next similar chapter####
-####Starting from "Termitee effect dataset (CG+MAin)####
 
+### Script here not in use. Barplots: termite effect not in use for the final barplot.####
+#### See next similar chapter starting from "Termitee effect dataset (CG+MAin)####
 #Seperate out datasets####
-Greenop<-DataMain[DataMain$Littertype=="Green" & DataMain$Treatment=="Open",] # Only Green Open data
-Greenex<-DataMain[DataMain$Littertype=="Green" & DataMain$Treatment=="Exclosed",] # Only Green Open data
-Redop<-DataMain[DataMain$Littertype=="Rooibos" & DataMain$Treatment=="Open",] # Only Green Open data
-Redex<-DataMain[DataMain$Littertype=="Rooibos" & DataMain$Treatment=="Exclosed",] # Only Green Open data
-names(Greenop)
+# Greenop<-DataMain[DataMain$Littertype=="Green" & DataMain$Treatment=="Open",] # Only Green Open data
+# Greenex<-DataMain[DataMain$Littertype=="Green" & DataMain$Treatment=="Exclosed",] # Only Green Open data
+# Redop<-DataMain[DataMain$Littertype=="Rooibos" & DataMain$Treatment=="Open",] # Only Green Open data
+# Redex<-DataMain[DataMain$Littertype=="Rooibos" & DataMain$Treatment=="Exclosed",] # Only Green Open data
+# names(Greenop)
+# 
+# #Creating dataframe with termite and microbe effect variable=Exlosed and Termite effect=Open minus exclosed):
+# GreendataT <- Greenop
+# GreendataM <- Greenop
+# 
+# GreendataM$Massloss.per <- Greenex$Massloss.per
+# GreendataT$Massloss.per <- abs(Greenop$Massloss.per-Greenex$Massloss.per)
+# GreendataT$Massloss.per <- (Greenop$Massloss.per-Greenex$Massloss.per)
+# GreendataT$Massloss.per[GreendataT$Massloss.per<0] <- 0
+# 
+# ReddataT <- Redop
+# ReddataM <- Redop
+# ReddataM$Massloss.per<-Redex$Massloss.per
+# ReddataT$Massloss.per<- (Redop$Massloss.per-Redex$Massloss.per)
+# ReddataT$Massloss.per[ReddataT$Massloss.per<0] <- 0
+# 
+# #Means and error
+# se<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+# #Redtea
+# MeanReddataM<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataM,mean)
+# MeanReddataMSE<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataM,sd)
+# MeanReddataM$sd<-MeanReddataMSE$Massloss.per
+# MeanReddataM$Decomposer <- "Microbe"
+# 
+# MeanReddataT<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataT,mean)
+# MeanReddataTSE<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataT,sd)
+# MeanReddataT$sd<-MeanReddataTSE$Massloss.per
+# MeanReddataT$Decomposer <- "Termite"
+# 
+# 
+# #combine decomposition of red tea by termite and microbe:
+# ReddataTM <- rbind(MeanReddataM,MeanReddataT)
+# ReddataTM$Littertype <- "Recalcitrant"
+# #Green tea
+# MeanGreendataM<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataM,mean)
+# MeanGreendataMSE<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataM,sd)
+# MeanGreendataM$sd<-MeanGreendataMSE$Massloss.per
+# MeanGreendataM$Decomposer <- "Microbe"
+# 
+# MeanGreendataT<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataT,mean)
+# MeanGreendataTSE<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataT,sd)
+# MeanGreendataT$sd<-MeanGreendataTSE$Massloss.per
+# MeanGreendataT$Decomposer <- "Termite"
+# 
+# #Combine decomposition of red tea by termite and microbe:
+# GreendataTM <- rbind(MeanGreendataM,MeanGreendataT)
+# GreendataTM$Littertype <- "Labile"
+# 
+# #Combine both littertypes:
+# TMMasslossMain <- rbind(GreendataTM,ReddataTM) 
+# TMMasslossMain$Decomposer<-as.factor(TMMasslossMain$Decomposer)
+# levels(TMMasslossMain$Decomposer)
 
-#Creating dataframe with termite and microbe effect variable=Exlosed and Termite effect=Open minus exclosed):
-GreendataT <- Greenop
-GreendataM <- Greenop
-
-GreendataM$Massloss.per <- Greenex$Massloss.per
-GreendataT$Massloss.per <- abs(Greenop$Massloss.per-Greenex$Massloss.per)
-GreendataT$Massloss.per <- (Greenop$Massloss.per-Greenex$Massloss.per)
-GreendataT$Massloss.per[GreendataT$Massloss.per<0] <- 0
-
-ReddataT <- Redop
-ReddataM <- Redop
-ReddataM$Massloss.per<-Redex$Massloss.per
-ReddataT$Massloss.per<- (Redop$Massloss.per-Redex$Massloss.per)
-ReddataT$Massloss.per[ReddataT$Massloss.per<0] <- 0
-
-#Means and error
-se<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
-#Redtea
-MeanReddataM<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataM,mean)
-MeanReddataMSE<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataM,sd)
-MeanReddataM$sd<-MeanReddataMSE$Massloss.per
-MeanReddataM$Decomposer <- "Microbe"
-
-MeanReddataT<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataT,mean)
-MeanReddataTSE<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataT,sd)
-MeanReddataT$sd<-MeanReddataTSE$Massloss.per
-MeanReddataT$Decomposer <- "Termite"
-
-
-#combine decomposition of red tea by termite and microbe:
-ReddataTM <- rbind(MeanReddataM,MeanReddataT)
-ReddataTM$Littertype <- "Recalcitrant"
-#Green tea
-MeanGreendataM<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataM,mean)
-MeanGreendataMSE<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataM,sd)
-MeanGreendataM$sd<-MeanGreendataMSE$Massloss.per
-MeanGreendataM$Decomposer <- "Microbe"
-
-MeanGreendataT<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataT,mean)
-MeanGreendataTSE<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataT,sd)
-MeanGreendataT$sd<-MeanGreendataTSE$Massloss.per
-MeanGreendataT$Decomposer <- "Termite"
-
-#Combine decomposition of red tea by termite and microbe:
-GreendataTM <- rbind(MeanGreendataM,MeanGreendataT)
-GreendataTM$Littertype <- "Labile"
-
-#Combine both littertypes:
-TMMasslossMain <- rbind(GreendataTM,ReddataTM) 
-TMMasslossMain$Decomposer<-as.factor(TMMasslossMain$Decomposer)
-levels(TMMasslossMain$Decomposer)
 
 #Termite effect Dataset (CG+Main)####
 Greenop<-Fulldata[Fulldata$Littertype=="Green" & Fulldata$Treatment=="Open",] # Only Green Open data
@@ -485,7 +494,7 @@ GreenOpEx$Termite.effect <- (GreenOpEx$Open.Massloss-GreenOpEx$Excl.Massloss)
 length(GreenOpEx$Termite.effect[GreenOpEx$Termite.effect < 0]) #268 values are negative (excl>op)
 #Above half of the litter has no termite effect 268/440 teabags.
 LabileTermEff <- GreenOpEx
-#Setting all negative values below zero:
+#Setting all negative values to zero:
 LabileTermEff$Termite.effect[LabileTermEff$Termite.effect < 0] <- 0
 
 #For red littertype dataset
@@ -504,7 +513,7 @@ RedOpEx$Termite.effect <- (RedOpEx$Open.Massloss-RedOpEx$Excl.Massloss)
 length(RedOpEx$Termite.effect[RedOpEx$Termite.effect < 0]) #139 values are negative (excl>op)
 #Below half of the litter has no termite effect 139/440 teabags --> Great!
 RecalTermEff <- RedOpEx
-#Setting all negative values below zero:
+#Setting all negative values to zero:
 RecalTermEff$Termite.effect[RecalTermEff$Termite.effect < 0] <- 0
 
 # Count zeroes by season 
@@ -671,11 +680,17 @@ TM.effectMain$panel.titles3 <- as.factor(with(TM.effectMain, ifelse(panel.titles
 levels(TM.effectMain$panel.titles3)
 TM.effectMain$panel.titles3 <- factor(TM.effectMain$panel.titles3, levels = c("gion - Rainfall 8mm","gion - Rainfall 150mm","gion - Rainfall 197mm", "gion - Rainfall 196mm"))
 
+#Adjusting the SD error to not be below zero or above 100%
+TM.effectMain$sdlow <- TM.effectMain$Massloss.per - TM.effectMain$sd
+TM.effectMain$sdhigh <- TM.effectMain$Massloss.per+TM.effectMain$sd
+TM.effectMain$sdlow[TM.effectMain$sdlow<0] <- 0
+TM.effectMain$sdhigh[TM.effectMain$sdhigh>100] <- 100 
 
-
+#Minor change in landuse name#
+TM.effectMain$Landuse <- gsub("Wild","Wildlife",TM.effectMain$Landuse)
 
 #Barplot: termite effect####
-TM.effectMainP <- ggplot(data=TM.effectMain,aes(x=Landuse,y=Massloss.per,fill=Littertype,color=Littertype,alpha=Littertype,ymin=Massloss.per,ymax=Massloss.per+sd))
+TM.effectMainP <- ggplot(data=TM.effectMain,aes(x=Landuse,y=Massloss.per,fill=Littertype,color=Littertype,alpha=Littertype,ymin=sdlow,ymax=sdhigh))
 TM.effectMainP <- TM.effectMainP + geom_bar(stat="identity",position=position_dodge(),show.legend=T)
 TM.effectMainP <- TM.effectMainP + geom_errorbar(position=position_dodge(width=0.9),width=0,lwd=1,show.legend=F)
 TM.effectMainP <- TM.effectMainP + facet_wrap(~panel.titles3,ncol=1)
@@ -683,7 +698,7 @@ TM.effectMainP <- TM.effectMainP + scale_color_manual(values=c("palegreen4","ora
 TM.effectMainP <- TM.effectMainP + scale_fill_manual(values=c("green4","orangered3"))
 TM.effectMainP <- TM.effectMainP + scale_alpha_discrete(range=c(0.5,1))
 TM.effectMainP <- TM.effectMainP + ylab("Termite and macro-fauna only mass loss (%)")# + ggtitle("Termite effect")
-TM.effectMainP <- TM.effectMainP + scale_y_continuous(limits = c(0,max(TM.effectMain$Massloss.per+TM.effectMain$sd+20)),  expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80),position = "right")
+TM.effectMainP <- TM.effectMainP + scale_y_continuous(limits = c(0,100),expand = c(0,0),breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100),position = "right")
 TM.effectMainP <- TM.effectMainP + guides(fill=guide_legend(override.aes = 
                                                               list(shape=21,
                                                                    size=4,
@@ -726,7 +741,7 @@ TM.effectMainP <- TM.effectMainP + theme(
 TM.effectMainP <- TM.effectMainP+annotate(geom = "segment", x = Inf, xend = Inf, y = -Inf, yend = Inf, size = 0.8)
 TM.effectMainP <- TM.effectMainP+annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 0.8)
 
-TM.effectMainP <- TM.effectMainP+annotate("text",x=.6:.6:.6:.6,y=60:60:60:60, label=c("e","f","g","h"),
+TM.effectMainP <- TM.effectMainP+annotate("text",x=.6:.6:.6:.6,y=90:90:90:90, label=c("e","f","g","h"),
                         family = "", fontface = "bold", size=4)
 
 TM.effectMainP
@@ -745,7 +760,7 @@ TM.effectMainP.BW <- TM.effectMainP.BW + scale_color_manual(values=c("grey50","g
 TM.effectMainP.BW <- TM.effectMainP.BW + scale_fill_manual(values=c("grey50","grey20"))
 #TM.effectMainP.BW <- TM.effectMainP.BW + scale_alpha_discrete(range=c(0.5,1))
 TM.effectMainP.BW <- TM.effectMainP.BW + ylab("Termite and macro-fauna only mass loss (%)")# + ggtitle("Termite effect")
-TM.effectMainP.BW <- TM.effectMainP.BW + scale_y_continuous(limits = c(0,max(TM.effectMain$Massloss.per+TM.effectMain$sd+20)),  expand = c(0,0),breaks = c(0,20,40,60,80), labels = c(0,20,40,60,80),position = "right")
+TM.effectMainP.BW <- TM.effectMainP.BW + scale_y_continuous(limits = c(0,100),expand = c(0,0),breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100),position = "right")
 TM.effectMainP.BW <- TM.effectMainP.BW + guides(fill=guide_legend(override.aes = 
                                                               list(shape=21,
                                                                    size=4,
@@ -788,7 +803,7 @@ TM.effectMainP.BW <- TM.effectMainP.BW + theme(
 TM.effectMainP.BW <- TM.effectMainP.BW+annotate(geom = "segment", x = Inf, xend = Inf, y = -Inf, yend = Inf, size = 0.8)
 TM.effectMainP.BW <- TM.effectMainP.BW+annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 0.8)
 
-TM.effectMainP.BW <- TM.effectMainP.BW+annotate("text",x=.6:.6:.6:.6,y=60:60:60:60, label=c("e","f","g","h"),
+TM.effectMainP.BW <- TM.effectMainP.BW+annotate("text",x=.6:.6:.6:.6,y=90:90:90:90, label=c("e","f","g","h"),
                                           family = "", fontface = "bold", size=4)
 
 TM.effectMainP.BW
@@ -820,7 +835,6 @@ ggsave("Termites/Results/Figures/BW.raw.termiteeffect.plot.png",
        dpi = 600, limitsize = TRUE)
 
 #Common Garden graph####
-
 DataCG2<-droplevels(Fulldata[Fulldata$Experiment=="CG",]) # Only commongarden data
 DataMain2<-droplevels(Fulldata[Fulldata$Experiment=="Main",]) #Only landuse experiement data
 #But first sorting the commongarden data and main experiemnt for GGplot:
@@ -894,13 +908,32 @@ MainCG <- left_join(DataMainmean2,DataCGmean3)
 
 #Now, ready for graphing: Main experiment vs CG
 #library(ggplot2)
-levels(MainCG$Treatment)
+levels(MainCG$tea.hole2)
 levels(MainCG$Littertype)
 levels(MainCG$tea.hole)
+MainCG$Landuse<-as.factor(MainCG$Landuse)
+#Adjusting the SD error to not be below zero or above 100%
+MainCG$sdlowCG <- MainCG$massloss.perCG - MainCG$SDCG
+MainCG$sdhighCG <- MainCG$massloss.perCG+MainCG$SDCG
+MainCG$sdlowCG[MainCG$sdlowCG<0] <- 0
+MainCG$sdhighCG[MainCG$sdhighCG>100] <- 100 
+
+MainCG$sdlowMain <- MainCG$massloss.perMain - MainCG$SDMain
+MainCG$sdhighMain <- MainCG$massloss.perMain+MainCG$SDMain
+MainCG$sdlowMain[MainCG$sdlowMain<0] <- 0
+MainCG$sdhighMain[MainCG$sdhighMain>100] <- 100 
+
+#Minor change in landuse name#
+MainCG$Landuse <- gsub("Wild","Wildlife",MainCG$Landuse)
+MainCG$Landuse <- gsub("Local common garden","Local soil",MainCG$Landuse)
+
+levels(MainCG$Landuse)
+MainCG$Landuse <- factor(MainCG$Landuse, levels = c("Agriculture","Pasture","Wildlife","Local soil"))
+
+
 #Plotting CG####
 
 #To make a better legend:
-##########
 colnames(MainCG)[3]<-"Treat"
 MainCG$tea.hole2 <- ordered(MainCG$tea.hole, levels=c("Green Exclosed", "Rooibos Exclosed","Green Open","Rooibos Open"))
 levels(MainCG$tea.hole2)
@@ -914,8 +947,8 @@ levels(MainCG$Landuse)#ok
 
 MainCGp <- ggplot(MainCG, aes(x=massloss.perMain, y=massloss.perCG, fill = tea.hole2, color = Littertype, alpha=Littertype, shape=Landuse))
 MainCGp <- MainCGp+geom_abline(slope=1, intercept=0, size =.95) 
-MainCGp <- MainCGp+geom_errorbar(aes(ymin = massloss.perCG-SDCG,ymax = massloss.perCG+SDCG),size=0.5,show.legend=F) 
-MainCGp <- MainCGp+geom_errorbarh(aes(xmin = massloss.perMain-SDMain,xmax = massloss.perMain+SDMain),size=0.5,show.legend=F)
+MainCGp <- MainCGp+geom_errorbar(aes(ymin = sdlowCG,ymax = sdhighCG),size=0.5,show.legend=F) 
+MainCGp <- MainCGp+geom_errorbarh(aes(xmin = sdlowMain,xmax = sdhighMain),size=0.5,show.legend=F)
 MainCGp <- MainCGp+geom_point(data=MainCG,size=4,stroke=1.5,show.legend=T)
 MainCGp <- MainCGp+scale_fill_manual(values=c("green4","orangered3","white","white"))
 MainCGp <- MainCGp+scale_color_manual(values=c("palegreen4","orangered3"))
@@ -995,11 +1028,11 @@ ggsave("Termites/Results/Figures/CommongardenvsMain.png",
 
 
 #BLACK AND WHiTE VERSION####
-#Plotting CG####
+#Plotting CG Black&white####
 MainCGp.BW <- ggplot(MainCG, aes(x=massloss.perMain, y=massloss.perCG, fill = tea.hole2, color = Littertype, shape=Landuse))#alpha=Littertype
 MainCGp.BW <- MainCGp.BW+geom_abline(slope=1, intercept=0, size =.95) 
-MainCGp.BW <- MainCGp.BW+geom_errorbar(aes(ymin = massloss.perCG-SDCG,ymax = massloss.perCG+SDCG),size=0.5,show.legend=F) 
-MainCGp.BW <- MainCGp.BW+geom_errorbarh(aes(xmin = massloss.perMain-SDMain,xmax = massloss.perMain+SDMain),size=0.5,show.legend=F)
+MainCGp.BW <- MainCGp.BW+geom_errorbar(aes(ymin = sdlowCG,ymax = sdhighCG),size=0.5,show.legend=F) 
+MainCGp.BW <- MainCGp.BW+geom_errorbarh(aes(xmin = sdlowMain,xmax = sdhighMain),size=0.5,show.legend=F)
 MainCGp.BW <- MainCGp.BW+geom_point(data=MainCG,size=4,stroke=1.5,show.legend=T)
 MainCGp.BW <- MainCGp.BW+scale_fill_manual(values=c("grey50","grey20","white","white"))
 MainCGp.BW <- MainCGp.BW+scale_color_manual(values=c("grey50","grey20"))
