@@ -452,15 +452,15 @@ Carbon.pool + xlab("Carbon pool") +  ylab(expression(paste("Carbon (kg ", m^-2,"
         ,strip.text.x = element_text(size=14,margin = margin(.5,.5,.5,.5, "mm"),hjust = .02)
         ,strip.text.y = element_blank()
         ,panel.spacing = unit(.1, "lines")
-        ,legend.text=element_text(size=14)
-        ,legend.title=element_text(size=15)
-        ,legend.position = "right"
-        ,legend.justification = "top"
-        ,legend.direction="vertical"
-        ,legend.key.width = unit(1.2,"cm"))
+         ,legend.text=element_text(size=14)
+         ,legend.title=element_text(size=15)
+         ,legend.position = "right"
+         ,legend.justification = "top"
+         ,legend.direction="vertical")
+         #,legend.key.width = unit(1.2,"cm"))
 
 ggsave("Ecosystem carbon/Figures/EcoC.Landuse2.png",
-       width= 30, height = 15,units ="cm",bg ="transparent",
+       width= 30, height = 15,units ="cm",bg ="white",
        dpi = 600, limitsize = TRUE)
 
 
