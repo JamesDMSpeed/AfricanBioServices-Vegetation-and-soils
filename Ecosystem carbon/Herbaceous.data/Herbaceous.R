@@ -17,8 +17,15 @@ HerbResBiomass$Region<- factor(HerbResBiomass$Region, levels = c("Makao","Maswa"
 
 # Create one dataset 
 library(dplyr)
+library(plyr)
 Herbaceous2 <- left_join(HerbResBiomass,Herbaceous,by=c("Region","Block"), drop=F)
 names(Herbaceous2)
-Herbaceous2 <- Herbaceous2[c(2:6,12:15)]
+Herbaceous2 <- Herbaceous2[c(2:7,12:15)]
+
+Herbaceous2$Block.ID[is.na(Herbaceous2$Block.ID)] <- 1
+
+# Accumulated and recidual biomass is given in g/m2, want to change it to kg/m2 
+Herbaceous2$Accum.bm.kg_m2 <- Herbaceous2$Accum.biomass / 1000
+Herbaceous2$Res.bm.kg_m2 <- Herbaceous2$Res.biom / 1000
 
 write.csv(Herbaceous2, "Ecosystem carbon/Herbaceous.data/Herbaceous.csv")
