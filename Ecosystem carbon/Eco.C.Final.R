@@ -20,7 +20,7 @@ colnames(Tree.carbon)
 Tree.carbon <- Tree.carbon[,c(1:20,23)]
 Tree.carbon <- droplevels(Tree.carbon)
 
-Herbaceous.carbon <- read.csv(file="Ecosystem Carbon/Herbaceous.data/12Herbaceous.csv", head=T)
+Herbaceous.carbon <- read.csv(file="Ecosystem Carbon/Herbaceous.data/Herbaceous.csv", head=T)
 colnames(Herbaceous.carbon)
 
 Deadwood.carbon <- read.csv(file="Ecosystem Carbon/Tree.data/DW.Block.csv",head=T)
