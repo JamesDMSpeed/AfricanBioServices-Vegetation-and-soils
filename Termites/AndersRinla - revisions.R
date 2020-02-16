@@ -6,7 +6,7 @@
 #INLA_0.0-1485844051.tgz	# More recent
 # Clean workspace
 #install.packages(c("lattice","MASS","ggplot2","lme4","glmmTMB","plyr","dplyr","Hmisc","data.table",
-                   "emmeans","nlme","MuMIn","INLA","mgcv","gstat","sp","sjstats"))
+#                   "emmeans","nlme","MuMIn","INLA","mgcv","gstat","sp","sjstats"))
 rm(list=ls())
 library(lattice)
 library(MASS)
@@ -188,9 +188,9 @@ se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Stand
 
 #Creating means by landuse (excluding blocks)
 DataMainmean<-aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataMain2, mean)
-DataMainsd <-aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataMain2, sd)
+DataMainse <-aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataMain2, se)
 #Creating new column with the sd in the Mainmean dataset.
-DataMainmean$sd <- DataMainsd$Massloss.per 
+DataMainmean$se <- DataMainse$Massloss.per 
 # Fill by termite * landuse = empty = absence, filled = prescence 
 DataMainmean$tea.hole<-as.factor(with(DataMainmean, paste(Littertype, Treatment, sep=" ")))
 levels(DataMainmean$tea.hole)
@@ -212,71 +212,75 @@ colnames(Mainexp)[2]<-"Region"
 names(Mainexp)
 
 #To make a better legend:
-levels(Mainexp$Treatment) <- c("Exclosed","Open","","")
+levels(Mainexp$Treatment) <- c("Microbes only","Macrodetrivores and Microbes","","")
+#colnames(Mainexp)[9]<-"Decomposer Access"
 levels(Mainexp$Littertype) <- c("Labile","Recalcitrant")
 
 #To make a better panel titles:
 levels(Mainexp$Season) <- c("Dry Season","Wet Season")
-levels(Mainexp$Region) <- c("Dry Region","Wet Region")
-Mainexp$panel.titles<-as.factor(with(Mainexp, paste(Season, Region, sep=" - ")))
-levels(Mainexp$panel.titles)
-#Adding rainfall text to the panels using facet wrap:
-Mainexp$rainfall.text <- as.factor(with(Mainexp, ifelse(panel.titles %in% c("Dry Season - Dry Region"), "Rainfall 8mm",
-                                                        ifelse(panel.titles %in% c("Dry Season - Wet Region"), "Rainfall 150mm",
-                                                               ifelse(panel.titles %in% c("Wet Season - Dry Region"), "Rainfall 197mm",
-                                                                      ifelse(panel.titles %in% c("Wet Season - Wet Region"), "Rainfall 196mm","WRONG"))))))
+levels(Mainexp$Region) <- c("Mesic Region","Wet Region")
+Mainexp$panel.titles.seasonregion<-as.factor(with(Mainexp, paste(Season, Region, sep=" - ")))
+levels(Mainexp$panel.titles.seasonregion)
+#Adding rainfall text to the panels.titles, when using facet wrap later:
+Mainexp$panel.titles.Raintext <- as.factor(with(Mainexp, ifelse(panel.titles.seasonregion %in% c("Dry Season - Mesic Region"), "Rainfall 8mm",
+                                                        ifelse(panel.titles.seasonregion %in% c("Dry Season - Wet Region"), "Rainfall 150mm",
+                                                               ifelse(panel.titles.seasonregion %in% c("Wet Season - Mesic Region"), "Rainfall 197mm",
+                                                                      ifelse(panel.titles.seasonregion %in% c("Wet Season - Wet Region"), "Rainfall 196mm","WRONG"))))))
 
-levels(Mainexp$rainfall.text)
+levels(Mainexp$panel.titles.Raintext)
+
+  
+  
 #Want the text on the panel to be one line when combining the two graphs. So now make the second line blank.
 #Mainexp$rainfall.text <- ""
 #levels(Mainexp$rainfall.text)
 
-Mainexp$panel.titles2<-as.factor(with(Mainexp, paste(panel.titles, rainfall.text, sep=" - ")))
-levels(Mainexp$panel.titles2)
+#Mainexp$panel.titles2<-as.factor(with(Mainexp, paste(panel.titles, rainfall.text, sep=" - ")))
+#levels(Mainexp$panel.titles2)
 
 #Rename panel titles to only get show part of the text:
-Mainexp$panel.titles3 <- as.factor(with(Mainexp, ifelse(panel.titles2 %in% c("Dry Season - Dry Region - Rainfall 8mm"), "Dry Season - Mesic Re",
-                                                                    ifelse(panel.titles2 %in% c("Dry Season - Wet Region - Rainfall 150mm"), "Dry Season - Wet Re",
-                                                                           ifelse(panel.titles2 %in% c("Wet Season - Dry Region - Rainfall 197mm"), "Wet Season - Mesic Re",
-                                                                                  ifelse(panel.titles2 %in% c("Wet Season - Wet Region - Rainfall 196mm"), "Wet Season - Wet Re","WRONG"))))))
-levels(Mainexp$panel.titles3)
+#Mainexp$panel.titles3 <- as.factor(with(Mainexp, ifelse(panel.titles2 %in% c("Dry Season - Dry Region - Rainfall 8mm"), "Dry Season - Mesic Re",
+ #                                                                   ifelse(panel.titles2 %in% c("Dry Season - Wet Region - Rainfall 150mm"), "Dry Season - Wet Re",
+  #                                                                         ifelse(panel.titles2 %in% c("Wet Season - Dry Region - Rainfall 197mm"), "Wet Season - Mesic Re",
+   #                                                                               ifelse(panel.titles2 %in% c("Wet Season - Wet Region - Rainfall 196mm"), "Wet Season - Wet Re","WRONG"))))))
+#levels(Mainexp$panel.titles3)
 
 #Adjusting the SD error to not be below zero or above 100%
-Mainexp$sdlow <- Mainexp$Massloss.per - Mainexp$sd
-Mainexp$sdhigh <- Mainexp$Massloss.per+Mainexp$sd
-Mainexp$sdlow[Mainexp$sdlow<0] <- 0
-Mainexp$sdhigh[Mainexp$sdhigh>100] <- 100 
+#Mainexp$selow <- Mainexp$Massloss.per - Mainexp$se
+#Mainexp$sehigh <- Mainexp$Massloss.per+Mainexp$se
+#Mainexp$selow[Mainexp$sdlow<0] <- 0
+#Mainexp$sehigh[Mainexp$sdhigh>100] <- 100 
 
 #Minor change in landuse name#
-dummy <- Mainexp$Landuse
 Mainexp$Landuse <- gsub("Wild","Wildlife",Mainexp$Landuse)
-
+Mainexp$Landuse <- as.factor(Mainexp$Landuse)
+levels(Mainexp$Landuse)
 ###Raw massloss graph####
-Mainp <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=sdlow,ymax=sdhigh,fill = Treatment, color = Littertype,alpha=Littertype))
+Mainp <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=(Mainexp$Massloss.per - Mainexp$se),ymax=(Mainexp$Massloss.per + Mainexp$se),
+                                  fill = Treatment, color = Littertype, alpha=Littertype))
 Mainp <- Mainp+geom_errorbar(width=0.5,size=0.5,position=position_dodge(width=.35),show.legend=F)
 Mainp <- Mainp+geom_point(size=2.2,stroke=1,position=position_dodge(width=.35),show.legend=T, shape=21)
-Mainp <- Mainp+facet_wrap(~panel.titles3, scale ="fixed", ncol=1)
+Mainp <- Mainp+facet_wrap(~panel.titles.seasonregion+ panel.titles.Raintext, scale ="fixed")
 Mainp <- Mainp+scale_color_manual(values=c("palegreen4", "orangered3"))
 Mainp <- Mainp+scale_fill_manual(values=c("green4","orangered3","white","white"))
 Mainp <- Mainp+scale_alpha_discrete(range=c(0.5,1))
-#Mainp <- Mainp+scale_fill_discrete(breaks=c("Exclosed","Open"), name="Treatment")
-Mainp <- Mainp+guides(fill=guide_legend(override.aes = 
-                                          list(shape=21,
+Mainp <- Mainp+guides(fill=guide_legend(title="Decomposer Access",
+                                        override.aes = 
+                                          list(shape=22,
                                                size=4,
-                                               fill=c("grey50", "white",NA),
-                                               color=c("grey50", "grey50",NA),
+                                               fill=c("grey30", "white",NA),
+                                               color=c("grey30", "grey30",NA),
                                                alpha=c(NA,NA,NA))),
+                      color=guide_legend(title="Littertype",
+                                         override.aes =
+                                           list(shape=22,
+                                                size=4,
+                                                fill=c("green4", "orangered3"),
+                                                color=c("palegreen4","orangered3"),
+                                                alpha=c(0.5,1))),
                       alpha=F)
-
-Mainp <- Mainp+guides(color=FALSE)#guide_legend(override.aes = 
-#        list(shape=21,
-#            size=4,
-#           fill=c("green4", "orangered3"),
-#          color=c("green4", "orangered3"))))
-
 Mainp <- Mainp+scale_y_continuous(limits = c(0,100),expand = c(0,0),breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100))
-#Mainp <- Mainp+scale_x_discrete(expand = c(0,0))
-Mainp <- Mainp+xlab("Land-use")+ylab("Mass loss (%)") #+ ggtitle("What title here?")
+Mainp <- Mainp+xlab("Land-use")+ylab("Mass loss (%)")
 Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
                      ,panel.background=element_rect(fill="transparent")
                      ,plot.background=element_rect(fill="transparent",colour=NA)
@@ -286,66 +290,65 @@ Mainp <- Mainp+theme(rect = element_rect(fill ="transparent")
                      ,panel.grid.major.x = element_blank()
                      ,panel.grid.major.y = element_blank()
                      ,plot.margin = unit(c(0,0.1,0,0), "mm")
-                     #,axis.text=element_text(size=12,color="black")
                      ,axis.title.y=element_text(size=12,color="black",margin=margin(2.5,2.5,2.5,2.5,"mm"))
-                     ,axis.title.x=element_blank()#element_text(size=14,vjust=-.5,color="black")
+                     ,axis.title.x=element_text(size=12,vjust=-.5,color="black")
                      ,axis.ticks.length=unit(-1, "mm")
-                     ,axis.text.x = element_text(size=10,color="black",angle =30,vjust=0.6,margin=unit(c(2,0.1,0.1,0.1),"mm"))
+                     ,axis.text.x = element_text(size=10,color="black",angle =0,vjust=0.6,margin=unit(c(2,0.1,0.1,0.1),"mm"))
                      ,axis.text.y = element_text(size=10,color="black",margin=margin(t=0.1,r=2,b=0.1,l=0.1,unit="mm"))
-                     ,axis.ticks.x = element_blank()
+                     ,axis.ticks.x = element_line(colour = "black", size = 0.5)
                      ,axis.ticks.y = element_line(colour = "black", size = 0.5)
                      ,strip.background =element_blank() #element_rect(fill="transparent",colour="black",size=10)
-                     ,strip.text = element_text(size = 12,colour = "black",hjust=1, margin = unit(c(.5,0,.5,5),"mm"))
+                     ,strip.text = element_text(size = 11,colour = "black",hjust=0, margin = unit(c(.5,0,.5,5),"mm"))
                      ,panel.spacing = unit(1, "lines")
-                     #,strip.placement = "left"
                      ,legend.background = element_rect(fill = "transparent")
-                     ,legend.title=element_blank()
-                     ,legend.position = "bottom"
-                     #,legend.margin = margin(-0.6,0,0,0, unit="cm")
-                     #,legend.spacing.y = unit(2.5, "mm")
-                     ,legend.spacing.x = unit(2.5, "mm")
-                     ,legend.key.height=unit(0.5,"mm")
-                     ,legend.key.width=unit(0.5,"mm")
-                     ,legend.key = element_rect(colour = NA, fill = NA)
-                     ,legend.justification = "right"
-                     ,legend.text=element_text(size=10,color="black", hjust=0.5))
+                     ,legend.margin = margin(c(0,0,0,0),unit="mm")
+                     ,legend.box.margin =  margin(c(0,0,0,0),unit="mm")
+                    ,legend.key = element_rect(colour = NA, fill = NA)
+                     ,legend.key.height=unit(1,"mm")
+                     ,legend.key.width=unit(1,"mm")
+                    ,legend.position = "bottom"
+                     ,legend.direction = "vertical"
+                     ,legend.justification = "left"
+                     ,legend.text=element_text(size=10,color="black",hjust=0, margin = margin(t=0,r=0,b=1,l=0, unit="mm")
+                                               )
+                     ,legend.text.align=0)
 Mainp <- Mainp+annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 0.8)
 Mainp <- Mainp+annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 0.8)
 
-Mainp <- Mainp+annotate(geom= "text",x=.6:.6:.6:.6,y=90:90:90:90, label=c("a","b","c","d"),
-                        family = "", fontface = "bold", size=4)
-
 Mainp
+
+ggsave("Termites/Results/Figures/raw.massloss.plot-revised.png",
+       width= 20, height = 18,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
 
 
 #BLACK AND WHITE VERSION####
-###Raw massloss graph####
-Mainp.BW <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=sdlow,ymax=sdhigh,fill = Treatment, color = Littertype))#,alpha=Littertype))
-Mainp.BW <- Mainp.BW+geom_errorbar(width=0.5,size=0.5,position=position_dodge(width=.35),show.legend=F)
-Mainp.BW <- Mainp.BW+geom_point(size=2.2,stroke=1,position=position_dodge(width=.35),show.legend=T, shape=21)
-Mainp.BW <- Mainp.BW+facet_wrap(~panel.titles3, scale ="fixed", ncol=1)
-Mainp.BW <- Mainp.BW+scale_color_manual(values=c("grey50", "grey20"))
-Mainp.BW <- Mainp.BW+scale_fill_manual(values=c("grey50","grey20","white","white"))
-#Mainp.BW <- Mainp.BW+scale_alpha_discrete(range=c(0.5,1))
-#Mainp.BW <- Mainp.BW+scale_fill_discrete(breaks=c("Exclosed","Open"), name="Treatment")
-Mainp.BW <- Mainp.BW+guides(fill=guide_legend(override.aes = 
-                                          list(shape=21,
+Mainp.bw <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=(Mainexp$Massloss.per - Mainexp$se),ymax=(Mainexp$Massloss.per + Mainexp$se),
+                                  fill = Treatment, color = Littertype, alpha=Littertype))
+Mainp.bw <- Mainp.bw+geom_errorbar(width=0.5,size=0.5,position=position_dodge(width=.35),show.legend=F)
+Mainp.bw <- Mainp.bw+geom_point(size=2.2,stroke=1,position=position_dodge(width=.35),show.legend=T, shape=21)
+Mainp.bw <- Mainp.bw+facet_wrap(~panel.titles.seasonregion+ panel.titles.Raintext, scale ="fixed")
+Mainp.bw <- Mainp.bw+scale_color_manual(values=c("grey50", "grey20"))
+Mainp.bw <- Mainp.bw+scale_fill_manual(values=c("grey50","grey20","white","white"))
+Mainp.bw <- Mainp.bw+scale_alpha_discrete(range=c(0.5,1))
+Mainp.bw <- Mainp.bw+guides(fill=guide_legend(title="Decomposer Access",
+                                        override.aes = 
+                                          list(shape=22,
                                                size=4,
-                                               fill=c("grey30", "white",NA),
-                                               color=c("grey30", "grey30",NA),
+                                               fill=c("grey20", "white",NA),
+                                               color=c("grey20", "grey50",NA),
                                                alpha=c(NA,NA,NA))),
+                      color=guide_legend(title="Littertype",
+                                         override.aes =
+                                           list(shape=22,
+                                                size=4,
+                                                fill=c("grey50", "grey20"),
+                                                color=c("grey50", "grey20"),
+                                                alpha=c(0.5,1))),
                       alpha=F)
-
-Mainp.BW <- Mainp.BW+guides(color=FALSE)#guide_legend(override.aes = 
-#        list(shape=21,
-#            size=4,
-#           fill=c("green4", "orangered3"),
-#          color=c("green4", "orangered3"))))
-
-Mainp.BW <- Mainp.BW+scale_y_continuous(limits = c(0,100),expand = c(0,0),breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100))
-#Mainp.BW <- Mainp.BW+scale_x_discrete(expand = c(0,0))
-Mainp.BW <- Mainp.BW+xlab("Land-use")+ylab("Mass loss (%)") #+ ggtitle("What title here?")
-Mainp.BW <- Mainp.BW+theme(rect = element_rect(fill ="transparent")
+Mainp.bw <- Mainp.bw+scale_y_continuous(limits = c(0,100),expand = c(0,0),breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100))
+Mainp.bw <- Mainp.bw+xlab("Land-use")+ylab("Mass loss (%)")
+Mainp.bw <- Mainp.bw+theme(rect = element_rect(fill ="transparent")
                      ,panel.background=element_rect(fill="transparent")
                      ,plot.background=element_rect(fill="transparent",colour=NA)
                      ,panel.grid.major = element_blank()
@@ -354,486 +357,36 @@ Mainp.BW <- Mainp.BW+theme(rect = element_rect(fill ="transparent")
                      ,panel.grid.major.x = element_blank()
                      ,panel.grid.major.y = element_blank()
                      ,plot.margin = unit(c(0,0.1,0,0), "mm")
-                     #,axis.text=element_text(size=12,color="black")
                      ,axis.title.y=element_text(size=12,color="black",margin=margin(2.5,2.5,2.5,2.5,"mm"))
-                     ,axis.title.x=element_blank()#element_text(size=14,vjust=-.5,color="black")
+                     ,axis.title.x=element_text(size=12,vjust=-.5,color="black")
                      ,axis.ticks.length=unit(-1, "mm")
-                     ,axis.text.x = element_text(size=10,color="black",angle =30,vjust=0.6,margin=unit(c(2,0.1,0.1,0.1),"mm"))
+                     ,axis.text.x = element_text(size=10,color="black",angle =0,vjust=0.6,margin=unit(c(2,0.1,0.1,0.1),"mm"))
                      ,axis.text.y = element_text(size=10,color="black",margin=margin(t=0.1,r=2,b=0.1,l=0.1,unit="mm"))
-                     ,axis.ticks.x = element_blank()
+                     ,axis.ticks.x = element_line(colour = "black", size = 0.5)
                      ,axis.ticks.y = element_line(colour = "black", size = 0.5)
                      ,strip.background =element_blank() #element_rect(fill="transparent",colour="black",size=10)
-                     ,strip.text = element_text(size = 12,colour = "black",hjust=1, margin = unit(c(.5,0,.5,5),"mm"))
+                     ,strip.text = element_text(size = 11,colour = "black",hjust=0, margin = unit(c(.5,0,.5,5),"mm"))
                      ,panel.spacing = unit(1, "lines")
-                     #,strip.placement = "left"
                      ,legend.background = element_rect(fill = "transparent")
-                     ,legend.title=element_blank()
-                     ,legend.position = "bottom"
-                     #,legend.margin = margin(-0.6,0,0,0, unit="cm")
-                     #,legend.spacing.y = unit(2.5, "mm")
-                     ,legend.spacing.x = unit(2.5, "mm")
-                     ,legend.key.height=unit(0.5,"mm")
-                     ,legend.key.width=unit(0.5,"mm")
+                     ,legend.margin = margin(c(0,0,0,0),unit="mm")
+                     ,legend.box.margin =  margin(c(0,0,0,0),unit="mm")
                      ,legend.key = element_rect(colour = NA, fill = NA)
-                     ,legend.justification = "right"
-                     ,legend.text=element_text(size=10,color="black", hjust=0.5))
-Mainp.BW <- Mainp.BW+annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 0.8)
-Mainp.BW <- Mainp.BW+annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 0.8)
+                     ,legend.key.height=unit(1,"mm")
+                     ,legend.key.width=unit(1,"mm")
+                     ,legend.position = "bottom"
+                     ,legend.direction = "vertical"
+                     ,legend.justification = "left"
+                     ,legend.text=element_text(size=10,color="black",hjust=0, margin = margin(t=0,r=0,b=1,l=0, unit="mm")
+                     )
+                     ,legend.text.align=0)
+Mainp.bw <- Mainp.bw+annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 0.8)
+Mainp.bw <- Mainp.bw+annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 0.8)
 
-Mainp.BW <- Mainp.BW+annotate("text",x=.6:.6:.6:.6,y=90:90:90:90, label=c("a","b","c","d"),
-                        family = "", fontface = "bold", size=4)
-
-Mainp.BW
-#Wet Season - Wet Reg ion - Rainfall 108
-#Wet Season - Mesic 
-
-
-
+Mainp.bw
 
 
-#install.packages("egg")
-#install.packages("grid")
-#library(egg)
-#library(grid)
-#Mainp <- set_panel_size(Mainp,
- #                         width  = unit(10, "cm"),
-  #                        height = unit(4, "in"))
-
-#5     Dry    Dry      Open      Green Agriculture    24.347765 3.9036820       Green Open
-#13    Dry    Dry      Open    Rooibos Agriculture    32.199632 7.7388356     Rooibos Open
-#21    Dry    Dry      Open      Green     Pasture    13.251911 2.3074455       Green Open
-#29    Dry    Dry      Open    Rooibos     Pasture    28.581530 6.7125496     Rooibos Open
-#37    Dry    Dry      Open      Green        Wild     8.981508 1.8180347       Green Open
-#45    Dry    Dry      Open    Rooibos        Wild    11.830754 3.0975844     Rooibos Open
-
-32.199632-24.347765 # 8 % more in ag
-28.581530-13.251911 # 15% more in pasture
-11.830754- 8.981508 # 3% more wildlife protected
-
-#######
-
-### Script here not in use. Barplots: termite effect not in use for the final barplot.####
-#### See next similar chapter starting from "Termitee effect dataset (CG+MAin)####
-#Seperate out datasets####
-# Greenop<-DataMain[DataMain$Littertype=="Green" & DataMain$Treatment=="Open",] # Only Green Open data
-# Greenex<-DataMain[DataMain$Littertype=="Green" & DataMain$Treatment=="Exclosed",] # Only Green Open data
-# Redop<-DataMain[DataMain$Littertype=="Rooibos" & DataMain$Treatment=="Open",] # Only Green Open data
-# Redex<-DataMain[DataMain$Littertype=="Rooibos" & DataMain$Treatment=="Exclosed",] # Only Green Open data
-# names(Greenop)
-# 
-# #Creating dataframe with termite and microbe effect variable=Exlosed and Termite effect=Open minus exclosed):
-# GreendataT <- Greenop
-# GreendataM <- Greenop
-# 
-# GreendataM$Massloss.per <- Greenex$Massloss.per
-# GreendataT$Massloss.per <- abs(Greenop$Massloss.per-Greenex$Massloss.per)
-# GreendataT$Massloss.per <- (Greenop$Massloss.per-Greenex$Massloss.per)
-# GreendataT$Massloss.per[GreendataT$Massloss.per<0] <- 0
-# 
-# ReddataT <- Redop
-# ReddataM <- Redop
-# ReddataM$Massloss.per<-Redex$Massloss.per
-# ReddataT$Massloss.per<- (Redop$Massloss.per-Redex$Massloss.per)
-# ReddataT$Massloss.per[ReddataT$Massloss.per<0] <- 0
-# 
-# #Means and error
-# se<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
-# #Redtea
-# MeanReddataM<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataM,mean)
-# MeanReddataMSE<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataM,sd)
-# MeanReddataM$sd<-MeanReddataMSE$Massloss.per
-# MeanReddataM$Decomposer <- "Microbe"
-# 
-# MeanReddataT<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataT,mean)
-# MeanReddataTSE<-aggregate(Massloss.per~fseason+fregion+flanduse,ReddataT,sd)
-# MeanReddataT$sd<-MeanReddataTSE$Massloss.per
-# MeanReddataT$Decomposer <- "Termite"
-# 
-# 
-# #combine decomposition of red tea by termite and microbe:
-# ReddataTM <- rbind(MeanReddataM,MeanReddataT)
-# ReddataTM$Littertype <- "Recalcitrant"
-# #Green tea
-# MeanGreendataM<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataM,mean)
-# MeanGreendataMSE<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataM,sd)
-# MeanGreendataM$sd<-MeanGreendataMSE$Massloss.per
-# MeanGreendataM$Decomposer <- "Microbe"
-# 
-# MeanGreendataT<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataT,mean)
-# MeanGreendataTSE<-aggregate(Massloss.per~fseason+fregion+flanduse,GreendataT,sd)
-# MeanGreendataT$sd<-MeanGreendataTSE$Massloss.per
-# MeanGreendataT$Decomposer <- "Termite"
-# 
-# #Combine decomposition of red tea by termite and microbe:
-# GreendataTM <- rbind(MeanGreendataM,MeanGreendataT)
-# GreendataTM$Littertype <- "Labile"
-# 
-# #Combine both littertypes:
-# TMMasslossMain <- rbind(GreendataTM,ReddataTM) 
-# TMMasslossMain$Decomposer<-as.factor(TMMasslossMain$Decomposer)
-# levels(TMMasslossMain$Decomposer)
-
-
-#Termite effect Dataset (CG+Main)####
-Greenop<-Fulldata[Fulldata$Littertype=="Green" & Fulldata$Treatment=="Open",] # Only Green Open data
-Greenex<-Fulldata[Fulldata$Littertype=="Green" & Fulldata$Treatment=="Exclosed",] # Only Green Open data
-Redop<-Fulldata[Fulldata$Littertype=="Rooibos" & Fulldata$Treatment=="Open",] # Only Green Open data
-Redex<-Fulldata[Fulldata$Littertype=="Rooibos" & Fulldata$Treatment=="Exclosed",] # Only Green Open data
-
-#For green littertype dataset
-length(Greenop$Massloss.per)#440
-length(Greenex$Massloss.per)#440
-#Joining the data:
-GreenOpEx <- cbind(Greenop,Greenex$Massloss.per)
-#Renaming columns to avoid confusion:
-colnames(GreenOpEx)[(names(GreenOpEx) == "Massloss.per")] <- "Open.Massloss"
-colnames(GreenOpEx)[(names(GreenOpEx) == "Greenex$Massloss.per")] <- "Excl.Massloss"
-GreenOpEx$Massloss..g..Ash.uncorrected <- NULL
-
-#Create termite effect variable for green:
-GreenOpEx$Termite.effect <- (GreenOpEx$Open.Massloss-GreenOpEx$Excl.Massloss)
-
-length(GreenOpEx$Termite.effect[GreenOpEx$Termite.effect < 0]) #268 values are negative (excl>op)
-#Above half of the litter has no termite effect 268/440 teabags.
-LabileTermEff <- GreenOpEx
-#Setting all negative values to zero:
-LabileTermEff$Termite.effect[LabileTermEff$Termite.effect < 0] <- 0
-
-#For red littertype dataset
-length(Redop$Massloss.per)#440
-length(Redex$Massloss.per)#440
-#Joining the data:
-RedOpEx <- cbind(Redop,Redex$Massloss.per)
-#Renaming columns to avoid confusion:
-colnames(RedOpEx)[(names(RedOpEx) == "Massloss.per")] <- "Open.Massloss"
-colnames(RedOpEx)[(names(RedOpEx) == "Redex$Massloss.per")] <- "Excl.Massloss"
-RedOpEx$Massloss..g..Ash.uncorrected <- NULL
-
-#Create termite effect variable for Red:
-RedOpEx$Termite.effect <- (RedOpEx$Open.Massloss-RedOpEx$Excl.Massloss)
-
-length(RedOpEx$Termite.effect[RedOpEx$Termite.effect < 0]) #139 values are negative (excl>op)
-#Below half of the litter has no termite effect 139/440 teabags --> Great!
-RecalTermEff <- RedOpEx
-#Setting all negative values to zero:
-RecalTermEff$Termite.effect[RecalTermEff$Termite.effect < 0] <- 0
-
-# Count zeroes by season 
-RecalTermEff2<-RecalTermEff[!RecalTermEff$Region=="Intermediate",]
-x0<-RecalTermEff2[!is.na(RecalTermEff2$Termite.effect),]
-x1<-x0 %>% 
-  group_by(Season) %>%
-  summarise(Zero_bags = sum(Termite.effect==0)) # Why is this then 94? - include Nas?
-x1
-aggregate(RecalTermEff$Termite.effect, by=list(Season=RecalTermEff$Season,Landuse=RecalTermEff$Landuse),FUN=function(x) sum(x== 0, na.rm=T))
-# Same result 94
-
-x2<-x0 %>% 
-  group_by(Season) %>%
-  summarise(Tot_bags = sum(Termite.effect>.01))
-
-100-((x2-x1)/x2*100) # Percent bags with zeroes - higher in wet season
-
-# Averages of termite effect
-aggregate(Termite.effect~Region+Season,RecalTermEff,mean)
-
-# Without Seronera
-RecalTermEff2<-RecalTermEff[!RecalTermEff$Region=="Intermediate",]
-RedOpEx2<-RedOpEx[!RedOpEx$Region=="Intermediate",]
-aggregate(Termite.effect~Landuse,RedOpEx2,mean)
-((21.29934+22.87210)/2)-16.48753
-aggregate(Termite.effect~Landuse,RecalTermEff2,mean)
-aggregate(Termite.effect~Landuse,RecalTermEff2,median)
-aggregate(Termite.effect~Landuse,RecalTermEff2,sd)
-#1 Agriculture       22.67370
-#2     Pasture       23.54969
-#3        Wild       17.69902
-((22.67370+23.54969)/2)-17.69902 # 5.4
-aggregate(Termite.effect~Landuse,RecalTermEff2,min)
-aggregate(Termite.effect~Landuse,RecalTermEff2,max)
-
-aggregate(Termite.effect~Region+Landuse+Season,RecalTermEff2,mean)
-
-ggplot(RecalTermEff2,aes(x=Termite.effect, fill=Season))+geom_density()+facet_wrap(~Region+Landuse)+theme_classic()
-
-#Creating dataset for Vilde using the termite effect variable:
-#In dryseason in block level
-RecalTermEff_Dryseason <- droplevels(RecalTermEff[RecalTermEff$Season=="Dry",])
-levels(RecalTermEff_Dryseason$Season)
-RecalTermEff_Dryseason_Block <-aggregate(Termite.effect~Season+Region+Site+Landuse+Block, RecalTermEff_Dryseason, mean)
-write.csv(write.csv(RecalTermEff_Dryseason_Block,file="Termites/RecalTermEff_Dryseason_Block.csv"))
-#In wetseason in block level
-RecalTermEff_Wetseason <- droplevels(RecalTermEff[RecalTermEff$Season=="Wet",])
-levels(RecalTermEff_Wetseason$Season)
-RecalTermEff_Wetseason_Block <-aggregate(Termite.effect~Season+Region+Site+Landuse+Block, RecalTermEff_Wetseason, mean)
-
-#Setting all negative values below zero (did this previously for Vilde data, but do it again to create my own data):
-RedOpEx$Termite.effect[RedOpEx$Termite.effect < 0] <- 0
-GreenOpEx$Termite.effect[GreenOpEx$Termite.effect < 0] <- 0
-
-#Create microbe effect variable for green:
-GreenOpEx$Microbe.effect <- (GreenOpEx$Open.Massloss)
-#Create microbe effect variable for red:
-Microbe.effect.Red <- RedOpEx$Microbe.effect <- (RedOpEx$Open.Massloss)
-
-#Agregatin the 4 varialbes
-#MICROBE GREEN
-SUM.Microbe.effect.green<-aggregate(Microbe.effect~Season+Region+Landuse,GreenOpEx,mean)
-SUM.Microbe.effect.greenSD<-aggregate(Microbe.effect~Season+Region+Landuse,GreenOpEx,sd)
-SUM.Microbe.effect.green$sd<-SUM.Microbe.effect.greenSD$Microbe.effect
-SUM.Microbe.effect.green$Decomposer <- "Microbe"
-SUM.Microbe.effect.green$LD <- "Labile Microbe"
-SUM.Microbe.effect.green$Littertype <- "Labile"
-colnames(SUM.Microbe.effect.green)[(names(SUM.Microbe.effect.green)== "Microbe.effect")] <- "Massloss.per"
-#MICROBE RED
-SUM.Microbe.effect.red<-aggregate(Microbe.effect~Season+Region+Landuse,RedOpEx,mean)
-SUM.Microbe.effect.redSD<-aggregate(Microbe.effect~Season+Region+Landuse,RedOpEx,sd)
-SUM.Microbe.effect.red$sd<-SUM.Microbe.effect.redSD$Microbe.effect
-SUM.Microbe.effect.red$Decomposer <- "Microbe"
-SUM.Microbe.effect.red$LD <- "Recalcitrant Microbe"
-SUM.Microbe.effect.red$Littertype <- "Recalcitrant"
-colnames(SUM.Microbe.effect.red)[(names(SUM.Microbe.effect.red)== "Microbe.effect")] <- "Massloss.per"
-
-#TERMITE GREEN
-SUM.Termite.effect.green<-aggregate(Termite.effect~Season+Region+Landuse,GreenOpEx,mean)
-SUM.Termite.effect.greenSD<-aggregate(Termite.effect~Season+Region+Landuse,GreenOpEx,sd)
-SUM.Termite.effect.green$sd<-SUM.Termite.effect.greenSD$Termite.effect
-SUM.Termite.effect.green$Decomposer <- "Termite"
-SUM.Termite.effect.green$LD <- "Labile Termite"
-SUM.Termite.effect.green$Littertype <- "Labile"
-colnames(SUM.Termite.effect.green)[(names(SUM.Termite.effect.green)== "Termite.effect")] <- "Massloss.per"
-#TERMITE RED
-SUM.Termite.effect.red<-aggregate(Termite.effect~Season+Region+Landuse,RedOpEx,mean)
-SUM.Termite.effect.redSD<-aggregate(Termite.effect~Season+Region+Landuse,RedOpEx,sd)
-SUM.Termite.effect.red$sd<-SUM.Termite.effect.redSD$Termite.effect
-SUM.Termite.effect.red$Decomposer <- "Termite"
-SUM.Termite.effect.red$LD <- "Recalcitrant Termite"
-SUM.Termite.effect.red$Littertype <- "Recalcitrant"
-colnames(SUM.Termite.effect.red)[(names(SUM.Termite.effect.red)== "Termite.effect")] <- "Massloss.per"
-#Need to rbind the 4 variables to plot them:
-TM.effect <- rbind(SUM.Microbe.effect.green,SUM.Microbe.effect.red,
-                   SUM.Termite.effect.green,SUM.Termite.effect.red)
-
-names(TM.effect)
-aggregate(Massloss.per~Decomposer+Littertype,TM.effect,mean)
-aggregate(Termite.effect~Landuse,RecalTermEff2,median)
-aggregate(Termite.effect~Landuse,RecalTermEff2,sd)
-#7  Agriculture    Microbe Recalcitrant    48.189215
-#8      Pasture    Microbe Recalcitrant    47.206747
-#9         Wild    Microbe Recalcitrant    45.113403
-#10 Agriculture    Termite Recalcitrant    21.931850
-#11     Pasture    Termite Recalcitrant    22.954480
-#12        Wild    Termite Recalcitrant    20.995136
-
-aggregate(Massloss.per~Landuse+Season+Region+Decomposer+Littertype,TM.effect,mean)
-#46 Agriculture    Wet          Dry    Termite Recalcitrant    6.3254778
-#47     Pasture    Wet          Dry    Termite Recalcitrant   14.9842328
-#48        Wild    Wet          Dry    Termite Recalcitrant   31.6349679
-31.6349679- 14.9842328
-31.6349679- 6.3254778
-
-aggregate(Massloss.per~Season+Decomposer+Littertype,TM.effect,mean)
-
-#Housekeeping
-TM.effect$Season <- as.factor(TM.effect$Season)
-levels(TM.effect$Season)
-levels(TM.effect$Landuse)
-TM.effect$Decomposer <- as.factor(TM.effect$Decomposer)
-levels(TM.effect$Decomposer)
-TM.effect$Littertype <- as.factor(TM.effect$Littertype)
-levels(TM.effect$Littertype)
-TM.effect$Region <- (as.factor(TM.effect$Region))
-levels(TM.effect$Region)
-
-#Only Main experiment
-TM.effectMain <- TM.effect[TM.effect$Region!="Intermediate",]
-TM.effectMain$Region <- droplevels(as.factor(TM.effectMain$Region))
-levels(TM.effectMain$Region)
-#Remove microbes:
-TM.effectMain <- TM.effectMain[TM.effectMain$Decomposer!="Microbe",]
-TM.effectMain$Decomposer <- droplevels(as.factor(TM.effectMain$Decomposer))
-levels(TM.effectMain$Decomposer)
-levels(TM.effectMain$Season) <- c("Dry Season","Wet Season")
-levels(TM.effectMain$Region) <- c("Dry Region","Wet Region")
-
-#To make a better panel titles:
-levels(TM.effectMain$Season) <- c("Dry Season","Wet Season")
-levels(TM.effectMain$Region) <- c("Dry Region","Wet Region")
-TM.effectMain$panel.titles<-as.factor(with(TM.effectMain, paste(Season, Region, sep=" - ")))
-levels(TM.effectMain$panel.titles)
-#Adding rainfall text to the panels using facet wrap:
-TM.effectMain$rainfall.text <- as.factor(with(TM.effectMain, ifelse(panel.titles %in% c("Dry Season - Dry Region"), "Rainfall 8mm",
-                                                                   ifelse(panel.titles %in% c("Dry Season - Wet Region"), "Rainfall 150mm",
-                                                                         ifelse(panel.titles %in% c("Wet Season - Dry Region"), "Rainfall 197mm",
-                                                                               ifelse(panel.titles %in% c("Wet Season - Wet Region"), "Rainfall 196mm","WRONG"))))))
-
-levels(TM.effectMain$rainfall.text)
-TM.effectMain$rainfall.text <- factor(TM.effectMain$rainfall.text, levels = c("Rainfall 8mm","Rainfall 150mm","Rainfall 197mm", "Rainfall 196mm"))
-
-#Want the text on the panel to be one line when combining the two graphs later.
-
-TM.effectMain$panel.titles2<-as.factor(with(TM.effectMain, paste(panel.titles, rainfall.text, sep=" - ")))
-levels(TM.effectMain$panel.titles2)
-#Rename title to only get part of the text to be able to center the text when combining dete two graphs.
-TM.effectMain$panel.titles3 <- as.factor(with(TM.effectMain, ifelse(panel.titles2 %in% c("Dry Season - Dry Region - Rainfall 8mm"), "gion - Rainfall 8mm",
-                                                                   ifelse(panel.titles2 %in% c("Dry Season - Wet Region - Rainfall 150mm"), "gion - Rainfall 150mm",
-                                                                         ifelse(panel.titles2 %in% c("Wet Season - Dry Region - Rainfall 197mm"), "gion - Rainfall 197mm",
-                                                                                ifelse(panel.titles2 %in% c("Wet Season - Wet Region - Rainfall 196mm"), "gion - Rainfall 196mm","WRONG"))))))
-levels(TM.effectMain$panel.titles3)
-TM.effectMain$panel.titles3 <- factor(TM.effectMain$panel.titles3, levels = c("gion - Rainfall 8mm","gion - Rainfall 150mm","gion - Rainfall 197mm", "gion - Rainfall 196mm"))
-
-#Adjusting the SD error to not be below zero or above 100%
-TM.effectMain$sdlow <- TM.effectMain$Massloss.per - TM.effectMain$sd
-TM.effectMain$sdhigh <- TM.effectMain$Massloss.per+TM.effectMain$sd
-TM.effectMain$sdlow[TM.effectMain$sdlow<0] <- 0
-TM.effectMain$sdhigh[TM.effectMain$sdhigh>100] <- 100 
-
-#Minor change in landuse name#
-TM.effectMain$Landuse <- gsub("Wild","Wildlife",TM.effectMain$Landuse)
-
-#Barplot: termite effect####
-TM.effectMainP <- ggplot(data=TM.effectMain,aes(x=Landuse,y=Massloss.per,fill=Littertype,color=Littertype,alpha=Littertype,ymin=sdlow,ymax=sdhigh))
-TM.effectMainP <- TM.effectMainP + geom_bar(stat="identity",position=position_dodge(),show.legend=T)
-TM.effectMainP <- TM.effectMainP + geom_errorbar(position=position_dodge(width=0.9),width=0,lwd=1,show.legend=F)
-TM.effectMainP <- TM.effectMainP + facet_wrap(~panel.titles3,ncol=1)
-TM.effectMainP <- TM.effectMainP + scale_color_manual(values=c("palegreen4","orangered3"))
-TM.effectMainP <- TM.effectMainP + scale_fill_manual(values=c("green4","orangered3"))
-TM.effectMainP <- TM.effectMainP + scale_alpha_discrete(range=c(0.5,1))
-TM.effectMainP <- TM.effectMainP + ylab("Termite and macro-fauna only mass loss (%)")# + ggtitle("Termite effect")
-TM.effectMainP <- TM.effectMainP + scale_y_continuous(limits = c(0,100),expand = c(0,0),breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100),position = "right")
-TM.effectMainP <- TM.effectMainP + guides(fill=guide_legend(override.aes = 
-                                                              list(shape=21,
-                                                                   size=4,
-                                                                   fill=c("green4", "orangered3"),
-                                                                   color=c("palegreen4","orangered3"),
-                                                                   alpha=c(0.5,1)),
-                                          alpha=T))
-TM.effectMainP <- TM.effectMainP + theme(
-  rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
-  ,panel.background=element_rect(fill="transparent")
-  ,plot.background=element_rect(fill="transparent",colour=NA)
-  ,plot.margin = unit(c(0,0,0,0.1), "mm")
-  ,panel.grid.minor = element_blank() # Removing all grids and borders
-  ,panel.border = element_blank()
-  ,panel.grid.major.x = element_blank()
-  ,panel.grid.major.y = element_blank()
-  ,panel.spacing = unit(1, "lines")
-  ,axis.ticks.length=unit(-1, "mm")
-  ,axis.ticks.y.right = element_line(color = "black",size=0.5)
-  ,axis.text.y.right = element_text(size=10,color="black",margin=margin(t=0.1,r=0.1,b=0.1,l=2,unit="mm"))
-  ,axis.text.x = element_text(size=10,color="black",angle =30,vjust=0.6,margin=unit(c(2,0.1,0.1,0.1),"mm"))
-  ,axis.ticks.x = element_blank()
-  ,legend.background = element_rect(fill = "transparent")
-  ,legend.title=element_blank()
-  ,legend.position = "bottom"
-  #,legend.margin = margin(-0.6,0,0,0, unit="cm")
-  #,legend.spacing.y = unit(2.5, "mm")
-  ,legend.spacing.x = unit(2.5, "mm")
-  ,legend.key.height=unit(0.5,"mm")
-  ,legend.key.width=unit(0.5,"mm")
-  ,legend.key = element_rect(colour = NA, fill = NA)
-  ,legend.justification = "left"
-  ,legend.text=element_text(size=10,color="black", hjust=0.5)
-  ,axis.title.y.right=element_text(size=12,color="black",margin = margin(t = 0, r = 0, b = 0, l = 8))
-  ,axis.title.x=element_blank()
-  ,strip.text = element_text(size = 12,colour = "black",hjust=0, margin = unit(c(.5,22,.5,0),"mm"))
-  ,strip.background = element_blank()
-)
-
-TM.effectMainP <- TM.effectMainP+annotate(geom = "segment", x = Inf, xend = Inf, y = -Inf, yend = Inf, size = 0.8)
-TM.effectMainP <- TM.effectMainP+annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 0.8)
-
-TM.effectMainP <- TM.effectMainP+annotate("text",x=.6:.6:.6:.6,y=90:90:90:90, label=c("e","f","g","h"),
-                        family = "", fontface = "bold", size=4)
-
-TM.effectMainP
-
-#ggsave("Termites/Results/Figures/Termite_Microbe_contribution_Plot.png",
-width= 20, height = 12,units ="cm",bg ="transparent",
-dpi = 600, limitsize = TRUE)
-
-#BLACK AND WHITE VERSION####
-#Barplot: termite effect####
-TM.effectMainP.BW <- ggplot(data=TM.effectMain,aes(x=Landuse,y=Massloss.per,fill=Littertype,color=Littertype,ymin=Massloss.per,ymax=Massloss.per+sd))#alpha=Littertype
-TM.effectMainP.BW <- TM.effectMainP.BW + geom_bar(stat="identity",position=position_dodge(width=0.9),show.legend=T)
-TM.effectMainP.BW <- TM.effectMainP.BW + geom_errorbar(position=position_dodge(width=0.9),width=0,lwd=1,show.legend=F)
-TM.effectMainP.BW <- TM.effectMainP.BW + facet_wrap(~panel.titles3,ncol=1)
-TM.effectMainP.BW <- TM.effectMainP.BW + scale_color_manual(values=c("grey50","grey20"))
-TM.effectMainP.BW <- TM.effectMainP.BW + scale_fill_manual(values=c("grey50","grey20"))
-#TM.effectMainP.BW <- TM.effectMainP.BW + scale_alpha_discrete(range=c(0.5,1))
-TM.effectMainP.BW <- TM.effectMainP.BW + ylab("Termite and macro-fauna only mass loss (%)")# + ggtitle("Termite effect")
-TM.effectMainP.BW <- TM.effectMainP.BW + scale_y_continuous(limits = c(0,100),expand = c(0,0),breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100),position = "right")
-TM.effectMainP.BW <- TM.effectMainP.BW + guides(fill=guide_legend(override.aes = 
-                                                              list(shape=21,
-                                                                   size=4,
-                                                                   fill=c("grey50", "grey20"),
-                                                                   color=c("grey50","grey20"),
-                                                                   alpha=c(0.5,1)),
-                                                            alpha=T))
-TM.effectMainP.BW <- TM.effectMainP.BW + theme(
-  rect = element_rect(fill ="transparent") # This makes the background transparent rather than white
-  ,panel.background=element_rect(fill="transparent")
-  ,plot.background=element_rect(fill="transparent",colour=NA)
-  ,plot.margin = unit(c(0,0,0,0.1), "mm")
-  ,panel.grid.minor = element_blank() # Removing all grids and borders
-  ,panel.border = element_blank()
-  ,panel.grid.major.x = element_blank()
-  ,panel.grid.major.y = element_blank()
-  ,panel.spacing = unit(1, "lines")
-  ,axis.ticks.length=unit(-1, "mm")
-  ,axis.ticks.y.right = element_line(color = "black",size=0.5)
-  ,axis.text.y.right = element_text(size=10,color="black",margin=margin(t=0.1,r=0.1,b=0.1,l=2,unit="mm"))
-  ,axis.text.x = element_text(size=10,color="black",angle =30,vjust=0.6,margin=unit(c(2,0.1,0.1,0.1),"mm"))
-  ,axis.ticks.x = element_blank()
-  ,legend.background = element_rect(fill = "transparent")
-  ,legend.title=element_blank()
-  ,legend.position = "bottom"
-  #,legend.margin = margin(-0.6,0,0,0, unit="cm")
-  #,legend.spacing.y = unit(2.5, "mm")
-  ,legend.spacing.x = unit(2.5, "mm")
-  ,legend.key.height=unit(0.5,"mm")
-  ,legend.key.width=unit(0.5,"mm")
-  ,legend.key = element_rect(colour = NA, fill = NA)
-  ,legend.justification = "left"
-  ,legend.text=element_text(size=10,color="black", hjust=0.5)
-  ,axis.title.y.right=element_text(size=12,color="black",margin = margin(t = 0, r = 0, b = 0, l = 8))
-  ,axis.title.x=element_blank()
-  ,strip.text = element_text(size = 12,colour = "black",hjust=0, margin = unit(c(.5,22,.5,0),"mm"))
-  ,strip.background = element_blank()
-)
-
-TM.effectMainP.BW <- TM.effectMainP.BW+annotate(geom = "segment", x = Inf, xend = Inf, y = -Inf, yend = Inf, size = 0.8)
-TM.effectMainP.BW <- TM.effectMainP.BW+annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 0.8)
-
-TM.effectMainP.BW <- TM.effectMainP.BW+annotate("text",x=.6:.6:.6:.6,y=90:90:90:90, label=c("e","f","g","h"),
-                                          family = "", fontface = "bold", size=4)
-
-TM.effectMainP.BW
-
-#Combine plots####
-#install.packages("egg")
-#library(egg)
-
-
-#color
-egg::ggarrange(Mainp,TM.effectMainP,
-               nrow=1,ncol=2,
-                debug=F)
-
-ggsave("Termites/Results/Figures/raw.termiteeffect.plot.png",
-       plot=egg::ggarrange(Mainp,TM.effectMainP,nrow=1,ncol=2),
-       width= 12, height = 20,units ="cm",bg ="transparent",
-       dpi = 600, limitsize = TRUE)
-
-#Black and white
-#color
-egg::ggarrange(Mainp.BW,TM.effectMainP.BW,
-               nrow=1,ncol=2,
-               debug=F)
-
-ggsave("Termites/Results/Figures/BW.raw.termiteeffect.plot.png",
-       plot=egg::ggarrange(Mainp.BW,TM.effectMainP.BW,nrow=1,ncol=2),
-       width= 12, height = 20,units ="cm",bg ="transparent",
+ggsave("Termites/Results/Figures/BW.raw.massloss.plot-revised.png",
+       width= 20, height = 18,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
 
 #Common Garden graph####
@@ -846,9 +399,9 @@ se <- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))# Function for Stand
 names(DataMain2)
 #Creating means by landuse (excluding blocks)
 DataMainmean2<-aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataMain2, mean)
-DataMainsd2 <-aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataMain2, sd)
+DataMainse2 <-aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataMain2, se)
 #Creating new column with the sd in the Mainmean dataset.
-DataMainmean2$sd <- DataMainsd2$Massloss.per 
+DataMainmean2$se <- DataMainse2$Massloss.per 
 # Fill by termite * landuse = empty = absence, filled = prescence 
 DataMainmean2$tea.hole<-as.factor(with(DataMainmean2, paste(Littertype, Treatment, sep=" ")))
 levels(DataMainmean2$tea.hole)
@@ -858,9 +411,9 @@ levels(DataMainmean2$Season)
 #Common garden means and standard error (Exclude blocks)
 names(DataCG)
 DataCGmean2 <- aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataCG, mean)
-DataCGsd2 <-aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataCG, sd)
+DataCGse2 <-aggregate(Massloss.per~Season+Region+Treatment+Littertype+Landuse, DataCG, se)
 #Creating new column with the sd in the CGmean dataset.
-DataCGmean2$sd <- DataCGsd2$Massloss.per
+DataCGmean2$se <- DataCGse2$Massloss.per
 # Fill by termite * landuse = empty = absence, filled = prescence 
 DataCGmean2$tea.hole<-as.factor(with(DataCGmean2, paste(Littertype, Treatment, sep=" ")))
 levels(DataCGmean2$tea.hole)
@@ -895,16 +448,16 @@ DataCGmean3<-droplevels(DataCGmean2[DataCGmean2$Region!="Intermediate",])
 levels(DataCGmean3$Region)
 DataCGmean3<-rbind(DataCGmean3,wetregionCG,dryregionCG)
 
-#Putting CG means and sd with Main means and sd in the same dataset
+#Putting CG means and se with Main means and se in the same dataset
 names(DataMainmean2)
 names(DataCGmean2)
 length(DataCGmean3$Massloss.per)
 length(DataMainmean2$Massloss.per)
-#Renaming colums to restrict merging of the Massloss and sd from the two experiments, when using merge() later.
+#Renaming colums to restrict merging of the Massloss and se from the two experiments, when using merge() later.
 colnames(DataMainmean2)[6]<-"massloss.perMain"
-colnames(DataMainmean2)[7]<-"SDMain"
+colnames(DataMainmean2)[7]<-"SEMain"
 colnames(DataCGmean3)[6]<-"massloss.perCG"
-colnames(DataCGmean3)[7]<-"SDCG"
+colnames(DataCGmean3)[7]<-"SECG"
 #Now that we have same amount of observations in both CG and Main dataset, we combine the massloss columns to create on dataset:
 MainCG <- left_join(DataMainmean2,DataCGmean3)
 
@@ -914,16 +467,6 @@ levels(MainCG$tea.hole2)
 levels(MainCG$Littertype)
 levels(MainCG$tea.hole)
 MainCG$Landuse<-as.factor(MainCG$Landuse)
-#Adjusting the SD error to not be below zero or above 100%
-MainCG$sdlowCG <- MainCG$massloss.perCG - MainCG$SDCG
-MainCG$sdhighCG <- MainCG$massloss.perCG+MainCG$SDCG
-MainCG$sdlowCG[MainCG$sdlowCG<0] <- 0
-MainCG$sdhighCG[MainCG$sdhighCG>100] <- 100 
-
-MainCG$sdlowMain <- MainCG$massloss.perMain - MainCG$SDMain
-MainCG$sdhighMain <- MainCG$massloss.perMain+MainCG$SDMain
-MainCG$sdlowMain[MainCG$sdlowMain<0] <- 0
-MainCG$sdhighMain[MainCG$sdhighMain>100] <- 100 
 
 #Minor change in landuse name#
 MainCG$Landuse <- gsub("Wild","Wildlife",MainCG$Landuse)
@@ -933,7 +476,6 @@ levels(MainCG$Landuse)
 MainCG$Landuse <- factor(MainCG$Landuse, levels = c("Agriculture","Pasture","Wildlife","Local soil"))
 
 
-#Plotting CG####
 
 #To make a better legend:
 colnames(MainCG)[3]<-"Treat"
@@ -941,45 +483,51 @@ MainCG$tea.hole2 <- ordered(MainCG$tea.hole, levels=c("Green Exclosed", "Rooibos
 levels(MainCG$tea.hole2)
 
 #To make a better legend:
-levels(MainCG$tea.hole2) <- c("Exclosed","Open","","")
+levels(MainCG$tea.hole2) <- c("Microbes only","Macrodetrivores and Microbes","","")
 levels(MainCG$Littertype) <- c("Labile","Recalcitrant")
 
 levels(MainCG$Landuse)#ok
 
+#Plotting CG####
 
 MainCGp <- ggplot(MainCG, aes(x=massloss.perMain, y=massloss.perCG, fill = tea.hole2, color = Littertype, alpha=Littertype, shape=Landuse))
-MainCGp <- MainCGp+geom_abline(slope=1, intercept=0, size =.95) 
-MainCGp <- MainCGp+geom_errorbar(aes(ymin = sdlowCG,ymax = sdhighCG),size=0.5,show.legend=F) 
-MainCGp <- MainCGp+geom_errorbarh(aes(xmin = sdlowMain,xmax = sdhighMain),size=0.5,show.legend=F)
-MainCGp <- MainCGp+geom_point(data=MainCG,size=4,stroke=1.5,show.legend=T)
+MainCGp <- MainCGp+geom_abline(slope=1, intercept=0, size =.8) 
+MainCGp <- MainCGp+geom_errorbar(aes(ymin = MainCG$massloss.perCG-MainCG$SECG,ymax = MainCG$SECG+MainCG$massloss.perCG),size=0.5,show.legend=F) 
+MainCGp <- MainCGp+geom_errorbarh(aes(xmin = MainCG$massloss.perMain-MainCG$SEMain,xmax = MainCG$SEMain+MainCG$massloss.perMain),size=0.5,show.legend=F)
+MainCGp <- MainCGp+geom_point(data=MainCG, size=3,stroke=1,show.legend=T)
 MainCGp <- MainCGp+scale_fill_manual(values=c("green4","orangered3","white","white"))
 MainCGp <- MainCGp+scale_color_manual(values=c("palegreen4","orangered3"))
 MainCGp <- MainCGp+scale_shape_manual(values=c(23,22,24,21))
 MainCGp <- MainCGp+scale_alpha_discrete(range=c(0.7,1))
-#MainCGp <- MainCGp+guides(fill = guide_legend(override.aes=list(shape=25, color=c("green4","orangered3","green4","orangered3"))),color=F)
-MainCGp <- MainCGp+guides(color=guide_legend(override.aes = 
-                                                list(shape=21,
-                                                     fill=c("green4", "orangered3"),
-                                                     color=c("palegreen4", "orangered3"),
-                                                     alpha=c(0.7,1),size=4,stroke=1.5),order=2),
-                          fill=guide_legend(override.aes = 
-                                              list(shape=21,
-                                                   size=4,
-                                                   stroke=1.5,
-                                                   fill=c("grey50", "white",NA),
-                                                   color=c("grey50", "grey50",NA),
-                                                   alpha=c(NA,NA,NA)),order=3),
-                          shape=guide_legend(override.aes=
-                                               list(size=4),order=1),
-                          alpha=F)
-
-
 MainCGp <- MainCGp+facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Mesic Region", `Wet`="Wet Region"),
                                                                                  Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
-MainCGp <- MainCGp+annotate("text", x=5:5:5:5,y=90:90:90:90, hjust = 0, label=c("Rainfall 172mm","Rainfall 175mm","Rainfall 172mm","Rainfall 175mm"),
-                            family = "", fontface = 3, size=4)
-MainCGp <- MainCGp+annotate("text", x=95:95:95:95,y=10:10:10:10, hjust = 1,label=c("Rainfall 8mm","Rainfall 150mm","Rainfall 197mm","Rainfall 196mm"),
-                            family = "", fontface = 3, size=4)
+MainCGp <- MainCGp+guides(fill=guide_legend(title="Decomposer Access",
+                                            override.aes = 
+                                            list(shape=22,
+                                                size=4,
+                                                fill=c("grey20", "white",NA),
+                                                color=c("grey20", "grey20",NA),
+                                                alpha=c(NA,NA,NA))),
+                         color=guide_legend(title="Littertype",
+                                            override.aes =
+                                              list(shape=22,
+                                                   size=4,
+                                                   fill=c("green4", "orangered3"),
+                                                   color=c("palegreen4","orangered3"),
+                                                   alpha=c(0.5,1))),
+                         shape=guide_legend(title="Land-use",ncol=2,vjust=0.5,
+                                            override.aes = 
+                                              list(shape=c(23,22,24,21),
+                                                   size=4,
+                                                   fill=c("white","white","white","white"),
+                                                   color=c("grey20","grey20","grey20","grey20"))),
+                         
+                         alpha=F)
+
+#MainCGp <- MainCGp+annotate("text", x=5:5:5:5,y=90:90:90:90, hjust = 0, label=c("Rainfall 172mm","Rainfall 175mm","Rainfall 172mm","Rainfall 175mm"),
+ #                           family = "", fontface = 3, size=4)
+#MainCGp <- MainCGp+annotate("text", x=95:95:95:95,y=10:10:10:10, hjust = 1,label=c("Rainfall 8mm","Rainfall 150mm","Rainfall 197mm","Rainfall 196mm"),
+#                            family = "", fontface = 3, size=4)
 MainCGp <- MainCGp+ scale_x_continuous(limits = c(0,100), expand = c(0,0),breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100))
 MainCGp <- MainCGp+ scale_y_continuous(limits = c(0,100), expand = c(0,0),breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100))
 MainCGp <- MainCGp+xlab("Main experiment mass loss (%)") +  ylab("Common garden mass loss (%)")
@@ -991,45 +539,140 @@ MainCGp <- MainCGp+ theme(rect = element_rect(fill ="transparent")
                           ,panel.border = element_blank()
                           ,panel.grid.major.x = element_blank()
                           ,panel.grid.major.y = element_blank()
-                          #,axis.text=element_text(size=12,color="black")
-                          ,axis.title.y=element_text(size=14,hjust=0.5,color="black")
-                          ,axis.title.x=element_text(size=14,vjust=0.5,color="black")
-                          ,axis.text.x = element_text(size=10,color="black",
-                                                      margin=margin(2.5,2.5,2.5,2.5,"mm"))
-                          ,axis.text.y = element_text(size=10,color="black",margin=margin(2.5,2.5,2.5,2.5,"mm"))
-                          ,axis.ticks.length=unit(-1.5, "mm")
-                          ,axis.line.y = element_blank()
-                          ,axis.line.x = element_blank()
-                          ,plot.margin = unit(c(0.2,0.2,0.2,0.2), "mm")
-                          ,strip.background = element_rect(fill="transparent",colour=NA)
-                          ,strip.text.x = element_text(size = 14,colour = "black")
-                          ,strip.text.y = element_text(size = 14,colour = "black")
-                          ,panel.spacing = unit(1.5, "lines")
+                          ,plot.margin = unit(c(0,0.1,0,0), "mm")
+                          ,axis.title.y=element_text(size=12,color="black",margin=margin(2.5,2.5,2.5,2.5,"mm"))
+                          ,axis.title.x=element_text(size=12,vjust=-.5,color="black")
+                          ,axis.ticks.length=unit(-1, "mm")
+                          ,axis.text.x = element_text(size=10,color="black",angle =0,vjust=0.6,margin=unit(c(2,0.1,0.1,0.1),"mm"))
+                          ,axis.text.y = element_text(size=10,color="black",margin=margin(t=0.1,r=2,b=0.1,l=0.1,unit="mm"))
+                          ,axis.ticks.x = element_line(colour = "black", size = 0.5)
+                          ,axis.ticks.y = element_line(colour = "black", size = 0.5)
+                          ,strip.background =element_blank() #element_rect(fill="transparent",colour="black",size=10)
+                          ,strip.text = element_text(size = 11,colour = "black",hjust=0.5, margin = unit(c(.5,0,.5,5),"mm"))
+                          ,panel.spacing = unit(1, "lines")
                           ,legend.background = element_rect(fill = "transparent")
-                          ,legend.title=element_blank()
-                          ,legend.position = "bottom"
-                          ,legend.spacing = unit(-3, "mm")
-                          ,legend.key.height=unit(7.5,"mm")
-                          ,legend.key.width=unit(7.5,"mm")
+                          ,legend.margin = margin(c(3,0,0,0),unit="mm")
+                          ,legend.box.margin =  margin(c(0,0,0,0),unit="mm")
                           ,legend.key = element_rect(colour = NA, fill = NA)
-                          ,legend.key.size = unit(10,"mm")
-                          ,legend.justification=c(0.5,0.5)
-                          ,legend.text=element_text(size=10,color="black"))+
-  annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15) +
-  annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
-MainCGp <- MainCGp+annotate("text",x=5:5:5:5,y=98:98:98:98,hjust=0, label=c("a","b","c","d"),
-                        family = "", fontface="bold" , size=4)
+                          ,legend.key.height=unit(0.2,"mm")
+                          ,legend.key.width=unit(0.2,"mm")
+                          ,legend.position = "bottom"
+                          ,legend.direction = "vertical"
+                          ,legend.justification = "left"
+                          ,legend.text=element_text(size=10,color="black",hjust=0, margin = margin(t=0,r=0,b=1,l=0, unit="mm")
+                          )
+                          ,legend.text.align=0)
 
-MainCGp
+MainCGp <- MainCGp+annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 0.8)
+MainCGp <- MainCGp+annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 0.8)
+
+  
+ # annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15)
+#MainCGp+annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
+#MainCGp <- MainCGp+annotate("text",x=5:5:5:5,y=98:98:98:98,hjust=0, label=c("a","b","c","d"),
+ #                       family = "", fontface="bold" , size=4)
+
+MainCGp 
 
 
 
-ggsave("Termites/Results/Figures/CommongardenvsMain.png",
+ggsave("Termites/Results/Figures/CommongardenvsMain-revised.png",
        width= 20, height = 18,units ="cm",bg ="transparent",
        dpi = 600, limitsize = TRUE)
 
 
 #BLACK AND WHiTE VERSION####
+
+MainCGp.BW <- ggplot(MainCG, aes(x=massloss.perMain, y=massloss.perCG, fill = tea.hole2, color = Littertype, alpha=Littertype, shape=Landuse))
+MainCGp.BW <- MainCGp.BW+geom_abline(slope=1, intercept=0, size =.8) 
+MainCGp.BW <- MainCGp.BW+geom_errorbar(aes(ymin = MainCG$massloss.perCG-MainCG$SECG,ymax = MainCG$SECG+MainCG$massloss.perCG),size=0.5,show.legend=F) 
+MainCGp.BW <- MainCGp.BW+geom_errorbarh(aes(xmin = MainCG$massloss.perMain-MainCG$SEMain,xmax = MainCG$SEMain+MainCG$massloss.perMain),size=0.5,show.legend=F)
+MainCGp.BW <- MainCGp.BW+geom_point(data=MainCG, size=3,stroke=1,show.legend=T)
+MainCGp.BW <- MainCGp.BW+scale_fill_manual(values=c("grey50","grey20","white","white"))
+MainCGp.BW <- MainCGp.BW+scale_color_manual(values=c("grey50","grey20"))
+MainCGp.BW <- MainCGp.BW+scale_shape_manual(values=c(23,22,24,21))
+MainCGp.BW <- MainCGp.BW+scale_alpha_discrete(range=c(0.7,1))
+MainCGp.BW <- MainCGp.BW+facet_grid(Region ~ Season, scale ="fixed", labeller=labeller(Region = c(`Dry`= "Mesic Region", `Wet`="Wet Region"),
+                                                                                 Season = c(`Wet`= "Wet Season", `Dry`="Dry Season")))
+MainCGp.BW <- MainCGp.BW+guides(fill=guide_legend(title="Decomposer Access",
+                                            override.aes = 
+                                              list(shape=22,
+                                                   size=4,
+                                                   fill=c("grey20", "white",NA),
+                                                   color=c("grey20", "grey20",NA),
+                                                   alpha=c(NA,NA,NA))),
+                          color=guide_legend(title="Littertype",
+                                             override.aes =
+                                               list(shape=22,
+                                                    size=4,
+                                                    fill=c("grey50", "grey20"),
+                                                    color=c("grey50","grey20"),
+                                                    alpha=c(0.5,1))),
+                          shape=guide_legend(title="Land-use",ncol=2,vjust=0.5,
+                                             override.aes = 
+                                               list(shape=c(23,22,24,21),
+                                                    size=4,
+                                                    fill=c("white","white","white","white"),
+                                                    color=c("grey20","grey20","grey20","grey20"))),
+                          
+                          alpha=F)
+
+#MainCGp.BW <- MainCGp.BW+annotate("text", x=5:5:5:5,y=90:90:90:90, hjust = 0, label=c("Rainfall 172mm","Rainfall 175mm","Rainfall 172mm","Rainfall 175mm"),
+#                           family = "", fontface = 3, size=4)
+#MainCGp.BW <- MainCGp.BW+annotate("text", x=95:95:95:95,y=10:10:10:10, hjust = 1,label=c("Rainfall 8mm","Rainfall 150mm","Rainfall 197mm","Rainfall 196mm"),
+#                            family = "", fontface = 3, size=4)
+MainCGp.BW <- MainCGp.BW+ scale_x_continuous(limits = c(0,100), expand = c(0,0),breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100))
+MainCGp.BW <- MainCGp.BW+ scale_y_continuous(limits = c(0,100), expand = c(0,0),breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100))
+MainCGp.BW <- MainCGp.BW+xlab("Main experiment mass loss (%)") +  ylab("Common garden mass loss (%)")
+MainCGp.BW <- MainCGp.BW+ theme(rect = element_rect(fill ="transparent")
+                          ,panel.background=element_rect(fill="transparent")
+                          ,plot.background=element_rect(fill="transparent",colour=NA)
+                          ,panel.grid.major = element_blank()
+                          ,panel.grid.minor = element_blank()
+                          ,panel.border = element_blank()
+                          ,panel.grid.major.x = element_blank()
+                          ,panel.grid.major.y = element_blank()
+                          ,plot.margin = unit(c(0,0.1,0,0), "mm")
+                          ,axis.title.y=element_text(size=12,color="black",margin=margin(2.5,2.5,2.5,2.5,"mm"))
+                          ,axis.title.x=element_text(size=12,vjust=-.5,color="black")
+                          ,axis.ticks.length=unit(-1, "mm")
+                          ,axis.text.x = element_text(size=10,color="black",angle =0,vjust=0.6,margin=unit(c(2,0.1,0.1,0.1),"mm"))
+                          ,axis.text.y = element_text(size=10,color="black",margin=margin(t=0.1,r=2,b=0.1,l=0.1,unit="mm"))
+                          ,axis.ticks.x = element_line(colour = "black", size = 0.5)
+                          ,axis.ticks.y = element_line(colour = "black", size = 0.5)
+                          ,strip.background =element_blank() #element_rect(fill="transparent",colour="black",size=10)
+                          ,strip.text = element_text(size = 11,colour = "black",hjust=0.5, margin = unit(c(.5,0,.5,5),"mm"))
+                          ,panel.spacing = unit(1, "lines")
+                          ,legend.background = element_rect(fill = "transparent")
+                          ,legend.margin = margin(c(3,0,0,0),unit="mm")
+                          ,legend.box.margin =  margin(c(0,0,0,0),unit="mm")
+                          ,legend.key = element_rect(colour = NA, fill = NA)
+                          ,legend.key.height=unit(0.2,"mm")
+                          ,legend.key.width=unit(0.2,"mm")
+                          ,legend.position = "bottom"
+                          ,legend.direction = "vertical"
+                          ,legend.justification = "left"
+                          ,legend.text=element_text(size=10,color="black",hjust=0, margin = margin(t=0,r=0,b=1,l=0, unit="mm")
+                          )
+                          ,legend.text.align=0)
+
+MainCGp.BW <- MainCGp.BW+annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 0.8)
+MainCGp.BW <- MainCGp.BW+annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 0.8)
+
+
+# annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15)
+#MainCGp.BW+annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
+#MainCGp.BW <- MainCGp.BW+annotate("text",x=5:5:5:5,y=98:98:98:98,hjust=0, label=c("a","b","c","d"),
+#                       family = "", fontface="bold" , size=4)
+
+MainCGp.BW 
+
+ggsave("Termites/Results/Figures/BW.CommongardenvsMain-revised.png",
+       width= 20, height = 18,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
+
+
+
 #Plotting CG Black&white####
 MainCGp.BW <- ggplot(MainCG, aes(x=massloss.perMain, y=massloss.perCG, fill = tea.hole2, color = Littertype, shape=Landuse))#alpha=Littertype
 MainCGp.BW <- MainCGp.BW+geom_abline(slope=1, intercept=0, size =.95) 
