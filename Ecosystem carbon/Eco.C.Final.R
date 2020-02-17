@@ -396,6 +396,8 @@ panel.cor <- function(x, y, digits=1, prefix="", cex.cor = 6)
 names(Belowground.full.CnoNA)
 Model.var.full<-c("MAP.mm_yr","Sand","Clay","Silt","Fire_frequency.2000_2017.x","TreeBM.kg_m2","AhorN.kg_m2","MinN.kg_m2","AhorC.kg_m2","MinC.kg_m2","Last_fire.yr","Herbaceous","Accum.bm.kg_m2","Res.bm.kg_m2","Roots.kg.m2", "total.dung")
 
+Model.var.red<-c("TreeBM.kg_m2","DW","AhorC.kg_m2","MinC.kg_m2","MAP.mm_yr","Sand","Fire_frequency.2000_2017.x","Ctot.N.kg_m2","Herbaceous","Accum.bm.kg_m2","Res.bm.kg_m2","Roots.kg.m2", "total.dung", "livestock", "wild")
+
 summary(Total.Eco.C.CnoNA)
 Model.var.block<-c("MAP.mm_yr","Sand.pip.per","Fire_frequency.2000_2017","TreeBM.kg_m2","Herbaceous","Accum.bm.kg_m2","Res.bm.kg_m2","AhorN.kg_m2","MinN.kg_m2","Soil.Ahor","Soil.min","Roots.kg.m2")
 
@@ -404,7 +406,7 @@ Model.var.sub<-c("MAP.mm_yr","Sand.pip.per","Fire_frequency.2000_2017","Woody","
                  "total.dung")
 
 # Want to get these two in one matrix. 
-pairs(Belowground.full.CnoNA[,Model.var.full],lower.panel = panel.cor)
+pairs(Belowground.full.CnoNA[,Model.var.red],lower.panel = panel.cor)
 pairs(Total.Eco.C.CnoNA[,Model.var.block],lower.panel = panel.cor)
 pairs(Total.Eco.C.CnoNA2[,Model.var.sub],lower.panel = panel.cor)
 # If I want these values in a table:
@@ -562,6 +564,7 @@ Minhor.dung <- cbind(coef.Minhor.dung, confint.Minhor.dung)
 write.table(Minhor.dung, file="Ecosystem carbon/ConAvgMinHordung.txt")
 
 ##      4.3. Global model for Herbs ####
+# HERBACEOUS 
 Herbaceous.CnoNA<-Herbaceous[!is.na(Herbaceous$Ctot.C.kg_m2),]
 Herbaceous.CnoNA <- Herbaceous.CnoNA[(-20),]
 Herbaceous.CnoNA <- Herbaceous.CnoNA[(-16),]
@@ -596,16 +599,14 @@ coef.Herb <- summary(modavgaboveH)$coefmat.subset
 Herb <- cbind(coef.Herb, confint.Herb)
 write.table(Herb, file="Ecosystem carbon/ConAvgH.txt") 
 
-# With livestock, wild dung and termites, not anything special.
+# With livestock, wild dung, not anything special.
 Livestock.dung <- Livestock.dung[c(2,3)]
 Wild.dung <- Wild.dung[c(2,3)]
 Herbaceous2 <- left_join(Herbaceous,Livestock.dung,by="Block.ID",drop=F)
 Herbaceous2 <- left_join(Herbaceous2,Wild.dung,by="Block.ID",drop=F)
-#Herbaceous2 <- left_join(Herbaceous2,Termites,by="Block.ID",drop=F)
 Herbaceous2.CnoNA<-Herbaceous2[!is.na(Herbaceous2$livestock),]
 Herbaceous2.CnoNA$Clivestock <- as.numeric(scale(Herbaceous2.CnoNA$livestock))
 Herbaceous2.CnoNA$Cwild <- as.numeric(scale(Herbaceous2.CnoNA$wild))
-#Herbaceous2.CnoNA$CTermites <- as.numeric(scale(Herbaceous2.CnoNA$Termite.effect.x))
 Herbaceous2.CnoNA <- Herbaceous2.CnoNA[(-16),]
 Herbaceous2.CnoNA <- droplevels(Herbaceous2.CnoNA)
 
@@ -624,6 +625,32 @@ importance(modavgHerb2)#Importance of each variable
 #Estimated coefficients given weighting
 confint.Herb <- confint(modavgHerb2)
 coef.Herb <- summary(modavgHerb2)$coefmat.subset
+Herb <- cbind(coef.Herb, confint.Herb)
+#write.table(Herb, file="Ecosystem carbon/ConAvgH.txt") 
+
+# ACCUMULATES HERBACEOUS BIOMASS 
+names(Total.Eco.C.CnoNA2)
+
+Accum.Herb<-lmer(CAccum.bm.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency + CTreeBM.kg_m2 + CSand + Ctot.N.kg_m2 + CRoots.kg.m2 + Cwild + Clivestock + 
+                         landuse:CMAP.mm_yr + landuse:CSand +
+                         (1|Region),data = Total.Eco.C.CnoNA2, REML=F, 
+                       na.action=na.fail)
+
+summary(Accum.Herb)
+drop1(Accum.Herb,test="Chisq")  
+anova(Accum.Herb)
+AIC(Accum.Herb) #52.15059
+
+# Model averaging: All possible models between null and global
+modsetaboveH<-dredge(Accum.Herb,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse) & !(Ctot.N.kg_m2 & CSand) & !(Clivestock & CSand) & !(Cwild & CSand) & !(CRoots.kg.m2 & CMAP.mm_yr)& !(Cwild & CMAP.mm_yr) & !(Clivestock & CTreeBM.kg_m2)& !(Cwild & CTreeBM.kg_m2))
+
+modselaboveH<-model.sel(modsetaboveH) #Model selection table giving AIC, deltaAIC and weighting
+modavgaboveH<-model.avg(modselaboveH)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgaboveH)#Importance of each variable
+#write.table(importance(modavgaboveH),file="Ecosystem carbon/importanceaboveH.txt")
+#Estimated coefficients given weighting
+confint.Herb <- confint(modavgaboveH)
+coef.Herb <- summary(modavgaboveH)$coefmat.subset
 Herb <- cbind(coef.Herb, confint.Herb)
 #write.table(Herb, file="Ecosystem carbon/ConAvgH.txt") 
 
@@ -803,172 +830,66 @@ library(MuMIn)
 library(piecewiseSEM)
 vignette('piecewiseSEM') # too look at the package 
 
-# Variation for each model component BLOCK LEVEL
-# A total model of all direct effects based on conseptual model
-names(Total.Eco.C.CnoNA)
-Total.Eco.C.CnoNA <- droplevels(Total.Eco.C.CnoNA)
-summary(Total.Eco.C.CnoNA)
+# Going to make two SEM, one larger model (all sites) and a reduce model (ones with herbaceous and dung data) with more detailed measurements. Larger model is more a relationship between main pools, while smaller model is more mechanistic looking into herbaceous and root production and local herbivore assemblage etc.
 
-Modlist <-   psem(
-  lme(Woody~ CFire_frequency.2000_2017 + landuse + CMAP.mm_yr + CSand + Ctot.N.kg_m2, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(DW~ CFire_frequency.2000_2017 + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(Herbaceous ~  CSand + CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + Ctot.N.kg_m2,random= ~ 1|Region.x,na.action=na.omit, data=Total.Eco.C.CnoNA),
-  lme(Soil.Ahor~ Herbaceous + Woody + CSand + DW + CMAP.mm_yr, random= ~ 1|Region.x,na.action=na.omit, data=Total.Eco.C.CnoNA),
-  lme(Soil.min~ Soil.Ahor + CSand + CMAP.mm_yr, random= ~ 1|Region.x,na.action=na.omit, data=Total.Eco.C.CnoNA),
-  lme(CFire_frequency.2000_2017~ landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA), 
-  landuse%~~%CMAP.mm_yr, # I know these are not correlated
-  landuse%~~%CSand, # I know these are not correlated 
-  Soil.Ahor%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path.. 
-  Soil.min%~~%Ctot.N.kg_m2
-)
-
-summary(Modlist,Total.Eco.C.CnoNA)
-# Good fit, sign: Woody~Fire and Soil.min~Soil.A
-
-# Add significant variables, remove non sign.
-Modlist2 <-   psem(
-  lme(Woody~landuse + CSand + Ctot.N.kg_m2, random= ~ 1|Region.x,na.action=na.omit, data=Total.Eco.C.CnoNA),
-  lme(DW~landuse,random= ~ 1|Region.x,na.action=na.omit, data=Total.Eco.C.CnoNA),
-  lme(Herbaceous ~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + Ctot.N.kg_m2,random= ~ 1|Region.x,na.action=na.omit, data=Total.Eco.C.CnoNA),
-  lme(Soil.Ahor~ Ctotal.dung + Herbaceous + Woody + CSand + DW + CMAP.mm_yr, random= ~ 1|Region.x,na.action=na.omit, data=Total.Eco.C.CnoNA),
-  lme(Soil.min~ Soil.Ahor + CSand + CMAP.mm_yr, random= ~ 1|Region.x,na.action=na.omit, data=Total.Eco.C.CnoNA),
-  lme(CFire_frequency.2000_2017~ landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA), 
-  landuse%~~%CMAP.mm_yr, # I know these are not correlated
-  landuse%~~%CSand, # I know these are not correlated 
-  Soil.Ahor%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path.. 
-  Soil.min%~~%Ctot.N.kg_m2
-)
-
-summary(Modlist2,Total.Eco.C.CnoNA)
-# good fit, sign: Soil.min~Soil.A, Shrubbiness~Fire, Shrubbiness~MAP, N~Sand 
-
-# Remove non sign further, and add some almost sign, work on this till I find the best.. 
-Modlist5 <-   psem(
-  lme(Woody~ landuse, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(DW~ landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(Herbaceous ~  CSand + landuse,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  #lme(Soil.Ahor~ Herbaceous, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(Soil.min~ Soil.Ahor, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(CShrubbiness~  CFire_frequency.2000_2017 + CMAP.mm_yr,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  lme(Ctot.N.kg_m2~ CSand,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA),
-  landuse%~~%CMAP.mm_yr, # I know these are not correlated
-  landuse%~~%CSand, # I know these are not correlated 
-  CShrubbiness%~~% Woody,
-  Soil.Ahor%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path.. 
-  Soil.min%~~%Ctot.N.kg_m2
-)
-SEMsummary <- summary(Modlist5,Total.Eco.C.CnoNA)
-SEMsummary$coefficients
-SEMsummary$R2
-#write.table(SEMsummary$coefficients, file="Ecosystem carbon/SEM.coefficients.txt") 
-#write.table(SEMsummary$R2, file="Ecosystem carbon/SEM.R2.txt") 
-
-# Run a SEM with dung included BLOCK
-Modlist1 <-   psem(
-  lme(Woody~ CFire_frequency.2000_2017 + Clivestock, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(DW~  Herbaceous,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(Herbaceous ~CFire_frequency.2000_2017,random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(Soil.Ahor~ Clivestock + Cwild, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(Soil.min~ Soil.Ahor , random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  #lme(CShrubbiness2~  CFire_frequency.2000_2017 , random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(AhorN.kg_m2~ CSand + CMAP.mm_yr, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(MinN.kg_m2~ CSand, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CTermites~ Cwild , random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(Cwild~ Clivestock + CMAP.mm_yr, random= ~ 1|Region.x,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  CShrubbiness2%~~% Woody, 
-  Soil.Ahor%~~%MinN.kg_m2, # We know these are highly correlated, but no path.. 
-  Soil.min%~~%MinN.kg_m2, 
-  Soil.Ahor%~~%AhorN.kg_m2,  
-  Soil.min%~~%AhorN.kg_m2
-)
-summary(Modlist1,Total.Eco.C.CnoNA2)
-
-SEM.dung <- summary(Modlist1,Total.Eco.C.CnoNA2)  # Good fit
-SEM.dung$dTable
-write.csv(SEM.dung$coefficients, file = "Ecosystem carbon/SEMdung.csv")
-
-# Run a SEM with dung and termites included FULL Not possible to get a good fit!! 
-summary(Belowground.full.CnoNA2)
-Modlist2 <-   psem(
-  lme(Woody~ CFire_frequency.2000_2017 + CSand, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA2),
-  #lme(DW~  Clivestock + Woody, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA2),
-  lme(Herbaceous ~  CFire_frequency.2000_2017,random= ~ 1|Region, na.action=na.pass, data=Belowground.full.CnoNA),
-  lme(AhorC.kg_m2~Clivestock + Cwild, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA2),
-  lme(MinC.kg_m2~ AhorC.kg_m2 + CSand, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA2),
-  lme(CShrubbiness2~CFire_frequency.2000_2017 + CSand, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA2),
-  lme(AhorN.kg_m2~Cwild + CSand, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA2),
-  lme(MinN.kg_m2~ CSand, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA2),
-  lme(CTermites~  Cwild + CFire_frequency.2000_2017, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA2),
-  lme(Cwild~ Clivestock + CShrubbiness2, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA2),
-  lme(Clivestock~ CSand, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA2),
-  CShrubbiness2%~~% Woody, 
-  AhorC.kg_m2%~~%AhorN.kg_m2, # We know these are highly correlated, but no path.. 
-  MinC.kg_m2%~~%AhorN.kg_m2,
-  AhorC.kg_m2%~~%MinN.kg_m2, 
-  MinC.kg_m2%~~%MinN.kg_m2
-)
-
-summary(Modlist2,Belowground.full.CnoNA2)
-par(mfrow=c(1,1))
-plot(wild ~ Region, data=Belowground.full.CnoNA2 )
-plot(CShrubbiness ~ CMAP.mm_yr, data=Belowground.full.CnoNA)
-
-
-# Make a SEM for my belowground full data!! 
+# Large model with as high resolution as possible 
 names(Belowground.full.CnoNA)
 summary(Belowground.full.CnoNA)
-Modlist.below <-   psem(
+Belowground.full.CnoNA <- droplevels(Belowground.full.CnoNA)
+
+Modlist.large <-   psem(
   lme(CWoody~ Ctot.N.kg_m2 + CFire_frequency.2000_2017 + landuse + CSand, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
   lme(CDW~ CWoody + CFire_frequency.2000_2017 + landuse,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(CHerbaceous ~  Ctot.N.kg_m2 + CSand + CMAP.mm_yr + landuse,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CHerbaceous ~  Ctot.N.kg_m2 + CSand + CMAP.mm_yr + landuse + CFire_frequency.2000_2017,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
   lme(CAhorC.kg_m2~ CHerbaceous + CRes.bm.kg_m2 + CAccum.bm.kg_m2, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
   lme(CMinC.kg_m2~ CAhorC.kg_m2 + CSand, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(Ctot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(CRoots.kg.m2~ CSand + CMAP.mm_yr,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
   landuse%~~%CMAP.mm_yr, # I know these are not correlated
   landuse%~~%CSand, # I know these are not correlated 
   CAhorC.kg_m2%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path.. 
-  CMinC.kg_m2%~~%Ctot.N.kg_m2
+  CMinC.kg_m2%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path..
+  CRes.bm.kg_m2%~~%CAccum.bm.kg_m2, # Testing variables 
+  CRes.bm.kg_m2%~~%CHerbaceous, # Testing variables
+  CHerbaceous%~~%CAccum.bm.kg_m2 # Testing variables
 )
 
-summary(Modlist.below,Belowground.full.CnoNA) # Not a good fit, p=0
+summary(Modlist.large,Belowground.full.CnoNA) # Not a good fit, p=0
 
-# Make a full SEM that I reduce till good fit. 
-Modlist.below <-   psem(
-  lme(CWoody~CSand, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+# Large model best fit 
+Modlist.large2 <-   psem(
+  lme(CWoody~ landuse + CSand, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
   lme(CDW~ landuse,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(CAccum.bm.kg_m2 ~ CMAP.mm_yr + CDW,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
-  #lme(CAhorC.kg_m2~ Ctotal.dung, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(CMinC.kg_m2~ CAhorC.kg_m2 + CAccum.bm.kg_m2 + Ctotal.dung, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(Ctot.N.kg_m2~ Ctotal.dung + CAccum.bm.kg_m2 + CSand,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(CRoots.kg.m2~ CSand + CMAP.mm_yr + CFire_frequency.2000_2017 + CWoody,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CAccum.bm.kg_m2 ~ Ctot.N.kg_m2 + CMAP.mm_yr + CDW + landuse,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CMinC.kg_m2~ CAhorC.kg_m2 + CSand + CAccum.bm.kg_m2, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
+  #lme(Ctot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CFire_frequency.2000_2017~ CWoody + CDW,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
   landuse%~~%CMAP.mm_yr, # I know these are not correlated
   landuse%~~%CSand, # I know these are not correlated 
   CAhorC.kg_m2%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path.. 
-  CMinC.kg_m2%~~%Ctot.N.kg_m2
+  CMinC.kg_m2%~~%Ctot.N.kg_m2 # We know these are highly correlated, but no path..
 )
 
-summary(Modlist.below,Belowground.full.CnoNA) # A good fit: P-value= 0.533
-plot(tot.C.kg_m2~total.dung, data=Belowground.full)
-# Develope the good fit further.. 
-Modlist.below2 <-   psem(
-  lme(CWoody~ CSand + landuse, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(CDW~ landuse + Cwild,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(CAccum.bm.kg_m2 ~ CMAP.mm_yr + CDW,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(CAhorC.kg_m2~ Cwild + Clivestock, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(CMinC.kg_m2~ CAhorC.kg_m2 + CAccum.bm.kg_m2 + CSand, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(Ctot.N.kg_m2~ Clivestock + CAccum.bm.kg_m2 + CSand,random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
-#  lme(CRoots.kg.m2~ CSand + CMAP.mm_yr + CFire_frequency.2000_2017 + CWoody,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
-  landuse%~~%CMAP.mm_yr, # I know these are not correlated
-  landuse%~~%CSand, # I know these are not correlated 
-  CAhorC.kg_m2%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path.. 
-  CMinC.kg_m2%~~%Ctot.N.kg_m2
-)
-
-summary(Modlist.below2,Belowground.full.CnoNA) 
+summary(Modlist.large2,Belowground.full.CnoNA) # A good fit, p=0.712
 
 #SEM.below <- summary(Modlist.below2,Belowground.full.CnoNA) # Good fit
 #write.csv(SEM.below$coefficients, file = "Ecosystem carbon/SEMBelow.csv")
+
+# Lower resolution data 
+
+Modlist.mecanistic <-   psem(
+  lme(CWoody~ Clivestock + CSand, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CDW~ landuse,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CAccum.bm.kg_m2 ~ CMAP.mm_yr + CRoots.kg.m2,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CAhorC.kg_m2~Clivestock, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CMinC.kg_m2~ CAhorC.kg_m2 + CSand, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CFire_frequency.2000_2017~ CWoody + CRoots.kg.m2, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+ lme(Ctot.N.kg_m2~ CSand,random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
+ lme(CRoots.kg.m2~ CMAP.mm_yr,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+ lme(Cwild ~ CMAP.mm_yr,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  CAhorC.kg_m2%~~%Ctot.N.kg_m2,
+  CMinC.kg_m2%~~%Ctot.N.kg_m2
+)
+
+summary(Modlist.mecanistic,Belowground.full.CnoNA) 
 
 ####  6: PLOTING  ####
 ##      6.1: Dung variables ####
