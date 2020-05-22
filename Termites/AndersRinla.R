@@ -249,6 +249,22 @@ Mainexp$sdhigh[Mainexp$sdhigh>100] <- 100
 dummy <- Mainexp$Landuse
 Mainexp$Landuse <- gsub("Wild","Wildlife",Mainexp$Landuse)
 
+
+Mainexp$Landuse_trt<-as.factor(with(Mainexp, paste(Landuse, Treat, sep="-")))
+
+# Trial new graph....m/s revisions
+Mainp.BW <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=sdlow,ymax=sdhigh, shape = Littertype,fill = Landuse_trt, colour=Landuse))#,alpha=Littertype))
+Mainp.BW <- Mainp.BW+geom_errorbar(width=0.1,size=0.5,position=position_dodge(width=.75),show.legend=F)
+Mainp.BW <- Mainp.BW+geom_point(size=3.5,stroke=1,position=position_dodge(width=.75),show.legend=T)# shape=21)
+Mainp.BW <- Mainp.BW+facet_wrap(~panel.titles3, scale ="fixed", ncol=2)
+Mainp.BW <- Mainp.BW+scale_shape_manual(values=c(21, 22))
+Mainp.BW <- Mainp.BW+scale_fill_manual(values=c("grey10","white","grey30","white","grey60","white"))
+Mainp.BW <- Mainp.BW+scale_colour_manual(values=c("grey10","grey30","grey60"))
+#Mainp.BW <- Mainp.BW+scale_alpha_discrete(range=c(0.5,1))
+#Mainp.BW <- Mainp.BW+scale_fill_discrete(breaks=c("Exclosed","Open"), name="Treatment")
+Mainp.BW <- Mainp.BW+theme_classic()
+Mainp.BW
+
 ###Raw massloss graph####
 Mainp <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=sdlow,ymax=sdhigh,fill = Treatment, color = Littertype,alpha=Littertype))
 Mainp <- Mainp+geom_errorbar(width=0.5,size=0.5,position=position_dodge(width=.35),show.legend=F)
@@ -1170,16 +1186,34 @@ min(RecalMain2$Massloss.perB)
 max(RecalMain2$Massloss.perB)
 
 # Recalitrant litter model
-RecalMainModFINAL2<- glmmTMB(Massloss.perB ~ Season+Region+Landuse+
-                      Landuse:Treatment+Region:Treatment+Region:Landuse+
-                      Season:Treatment+Season:Landuse+Season:Region+
-                     Season:Region:Landuse+Season:Region:Treatment+
-                    Season:Landuse:Treatment+
+RecalMain2$Landuse<- factor(RecalMain2$Landuse, levels = c("Wild","Agriculture", "Pasture"))
+RecalMain2$Treatment<- factor(RecalMain2$Treatment, levels = c("Open","Exclosed"))
+RecalMain2$Season<- factor(RecalMain2$Season, levels = c("Wet","Dry"))
+RecalMain2$Region<- factor(RecalMain2$Region, levels = c("Wet","Dry"))
+
+RecalMainModFINAL2<- glmmTMB(Massloss.perB ~ Landuse+Treatment+Season+Region+
+                      Landuse:Treatment+Landuse:Season+Landuse:Region+
+                      Treatment:Season+Treatment:Region+Season:Region+
+                      Landuse:Treatment:Season+
+                      Landuse:Season:Region+
+                      Treatment:Season:Region+
                       (1|Blockcode/Plot), 
                       family=beta_family(link="logit"), data=RecalMain2)
-
 summary(RecalMainModFINAL2)
-drop1(RecalMainModFINAL2, test="Chisq") # Nothing removed
+car::Anova(RecalMainModFINAL2)
+#drop1(RecalMainModFINAL2, test="Chisq") # Nothing removed
+betas<-fixef(RecalMainModFINAL2)$con
+Covbetas <-vcov(RecalMainModFINAL2)$con
+
+# Calculate prob from betas...
+betas    <- fixef(RecalMainModFINAL2)
+betasData<-as.data.frame(betas$cond)
+colnames(betasData)[1]<-"betas"
+#Reverse logit fx
+#exp() de-logarthimize@ the odds
+#prob + odds / (1 + odds)
+ODDS<-exp(betasData$betas)
+PROB<-ODDS/ (1 + (ODDS))*100
 
 #library(sjstats)
 sjstats::icc(RecalMainModFINAL2)
@@ -1260,18 +1294,20 @@ ref.grid.RecalMainModFINAL <- ref_grid(RecalMainModFINAL2) #at = list(Region = c
 ref.grid.RecalMainModFINAL#See how the grid is looking. Check for correct factors and the emmeans of numerical variables. If testing between numerical variables, only the means or the low/high end of values can be specified. I.e contrasts vs trend. See emmeans vignette for more info.
 #Check threeway first:
 emmip(ref.grid.RecalMainModFINAL, Region~Season|Landuse+Treatment, type="response")#
-emmeans.RecalMainModFINAL <- emmeans(ref.grid.RecalMainModFINAL, pairwise~Season*Region*Treatment|Landuse,type="response") #
+emmeans.RecalMainModFINAL <- emmeans(ref.grid.RecalMainModFINAL, pairwise~Landuse*Region|Season,type="response") #
 emmeans.RecalMainModFINAL$contrasts
 emmeans.RecalMainModFINAL$emmeans
 emmeans.RecalMainModFINAL.pairs <- pairs(emmeans.RecalMainModFINAL,simple = "each", combine =TRUE)
 plot(emmeans.RecalMainModFINAL, comparisons = FALSE)
-
 
 # Roobios mass loss averages
 aggregate(Massloss.per~Landuse+Region+Season,data=RecalMain2,mean)
 aggregate(Massloss.per~Region+Season+Treatment,data=RecalMain2,mean)
 aggregate(Massloss.per~Region+Season,data=RecalMain2,sd)
 aggregate(Massloss.per~Landuse+Treatment,data=RecalMain2,sd)
+
+#### Variance mass loss per site ####
+ggplot(RecalMain2, aes(y=Massloss.per,x=Blockcowde, colour=Landuse, shape=Treatment))+geom_jitter()+facet_wrap(~Season)
 
 #### Labile model ####
 # Ensure mass loss values are between 0 and 1 (cannot be exactly zero and one so 0.01 and 99.99)
@@ -1290,13 +1326,21 @@ min(LabileMain2$Massloss.perB)
 max(LabileMain2$Massloss.perB)
 
 # Labile litter model
-LabileMainModFINAL2 <- glmmTMB(Massloss.perB ~ Season+Region+Landuse+#Treatment+
-                                 +Region:Landuse+ #Landuse:Treatment+Region:Treatment+
-                                 +Season:Landuse+Season:Region+#Season:Treatment+
-                                 Season:Region:Landuse+#Season:Region:Treatment+Season:Landuse:Treatment+
+LabileMain2$Landuse<- factor(LabileMain2$Landuse, levels = c("Wild","Agriculture", "Pasture"))
+LabileMain2$Treatment<- factor(LabileMain2$Treatment, levels = c("Open","Exclosed"))
+LabileMain2$Season<- factor(LabileMain2$Season, levels = c("Wet","Dry"))
+LabileMain2$Region<- factor(LabileMain2$Region, levels = c("Wet","Dry"))
+
+LabileMainModFINAL2 <- glmmTMB(Massloss.perB ~ Landuse+Season+Region+#Treatment+
+                                 Landuse:Season+Landuse:Region+#Landuse:Treatment+
+                                 Season:Region+#Treatment:Season+Treatment:Region+
+                                 #Landuse:Treatment:Season+
+                                 Landuse:Season:Region+
+                                 #Treatment:Season:Region+
                                  (1|Blockcode/Plot), 
                                family=beta_family(link="logit"), data=LabileMain2)
 summary(LabileMainModFINAL2)
+car::Anova(LabileMainModFINAL2)
 drop1(LabileMainModFINAL2, test="Chisq")
 
 #library(sjstats)
@@ -1386,12 +1430,22 @@ colnames(DataMain)[(names(DataMain)== "Sandcorr")] <- "Sand"
 min(DataMain$Moisture,na.rm=T)
 DataMainM<-DataMain[!is.na(DataMain$Moisture),]
 DataMainM$Moisture
-MoistureModFINAL2 <- glmmTMB(Moisture~ Season+Region+Landuse+Temp+Sand+#C.N+
-                               Region:Landuse+Season:Landuse+Season:Region+
-                               Season:Region:Landuse+
+
+DataMainM$Landuse<- factor(DataMainM$Landuse, levels = c("Wild","Agriculture", "Pasture"))
+DataMainM$Treatment<- factor(DataMainM$Treatment, levels = c("Open","Exclosed"))
+DataMainM$Season<- factor(DataMainM$Season, levels = c("Wet","Dry"))
+DataMainM$Region<- factor(DataMainM$Region, levels = c("Wet","Dry"))
+
+MoistureModFINAL2 <- glmmTMB(Moisture ~ Landuse+Season+Region+Sand+#Temp+C.N+
+                               Landuse:Season+Landuse:Region+Season:Region+
+                               Landuse:Season:Region+
                                 (1|Blockcode/Plot), data=DataMainM)
+
 summary(MoistureModFINAL2)
+car::Anova(MoistureModFINAL2)
 drop1(MoistureModFINAL2, test="Chisq")
+
+bwplot(Moisture~Region|Landuse*Season,DataMainM)
 
 sjstats::icc(MoistureModFINAL2 )
 #ICC (Plot:Blockcode): 0.3825
@@ -1463,7 +1517,6 @@ ggplot(DataMainM,aes(y=Moisture, x=Landuse))+geom_jitter(colour="light grey",alp
 xyplot(Moisture~Massloss.per|Littertype*Season,DataMainM)
 plot(Moisture~Temp,DataMainM)
 
-
 # Within factors - Season x landuse x treatment
 ref.grid.MoistureModFINAL <- ref_grid(MoistureModFINAL2) #at = list(Region = c("Dry", "Wet"))) #Want to remove Intermadiate in the grid as it can't be compared to the other landuses, except wild.
 ref.grid.MoistureModFINAL#See how the grid is looking. Check for correct factors and the emmeans of numerical variables. If testing between numerical variables, only the means or the low/high end of values can be specified. I.e contrasts vs trend. See emmeans vignette for more info.
@@ -1478,7 +1531,6 @@ plot(emmeans.MoistureModFINAL, comparisons = FALSE)
 bwplot(Moisture~Landuse|Season*Region,DataMainM)
 xyplot(Moisture~Temp|Landuse*Season*Region,DataMainM)
 xyplot(Moisture~C.N|Landuse*Season,DataMainM)
-
 
 ggplot(data=DataMainM, aes(y=Moisture, x=Landuse))+geom_point()+facet_wrap(~Season+Region)
 aggregate(Moisture~Landuse+Block+Region+Season,DataMainM,mean)
@@ -2143,6 +2195,7 @@ TinyD<-read.csv(file="TBI.loggerSummary.csv", sep=",",header=TRUE)
 names(TinyD)
 dim(TinyD) #14 17
 head(TinyD)
+
 #### Moisture,Temp, Sand, CN model ####
 DataMain$Site<-as.factor(DataMain$Site)
 DataMain$Blockcode<-as.factor(DataMain$Blockcode)
@@ -2417,6 +2470,7 @@ LabileDataMCG$Treatment <- as.factor(LabileDataMCG$Treatment)
 #COMMON GARDEN MODELLING####
 
 #### Labile CG model analysis####
+levels(LabileDataMCG$Region)<-c("Dry","Wet","Wet")
 
 GlobalLabileMCGMod <- glmmTMB(MainCGdiff ~Season+Region+#Landuse+Treatment+
                                # Region:Landuse+#Landuse:Treatment+Region:Treatment+
