@@ -1325,6 +1325,8 @@ LabileMain2$Plot<-as.factor(LabileMain2$Plot)
 min(LabileMain2$Massloss.perB)
 max(LabileMain2$Massloss.perB)
 
+aggregate(Massloss.per~Season,data=LabileMain2,mean)
+
 # Labile litter model
 LabileMain2$Landuse<- factor(LabileMain2$Landuse, levels = c("Wild","Agriculture", "Pasture"))
 LabileMain2$Treatment<- factor(LabileMain2$Treatment, levels = c("Open","Exclosed"))
@@ -1413,6 +1415,16 @@ aggregate(Massloss.per~Region+Season,data=LabileMain2,mean)
 aggregate(Massloss.per~Region+Season,data=LabileMain2,sd)
 
 aggregate(Temp~Landuse+Region+Season,data=DataMainC,mean)
+
+# Paired t-test meshed by plot
+
+LabileMain2Ex<-LabileMain2[LabileMain2$Treatment=="Exclosed",]
+LabileMain2Op<-LabileMain2[LabileMain2$Treatment=="Open",]
+dim(LabileMain2Ex)
+LabilePair<-merge(LabileMain2Ex,LabileMain2Op, by=c("Experiment", "Season", "Plot", "Site", "Region", "Landuse", "Block", "Blockcode"))
+dim(LabilePair)
+names(LabilePair)
+t.test(LabilePair$Massloss.per.x, LabilePair$Massloss.per.y, paired = TRUE)
 
 #########################################################################################################################
 #### Moisture,Temp, Sand, CN model ####
@@ -2394,10 +2406,7 @@ LocalCGsoil3 <- DataCG[DataCG$Site=="Seronera",]
 #Removing 4-block design into 1 block with 4 replicates in Seronera local soil:
 LocalCGsoil3$Block <- 1
 LocalCGsoil3$Blockcode <- "Int_W1"
-
 DataCGexLocal<-droplevels(DataCG[DataCG$Site!="Seronera",]) # Only commongarden data without local soil
-
-names(DataMain)
 
 #Add local soil from CG to Main experiment:
 DataMain <- rbind.fill(DataMain,LocalCGsoil3)
@@ -2424,8 +2433,6 @@ levels(DataMain$Region) <- Regionlvl #Adjusting correct level order
 Landuselvl <- levels(DataMain$Landuse) #Adjusting correct level order
 levels(DataCG$Landuse) <- Landuselvl #Adjusting correct level order
 
-names(DataMainSummary)
-names(DataCG)
 Blockcodelvl <- levels(DataCG$Blockcode)
 levels(DataMainSummary$Blockcode) <- Blockcodelvl
 
@@ -2523,7 +2530,6 @@ plot(x = F1,
 abline(v = 0, lwd = 2, col = 2)
 abline(h = 0, lty = 2, col = 1)# Very good
 
-
 CGLabileMainr2<-rbind(
   r.squaredGLMM(glmmTMB(MainCGdiff ~ Season+(1|Blockcode), data=LabileDataMCG))/ r.squaredGLMM(GlobalLabileMCGMod),
   r.squaredGLMM(glmmTMB(MainCGdiff ~ Region+(1|Blockcode), data=LabileDataMCG))/ r.squaredGLMM(GlobalLabileMCGMod), 
@@ -2541,11 +2547,58 @@ ggplot(CGLabileMainr2b, aes(y=terms, x=R2m))+geom_point(size=3)+theme_classic()
 boxplot(MainCGdiff ~ Season,LabileDataMCG)
 boxplot(MainCGdiff ~ Region,LabileDataMCG)
 
+# Common garden influence of soil type on mass loss
+LabileDataMCGopen<-LabileDataMCG[LabileDataMCG$Treatment=="Open",]
+ggplot(LabileDataMCG, aes(y=Massloss.per.y, x=Sandcorr.y, colour=Treatment))+geom_point()+facet_wrap(~Season)
+
+library(vegan)
+soilprop<-c("Claycorr.y","Siltcorr","Sandcorr.y","N.per","C.per")
+soilpropL<-as.data.frame(LabileDataMCG[soilprop])
+soilpcaL<-prcomp(soilpropL, scale=T, center=T)
+biplot(soilpcaL)
+loadings <- soilpcaL$rotation
+axesL <- predict(soilpcaL, newdata =LabileDataMCG)
+axesL2 <- as.data.frame(axesL)
+LabileDataMCG$pca1<-axesL2$PC1
+LabileDataMCG$pca2<-axesL2$PC2
+
+ggplot(LabileDataMCG, aes(y=Massloss.per.y, x=pca1, colour=Treatment))+geom_point()+facet_wrap(~Season) 
+ggplot(LabileDataMCG, aes(y=Massloss.per.y, x=pca2, colour=Treatment))+geom_point()+facet_wrap(~Season) # PCA - driven by soil texture
+ggplot(LabileDataMCG, aes(y=Massloss.per.y, x=Claycorr.y, colour=Treatment))+geom_point()+facet_wrap(~Season) # Driven by clay
+ggplot(LabileDataMCG, aes(y=Massloss.per.y, x=Sandcorr.y, colour=Treatment))+geom_point()+facet_wrap(~Season) 
+
+
+# Betareg - Recalitrant CG and soil
+library(betareg)
+LabileDataMCG$Massloss.per.y[LabileDataMCG$Massloss.per.y>99.99]<-99.99
+LabileDataMCG$Massloss.per.y[LabileDataMCG$Massloss.per.y<0.01]<-0.01
+LabileDataMCG$Massloss.perB<-LabileDataMCG$Massloss.per.y/100
+
+CGPCA1L<- betareg(Massloss.perB ~#Treatment+Season+Sandcorr.y+
+                   pca1:Season:Treatment,
+                 link="logit",
+                 data=LabileDataMCG)
+summary(CGPCA1L)
+
+CGPCA2<- betareg(Massloss.perB ~#Treatment+Season+Sandcorr.y+
+                   pca2:Season:Treatment,
+                 link="logit",
+                 data=RecalDataMCG)
+summary(CGPCA2)
+
+# Linear model - soil include and not blockcode
+names(LabileDataMCG)
+LabileCGMod <- lm(MainCGdiff ~Season+Region+Landuse+Treatment+Sandcorr.y+C.N,
+                              data=LabileDataMCG)
+summary(LabileCGMod)
+anova(LabileCGMod)
+plot(MainCGdiff~Sandcorr.y,LabileDataMCG, col=c(LabileDataMCG$Season))
+abline(lm(MainCGdiff~Sandcorr.y,LabileDataMCG))
 ####################################################################################################################
 
 #### Recal CG model analysis####
 
-GlobalRecalMCGMod <- glmmTMB(MainCGdiff ~Season+Treatment+#Region+Landuse+
+GlobalRecalMCGMod <- glmmTMB(MainCGdiff ~Treatment+Season+#Region+Landuse+
                                 # Region:Landuse+#Landuse:Treatment+Region:Treatment+
                                 #  Season:Treatment+Season:Landuse+Season:Region+
                                 #  Season:Region:Landuse+#Season:Region:Treatment+
@@ -2603,6 +2656,58 @@ ggplot(CGRecalMainr2b, aes(y=terms, x=R2m))+geom_point()+theme_classic()
 
 boxplot(MainCGdiff ~ Season,RecalDataMCG)
 boxplot(MainCGdiff ~ Treatment,RecalDataMCG)
+
+# Common garden influence of soil type on mass loss
+RecalDataMCGopen<-RecalDataMCG[RecalDataMCG$Treatment=="Open",]
+ggplot(RecalDataMCG, aes(y=Massloss.per.x, x=Sandcorr.y, colour=Treatment))+geom_point()+facet_wrap(~Season)
+library(vegan)
+names(RecalDataMCG)
+soilprop<-c("Claycorr.y","Siltcorr","Sandcorr.y","N.per","C.per")
+soilprop<-as.data.frame(RecalDataMCG[soilprop])
+soilpca<-prcomp(soilprop, scale=T, center=T)
+biplot(soilpca)
+loadings <- soilpca$rotation
+axes <- predict(soilpca, newdata =RecalDataMCG)
+axes <- as.data.frame(axes)
+RecalDataMCG$pca1<-axes$PC1
+RecalDataMCG$pca2<-axes$PC2
+
+names(RecalDataMCG)
+ggplot(RecalDataMCG, aes(y=Massloss.per.y, x=pca1, colour=Treatment))+geom_point()+facet_wrap(~Season) 
+ggplot(RecalDataMCG, aes(y=Massloss.per.y, x=pca2, colour=Treatment))+geom_point()+facet_wrap(~Season) # PCA - driven by soil texture
+ggplot(RecalDataMCG, aes(y=Massloss.per.y, x=Claycorr.y, colour=Treatment))+geom_point()+facet_wrap(~Season) # Driven by clay
+ggplot(RecalDataMCG, aes(y=Massloss.per.y, x=Sandcorr.y, colour=Treatment))+geom_point()+facet_wrap(~Season) 
+ggplot(RecalDataMCG, aes(y=Massloss.per.y, x=C.N, colour=Treatment))+geom_point()+facet_wrap(~Season) 
+
+# Betareg - Recalitrant CG andsoil
+library(betareg)
+RecalDataMCG$Massloss.per.y[RecalDataMCG$Massloss.per.y>99.99]<-99.99
+RecalDataMCG$Massloss.per.y[RecalDataMCG$Massloss.per.y<0.01]<-0.01
+RecalDataMCG$Massloss.perB<-RecalDataMCG$Massloss.per.y/100
+
+CGPCA1<- betareg(Massloss.perB ~#Treatment+Season+Sandcorr.y+
+                   pca1:Season:Treatment,
+                 link="logit",
+                 data=RecalDataMCG)
+summary(CGPCA1)
+
+CGPCA2<- betareg(Massloss.perB ~#Treatment+Season+Sandcorr.y+
+                   pca2:Season:Treatment,
+                 link="logit",
+                 data=RecalDataMCG)
+summary(CGPCA2)
+
+# Linear model - soil not blockcode
+RecalCGMod <- lm(MainCGdiff ~Season+Region+Landuse+Treatment+Sandcorr.y+C.N,
+                  data=RecalDataMCG)
+summary(RecalCGMod)
+plot(RecalCGMod)
+plot(MainCGdiff~Sandcorr.y,RecalDataMCG)
+abline(lm(MainCGdiff~Sandcorr.y,RecalDataMCG))
+
+names(RecalDataMCG)
+plot(MainCGdiff~Sandcorr.y,RecalDataMCG)
+plot(Moisture...y~Sandcorr.y,RecalDataMCG, col=c(RecalDataMCG$Season))
 
 ##########################################################################################
 
