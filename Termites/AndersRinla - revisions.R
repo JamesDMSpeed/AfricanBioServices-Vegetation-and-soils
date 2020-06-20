@@ -248,8 +248,8 @@ Mainexp$panel.titles.ABCD <- as.factor(with(Mainexp, ifelse(panel.titles.seasonr
                                                                               ifelse(panel.titles.seasonregion %in% c("Wet Season - Wet Region"), "D","WRONG"))))))
 
 #Creating custom panel title:
-Mainexp$panel.titles.season.rain <- as.factor(with(Mainexp, paste(Season,panel.titles.Raintext, sep=" - ")))
-Mainexp$panel.titles.season.rain.region <- as.factor(with(Mainexp, paste(panel.titles.season.rain,Region, sep= " \n     ")))
+Mainexp$panel.titles.season.rain <- as.factor(with(Mainexp, paste(Season,Region, sep=" - ")))
+Mainexp$panel.titles.season.rain.region <- as.factor(with(Mainexp, paste(panel.titles.season.rain,panel.titles.Raintext, sep= " \n     ")))
 Mainexp$panel.titles.custom <- as.factor(with(Mainexp, paste(panel.titles.ABCD,panel.titles.season.rain.region,sep = ") ")))                                                                        
  
 
@@ -282,12 +282,10 @@ levels(Mainexp$Littertype)
 ###Massloss graph - Main experiment####
 #Mass loss of labile green and rooibos recalcitrant tea leaf litter across seasons (wet and dry),
 #rainfall regions (mesic and wet) and land-uses (agriculture, pasture and wildlife protected areas)
-
-#
 #Greyscale (New graph following m/s revisions####
 #Keychanges: Dodging points, changing symbols, using sd.#
-Mainp.bw2 <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=sdlow,ymax=sdhigh,
-                                     fill = Landuse_trt,color=Landuse, shape = Littertype, alpha=Treatment))
+Mainp.bw2 <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=sdlow,ymax=sdhigh, shape = Littertype,
+                                     fill = Landuse_trt,color=Landuse, alpha=Treatment))
 Mainp.bw2 <- Mainp.bw2+geom_errorbar(width=0.4,size=0.7,position=position_dodge(width=.6),show.legend=F)#NEW EDIT
 Mainp.bw2 <- Mainp.bw2+geom_point(size=3.5,stroke=0.9,
                                 position=position_dodge(width=.6),show.legend=T)
@@ -317,7 +315,7 @@ Mainp.bw2 <- Mainp.bw2+guides(shape=guide_legend(title="Littertype",
                                                  order=2),
                               fill=F, color=F)
 
-Mainp.bw2 <- Mainp.bw2+scale_y_continuous(limits = c(0,100),expand = c(0,0),breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100))
+Mainp.bw2 <- Mainp.bw2+scale_y_continuous(limits = c(-1,100),expand = c(0,0),breaks = c(-1,20,40,60,80,100), labels = c(0,20,40,60,80,100))
 Mainp.bw2 <- Mainp.bw2+scale_x_discrete(expand = c(0.2,0.2))
 Mainp.bw2 <- Mainp.bw2+xlab("Land-use")+ylab("Mass loss (%)")
 Mainp.bw2 <- Mainp.bw2+theme(rect = element_rect(fill ="transparent")
@@ -332,12 +330,12 @@ Mainp.bw2 <- Mainp.bw2+theme(rect = element_rect(fill ="transparent")
                            ,axis.title.y=element_text(size=11,color="black",margin=margin(2.5,2.5,2.5,2.5,"mm"))
                            ,axis.title.x=element_text(size=11,color="black",vjust=-.5)
                            ,axis.ticks.length=unit(-1.2, "mm") #NEW EDIT
-                           ,axis.text.x = element_text(size=8,color="black",angle =0,vjust=0.6,margin=unit(c(2,0.1,0.1,0.1),"mm"))
-                           ,axis.text.y = element_text(size=8,color="black",margin=margin(t=0.1,r=2,b=0.1,l=0.1,unit="mm"))
+                           ,axis.text.x = element_text(size=9,color="black",angle =0,vjust=0.6,margin=unit(c(2,0.1,0.1,0.1),"mm"))
+                           ,axis.text.y = element_text(size=9,color="black",margin=margin(t=0.1,r=2,b=0.1,l=0.1,unit="mm"))
                            ,axis.ticks.x = element_line(colour = "black", size = 0.5)
                            ,axis.ticks.y = element_line(colour = "black", size = 0.5)
                            ,strip.background =element_blank() #element_rect(fill="transparent",colour="black",size=10)
-                           ,strip.text = element_text(size = 8,colour = "black",hjust=0, margin = unit(c(4,0,1,3),"mm"))
+                           ,strip.text = element_text(size = 10,colour = "black",hjust=0, margin = unit(c(4,0,1,3),"mm"))
                            ,panel.spacing = unit(1, "lines")
                            ,legend.background = element_rect(fill = "transparent")
                            ,legend.margin = margin(c(0,0,0,0),unit="mm")
@@ -348,8 +346,8 @@ Mainp.bw2 <- Mainp.bw2+theme(rect = element_rect(fill ="transparent")
                            ,legend.position = "bottom"
                            ,legend.direction = "vertical"
                            ,legend.justification = "left"
-                           ,legend.title=element_text(size=8)
-                           ,legend.text=element_text(size=7,color="black",hjust=0,vjust=0.6, margin = margin(t=0,r=0,b=0,l=0, unit="mm")
+                           ,legend.title=element_text(size=10)
+                           ,legend.text=element_text(size=10,color="black",hjust=0,vjust=0.6, margin = margin(t=0,r=0,b=0,l=0, unit="mm")
                            )
                            ,legend.text.align=0)
 Mainp.bw2 <- Mainp.bw2+annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 0.8)
