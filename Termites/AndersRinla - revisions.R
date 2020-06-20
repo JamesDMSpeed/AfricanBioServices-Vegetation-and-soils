@@ -286,7 +286,7 @@ levels(Mainexp$Littertype)
 #Keychanges: Dodging points, changing symbols, using sd.#
 Mainp.bw2 <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=sdlow,ymax=sdhigh, shape = Littertype,
                                      fill = Landuse_trt,color=Landuse, alpha=Treatment))
-Mainp.bw2 <- Mainp.bw2+geom_errorbar(width=0.4,size=0.7,position=position_dodge(width=.6),show.legend=F)#NEW EDIT
+Mainp.bw2 <- Mainp.bw2+geom_errorbar(width=0.2,size=0.5,position=position_dodge(width=.6), show.legend=F)#NEW EDIT
 Mainp.bw2 <- Mainp.bw2+geom_point(size=3.5,stroke=0.9,
                                 position=position_dodge(width=.6),show.legend=T)
 Mainp.bw2 <- Mainp.bw2+scale_fill_manual(values=alpha(c("grey5","white","grey25","white","grey50","white"),0.7))#Using grayscale across landuse and treatment
