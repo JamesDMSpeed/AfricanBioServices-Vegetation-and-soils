@@ -1296,7 +1296,6 @@ ggplot(DataMainM,aes(y=Moisture, x=Landuse))+geom_jitter(colour="light grey",alp
 xyplot(Moisture~Massloss.per|Littertype*Season,DataMainM)
 plot(Moisture~Temp,DataMainM)
 
-
 # Within factors - Season x landuse x treatment
 ref.grid.MoistureModFINAL <- ref_grid(MoistureModFINAL2) #at = list(Region = c("Dry", "Wet"))) #Want to remove Intermadiate in the grid as it can't be compared to the other landuses, except wild.
 ref.grid.MoistureModFINAL#See how the grid is looking. Check for correct factors and the emmeans of numerical variables. If testing between numerical variables, only the means or the low/high end of values can be specified. I.e contrasts vs trend. See emmeans vignette for more info.
@@ -1311,7 +1310,6 @@ plot(emmeans.MoistureModFINAL, comparisons = FALSE)
 bwplot(Moisture~Landuse|Season*Region,DataMainM)
 xyplot(Moisture~Temp|Landuse*Season*Region,DataMainM)
 xyplot(Moisture~C.N|Landuse*Season,DataMainM)
-
 
 ggplot(data=DataMainM, aes(y=Moisture, x=Landuse))+geom_point()+facet_wrap(~Season+Region)
 aggregate(Moisture~Landuse+Block+Region+Season,DataMainM,mean)
@@ -1409,7 +1407,6 @@ anova(TempModFINAL2b,TempMod6)
 anova(TempModFINAL2b,TempMod7)
 anova(TempModFINAL2b,TempMod8)
 anova(TempModFINAL2b,TempMod9)
-
 #              Df    AIC    BIC  logLik deviance  Chisq Chi Df Pr(>Chisq)    
 #TempModFINAL2 17 4336.7 4426.4 -2151.4   4302.7 82.719      2  < 2.2e-16 *** #Season:Region:Landuse
 #TempMod  15 4415.5 4494.5 -2192.7   4385.5 168.97      1  < 2.2e-16 *** #Season:Region
@@ -1463,7 +1460,6 @@ dim(TinyTagTemp) # 117842     15
 dim(DeltaMoist) #30560    15
 names(TinyTagTemp)
 names(DeltaMoist)
-
 tail(DeltaMoist)
 
 TinyTagTemp$Landuse<-as.factor(with(TinyTagTemp, paste(area,landuse, sep="-")))
@@ -1532,11 +1528,9 @@ DeltaMoist$date2<-as.Date(DeltaMoist$date,"%d.%m.%Y")
 DeltaMoistWET<-DeltaMoist[DeltaMoist$date2>"2017-01-26" & DeltaMoist$date2<"2017-03-27", ]
 DeltaMoistDRY<-DeltaMoist[DeltaMoist$date2>"2017-07-20" & DeltaMoist$date2<"2017-10-03", ]
 
-DeltaMoistWET$area
-
-dim(DeltaMoist) # 26316    19
-dim(DeltaMoistWET) #3137   19
-dim(DeltaMoistDRY) #2948   19
+dim(DeltaMoist) # 26316    18
+dim(DeltaMoistWET) #3137   18
+dim(DeltaMoistDRY) #2948   18
 DeltaMoistWET$Season<-"Wet Season"
 DeltaMoistDRY$Season<-"Dry Season"
 
@@ -1605,7 +1599,6 @@ MeanM$date2<-MeanDate$date2
 MeanM$sd<-MeanMsd$moist
 MeanM$SeUp<-MeanM$moist+MeanM$sd
 MeanM$SeLo<-MeanM$moist-MeanM$sd
-
 levels(MeanM$Region)<-c("Dry Region", "Intermediate Region", "Wet Region")
 
 # Conditional subtractions
@@ -1648,7 +1641,9 @@ DeltaMoistsub2$Moisture.m3.m3[DeltaMoistsub2$region_code == "wild-Intermediate R
 # Scaling factors
 # Change scaling facotr...
 scaleFactorM <-  max(MeanM$moist,na.rm=T)/mean(DeltaMoistsub2$Moisture.m3.m3,na.rm=T)
+scaleFactorM2 <-  (max(MeanM$moist,na.rm=T)- mean(MeanM$moist,na.rm=T))/mean(DeltaMoistsub2$Moisture.m3.m3,na.rm=T)
 scaleFactorM
+scaleFactorM2
 
 levels(DeltaMoistsub2$Region)<-c("Mesic region", "Wet region", "Mesic-wet region")
 levels(MeanM$Region)<-c("Mesic region", "Mesic-wet region", "Wet region")
@@ -1688,15 +1683,20 @@ MeanM$LandRain<- factor(MeanM$LandRain, levels = c(
 levels(DeltaMoistsub2$LandRain)<-c("Mesic region - Agriculture","Wet region - Agriculture" ,   "Mesic region - Pasture",  "Wet region - Pasture" ,"Mesic region - Wildlife","Wet region - Wildlife","Mesic-wet region - \n Common garden")
 levels(MeanM$LandRain)<-c("Mesic region - Agriculture","Wet region - Agriculture" ,   "Mesic region - Pasture",  "Wet region - Pasture" ,"Mesic region - Wildlife","Wet region - Wildlife","Mesic-wet region - \n Common garden")
 
+MeanM$moist/scaleFactorM
+MeanM$SeUp/scaleFactorM
+MeanM$SeLo/scaleFactorM
+MeanM$SeLo[MeanM$SeLo<0]<-0
+
 #library(lemon) # Facet wrap repeat
 # Soil moisture logger and spot measuregement graph
 pM<-ggplot(data=DeltaMoistsub2,aes(x=date2,y=Moisture.m3.m3, fill=Season1))
 pM<-pM+geom_rect(aes(xmin =as.Date("2017-01-26"), xmax =as.Date("2017-03-27"), ymin=-0.02,ymax=max(DeltaMoistsub2$Moisture.m3.m3)),fill = "light grey", colour="grey")
 pM<-pM+geom_rect(aes(xmin =as.Date("2017-07-21"), xmax =as.Date("2017-10-03"), ymin=-0.02,ymax=max(DeltaMoistsub2$Moisture.m3.m3)),fill = NA, colour="grey")
-pM<-pM+scale_y_continuous(limits=c(-0.02,max(DeltaMoistsub2$Moisture.m3.m3)+0.01),sec.axis = sec_axis(~ .*scaleFactorM, breaks = c(0,50,100), labels = c(0,50,100), name="Spot measure soil moisture (%)" ), expand=c(0,0))
-pM<-pM+geom_point(fill="white", colour="grey50", shape=21, size=1.5, show.legend=T)
-pM<-pM+geom_errorbar(data=MeanM,aes(y=moist/scaleFactorM,ymax=SeUp/scaleFactorM,ymin=SeLo/scaleFactorM),colour="black",width=.1)
-pM<-pM+geom_point(data=MeanM,aes(y=moist/scaleFactorM),size=3,colour="black",fill="black",shape=22,stroke=1,show.legend=T)
+pM<-pM+scale_y_continuous(limits=c(-0.02,max(DeltaMoistsub2$Moisture.m3.m3)+0.05),sec.axis = sec_axis(~ .*scaleFactorM2, breaks = c(0,25,50,75), labels = c(0,25,50,75), name="Spot measure soil moisture (%)" ), expand=c(0,0))
+pM<-pM+geom_point(fill="white", colour="grey50", shape=21, size=1.5, stroke=.5, show.legend=T)
+pM<-pM+geom_errorbar(data=MeanM,aes(y=moist/scaleFactorM2,ymax=SeUp/scaleFactorM2,ymin=SeLo/scaleFactorM2),colour="black",width=.1)
+pM<-pM+geom_point(data=MeanM,aes(y=moist/scaleFactorM2),size=2.5,colour="black",fill="black",shape=22,stroke=.5,show.legend=T)
 #pM<-pM+facet_rep_wrap(~LandRain,ncol=2,scales="fixed",repeat.tick.labels = 'x')
 pM<-pM+facet_wrap(~LandRain,ncol=2, scale="fixed")
 pM<-pM+scale_x_date(date_breaks = "3 month", date_labels = "%b", limits=c(as.Date("2017-01-01"),max=as.Date("2017-12-31")))
@@ -1741,7 +1741,8 @@ pM<-pM+guides(fill=guide_legend("Measurement type & Season",override.aes =
 
 pM
 
-ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Publications/TBI_landuse/Soil.moisture.TBI.jpeg", 
+
+ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Publications/TBI_landuse/Soil.moisture.TBIrevised.jpeg", 
        width= 13, height = 16.5,units ="cm",
        dpi = 400, limitsize = TRUE)
 
