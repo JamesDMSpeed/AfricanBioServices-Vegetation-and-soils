@@ -192,6 +192,12 @@ Properties.Region <- cbind(aggregate(Clay~Region, mean, data=Belowground),
 Block.Eco.C <- read.csv("Ecosystem carbon/Final.Ecosystem.Carbon.csv", head=T)
 Belowground.full <- read.csv("Ecosystem carbon/Soil.data/Belowground.Carbon.csv", head=T)
 
+fire <- filter(Block.Eco.C, landuse=="Pasture")
+fire <- droplevels(fire)
+max(fire$Fire_frequency.2000_2017, na.rm=T)
+min(fire$Fire_frequency.2000_2017, na.rm=T)
+
+?max
 Block.Eco.C$Region<- factor(Block.Eco.C$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 Belowground.full$Region<- factor(Belowground.full$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
@@ -374,6 +380,7 @@ Belowground.full.CnoNA <- droplevels(Belowground.full.CnoNA)
 Belowground.full.CnoNA2 <- droplevels(Belowground.full.CnoNA2)
 Belowground.full.CnoNA3 <- droplevels(Belowground.full.CnoNA3)
 names(Belowground.full)
+
 ##      3.2: Correlation of variables (numeric) #### 
 
 # RUN THIS CODE FIRST (FROM STU)
@@ -403,7 +410,7 @@ Model.var.block<-c("TreeBM.kg_m2","DW","Accum.bm.kg_m2","Res.bm.kg_m2","Soil.Aho
 
 # Want to get these two in one matrix. 
 pairs(Belowground.full.CnoNA[,Model.var.red],lower.panel = panel.cor)
-pairs(Total.Eco.C.CnoNA[,Model.var.block],lower.panel = panel.cor)
+pairs(Total.Eco.C.CnoNA2[,Model.var.block],lower.panel = panel.cor)
 # If I want these values in a table:
 Model.var.FULL <- Belowground.full.CnoNA[,c(14,28,26,27,12,13,51,32,64,16,22,21,15)]
 Model.var.Herb <- Belowground.full.CnoNA[,c(14,28,26,12,13,51,32,64,16,22,21,15)]
@@ -626,7 +633,7 @@ Herb <- cbind(coef.Herb, confint.Herb)
 # ACCUMULATES HERBACEOUS BIOMASS 
 names(Total.Eco.C.CnoNA2)
 
-Accum.Herb<-lmer(CAccum.bm.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency + CTreeBM.kg_m2 + CSand + Ctot.N.kg_m2 + CRoots.kg.m2 + Cwild + Clivestock + 
+Accum.Herb<-lmer(CAccum.bm.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency + CTreeBM.kg_m2 + CSand + Ctot.N.kg_m2 + CRoots.kg.m2 + #Cwild + Clivestock + 
                          landuse:CMAP.mm_yr + landuse:CSand +
                          (1|Region),data = Total.Eco.C.CnoNA2, REML=F, 
                        na.action=na.fail)
@@ -637,7 +644,10 @@ anova(Accum.Herb)
 AIC(Accum.Herb) #52.15059
 
 # Model averaging: All possible models between null and global
-modsetaboveH<-dredge(Accum.Herb,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse) & !(Ctot.N.kg_m2 & CSand) & !(Clivestock & CSand) & !(Cwild & CSand) & !(CRoots.kg.m2 & CMAP.mm_yr)& !(Cwild & CMAP.mm_yr) & !(Clivestock & CTreeBM.kg_m2)& !(Cwild & CTreeBM.kg_m2))
+modsetaboveH<-dredge(Accum.Herb,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CTreeBM.kg_m2 & landuse) & !(Ctot.N.kg_m2 & CSand) & !(CRoots.kg.m2 & CMAP.mm_yr)
+                     #& !(Clivestock & CSand) & !(Cwild & CSand) & !(Cwild & CMAP.mm_yr) 
+                     #& !(Clivestock & CTreeBM.kg_m2)& !(Cwild & CTreeBM.kg_m2)
+                     )
 
 modselaboveH<-model.sel(modsetaboveH) #Model selection table giving AIC, deltaAIC and weighting
 modavgaboveH<-model.avg(modselaboveH)#Averages coefficient estimates across multiple models according to the weigthing from above
@@ -766,12 +776,15 @@ write.table(Woody, file="Ecosystem carbon/ConAvgWoody2.txt")
 summary(Belowground.full.CnoNA2)
 # A horizon added Accumulated biomass and residual biomass 
 Belowground.Ahor <-lmer(CAhorC.kg_m2 ~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017  
-                        + CTreeBM.kg_m2 + CSand 
-                        + CHerbaceous + CAccum.bm.kg_m2 + CRes.bm.kg_m2 +
-                          landuse:CMAP.mm_yr + landuse:CSand + 
+                        + CTreeBM.kg_m2 + CSand + CAccum.bm.kg_m2 
+                        #+ CRes.bm.kg_m2 
+                        + landuse:CMAP.mm_yr + landuse:CSand + 
                           (1|Region/Block.ID), data = Belowground.full.CnoNA2, REML=F, na.action=na.fail)
 
-modsetbelow.Ahor<-dredge(Belowground.Ahor,trace = TRUE, rank = "AICc", REML = FALSE,subset=!(CTreeBM.kg_m2 & landuse)&!(CAccum.bm.kg_m2&CMAP.mm_yr)&!(CRes.bm.kg_m2&CSand)&!(CMAP.mm_yr & CHerbaceous))
+modsetbelow.Ahor<-dredge(Belowground.Ahor,trace = TRUE, rank = "AICc", REML = FALSE,subset=!(CTreeBM.kg_m2 & landuse)&!(CAccum.bm.kg_m2&CMAP.mm_yr)
+                         #&!(CRes.bm.kg_m2&CSand)
+                        # &!(CMAP.mm_yr & CHerbaceous)
+                        )
 modselbelow.Ahor<-model.sel(modsetbelow.Ahor) #Model selection table giving AIC, deltaAIC and weighting
 modavgbelow.Ahor<-model.avg(modselbelow.Ahor)#Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modavgbelow.Ahor)
@@ -799,12 +812,15 @@ Ahor <- cbind(coef.Ahor, confint.Ahor)
 write.table(Ahor, file="Ecosystem carbon/ConAvgAhorDung.txt")
 
 # Mineral horizon
-Belowground.Minhor <-lmer(CMinC.kg_m2 ~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017  
-                          + CTreeBM.kg_m2 + CSand 
-                          + CHerbaceous + CAccum.bm.kg_m2 + CRes.bm.kg_m2 +
-                            landuse:CMAP.mm_yr + landuse:CSand +  (1|Region/Block.ID), data = Belowground.full.CnoNA2, REML=F, na.action=na.fail)
+Belowground.Minhor <-lmer(CMinC.kg_m2 ~ CAhorC.kg_m2 + CMAP.mm_yr + landuse + CFire_frequency.2000_2017 + CTreeBM.kg_m2 + CSand 
+                          + CAccum.bm.kg_m2
+                          #+ CHerbaceous 
+                          #+ CRes.bm.kg_m2 
+                          + landuse:CMAP.mm_yr + landuse:CSand +  (1|Region/Block.ID), data = Belowground.full.CnoNA2, REML=F, na.action=na.fail)
 
-modsetbelow.Minhor<-dredge(Belowground.Minhor,trace = TRUE, rank = "AICc", REML = FALSE,subset=!(CTreeBM.kg_m2 & landuse)&!(CAccum.bm.kg_m2&CMAP.mm_yr)&!(CRes.bm.kg_m2&CSand)&!(CMAP.mm_yr & CHerbaceous))
+modsetbelow.Minhor<-dredge(Belowground.Minhor,trace = TRUE, rank = "AICc", REML = FALSE,subset=!(CTreeBM.kg_m2 & landuse)&!(CAccum.bm.kg_m2&CMAP.mm_yr)
+                           #&!(CRes.bm.kg_m2&CSand)&!(CMAP.mm_yr & CHerbaceous)
+                           )
 
 modselbelow.Minhor<-model.sel(modsetbelow.Minhor) #Model selection table giving AIC, deltaAIC and weighting
 modavgbelow.Minhor<-model.avg(modselbelow.Minhor)#Averages coefficient estimates across multiple models according to the weigthing from above
@@ -905,11 +921,11 @@ Modlist.mecanistic1 <-   psem(
   lme(Ctot.N.kg_m2~ CSand,random= ~ 1|Region/Block.ID,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CRoots.kg.m2~ CMAP.mm_yr + CSand + landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(Cwild ~ Clivestock + CMAP.mm_yr,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CWoody~ Clivestock, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CWoody~ Clivestock + CFire_frequency, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CDW~ landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CAccum.bm.kg_m2 ~ CMAP.mm_yr,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CSoil.Ahor~Clivestock + Cwild, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CSoil.min~ CSand + CSoil.Ahor, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.min~ CSand + CAccum.bm.kg_m2, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   CSoil.Ahor%~~%Ctot.N.kg_m2,
   CSoil.min%~~%Ctot.N.kg_m2,
   CMAP.mm_yr%~~%CSand
@@ -922,12 +938,11 @@ summary(Modlist.mecanistic1,Total.Eco.C.CnoNA2)
 Modlist.mecanistic2 <-   psem(
   lme(Ctot.N.kg_m2~ CSand,random= ~ 1|Region/Block.ID,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CRoots.kg.m2~ CMAP.mm_yr + CSand + landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(Ctotal.dung~ CMAP.mm_yr + CSand + landuse, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
- #lme(CSoil.Ahor~ Ctotal.dung, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CWoody~ Ctotal.dung, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(Ctotal.dung~ CMAP.mm_yr + CSand + landuse, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2), 
+  lme(CWoody~ Ctotal.dung + CSand + CFire_frequency, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CDW~ landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CAccum.bm.kg_m2 ~ CMAP.mm_yr,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CSoil.min~ CSand + CSoil.Ahor + CAccum.bm.kg_m2, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.min~ CSand + CAccum.bm.kg_m2, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   CSoil.Ahor%~~%Ctot.N.kg_m2,
   CSoil.min%~~%Ctot.N.kg_m2,
   CMAP.mm_yr%~~%CSand
