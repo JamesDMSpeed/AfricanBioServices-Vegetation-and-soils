@@ -14,7 +14,7 @@ library(rgeos)
 library(maptools)
 library(lubridate)
 ######################################################
-### Make colors transparent
+### Make colours transparent
 ######################################################
 makeTransparent<-function(someColor, alpha=75)
 {
@@ -106,7 +106,7 @@ coords3 = matrix(c(34.9, -2.8,
 P3 <- Polygon(coords3)
 bb3 <- SpatialPolygons(list(Polygons(list(P3), ID = "a")), proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
 
-# Tanzania map
+#### Tanzania map ####
 tz0<-raster::getData('GADM',country='TZ',level=0)#Level = 0 for country, # TZA
 tzbb<-extent(tz0)
 SeroRainclip<- mask(RAINstack1sum, bb3)
@@ -218,17 +218,15 @@ myPast<-(mysp[mysp@data$Landuse =="Pasture",])
 myAg<-(mysp[mysp@data$Landuse =="Agriculture",])
 myCG<-(mysp[mysp@data$Landuse =="Common Garden",])
 
-
 p3<-levelplot(RainSME,margin=F,at=my.at, colorkey=myColorkey,par.settings=mapTheme, 
 xlab= NULL,ylab= NULL, main=list("Annual rainfall (mm)",font=1)) # scales = list(draw = FALSE)
 p3<-p3+layer(sp.polygons(sme, labels=c(sme$name),lwd=3))
 p3<-p3+layer(sp.polygons(bb, col=makeTransparent("tan4"), lwd=4))
-p3<-p3+layer(sp.points(myWild, pch =24,lwd=1, cex =1.1, fill="white",col="black"))
-p3<-p3+layer(sp.points(myPast, pch =22,lwd=1, cex =1.1, fill="white",col="black"))
-p3<-p3+layer(sp.points(myAg, pch =23,lwd=1, cex =1.1, fill="white",col="black"))
-p3<-p3+layer(sp.points(myCG, pch =21,lwd=1, cex =1.1, fill="white",col="black"))
+p3<-p3+layer(sp.points(myWild, pch ="W",lwd=2,font=2, cex =1.5, fill="white",col="black")) #24
+p3<-p3+layer(sp.points(myPast, pch ="P",lwd=3,font=2, cex =1.5, fill="white",col="black")) #22
+p3<-p3+layer(sp.points(myAg,pch="A",lwd=2,font=2, cex =1.5, fill="white",col="black")) # 23
+p3<-p3+layer(sp.points(myCG, pch ="C",lwd=2,font=2, cex =1.5, fill="white",col="black")) #21
 p3
-
 
 # Sampling location + protection status
 # Park boundary plot
@@ -348,25 +346,25 @@ longtitude <- c(34.70738, 34.55,34.72)
 latitude <- c(-2.5, -3.25, -3.459)
 sme.Cent<-cbind(longtitude,latitude)
 
-# Sites
+#Sites
 myWild<-(mysp[mysp@data$Landuse =="Wildlife",])
 myPast<-(mysp[mysp@data$Landuse =="Pasture",])
 myAg<-(mysp[mysp@data$Landuse =="Agriculture",])
 myCG<-(mysp[mysp@data$Landuse =="Common Garden",])
 
-SSeroRainclip<- crop(RainSME,bb)
-SSeroRainclip2<-extend(SSeroRainclip,bb)
+myPast@coords[,1]<-c(34.09045,34.87530) # jitter pasture points
 
-p2<-levelplot(SSeroRainclip, margin=F,at=my.at,scales = list(draw = FALSE), colorkey=myColorkey,par.settings=mapTheme, 
-              xlab= NULL,ylab= NULL, main=list("Serengeti                      Annual rain (mm)",font=1)) 
+p2<-levelplot(SSeroRainclip, margin=F,at=my.at, colorkey=myColorkey,par.settings=mapTheme,
+             # scales = list(draw = FALSE), xlab= NULL,ylab= NULL, 
+              main=list("          Serengeti                                                           Annual rain (mm)",font=1)) 
 p2<-p2+layer(sp.polygons(sme,lwd=1.5)) 
 #p2<-p2+layer(sp.polygons(sme, fill="white", labels=c(sme@data$NAME),lwd=1.5))
 #p2<-p2+layer(sp.polygons(smeInner, fill="light grey", labels=c(smeInnerC@data$NAME)))
-p2<-p2+layer(sp.text(coordinates(sme.Cent), txt = c("SNP"," "," "), scale=.85))
-p2<-p2+layer(sp.points(myWild, pch =24,lwd=1.5, cex =1.5, fill="white",col="black"))
-p2<-p2+layer(sp.points(myPast, pch =22,lwd=1.5, cex =1.5, fill="white",col="black"))
-p2<-p2+layer(sp.points(myAg, pch =23,lwd=1.5, cex =1.5, fill="white",col="black"))
-p2<-p2+layer(sp.points(myCG, pch =21,lwd=1.5, cex =1.5, fill="white",col="black"))
+p2<-p2+layer(sp.text(coordinates(sme.Cent), txt = c("SNP"," "," "),cex=1.9))# scale=.5))
+p2<-p2+layer(sp.points(myWild, pch ="W",font=2,lwd=1.5, cex =2.55, fill="white",col="white",stroke = 1)) #24
+p2<-p2+layer(sp.points(myPast, pch ="P",font=2,lwd=1.5, cex =2.55, fill="white",col="white",stroke = 1)) #22
+p2<-p2+layer(sp.points(myAg, pch ="Ag",font=2,lwd=1.5, cex =2.55, fill="white",col="white",stroke = 1)) #23
+p2<-p2+layer(sp.points(myCG, pch ="C",font=2,lwd=1.5, cex =2.55, fill="white",col="white",stroke = 1)) #21
 #p2$legend$top <- NULL
 #p2$legend$right<- NULL
 p2<-p2+ layer({SpatialPolygonsRescale(layout.north.arrow(),offset = c(34.88,-2.34), scale=.1) }) 
@@ -380,6 +378,11 @@ grid.text(x= xs, y=-3.425, c("0","","","","","10","","","","","       20 km"),
           default.units='native')
 })
 p2
+
+#filenameTBI <- paste0("/Users/anotherswsmith/Documents/AfricanBioServices/Publications/TBI_landuse/", "TBI.mapLetters", "_",Sys.Date(), ".jpeg" )
+#jpeg (filenameTBI, width=20, height=16, res=400, unit="cm")
+#p2
+#dev.off()
 
 #########################
 # Grid arrange 
