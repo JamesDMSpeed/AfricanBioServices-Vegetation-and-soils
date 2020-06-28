@@ -306,8 +306,8 @@ Mainp.bw2 <- Mainp.bw2+guides(shape=guide_legend(title="Littertype",
                                                  order=1),
                               alpha=guide_legend(title="Decomposer",
                                                  override.aes = 
-                                                   list(shape=24,
-                                                        size=2.2,
+                                                   list(shape=22,
+                                                        size=2.8,
                                                         stroke=0.9,
                                                         fill=c("grey5", "white",NA),
                                                         color=c("grey5", "grey5",NA),
@@ -361,7 +361,6 @@ ggsave("Termites/Results/Figures/BW.main.experiment.revised.png",
        dpi = 600, limitsize = TRUE)
 
 
-levels(Mainexp$Landuse)
 #Colored graph
 
 Mainp.color <- ggplot(data=Mainexp, aes(x=Landuse,y=Massloss.per,ymin=sdlow,ymax=sdhigh, shape = Littertype,
@@ -386,8 +385,8 @@ Mainp.color <- Mainp.color+guides(shape=guide_legend(title="Littertype",
                                                  order=1),
                               alpha=guide_legend(title="Decomposer",
                                                  override.aes = 
-                                                   list(shape=24,
-                                                        size=2.2,
+                                                   list(shape=22,
+                                                        size=2.8,
                                                         stroke=0.9,
                                                         fill=c("grey5", "white",NA),
                                                         color=c("grey5", "grey5",NA),
@@ -577,6 +576,7 @@ MainCG$panel.titles.ABCD <- as.factor(with(MainCG, ifelse(panel.titles.seasonreg
 #Top panel titles
 MainCG$panel.titleABCD.Season <- as.factor(with(MainCG, paste(panel.titles.ABCD,MainCG$panel.titles.season,sep=" ")))
 levels(MainCG$panel.titleABCD.Season)
+MainCG$panel.titleABCD.Season.Region <- MainCG$panel.titleABCD.Season
 MainCG$panel.titleABCD.Season <- gsub("A) Dry Season - Mesic Region","A) Dry Season",MainCG$panel.titleABCD.Season)
 MainCG$panel.titleABCD.Season <- gsub("B) Dry Season - Wet Region","B) Dry Season",MainCG$panel.titleABCD.Season)
 MainCG$panel.titleABCD.Season <- gsub("C) Wet Season - Mesic Region","C) Wet Season",MainCG$panel.titleABCD.Season)
@@ -586,28 +586,50 @@ levels(MainCG$panel.titleABCD.Season)
 
 #Creating dataframe for paneltext for main experiment (right side of the 1:1 line):
 dat_text <- data.frame(
-  label = c("Mesic Region - Rainfall 197mm",
-            "Mesic Region - Rainfall 8mm",
-            "Wet Region - Rainfall 150mm",
-            "Wet Region - Rainfall 196mm" ), #Same as "panel.titles.custom.Main" in the mainCG plot dataset
-  panel.titleABCD.Season  = c("A) Dry Season","B) Dry Season","C) Wet Season","D) Wet Season"),
-  x     = c(75,75,75,75), #Set horisontal placing of text
+  label = c("Rainfall 197mm",
+            "Rainfall 8mm",
+            "Rainfall 150mm",
+            "Rainfall 196mm" ), #Same as "panel.titles.custom.Main" in the mainCG plot dataset
+  panel.titleABCD.Season.Region  = c("A) Dry Season - Mesic Region","B) Dry Season - Wet Region","C) Wet Season - Mesic Region","D) Wet Season - Wet Region"),
+  x     = c(85,85,85,85), #Set horisontal placing of text
   y     = c(10,10,10,10)) #Set vertical placing of text
 
 #Creating dataframe for paneltext for CG experiment (left side of the 1:1 line):
 dat_text2 <- data.frame(
-  label2 = c("Mesic-wet region - Rainfall 172mm",
-            "Mesic-wet region - Rainfall 175mm",
-            "Mesic-wet region - Rainfall 172mm ",
-            "Mesic-wet region - Rainfall 175mm "),
-  panel.titleABCD.Season  = c("A) Dry Season","B) Dry Season","C) Wet Season","D) Wet Season"),
-  x2     = c(30,30,30,30), #Set horisontal placing of text
+  label2 = c("Rainfall 172mm",
+            "Rainfall 175mm",
+            "Rainfall 172mm ",
+            "Rainfall 175mm "),
+  panel.titleABCD.Season.Region  = c("A) Dry Season - Mesic Region","B) Dry Season - Wet Region","C) Wet Season - Mesic Region","D) Wet Season - Wet Region"),
+  x2     = c(18,18,18,18), #Set horisontal placing of text
   y2     = c(98,98,98,98)) #Set vertical placing of text
+
+
+#Creating dataframe for paneltext for main experiment (right side of the 1:1 line):
+dat_text3 <- data.frame(
+  label3 = c("Mesic Region - Rainfall 197mm",
+            "Mesic Region - Rainfall 8mm",
+            "Wet Region - Rainfall 150mm",
+            "Wet Region - Rainfall 196mm" ), #Same as "panel.titles.custom.Main" in the mainCG plot dataset
+  panel.titleABCD.Season  = c("A) Dry Season","B) Dry Season","C) Wet Season","D) Wet Season"),
+  x3     = c(75,75,75,75), #Set horisontal placing of text
+  y3     = c(10,10,10,10)) #Set vertical placing of text
+
+#Creating dataframe for paneltext for CG experiment (left side of the 1:1 line):
+dat_text4 <- data.frame(
+  label4 = c("Mesic-wet region - Rainfall 172mm",
+             "Mesic-wet region - Rainfall 175mm",
+             "Mesic-wet region - Rainfall 172mm ",
+             "Mesic-wet region - Rainfall 175mm "),
+  panel.titleABCD.Season  = c("A) Dry Season","B) Dry Season","C) Wet Season","D) Wet Season"),
+  x4     = c(30,30,30,30), #Set horisontal placing of text
+  y4     = c(98,98,98,98)) #Set vertical placing of text
 
 #Need to merge with plot dataset
 MainCG <- left_join(MainCG,dat_text)
 MainCG <- left_join(MainCG,dat_text2)
-
+MainCG <- left_join(MainCG,dat_text3)
+MainCG <- left_join(MainCG,dat_text4)
 #Create dummy dataset
 DummyMainCG <- MainCG
 DummyMainCG2 <- MainCG
@@ -637,8 +659,8 @@ levels(MainCG$Treat)
 #Greyscale CG (New graph following m/s revisions)####
 MainCGp.bw2 <- ggplot(MainCG, aes(x=massloss.perMain, y=massloss.perCG, shape=Littertype, fill=Landuse_trt, color = Landuse, alpha=tea.hole2))#Commongarden on y axis, Main exp on x axis
 MainCGp.bw2 <-MainCGp.bw2+geom_abline(slope=1, intercept=0, size =.6) 
-MainCGp.bw2 <-MainCGp.bw2+geom_errorbar(aes(ymin = MainCG$SDlowCG ,ymax = MainCG$SDhighCG),width=3,size=0.4,show.legend=F) 
-MainCGp.bw2 <-MainCGp.bw2+geom_errorbarh(aes(xmin = MainCG$SDlowMain,xmax = MainCG$SDhighMain),height=3,size=0.4,show.legend=F)
+MainCGp.bw2 <-MainCGp.bw2+geom_errorbar(aes(ymin = MainCG$SDlowCG ,ymax = MainCG$SDhighCG),width=1.5,size=0.4,show.legend=F) 
+MainCGp.bw2 <-MainCGp.bw2+geom_errorbarh(aes(xmin = MainCG$SDlowMain,xmax = MainCG$SDhighMain),height=1.5,size=0.4,show.legend=F)
 
 #To create the illusion of exclosed litterbags with shape within shape:
 #MainCGp.bw2 <-MainCGp.bw2+geom_point(data=DummyMainCG.labile, size=3,stroke=0.6,fill="white",color="grey50", shape=21,show.legend=F) 
@@ -650,8 +672,8 @@ MainCGp.bw2 <-MainCGp.bw2+scale_shape_manual(values=c(21,22))
 MainCGp.bw2 <-MainCGp.bw2+scale_fill_manual(values=c("grey5","white","grey70","white","grey35","white","grey50","white"))#Landuse
 MainCGp.bw2 <-MainCGp.bw2+scale_color_manual(values=c("grey5","grey35","grey55","grey70")) 
 MainCGp.bw2 <-MainCGp.bw2+scale_alpha_discrete(range=c(0.9,0.9,0.9,0.9))#Treatment
-
-MainCGp.bw2 <-MainCGp.bw2+facet_wrap(~panel.titleABCD.Season, scale ="free")
+MainCGp.bw2 <-MainCGp.bw2+facet_wrap(~panel.titleABCD.Season.Region, scale ="free")
+#MainCGp.bw2 <-MainCGp.bw2+facet_wrap(~panel.titleABCD.Season, scale ="free")
 
 #Override legend aes
 MainCGp.bw2 <-MainCGp.bw2+guides(shape=guide_legend(title="Littertype",
@@ -664,8 +686,8 @@ MainCGp.bw2 <-MainCGp.bw2+guides(shape=guide_legend(title="Littertype",
                                                            alpha=c(NA,NA)),order=1),
                                  alpha=guide_legend(title="Decomposer",reverse = T,
                                                     override.aes = 
-                                                      list(shape=24,
-                                                           size=2.2,
+                                                      list(shape=22,
+                                                           size=2.8,
                                                            stroke=0.9,
                                                            fill=c("grey5","white",NA,NA),
                                                            color=c("grey5","grey5",NA,NA),
@@ -673,8 +695,8 @@ MainCGp.bw2 <-MainCGp.bw2+guides(shape=guide_legend(title="Littertype",
                                  
                                color=guide_legend(title="Land-use",
                                                    override.aes=
-                                                     list(shape=24,
-                                                          size=2.2,
+                                                     list(shape=22,
+                                                          size=2.8,
                                                           stroke=0.9,
                                                           fill=c("grey5","grey35","grey50","grey70"),
                                                           color=c("grey5","grey35","grey50","grey70"),
@@ -687,7 +709,7 @@ MainCGp.bw2 <-MainCGp.bw2+guides(shape=guide_legend(title="Littertype",
 #MainCGp.bw2 <-MainCGp.bw2+annotate("text", x=95:95:95:95,y=10:10:10:10, hjust = 1,label=c("Rainfall 8mm","Rainfall 150mm","Rainfall 197mm","Rainfall 196mm"),
 #                            family = "", fontface = 3, size=4)
 
-MainCGp.bw2 <-MainCGp.bw2+ scale_x_continuous(limits = c(0,100), expand = c(0,0),breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100))
+MainCGp.bw2 <-MainCGp.bw2+ scale_x_continuous(limits = c(-0.7,100), expand = c(0,0),breaks = c(-0.7,20,40,60,80,100), labels = c(0,20,40,60,80,100))
 MainCGp.bw2 <-MainCGp.bw2+ scale_y_continuous(limits = c(0,100), expand = c(0,0),breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100))
 MainCGp.bw2 <-MainCGp.bw2+xlab("Main experiment mass loss (%)") +  ylab("Common garden mass loss (%)")
 MainCGp.bw2 <-MainCGp.bw2+ theme(rect = element_rect(fill ="transparent")
@@ -754,6 +776,118 @@ levels(MainCG$Treat)
 
 #Color CG (New graph following m/s revisions)####
 
+MainCGp.color <- ggplot(MainCG, aes(x=massloss.perMain, y=massloss.perCG, shape=Littertype, fill=Landuse_trt, color = Landuse, alpha=tea.hole2))#Commongarden on y axis, Main exp on x axis
+MainCGp.color <-MainCGp.color+geom_abline(slope=1, intercept=0, size =.6) 
+MainCGp.color <-MainCGp.color+geom_errorbar(aes(ymin = MainCG$SDlowCG ,ymax = MainCG$SDhighCG),width=1.5,size=0.4,show.legend=F) 
+MainCGp.color <-MainCGp.color+geom_errorbarh(aes(xmin = MainCG$SDlowMain,xmax = MainCG$SDhighMain),height=1.5,size=0.4,show.legend=F)
+
+#To create the illusion of exclosed litterbags with shape within shape:
+#MainCGp.color <-MainCGp.color+geom_point(data=DummyMainCG.labile, size=3,stroke=0.6,fill="white",color="grey50", shape=21,show.legend=F) 
+#MainCGp.color <-MainCGp.color+geom_point(data=DummyMainCG.recal, size=3,stroke=0.6,fill="white",color="grey10", shape=22,show.legend=F)
+#End of dummy.
+
+MainCGp.color <-MainCGp.color+geom_point(data=MainCG, size=2.2,stroke=0.6, show.legend=T)
+MainCGp.color <-MainCGp.color+scale_shape_manual(values=c(21,22)) 
+MainCGp.color <-MainCGp.color+scale_fill_manual(values=c("#009E73","white","#999999","white","#D55E00","white","#0072B2","white"))#Landuse
+MainCGp.color <-MainCGp.color+scale_color_manual(values=c("#009E73","#D55E00","#0072B2","#999999")) 
+MainCGp.color <-MainCGp.color+scale_alpha_discrete(range=c(0.9,0.9,0.9,0.9))#Treatment
+MainCGp.color <-MainCGp.color+facet_wrap(~panel.titleABCD.Season.Region, scale ="free")
+#MainCGp.color <-MainCGp.color+facet_wrap(~panel.titleABCD.Season, scale ="free")
+
+#Override legend aes
+MainCGp.color <-MainCGp.color+guides(shape=guide_legend(title="Littertype",
+                                                    override.aes =
+                                                      list(shape=c(21,22),
+                                                           size=2.2,
+                                                           stroke=0.9,
+                                                           fill=c("white", "white"),
+                                                           color=c("grey5", "grey5"),
+                                                           alpha=c(NA,NA)),order=1),
+                                 alpha=guide_legend(title="Decomposer",reverse = T,
+                                                    override.aes = 
+                                                      list(shape=22,
+                                                           size=2.8,
+                                                           stroke=0.9,
+                                                           fill=c("grey5","white",NA,NA),
+                                                           color=c("grey5","grey5",NA,NA),
+                                                           alpha=c(NA,NA,NA,NA)),order=2),
+                                 
+                                 color=guide_legend(title="Land-use",
+                                                    override.aes=
+                                                      list(shape=22,
+                                                           size=2.8,
+                                                           stroke=0.9,
+                                                           fill=c("grey5","grey35","grey50","grey70"),
+                                                           color=c("grey5","grey35","grey50","grey70"),
+                                                           alpha=c(NA,NA,NA,NA)),order=3,ncol=2,vjust=0.5),
+                                 
+                                 fill=F)
+
+#MainCGp.color <-MainCGp.color+annotate("text", x=5:5:5:5,y=90:90:90:90, hjust = 0, label=c("Rainfall 172mm","Rainfall 175mm","Rainfall 172mm","Rainfall 175mm"),
+#                           family = "", fontface = 3, size=4)
+#MainCGp.color <-MainCGp.color+annotate("text", x=95:95:95:95,y=10:10:10:10, hjust = 1,label=c("Rainfall 8mm","Rainfall 150mm","Rainfall 197mm","Rainfall 196mm"),
+#                            family = "", fontface = 3, size=4)
+
+MainCGp.color <-MainCGp.color+ scale_x_continuous(limits = c(-0.7,100), expand = c(0,0),breaks = c(-0.7,20,40,60,80,100), labels = c(0,20,40,60,80,100))
+MainCGp.color <-MainCGp.color+ scale_y_continuous(limits = c(0,100), expand = c(0,0),breaks = c(0,20,40,60,80,100), labels = c(0,20,40,60,80,100))
+MainCGp.color <-MainCGp.color+xlab("Main experiment mass loss (%)") +  ylab("Common garden mass loss (%)")
+MainCGp.color <-MainCGp.color+ theme(rect = element_rect(fill ="transparent")
+                                 ,panel.background=element_rect(fill="transparent")
+                                 ,plot.background=element_rect(fill="transparent",colour=NA)
+                                 ,panel.grid.major = element_blank()
+                                 ,panel.grid.minor = element_blank()
+                                 ,panel.border = element_blank()
+                                 ,panel.grid.major.x = element_blank()
+                                 ,panel.grid.major.y = element_blank()
+                                 ,plot.margin = unit(c(10,5,0,0), "mm")
+                                 ,axis.title.y=element_text(size=11,color="black",margin=margin(2.5,2.5,2.5,2.5,"mm"))
+                                 ,axis.title.x=element_text(size=11,color="black",vjust=-.5)
+                                 ,axis.ticks.length=unit(-1.2, "mm") #NEW EDIT
+                                 ,axis.text.x = element_text(size=8,color="black",angle =0,vjust=0.6,margin=unit(c(2,0.1,0.1,0.1),"mm"))
+                                 ,axis.text.y = element_text(size=8,color="black",margin=margin(t=0.1,r=2,b=0.1,l=0.1,unit="mm"))
+                                 ,axis.ticks.x = element_line(colour = "black", size = 0.5)
+                                 ,axis.ticks.y = element_line(colour = "black", size = 0.5)
+                                 ,strip.background =element_blank() #element_rect(fill="transparent",colour="black",size=10)
+                                 ,strip.text = element_text(size = 8,colour = "black",hjust=0, margin = unit(c(0,0,4,0),"mm"))
+                                 ,panel.spacing = unit(1, "lines")
+                                 ,legend.background = element_rect(fill = "transparent")
+                                 ,legend.margin = margin(c(0,0,0,0),unit="mm")
+                                 ,legend.box.margin =  margin(c(3,0,0,0),unit="mm")
+                                 ,legend.key = element_rect(colour = NA, fill = NA)
+                                 ,legend.key.height=unit(3.7,"mm")#NEW
+                                 ,legend.key.width=unit(1,"mm")#NEW
+                                 ,legend.position = "bottom"
+                                 ,legend.direction = "vertical"
+                                 ,legend.justification = "left"
+                                 ,legend.title=element_text(size=8)
+                                 ,legend.text=element_text(size=7,color="black",hjust=0,vjust=0.6, margin = margin(t=0,r=0,b=0,l=0, unit="mm")
+                                 )
+                                 ,legend.text.align=0)
+
+MainCGp.color <-MainCGp.color+annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 0.8)
+MainCGp.color <-MainCGp.color+annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 0.8)
+
+
+# annotate(geom = "segment", x = -Inf, xend = -Inf, y = -Inf, yend = Inf, size = 1.15)
+#MainCGp.bw+annotate(geom = "segment", x = -Inf, xend = Inf, y = -Inf, yend = -Inf, size = 1.15)
+
+
+MainCGp.color <- MainCGp.color+geom_text(MainCG,mapping=aes(x=x,y=y,label=label,),size=2.5,check_overlap = TRUE,inherit.aes=FALSE)#Main experiment title
+MainCGp.color <- MainCGp.color+geom_text(MainCG,mapping=aes(x=x2,y=y2,label=label2),size=2.5,check_overlap = TRUE,inherit.aes=FALSE)#Commongarden title
+
+
+#MainCGp.color <- MainCGp.color+geom_text(MainCG,mapping=aes(x=c(20, 27.5, 25,28),y=c(4, 4, 4.5,6),label=panel.titles.ABCD)) 
+#MainCGp.color <-MainCGp.color+annotate("text",x=(5.0:5.0:5.0:5.0),y=(98:98:98:98),hjust=0, label=c("a","b","c","d"),
+#                       family = "", fontface="bold" , size=4)
+
+MainCGp.color 
+
+ggsave("Termites/Results/Figures/color.CommongardenvsMain.revised.png",
+       width= 18, height = 18,units ="cm",bg ="transparent",
+       dpi = 600, limitsize = TRUE)
+
+
+######################
 MainCGp.color <- ggplot(MainCG, aes(x=massloss.perMain, y=massloss.perCG, shape=Littertype, fill=Landuse_trt, color = Landuse, alpha=tea.hole2))#Commongarden on y axis, Main exp on x axis
 MainCGp.color <-MainCGp.color+geom_abline(slope=1, intercept=0, size =.6) 
 MainCGp.color <-MainCGp.color+geom_errorbar(aes(ymin = MainCG$SDlowCG ,ymax = MainCG$SDhighCG),width=3,size=0.4,show.legend=F) 
