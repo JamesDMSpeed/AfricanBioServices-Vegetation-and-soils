@@ -249,7 +249,7 @@ Mainexp$panel.titles.ABCD <- as.factor(with(Mainexp, ifelse(panel.titles.seasonr
 
 #Creating custom panel title:
 Mainexp$panel.titles.season.rain <- as.factor(with(Mainexp, paste(Season,Region, sep=" - ")))
-Mainexp$panel.titles.season.rain.region <- as.factor(with(Mainexp, paste(panel.titles.season.rain,panel.titles.Raintext, sep= " \n     ")))
+Mainexp$panel.titles.season.rain.region <- as.factor(with(Mainexp, paste(panel.titles.season.rain,panel.titles.Raintext, sep= " \n   ")))
 Mainexp$panel.titles.custom <- as.factor(with(Mainexp, paste(panel.titles.ABCD,panel.titles.season.rain.region,sep = " ")))                                                                        
  
 
