@@ -585,10 +585,10 @@ levels(MainCG$panel.titles.seasonregion)
 #View(MainCG)
 #Creating letters for each panel
 
-MainCG$panel.titles.ABCD <- as.factor(with(MainCG, ifelse(panel.titles.seasonregion %in% c("Dry Season - Mesic Region"), "\U1D63C",
-                                                            ifelse(panel.titles.seasonregion %in% c("Dry Season - Wet Region"), "\U1D63E",
-                                                                   ifelse(panel.titles.seasonregion %in% c("Wet Season - Mesic Region"), "\U1D63D",
-                                                                          ifelse(panel.titles.seasonregion %in% c("Wet Season - Wet Region"), "\U1D63F","WRONG"))))))
+MainCG$panel.titles.ABCD <- as.factor(with(MainCG, ifelse(panel.titles.seasonregion %in% c("Dry Season - Mesic Region"), "a",
+                                                                   ifelse(panel.titles.seasonregion %in% c("Wet Season - Mesic Region"), "b",
+                                                                          ifelse(panel.titles.seasonregion %in% c("Dry Season - Wet Region"), "c",
+                                                                          ifelse(panel.titles.seasonregion %in% c("Wet Season - Wet Region"), "d","WRONG"))))))
 
 
 #Top panel titles
@@ -609,7 +609,7 @@ dat_text <- data.frame(
             "Rainfall 150mm",
             "Rainfall 197mm",
             "Rainfall 196mm" ), #Same as "panel.titles.custom.Main" in the mainCG plot dataset
-  panel.titleABCD.Season.Region  = c("\U1D63C Dry Season - Mesic Region","\U1D63D Wet Season - Mesic Region","\U1D63E Dry Season - Wet Region","\U1D63F Wet Season - Wet Region"),
+  panel.titleABCD.Season.Region  = c("a Dry Season - Mesic Region","b Wet Season - Mesic Region","c Dry Season - Wet Region","d Wet Season - Wet Region"),
   x     = c(80,80,80,80), #Set horisontal placing of text
   y     = c(10,10,10,10)) #Set vertical placing of text
 
@@ -619,7 +619,7 @@ dat_text2 <- data.frame(
             "Rainfall 172mm",
             "Rainfall 175mm ",
             "Rainfall 175mm "),
-  panel.titleABCD.Season.Region  = c("\U1D63C Dry Season - Mesic Region","\U1D63D Wet Season - Mesic Region","\U1D63E Dry Season - Wet Region","\U1D63F Wet Season - Wet Region"),
+  panel.titleABCD.Season.Region  = c("a Dry Season - Mesic Region","b Wet Season - Mesic Region","c Dry Season - Wet Region","d Wet Season - Wet Region"),
   x2     = c(20,20,20,20), #Set horisontal placing of text
   y2     = c(98,98,98,98)) #Set vertical placing of text
 
