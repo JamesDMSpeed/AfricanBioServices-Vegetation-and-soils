@@ -585,22 +585,23 @@ levels(MainCG$panel.titles.seasonregion)
 #View(MainCG)
 #Creating letters for each panel
 
-MainCG$panel.titles.ABCD <- as.factor(with(MainCG, ifelse(panel.titles.seasonregion %in% c("Dry Season - Mesic Region"), "a",
-                                                            ifelse(panel.titles.seasonregion %in% c("Dry Season - Wet Region"), "c",
-                                                                   ifelse(panel.titles.seasonregion %in% c("Wet Season - Mesic Region"), "b",
-                                                                          ifelse(panel.titles.seasonregion %in% c("Wet Season - Wet Region"), "d","WRONG"))))))
+MainCG$panel.titles.ABCD <- as.factor(with(MainCG, ifelse(panel.titles.seasonregion %in% c("Dry Season - Mesic Region"), "\U1D63C",
+                                                            ifelse(panel.titles.seasonregion %in% c("Dry Season - Wet Region"), "\U1D63E",
+                                                                   ifelse(panel.titles.seasonregion %in% c("Wet Season - Mesic Region"), "\U1D63D",
+                                                                          ifelse(panel.titles.seasonregion %in% c("Wet Season - Wet Region"), "\U1D63F","WRONG"))))))
 
 
 #Top panel titles
 MainCG$panel.titleABCD.Season <- as.factor(with(MainCG, paste(panel.titles.ABCD,MainCG$panel.titles.season,sep=" ")))
-levels(MainCG$panel.titleABCD.Season)
-MainCG$panel.titleABCD.Season.Region <- MainCG$panel.titleABCD.Season
+MainCG$panel.titleABCD.Season.Region <- as.factor(MainCG$panel.titleABCD.Season)
+levels(MainCG$panel.titleABCD.Season.Region)
+
 MainCG$panel.titleABCD.Season <- gsub("a Dry Season - Mesic Region","a Dry Season",MainCG$panel.titleABCD.Season)
 MainCG$panel.titleABCD.Season <- gsub("c Dry Season - Wet Region","c Dry Season",MainCG$panel.titleABCD.Season)
 MainCG$panel.titleABCD.Season <- gsub("b Wet Season - Mesic Region","b Wet Season",MainCG$panel.titleABCD.Season)
 MainCG$panel.titleABCD.Season <- gsub("d Wet Season - Wet Region","d Wet Season",MainCG$panel.titleABCD.Season)
 MainCG$panel.titleABCD.Season <- as.factor(MainCG$panel.titleABCD.Season)
-levels(MainCG$panel.titleABCD.Season.Region)
+levels(MainCG$panel.titleABCD.Season)
 
 #Creating dataframe for paneltext for main experiment (right side of the 1:1 line):
 dat_text <- data.frame(
@@ -608,7 +609,7 @@ dat_text <- data.frame(
             "Rainfall 150mm",
             "Rainfall 197mm",
             "Rainfall 196mm" ), #Same as "panel.titles.custom.Main" in the mainCG plot dataset
-  panel.titleABCD.Season.Region  = c("a Dry Season - Mesic Region","b Wet Season - Mesic Region","c Dry Season - Wet Region","d Wet Season - Wet Region"),
+  panel.titleABCD.Season.Region  = c("\U1D63C Dry Season - Mesic Region","\U1D63D Wet Season - Mesic Region","\U1D63E Dry Season - Wet Region","\U1D63F Wet Season - Wet Region"),
   x     = c(80,80,80,80), #Set horisontal placing of text
   y     = c(10,10,10,10)) #Set vertical placing of text
 
@@ -618,7 +619,7 @@ dat_text2 <- data.frame(
             "Rainfall 172mm",
             "Rainfall 175mm ",
             "Rainfall 175mm "),
-  panel.titleABCD.Season.Region  = c("a Dry Season - Mesic Region","b Wet Season - Mesic Region","c Dry Season - Wet Region","d Wet Season - Wet Region"),
+  panel.titleABCD.Season.Region  = c("\U1D63C Dry Season - Mesic Region","\U1D63D Wet Season - Mesic Region","\U1D63E Dry Season - Wet Region","\U1D63F Wet Season - Wet Region"),
   x2     = c(20,20,20,20), #Set horisontal placing of text
   y2     = c(98,98,98,98)) #Set vertical placing of text
 
@@ -690,7 +691,7 @@ MainCGp.bw2 <-MainCGp.bw2+scale_shape_manual(values=c(21,22))
 MainCGp.bw2 <-MainCGp.bw2+scale_fill_manual(values=c("grey5","white","grey70","white","grey35","white","grey50","white"))#Landuse
 MainCGp.bw2 <-MainCGp.bw2+scale_color_manual(values=c("grey5","grey35","grey55","grey70")) 
 MainCGp.bw2 <-MainCGp.bw2+scale_alpha_discrete(range=c(0.9,0.9,0.9,0.9))#Treatment
-MainCGp.bw2 <-MainCGp.bw2+facet_wrap(~panel.titleABCD.Season.Region, scale ="fixed")
+MainCGp.bw2 <-MainCGp.bw2+facet_wrap(~panel.titleABCD.Season.Region, scale ="free")
 #MainCGp.bw2 <-MainCGp.bw2+facet_wrap(~panel.titleABCD.Season, scale ="free")
 
 #Override legend aes
