@@ -223,7 +223,7 @@ Total.dung<- aggregate(total.dung~Block.ID, mean, data=Belowground.full)
 # total nitrogen
 tot.N.kg_m2 <- aggregate(tot.N.kg_m2 ~ Block.ID, mean, data=Belowground.full)
 
-# Add Stu's data on roots 
+# Add Stu's data on roots (my block = block in the dataset)
 Roots.full <- read.csv("Ecosystem carbon/Roots2018.csv", header=TRUE)
 
 Roots <- Roots.full %>%
@@ -454,8 +454,8 @@ plot(wild~landuse,data=Belowground.full) # not covarying
 names(Soil.Ahor)
 summary(Soil.Ahor)
 Soil.Ahor.CnoNA<-Soil.Ahor[!is.na(Soil.Ahor$Herbaceous),]
-Soil.Ahor.CnoNA <-  Soil.Ahor.CnoNA[(-20),]
-Soil.Ahor.CnoNA <-  Soil.Ahor.CnoNA[(-16),]
+Soil.Ahor.CnoNA <-  Soil.Ahor.CnoNA[(-20),] # no fire 
+Soil.Ahor.CnoNA <-  Soil.Ahor.CnoNA[(-16),] # outlier Handajega 
 Ahor.block<-lmer(Ctot.C.kg_m2~ CMAP.mm_yr + landuse + 
                    CFire_frequency + CTreeBM.kg_m2 + 
                    CSand + CAccum.bm.kg_m2 + CRes.bm.kg_m2 + CHerbaceous +
@@ -774,6 +774,7 @@ write.table(Woody, file="Ecosystem carbon/ConAvgWoody2.txt")
 
 # Model averaging 
 summary(Belowground.full.CnoNA2)
+
 # A horizon added Accumulated biomass and residual biomass 
 Belowground.Ahor <-lmer(CAhorC.kg_m2 ~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017  
                         + CTreeBM.kg_m2 + CSand + CAccum.bm.kg_m2 
@@ -795,7 +796,7 @@ coef.Ahor <- summary(modavgbelow.Ahor)$coefmat.subset
 Ahor <- cbind(coef.Ahor, confint.Ahor)
 write.table(Ahor, file="Ecosystem carbon/ConAvgAhorFull.txt")
 
-# A hor with dung NOT this I use 
+# A hor with dung and roots NOT this I use 
 colnames(Belowground.full.CnoNA3)
 Belowground.Ahor.sub <-lmer(AhorC.kg_m2 ~ CMAP.mm_yr + CFire_frequency.2000_2017  + CTreeBM.kg_m2 + CSand + CHerbaceous + Ctotal.dung + CRoots.kg.m2 + CAccum.bm.kg_m2 +
                               (1|Region/Block.ID), data = Belowground.full.CnoNA3, REML=F, na.action=na.fail)
