@@ -632,7 +632,7 @@ Herb <- cbind(coef.Herb, confint.Herb)
 
 # ACCUMULATES HERBACEOUS BIOMASS 
 names(Total.Eco.C.CnoNA2)
-
+plot(CRes.bm.kg_m2~landuse, data= Herbaceous)
 Accum.Herb<-lmer(CAccum.bm.kg_m2~ CMAP.mm_yr + landuse + CFire_frequency + CTreeBM.kg_m2 + CSand + Ctot.N.kg_m2 + CRoots.kg.m2 + #Cwild + Clivestock + 
                          landuse:CMAP.mm_yr + landuse:CSand +
                          (1|Region),data = Total.Eco.C.CnoNA2, REML=F, 
@@ -853,18 +853,14 @@ summary(Belowground.full.CnoNA)
 Belowground.full.CnoNA <- droplevels(Belowground.full.CnoNA)
 
 Modlist.large <-   psem(
-  lme(CWoody~ Ctot.N.kg_m2 + CFire_frequency.2000_2017 + landuse + CSand, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(CDW~ CWoody + CFire_frequency.2000_2017 + landuse,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(CHerbaceous ~  Ctot.N.kg_m2 + CSand + CMAP.mm_yr + landuse + CFire_frequency.2000_2017,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(CAhorC.kg_m2~ CHerbaceous + CRes.bm.kg_m2 + CAccum.bm.kg_m2, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CWoody~ CSand + landuse, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CDW~ CFire_frequency.2000_2017 + landuse,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CAhorC.kg_m2~ CSand, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
   lme(CMinC.kg_m2~ CAhorC.kg_m2 + CSand, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
   landuse%~~%CMAP.mm_yr, # I know these are not correlated
   landuse%~~%CSand, # I know these are not correlated 
   CAhorC.kg_m2%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path.. 
-  CMinC.kg_m2%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path..
-  CRes.bm.kg_m2%~~%CAccum.bm.kg_m2, # Testing variables 
-  CRes.bm.kg_m2%~~%CHerbaceous, # Testing variables
-  CHerbaceous%~~%CAccum.bm.kg_m2 # Testing variables
+  CMinC.kg_m2%~~%Ctot.N.kg_m2 # We know these are highly correlated, but no path..
 )
 
 summary(Modlist.large,Belowground.full.CnoNA) # Not a good fit, p=0

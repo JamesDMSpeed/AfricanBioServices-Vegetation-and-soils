@@ -1,7 +1,41 @@
+# Packages 
+library(tidyr)
+library(plyr)
+library(dplyr)
+
 #### Sorting the herbaceous data ####
+AccumH6 <- read.csv(file="Ecosystem carbon/Herbaceous.data/AccumH6.csv", header=T)
 Herbaceous <- read.csv(file="Ecosystem carbon/Herbaceous.data/12Herbaceous.csv", header=T)
 HerbResBiomass <- read.csv(file="Ecosystem carbon/Herbaceous.data/HerbResBiomass.csv", header=T)
 
+#### 1. Look at data biom ####
+colnames(AccumH6)
+AccumulatedHerb <- AccumH6[,c(1:6,8,10,11,81,82)]
+
+Production <- filter(AccumulatedHerb,prodcons=="Cum_prod")
+Consumption <- filter(AccumulatedHerb,prodcons=="Cum_cons")
+
+colnames(Production)[11] <- "Cum_prod"
+colnames(Consumption)[11] <- "Cum_cons"
+
+colnames(Prod_cons)
+Prod_cons <- cbind(Production,Consumption[,c(10,11)])
+Prod_cons <- Prod_cons[,c(1:9,11,13)]
+
+# new column
+colnames(ExclosedData)
+ExclosedData <- mutate(ExclosedData,ResidBiomass=prodtot-constot)
+
+# want to create accumulated values of residual biomass per block (over all 6 harvests)
+
+# Need block_ID 
+ExclosedData$Block.id<-as.factor(with(ExclosedData, paste(site.id, block, sep="_")))
+
+colnames(ExclosedData)
+ExclosedDataRed <- ExclosedData[,c(1,27,5,6,7,10,20,21,26)]
+
+
+#### 2. Herbaceous dataset ####
 # Remove NAs 
 Herbaceous <- na.omit(Herbaceous)
 Herbaceous <- droplevels(Herbaceous)
