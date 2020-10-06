@@ -211,9 +211,13 @@ Block.Eco.C$Carbon.pool <- factor(Block.Eco.C$Carbon.pool, levels=c("TreeC.kg_m2
 levels(Block.Eco.C$Carbon.pool) <- c("Woody","Herbaceous","Dead wood","Soil A-horizon","Soil Min-horizon")
 
 # Add Marit's data on accumulated and residual biomass, dung data and nitrogen
-Marit <- read.csv("Ecosystem carbon/Herbaceous.data/Herbaceous.csv", header=TRUE)
-names(Marit)
-Marit <- Marit[c(7,12,13)]
+#Marit <- read.csv("Ecosystem carbon/Herbaceous.data/Herbaceous.csv", header=TRUE)
+#names(Marit)
+#Marit <- Marit[c(7,12,13)]
+
+MaritAccum <- read.csv("Ecosystem carbon/Herbaceous.data/AccumHerbaceous.csv", header=TRUE)
+names(MaritAccum)
+MaritAccum <- MaritAccum[c(4,17)]
 
 # Livestock dung 
 Livestock.dung<- aggregate(livestock~Block.ID, mean, data=Belowground.full)
@@ -253,7 +257,7 @@ Block.Eco.C <- merge(Block.Eco.C,Livestock.dung, by="Block.ID", all.x = TRUE)
 Block.Eco.C <- merge(Block.Eco.C,Wild.dung, by="Block.ID", all.x = TRUE)
 Block.Eco.C <- merge(Block.Eco.C,Total.dung, by="Block.ID", all.x = TRUE)
 Block.Eco.C <- merge(Block.Eco.C,tot.N.kg_m2, by="Block.ID", all.x = TRUE)
-Block.Eco.C <- merge(Block.Eco.C,Marit, by="Block.ID", all.x = TRUE)
+Block.Eco.C <- merge(Block.Eco.C,MaritAccum, by="Block.ID", all.x = TRUE)
 Block.Eco.C <- merge(Block.Eco.C,RootsBlock, by="Block.ID", all.x = TRUE)
 
 
@@ -266,8 +270,8 @@ Block.Eco.C$Ctot.N.kg_m2 <- as.numeric(scale(Block.Eco.C$tot.N.kg_m2))
 Block.Eco.C$Clivestock <- as.numeric(scale(Block.Eco.C$livestock))
 Block.Eco.C$Cwild <- as.numeric(scale(Block.Eco.C$wild))
 Block.Eco.C$Ctotal.dung <- as.numeric(scale(Block.Eco.C$total.dung))
-Block.Eco.C$CAccum.bm.kg_m2 <- as.numeric(scale(Block.Eco.C$Accum.bm.kg_m2))
-Block.Eco.C$CRes.bm.kg_m2 <- as.numeric(scale(Block.Eco.C$Res.bm.kg_m2))
+Block.Eco.C$CBiomass_year <- as.numeric(scale(Block.Eco.C$Biomass_year.kgm2))
+#Block.Eco.C$CRes.bm.kg_m2 <- as.numeric(scale(Block.Eco.C$Res.bm.kg_m2))
 Block.Eco.C$CRoots.kg.m2 <- as.numeric(scale(Block.Eco.C$Roots.kg.m2))
 
 # Carbon pools 
@@ -284,33 +288,33 @@ Herbaceous<- Block.Eco.C %>%
 
 Herbaceous$C.amount[Herbaceous$C.amount==0] <- NA
 Soil.Ahor <- cbind(Soil.Ahor,Herbaceous[17])
-colnames(Soil.Ahor)[37] <- "Herbaceous"
+colnames(Soil.Ahor)[35] <- "Herbaceous"
 Soil.Ahor$CHerbaceous <- as.numeric(scale(Soil.Ahor$Herbaceous))
 Soil.min <- cbind(Soil.min,Herbaceous[17])
-colnames(Soil.min)[37] <- "Herbaceous"
+colnames(Soil.min)[35] <- "Herbaceous"
 Soil.min$CHerbaceous <- as.numeric(scale(Soil.min$Herbaceous))
 
 # Add data to belowground full 
-Belowground.full <- merge(Belowground.full,Marit, by="Block.ID", all.x = TRUE)
+Belowground.full <- merge(Belowground.full,MaritAccum, by="Block.ID", all.x = TRUE)
 Belowground.full <- merge(Belowground.full, Herbaceous[ , c("Block.ID","C.amount")], by = "Block.ID", all.x=TRUE)
 Belowground.full <- merge(Belowground.full, Woody[ , c("Block.ID","C.amount")], by = "Block.ID", all.x=TRUE)
 Belowground.full <- merge(Belowground.full, DW[ , c("Block.ID","C.amount")], by = "Block.ID", all.x=TRUE)
 Belowground.full <- merge(Belowground.full, RootsBlock, by = "Block.ID", all.x=TRUE)
 
-colnames(Belowground.full)[33] <- "Herbaceous"
-colnames(Belowground.full)[34] <- "Woody"
-colnames(Belowground.full)[35] <- "DW"
+colnames(Belowground.full)[32] <- "Herbaceous"
+colnames(Belowground.full)[33] <- "Woody"
+colnames(Belowground.full)[34] <- "DW"
 
 #         3.1.2: Creating usefull datasets ####
 
 # Both above and belowground block
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 names(Soil.min)
-Total.Eco.C <- cbind(Soil.min[c(1,3:15,17,19:38)],Soil.Ahor[c(17)],Woody[c(17)],DW[c(17)])
+Total.Eco.C <- cbind(Soil.min[c(1,3:15,17,19:36)],Soil.Ahor[c(17)],Woody[c(17)],DW[c(17)])
 colnames(Total.Eco.C)[15] <- "Soil.min"
-colnames(Total.Eco.C)[36] <- "Soil.Ahor"
-colnames(Total.Eco.C)[37] <- "Woody"
-colnames(Total.Eco.C)[38] <- "DW"
+colnames(Total.Eco.C)[34] <- "Soil.Ahor"
+colnames(Total.Eco.C)[35] <- "Woody"
+colnames(Total.Eco.C)[36] <- "DW"
 Total.Eco.C$tot.C.kg_m2 <- Total.Eco.C$Soil.min + Total.Eco.C$Soil.Ahor + Total.Eco.C$Herbaceous + Total.Eco.C$Woody + Total.Eco.C$DW
 
 Ahor.N <- aggregate(AhorN.kg_m2~Block.ID, mean, data=Belowground.full)
@@ -336,8 +340,8 @@ Belowground.full$Ctot.C.kg_m2 <- as.numeric(scale(Belowground.full$tot.C.kg_m2))
 Belowground.full$Clivestock <- as.numeric(scale(Belowground.full$livestock)) 
 Belowground.full$Cwild <- as.numeric(scale(Belowground.full$wild)) 
 Belowground.full$Ctotal.dung <- as.numeric(scale(Belowground.full$total.dung)) 
-Belowground.full$CAccum.bm.kg_m2<- as.numeric(scale(Belowground.full$Accum.bm.kg_m2)) 
-Belowground.full$CRes.bm.kg_m2 <- as.numeric(scale(Belowground.full$Res.bm.kg_m2)) 
+Belowground.full$CBiomass_year<- as.numeric(scale(Belowground.full$Biomass_year.kgm2)) 
+#Belowground.full$CRes.bm.kg_m2 <- as.numeric(scale(Belowground.full$Res.bm.kg_m2)) 
 Belowground.full$CHerbaceous <- as.numeric(scale(Belowground.full$Herbaceous)) 
 Belowground.full$CAhorC.kg_m2 <- as.numeric(scale(Belowground.full$AhorC.kg_m2))
 Belowground.full$CMinC.kg_m2 <- as.numeric(scale(Belowground.full$MinC.kg_m2))
@@ -401,12 +405,12 @@ panel.cor <- function(x, y, digits=1, prefix="", cex.cor = 6)
 # Then select the variables to use in the pair function with panel.cor
 
 names(Belowground.full.CnoNA)
-Model.var.full<-c("AhorC.kg_m2","MinC.kg_m2","MAP.mm_yr","Sand","Clay","Silt","Fire_frequency.2000_2017.x","Last_fire.yr","Woody","tot.N.kg_m2","Herbaceous","Accum.bm.kg_m2","Res.bm.kg_m2")
+Model.var.full<-c("AhorC.kg_m2","MinC.kg_m2","MAP.mm_yr","Sand","Clay","Silt","Fire_frequency.2000_2017.x","Last_fire.yr","Woody","tot.N.kg_m2","Herbaceous","Biomass_year.kgm2")
 
-Model.var.red<-c("TreeBM.kg_m2","DW","AhorC.kg_m2","MinC.kg_m2","MAP.mm_yr","Sand","Fire_frequency.2000_2017.x","tot.N.kg_m2","Accum.bm.kg_m2","Res.bm.kg_m2","Roots.kg.m2", "total.dung", "livestock", "wild")
+Model.var.red<-c("TreeBM.kg_m2","DW","AhorC.kg_m2","MinC.kg_m2","MAP.mm_yr","Sand","Fire_frequency.2000_2017.x","tot.N.kg_m2","Biomass_year.kgm2","Roots.kg.m2", "total.dung", "livestock", "wild")
 
 names(Total.Eco.C.CnoNA)
-Model.var.block<-c("TreeBM.kg_m2","DW","Accum.bm.kg_m2","Res.bm.kg_m2","Soil.Ahor","Soil.min","MAP.mm_yr","Sand.pip.per","Fire_frequency.2000_2017","tot.N.kg_m2","Roots.kg.m2", "livestock","wild","total.dung")
+Model.var.block<-c("TreeBM.kg_m2","DW","Biomass_year.kgm2","Soil.Ahor","Soil.min","MAP.mm_yr","Sand.pip.per","Fire_frequency.2000_2017","tot.N.kg_m2","Roots.kg.m2", "livestock","wild","total.dung")
 
 # Want to get these two in one matrix. 
 pairs(Belowground.full.CnoNA[,Model.var.red],lower.panel = panel.cor)
@@ -865,13 +869,30 @@ Modlist.large <-   psem(
 
 summary(Modlist.large,Belowground.full.CnoNA) # Not a good fit, p=0
 
-##        5.1.1: Large model best fit WITH herbaceous accumulated ####
+##        5.1.1: Large model best fit WITH herbaceous accumulated (Biomass_year)####
 Modlist.large2 <-   psem(
   lme(CWoody~ landuse + CSand, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
   lme(CDW~ landuse,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(CAccum.bm.kg_m2 ~ Ctot.N.kg_m2 + CMAP.mm_yr + CDW + landuse,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
-  lme(CMinC.kg_m2~ CAhorC.kg_m2 + CSand + CAccum.bm.kg_m2, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
-  #lme(Ctot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CBiomass_year ~ Ctot.N.kg_m2 + CMAP.mm_yr + landuse + CFire_frequency.2000_2017,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CAhorC.kg_m2~ CBiomass_year, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CMinC.kg_m2~ CAhorC.kg_m2 + CSand, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(Ctot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CFire_frequency.2000_2017~ CWoody + CDW,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  landuse%~~%CMAP.mm_yr, # I know these are not correlated
+  landuse%~~%CSand, # I know these are not correlated 
+  CAhorC.kg_m2%~~%Ctot.N.kg_m2, # We know these are highly correlated, but no path.. 
+  CMinC.kg_m2%~~%Ctot.N.kg_m2 # We know these are highly correlated, but no path..
+)
+
+summary(Modlist.large2,Belowground.full.CnoNA) # A good fit, p=0.712/ p=0.571 with N 
+
+Modlist.large2 <-   psem(
+  lme(CWoody~ landuse + CSand, random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CDW~ landuse,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CBiomass_year ~ CMAP.mm_yr + CSand + CWoody,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
+  #lme(CAhorC.kg_m2~ CBiomass_year, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(CMinC.kg_m2~ CAhorC.kg_m2 + CSand, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Belowground.full.CnoNA),
+  lme(Ctot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
   lme(CFire_frequency.2000_2017~ CWoody + CDW,random= ~ 1|Region,na.action=na.omit, data=Belowground.full.CnoNA),
   landuse%~~%CMAP.mm_yr, # I know these are not correlated
   landuse%~~%CSand, # I know these are not correlated 
