@@ -187,6 +187,15 @@ Properties.Region <- cbind(aggregate(Clay~Region, mean, data=Belowground),
 # Use REML = T when looking at the random effects, and the parameter estimates - when I have found the model I want to use! 
 # I have region and block.ID as random effects 
 # Choose the model with the smallest AIC value 
+#### PACKAGES #### 
+library(tidyr)
+library(plyr)
+library(dplyr)
+
+library(nlme)
+library(lme4)
+library(piecewiseSEM) 
+library(MuMIn) 
 ##     3.1: Prepare data for modelling ####
 #         3.1.1: Uploading data ####
 Block.Eco.C <- read.csv("Ecosystem carbon/Final.Ecosystem.Carbon.csv", head=T)
@@ -197,7 +206,6 @@ fire <- droplevels(fire)
 max(fire$Fire_frequency.2000_2017, na.rm=T)
 min(fire$Fire_frequency.2000_2017, na.rm=T)
 
-?max
 Block.Eco.C$Region<- factor(Block.Eco.C$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 Belowground.full$Region<- factor(Belowground.full$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
@@ -406,17 +414,19 @@ panel.cor <- function(x, y, digits=1, prefix="", cex.cor = 6)
 
 # Then select the variables to use in the pair function with panel.cor
 
-names(Belowground.full.CnoNA)
-Model.var.full<-c("AhorC.kg_m2","MinC.kg_m2","MAP.mm_yr","Sand","Clay","Silt","Fire_frequency.2000_2017.x","Last_fire.yr","Woody","tot.N.kg_m2","Herbaceous","Biomass_year.kgm2")
+# Full model 
+#names(Belowground.full.CnoNA)
+#Model.var.full<-c("AhorC.kg_m2","MinC.kg_m2","MAP.mm_yr","Sand","Clay","Silt","Fire_frequency.2000_2017.x","Last_fire.yr","Woody","tot.N.kg_m2","Herbaceous","Biomass_year.kgm2")
 
-Model.var.red<-c("TreeBM.kg_m2","DW","AhorC.kg_m2","MinC.kg_m2","MAP.mm_yr","Sand","Fire_frequency.2000_2017.x","tot.N.kg_m2","Biomass_year.kgm2","Roots.kg.m2", "total.dung", "livestock", "wild")
+# Subset model
+names(Total.Eco.C.CnoNA2)
+Model.var.sub<-c("MAP.mm_yr","Fire_frequency.2000_2017","Sand.pip.per","tot.N.kg_m2","livestock","wild","Woody","DW", "Biomass_year.kgm2", "Soil.Ahor", "Soil.min", "Roots.kg.m2")
 
-names(Total.Eco.C.CnoNA)
-Model.var.block<-c("TreeBM.kg_m2","DW","Biomass_year.kgm2","Soil.Ahor","Soil.min","MAP.mm_yr","Sand.pip.per","Fire_frequency.2000_2017","tot.N.kg_m2","Roots.kg.m2", "livestock","wild","total.dung")
+# Create correlation matrix
+#pairs(Belowground.full.CnoNA[,Model.var.red],lower.panel = panel.cor)
+pairs(Total.Eco.C.CnoNA2[,Model.var.sub],lower.panel = panel.cor)
 
-# Want to get these two in one matrix. 
-pairs(Belowground.full.CnoNA[,Model.var.red],lower.panel = panel.cor)
-pairs(Total.Eco.C.CnoNA2[,Model.var.block],lower.panel = panel.cor)
+# NOT UPDATED from here 
 # If I want these values in a table:
 Model.var.FULL <- Belowground.full.CnoNA[,c(14,28,26,27,12,13,51,32,64,16,22,21,15)]
 Model.var.Herb <- Belowground.full.CnoNA[,c(14,28,26,12,13,51,32,64,16,22,21,15)]
@@ -908,14 +918,14 @@ Modlist.large4 <-   psem(
 
 summary(Modlist.large4,Belowground.full.CnoNA) # not a good fit: P-value = 0.497
 
-##      5.2: Lower resolution data, mechanistic model ####
+##      5.2: Lower resolution data, subset model ####
 ##        5.2.1: With Livestock/wild and roots AND ACCUMULATED ####
 
 Modlist.mecanistic1 <-   psem(
   lme(Ctot.N.kg_m2~ CSand,random= ~ 1|Region/Block.ID,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(Cwild ~ Clivestock + CMAP.mm_yr,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CWoody~ CFire_frequency + Clivestock, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CDW~ landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  #lme(CDW~ landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CBiomass_year ~ CMAP.mm_yr + CWoody + CDW + CFire_frequency,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CRoots.kg.m2~ CMAP.mm_yr + CSand + landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CSoil.Ahor~Clivestock + Cwild, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
@@ -927,10 +937,7 @@ Modlist.mecanistic1 <-   psem(
   landuse%~~%CSand
 )
 
-subset<-summary(Modlist.mecanistic1,Total.Eco.C.CnoNA2) 
-
-R2<-subset$R2
-barplot(R2$Marginal, names.arg = R2$Response, las=2)
+summary(Modlist.mecanistic1,Total.Eco.C.CnoNA2) 
 
 # The roots seem to be related to MAP, Sand and landuse. However when I remove landuse, MAP and Sand are no longer significant.. 
 Roots <- lmer(CRoots.kg.m2~ CMAP.mm_yr + CSand + landuse + (1|Region), data=Total.Eco.C.CnoNA2, REML=F, na.action=na.fail)
