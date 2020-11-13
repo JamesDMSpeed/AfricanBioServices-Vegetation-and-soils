@@ -47,7 +47,7 @@ library(emmeans)
 
 ########################################################################
 
-setwd("/Users/anotherswsmith/Documents/AfricanBioServices/Data/VegSoil_AfricanBioServices/AfricanBioServices-Vegetation-and-soils/")
+setwd("/Users/stuartsmith/Documents/zAfricanBioServices/AfricanBioServices-Vegetation-and-soils/")
 # Combined species, aboveground biomass and 5 cm soil
 TP<-read.csv(file="Transplant experiment/BioCoverSoil5cmNuts.csv", sep=",",header=TRUE)
 TP[duplicated(TP$Current.placement.of.the.turf), ] # No dups
@@ -3418,7 +3418,6 @@ ggsave("/Users/anotherswsmith/Documents/AfricanBioServices/Data/Transplant Seren
        dpi = 600, limitsize = TRUE)
 
 
-
 ##################################################################################################
 table(Datastack$harvest,Datastack$harvest.date)
 ProdAvg<-aggregate(prodtot~harvest+region+landuse+block+treatment,Datastack,mean)
@@ -3536,9 +3535,6 @@ drop1(NAP.lme, test="Chisq") # Nothing important
 
 xyplot(prodsp.per~Plant.N|landuse,Datastack2NA)
 
-plot()
-
-
 # Remove NAs
 Datastack2N<-NutsN[!is.na(NutsN$Plant.N),]
 
@@ -3563,7 +3559,7 @@ SpeciesNSE<-aggregate(N.conc.adj~target.sp.+landuse+treatment,TargetNavgYm,sd)
 SpeciesN$SE<-SpeciesNSE$N.conc.adj
 
 # Relevel so that other
-SpeciesN$target.sp.<- factor(SpeciesN$target.sp., levels = c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda")
+SpeciesN$target.sp.<- factor(SpeciesN$target.sp., levels = c("Chloris", "Chrysocloa", "Cynodon", "Digitaria", "Themeda"))
 
 # Treatment code for filling symbols
 SpeciesN$spp.code<-as.factor(with(SpeciesN, paste(target.sp.,treatment,sep="_")))
@@ -3603,6 +3599,91 @@ TNs<-TNs+guides(fill=F,linetype=F,shape = guide_legend("Treatment",override.aes 
                 colour = guide_legend("Dominant species",override.aes = list(shape=c(21), size=3.75,fill=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3", "grey50"),
                                                                              col=c("chartreuse3","hotpink1","cadetblue3","green4", "orangered3", "grey50"), stroke=1)) )
 TNs
+
+############################################
+#### NO3 and NH4 ####
+library(ggplot2)
+############################################
+
+TPNO3NH4<-read.csv(file="Transplant experiment/SoilNminSelectNMBU.NO3NH4.csv", sep=",",header=TRUE)
+
+names(TPNO3NH4)
+
+dotchart(TPNO3NH4$NO3.N..mg.Kg.day) #No major outliers
+dotchart(TPNO3NH4$NH4.N.mg.Kg.day) # No major outliers
+dotchart(TPNO3NH4$NO3.N..mg.Kg.day, groups=TPNO3NH4$tagsp,main ="Dig mac ") 
+dotchart(TPNO3NH4$NH4.N.mg.Kg.day, groups=TPNO3NH4$tagsp,main ="Dig mac ") 
+dotchart(TPNO3NH4$NO3.N..mg.Kg.day, groups=TPNO3NH4$region,main ="Dry ") 
+dotchart(TPNO3NH4$NH4.N.mg.Kg.day, groups=TPNO3NH4$region,main ="Dry ") 
+
+TPNO3NH4<-TPNO3NH4[TPNO3NH4$NH4.N.mg.Kg.day>0.5,]
+
+# Summary of cover change with and without controls
+NO3<-aggregate(NO3.N..mg.Kg.day~landuse+region+transplant+tagsp,TPNO3NH4,mean)
+NH4<-aggregate(NH4.N.mg.Kg.day~landuse+region+transplant+tagsp,TPNO3NH4,mean)
+NO3sd<-aggregate(NO3.N..mg.Kg.day~landuse+region+transplant+tagsp,TPNO3NH4,sd)
+NH4sd<-aggregate(NH4.N.mg.Kg.day~landuse+region+transplant+tagsp,TPNO3NH4,sd)
+NO3$sd<-NO3sd$NO3.N..mg.Kg.day
+NH4$sd<-NH4sd$NH4.N.mg.Kg.day
+
+NO3biom<-ggplot(NO3,aes(y=NO3.N..mg.Kg.day,x=landuse, shape=transplant, colour=tagsp)) # group = grouping vector for lines
+NO3biom<-NO3biom+geom_errorbar(data=NO3,aes(ymin=NO3.N..mg.Kg.day-sd, ymax=NO3.N..mg.Kg.day+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
+NO3biom<-NO3biom+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
+#CCbiom<-CCbiom+ylab("Change in plant cover (%)")+xlab("") #+xlab("Land-use")
+NO3biom<-NO3biom+facet_wrap(~region, ncol=5)
+NO3biom
+
+NH4biom<-ggplot(NH4,aes(y=NH4.N.mg.Kg.day,x=landuse, shape=transplant, colour=tagsp)) # group = grouping vector for lines
+NH4biom<-NH4biom+geom_errorbar(data=NH4,aes(ymin=NH4.N.mg.Kg.day-sd, ymax=NH4.N.mg.Kg.day+sd),stat = "identity",width=.2,lwd=1.1,position=position_dodge(width=.45),show.legend=F)
+NH4biom<-NH4biom+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
+#CCbiom<-CCbiom+ylab("Change in plant cover (%)")+xlab("") #+xlab("Land-use")
+NH4biom<-NH4biom+facet_wrap(~region, ncol=5)
+NH4biom
+
+# Raw data 
+NO3biom<-ggplot(TPNO3NH4,aes(y=NO3.N..mg.Kg.day,x=landuse, shape=transplant, colour=tagsp)) # group = grouping vector for lines
+NO3biom<-NO3biom+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
+NO3biom<-NO3biom+facet_wrap(~region, ncol=5)
+NO3biom
+
+NH4biom<-ggplot(TPNO3NH4,aes(y=NH4.N.mg.Kg.day,x=landuse, shape=transplant, colour=tagsp)) # group = grouping vector for lines
+NH4biom<-NH4biom+geom_point(position=position_dodge(width=.45),size=5, stroke=1.25)
+NH4biom<-NH4biom+facet_wrap(~region, ncol=5)
+NH4biom
+
+#### NO3 and NH4 related to plant N and soil properties####
+names(TP2)
+names(TPNO3NH4)
+TP2$Current.placement.of.the.turf
+TPNO3NH4$Sample_code
+colnames(TPNO3NH4)[1]<-"Current.placement.of.the.turf"
+colnames(TPNO3NH4)[9]<-"Tagsp"
+
+Merg1<-merge(TPNO3NH4,TP2, by=c("Current.placement.of.the.turf"), all=T)
+
+names(Merg1)
+plot(Merg1$NO3.N..mg.Kg.day~Merg1$Plant.N, col=c(Merg1$Tagsp.x)) 
+plot(Merg1$Plant.N~Merg1$NH4.N.mg.Kg.day, col=c(Merg1$Tagsp.x)) 
+abline(lm(Merg1$Plant.N~Merg1$NH4.N.mg.Kg.day))
+plot(Merg1$NH4.N.mg.Kg.day~Merg1$NO3.N..mg.Kg.day, col=c(Merg1$Tagsp.x)) 
+plot(Merg1$NO3.N..mg.Kg.day~Merg1$pH, col=c(Merg1$Tagsp.x)) 
+plot(Merg1$NH4.N.mg.Kg.day~Merg1$pH, col=c(Merg1$Tagsp.x)) 
+
+plot(Merg1$NO3.N..mg.Kg.day~Merg1$BD.gcm3, col=c(Merg1$Tagsp.x)) 
+plot(Merg1$NH4.N.mg.Kg.day~Merg1$BD.gcm3, col=c(Merg1$Tagsp.x)) 
+
+
+
+summary(lm(Merg1$NO3.N..mg.Kg.day~Merg1$Plant.N))
+summary(lm(Merg1$NH4.N.mg.Kg.day~Merg1$Plant.N))
+summary(lm(Merg1$NH4.N.mg.Kg.day~Merg1$NO3.N..mg.Kg.day))
+
+#### Soil properties related to plant N ####
+names(Merg1)
+
+plot(Merg1$NH4.N.mg.Kg.day~Merg1$Plant.N, col=c(Merg1$Tagsp.x)) 
+plot(Merg1$NH4.N.mg.Kg.day~Merg1$NO3.N..mg.Kg.day, col=c(Merg1$Tagsp.x))
+
 
 ############################################
 #### OLD SCRIPT ####

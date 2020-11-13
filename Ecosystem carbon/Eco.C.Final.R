@@ -399,17 +399,36 @@ plot(Fire_frequency.2000_2017.x~landuse, data= Belowground.full)
 
 # RUN THIS CODE FIRST (FROM STU)
 
-panel.cor <- function(x, y, digits=1, prefix="", cex.cor = 6)
+panel.cor <- function(x, y, digits=2, prefix="", cex.cor, ...)
 {
   usr <- par("usr"); on.exit(par(usr))
   par(usr = c(0, 1, 0, 1))
-  r1=cor(x,y,use="pairwise.complete.obs")
-  r <- abs(cor(x, y,use="pairwise.complete.obs"))
-  txt <- format(c(r1, 0.123456789), digits=digits)[1]
+  r <- abs(cor(x, y))
+  txt <- format(c(r, 0.123456789), digits=digits)[1]
   txt <- paste(prefix, txt, sep="")
-  if(missing(cex.cor)) { cex <- 0.9/strwidth(txt) } else {
-    cex = cex.cor}
-  text(0.5, 0.5, txt, cex = cex * r)
+  if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
+  text(0.5, 0.5, txt, cex = cex.cor * r)
+}
+
+panel.smooth2=function (x, y, col = par("col"), bg = NA, pch = par("pch"),
+                        cex = 1, col.smooth = "red", span = 2/3, iter = 3, ...)
+{
+  points(x, y, pch = pch, col = col, bg = bg, cex = cex)
+  ok <- is.finite(x) & is.finite(y)
+  if (any(ok))
+    lines(stats::lowess(x[ok], y[ok], f = span, iter = iter),
+          col = "red", ...)
+}
+
+
+panel.lines2=function (x, y, col = par("col"), bg = NA, pch = par("pch"),
+                       cex = 1, ...)
+{
+  points(x, y, pch = pch, col = col, bg = bg, cex = cex)
+  ok <- is.finite(x) & is.finite(y)
+  if (any(ok)){
+    tmp=lm(y[ok]~x[ok])
+    abline(tmp)}
 }
 
 # Then select the variables to use in the pair function with panel.cor
@@ -424,7 +443,7 @@ Model.var.sub<-c("MAP.mm_yr","Fire_frequency.2000_2017","Sand.pip.per","tot.N.kg
 
 # Create correlation matrix
 #pairs(Belowground.full.CnoNA[,Model.var.red],lower.panel = panel.cor)
-pairs(Total.Eco.C.CnoNA2[,Model.var.sub],lower.panel = panel.cor)
+pairs(Total.Eco.C.CnoNA2[,Model.var.sub],lower.panel=panel.smooth2, upper.panel= panel.cor, na.action = stats::na.omit)
 
 # NOT UPDATED from here 
 # If I want these values in a table:
