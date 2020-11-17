@@ -468,6 +468,7 @@ MycorP <- as.data.frame(round(Mycor$P, digits=3))
 # Number of trees have a strong negative relationship with year of last fire. and quite a strong positive relationship with MAP.
 
 ##     3.3: Correlation of variables (factorial) ####
+Total.Eco.C.CnoNA2$MAP.mm_yr
 # Trees 
 plot(TreeBM.kg_m2~landuse, data= Ecosystem.Carbon) # COVARYING 
 plot(No.trees_m2~landuse, data= Block.Eco.C) # not covarying
@@ -948,7 +949,7 @@ Modlist.mecanistic1 <-   psem(
   lme(CBiomass_year ~ CMAP.mm_yr + CWoody + CDW + CFire_frequency,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CRoots.kg.m2~ CMAP.mm_yr + CSand + landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CSoil.Ahor~Clivestock + Cwild, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CSoil.min~ CSoil.Ahor + CSand, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  #lme(CSoil.min~ CSoil.Ahor + CSand, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   CSoil.Ahor%~~%Ctot.N.kg_m2,
   CSoil.min%~~%Ctot.N.kg_m2,
   CMAP.mm_yr%~~%CSand, 
@@ -1189,7 +1190,6 @@ rownames(importance.Ahor.dung) <- (c("Domestic dung","Sand","Wild dung","MAP","T
 
 # MAP:Land-use: gray47
 # Sand:Land-use: gray72
-
 
 # Plot A-hor Full
 col.Ahor.full <- c("lightskyblue3","deepskyblue4","goldenrod3","darkorange1","darkolivegreen3","khaki1","gray47","gray72")
