@@ -446,6 +446,21 @@ Model.var.sub<-c("MAP.mm_yr","Fire_frequency.2000_2017","Sand.pip.per","tot.N.kg
 #pairs(Belowground.full.CnoNA[,Model.var.red],lower.panel = panel.cor)
 pairs(Total.Eco.C.CnoNA2[,Model.var.sub],lower.panel=panel.smooth2, upper.panel= panel.cor, na.action = stats::na.omit)
 
+# Create non-linear terms so we can keep track in the modelling
+
+# Quadratic terms
+# Poly fx over I(variable^2) #useful: use raw https://stackoverflow.com/questions/19484053/what-does-the-r-function-poly-really-do
+# Quadratic terms for key predictors (see pair plots)
+# Quadratic terms - Fire frequency, Roots, Sand, Livestock, Woody,
+Total.Eco.C.CnoNA2$CFire_frequencyPOLY <- as.numeric(scale(poly(Total.Eco.C.CnoNA2$Fire_frequency.2000_2017,2,raw = TRUE)[,2]))
+Total.Eco.C.CnoNA2$CRoots.kg.m2POLY <- as.numeric(scale(poly(Total.Eco.C.CnoNA2$Roots.kg.m2,2,raw = TRUE)[,2]))
+Total.Eco.C.CnoNA2$CSandPOLY <- as.numeric(scale(poly(Total.Eco.C.CnoNA2$Sand.pip.per,2,raw = TRUE)[,2]))
+Total.Eco.C.CnoNA2$ClivestockPOLY <- as.numeric(scale(poly(Total.Eco.C.CnoNA2$livestock,2,raw = TRUE)[,2]))
+Total.Eco.C.CnoNA2$CWoodyPOLY <- as.numeric(scale(poly(Total.Eco.C.CnoNA2$Woody,2,raw = TRUE)[,2]))
+# + CFire_frequencyPOLY + CRoots.kg.m2POLY + CSandPOLY
+# + ClivestockPOLY + CWoodyPOLY
+# Poly SUBSETS? & !(ClivestockPOLY & CWoody) & !(Clivestock & CSandPOLY) & !(CSoil.Ahor & CWoodyPOLY)
+
 # NOT UPDATED from here 
 # If I want these values in a table:
 Model.var.FULL <- Belowground.full.CnoNA[,c(14,28,26,27,12,13,51,32,64,16,22,21,15)]
@@ -489,12 +504,12 @@ plot(wild~landuse,data=Belowground.full) # not covarying
 ####  4: DATA MODELING: MODEL AVERAGING #### 
 # Want all variables in the model. However, you don´t want covarying variables in the same model. 
 ##      4.1. Global model for A-hor C ####
-names(Total.Eco.C.CnoNA2)
-
 Ahor.block<-lmer(CSoil.Ahor~ CMAP.mm_yr + landuse + 
-                   CFire_frequency + CWoody + 
+                   CFire_frequency + CWoody +
                    CSand + CBiomass_year + Clivestock + Cwild +
-                   + landuse:CMAP.mm_yr + landuse:CSand +
+                    landuse:CMAP.mm_yr + landuse:CSand +
+                    CFire_frequencyPOLY + CRoots.kg.m2POLY +
+                     CWoodyPOLY+
                    (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                  na.action=na.fail)
 
@@ -505,11 +520,10 @@ AIC(Ahor.block) #14.59402
 
 # Model averaging: All possible models between null and global
 # subset the covarying predictor variables (R2>0.50)
-modsetbelowA<-dredge(Ahor.block,trace = TRUE, rank = "AICc", REML = FALSE), subset=
+modsetbelowA<-dredge(Ahor.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=
                        !(CWoody & landuse)&!(CBiomass_year&CMAP.mm_yr)
                      &!(CMAP.mm_yr & CBiomass_year)&!(Cwild & CMAP.mm_yr)&!(Cwild & CSand)
                      &!(Clivestock & CSand)&!(Clivestock & CWoody))
-
 
 modselbelowA<-model.sel(modsetbelowA) #Model selection table giving AIC, deltaAIC and weighting
 modavgbelowA<-model.avg(modselbelowA)#Averages coefficient estimates across multiple models according to the weigthing from above
@@ -526,6 +540,7 @@ Min.block<-lmer(CSoil.min~ CMAP.mm_yr + landuse +
                   CFire_frequency + CWoody + 
                   CSand + CBiomass_year + Clivestock + Cwild +
                   landuse:CMAP.mm_yr + landuse:CSand + 
+                  CFire_frequencyPOLY +
                   (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                 na.action=na.fail)
 
@@ -603,7 +618,7 @@ DW <- cbind(coef.DW, confint.DW)
 
 ##      4.5. Global model for Woody #### 
 Woody.block<-lmer(CWoody~ CMAP.mm_yr + landuse + CFire_frequency + CSand + Ctot.N.kg_m2 
-                  + landuse:CMAP.mm_yr + landuse:CSand +
+                  + landuse:CMAP.mm_yr + landuse:CSand +CFire_frequencyPOLY+ClivestockPOLY+
                     (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                   na.action=na.fail)
 
