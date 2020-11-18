@@ -505,10 +505,10 @@ AIC(Ahor.block) #14.59402
 
 # Model averaging: All possible models between null and global
 # subset the covarying predictor variables (R2>0.50)
-modsetbelowA<-dredge(Ahor.block,trace = TRUE, rank = "AICc", REML = FALSE)#, subset=
-                       #!(CWoody & landuse)&!(CBiomass_year&CMAP.mm_yr)
-                     #&!(CMAP.mm_yr & CBiomass_year)&!(Cwild & CMAP.mm_yr)&!(Cwild & CSand)
-                     #&!(Clivestock & CSand)&!(Clivestock & CWoody))
+modsetbelowA<-dredge(Ahor.block,trace = TRUE, rank = "AICc", REML = FALSE), subset=
+                       !(CWoody & landuse)&!(CBiomass_year&CMAP.mm_yr)
+                     &!(CMAP.mm_yr & CBiomass_year)&!(Cwild & CMAP.mm_yr)&!(Cwild & CSand)
+                     &!(Clivestock & CSand)&!(Clivestock & CWoody))
 
 
 modselbelowA<-model.sel(modsetbelowA) #Model selection table giving AIC, deltaAIC and weighting
@@ -521,6 +521,7 @@ Ahor2 <- cbind(coef.Ahor, confint.Ahor)
 #write.table(Ahor, file="Ecosystem carbon/ConAvgAhor.txt") 
 
 ##      4.2. Global model for Mineral hor C  ####
+# Maybe we should include A-hor here? 
 Min.block<-lmer(CSoil.min~ CMAP.mm_yr + landuse + 
                   CFire_frequency + CWoody + 
                   CSand + CBiomass_year + Clivestock + Cwild +
