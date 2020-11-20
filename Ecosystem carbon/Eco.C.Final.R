@@ -378,12 +378,16 @@ Woody$Ctot.C.kg_m2 <- as.numeric(scale(Woody$C.amount))
 
 #Remove rows with NA
 summary(Total.Eco.C)
+# But first rename some variables.. 
+colnames(Total.Eco.C) <- c("Block.ID","Region","Vilde.block","Landuse","MAP.mm_yr","Last.fire_yr","Fire_frequency","Clay","Silt","Sand","Tree.basal.area_m2","TreeBM.kg_m2","No.trees_m2","Mean.N.kg_m2.x","Soil.min","Livestock","Wild", "Total.dung","Tot.N.kg_m2","Herb_year.kg_m2","Roots.kg_m2","CMAP.mm_yr","CFire_frequency","CSand","CTreeBM.kg_m2","CTot.N.kg_m2","CLivestock","CWild","CTotal.dung","CHerb_year.kg_m2","CRoots.kg_m2","Herbaceous","CHerbaceous","Soil.Ahor", "Woody","DW","Tot.C.kg_m2","SE.Soil.Ahor","AhorN.kg_m2","MinN.kg_m2","CTot.C.kg_m2","CAhorN.kg_m2","CMinN.kg_m2","CSoil.min","CSoil.Ahor","CWoody","CDW")
+
 Total.Eco.C.CnoNA<-Total.Eco.C[!is.na(Total.Eco.C$CFire_frequency),]
 Total.Eco.C.CnoNA<-Total.Eco.C.CnoNA[(-16),] # Remove outlier
 Total.Eco.C.CnoNA<-droplevels(Total.Eco.C.CnoNA)
-Total.Eco.C.CnoNA2<-Total.Eco.C.CnoNA[!is.na(Total.Eco.C.CnoNA$livestock),]
+Total.Eco.C.CnoNA2<-Total.Eco.C.CnoNA[!is.na(Total.Eco.C.CnoNA$Livestock),]
 Total.Eco.C.CnoNA2 <- droplevels(Total.Eco.C.CnoNA2)
 
+#Belowground full
 Belowground.full <- Belowground.full[-c(61,62,63,64),] # remove outlier
 Belowground.full.CnoNA<-Belowground.full[!is.na(Belowground.full$Fire_frequency.2000_2017),]
 Belowground.full.CnoNA2 <- Belowground.full.CnoNA[!is.na(Belowground.full.CnoNA$Herbaceous),]
@@ -393,8 +397,33 @@ Belowground.full.CnoNA2 <- droplevels(Belowground.full.CnoNA2)
 Belowground.full.CnoNA3 <- droplevels(Belowground.full.CnoNA3)
 names(Belowground.full)
 
-plot(Fire_frequency.2000_2017.x~landuse, data= Belowground.full)
+#         3.1.4: Preparing Total.Eco.C.CnoNA2 and adding non-linear terms ####
+# Going to use Total.Eco.C.CnoNA2, so I can remove some variables I dont need. 
+colnames(Total.Eco.C.CnoNA2)
+Total.Eco.C.CnoNA2 <- Total.Eco.C.CnoNA2[c("Block.ID","Region","Vilde.block","Landuse","MAP.mm_yr","Fire_frequency","Clay","Silt","Sand","Livestock","Wild", "Total.dung","Tot.N.kg_m2","Woody","DW","Herb_year.kg_m2","Roots.kg_m2","Soil.Ahor","Soil.min","CMAP.mm_yr","CFire_frequency","CSand","CTot.N.kg_m2","CLivestock","CWild","CTotal.dung","CHerb_year.kg_m2","CRoots.kg_m2","CSoil.min","CSoil.Ahor","CWoody","CDW")]
 
+# Create non-linear terms so we can keep track in the modelling
+
+# Quadratic terms
+# Poly fx over I(variable^2) #useful: use raw https://stackoverflow.com/questions/19484053/what-does-the-r-function-poly-really-do
+# Quadratic terms for key predictors (see pair plots)
+# Quadratic terms - Fire frequency, Roots, Sand, Livestock, Woody,
+Total.Eco.C.CnoNA2$Fire_frequencyPOLY <- as.numeric(poly(Total.Eco.C.CnoNA2$Fire_frequency,2,raw = TRUE)[,2])
+Total.Eco.C.CnoNA2$Roots.kg.m2POLY <- as.numeric(poly(Total.Eco.C.CnoNA2$Roots.kg_m2,2,raw = TRUE)[,2])
+Total.Eco.C.CnoNA2$SandPOLY <- as.numeric(poly(Total.Eco.C.CnoNA2$Sand,2,raw = TRUE)[,2])
+Total.Eco.C.CnoNA2$livestockPOLY <- as.numeric(poly(Total.Eco.C.CnoNA2$Livestock,2,raw = TRUE)[,2])
+Total.Eco.C.CnoNA2$WoodyPOLY <- as.numeric(poly(Total.Eco.C.CnoNA2$Woody,2,raw = TRUE)[,2])
+
+# + CFire_frequencyPOLY + CRoots.kg.m2POLY + CSandPOLY
+# + ClivestockPOLY + CWoodyPOLY
+# Poly SUBSETS? & !(ClivestockPOLY & CWoody) & !(Clivestock & CSandPOLY) & !(CSoil.Ahor & CWoodyPOLY)
+
+# Scale poly variables 
+Total.Eco.C.CnoNA2$CFire_frequencyPOLY <- as.numeric(scale(Total.Eco.C.CnoNA2$Fire_frequencyPOLY))
+Total.Eco.C.CnoNA2$CRoots.kg.m2POLY <- as.numeric(scale(Total.Eco.C.CnoNA2$Roots.kg.m2POLY))
+Total.Eco.C.CnoNA2$CSandPOLY <- as.numeric(scale(Total.Eco.C.CnoNA2$SandPOLY))
+Total.Eco.C.CnoNA2$ClivestockPOLY <- as.numeric(scale(Total.Eco.C.CnoNA2$livestockPOLY))
+Total.Eco.C.CnoNA2$CWoodyPOLY <- as.numeric(scale(Total.Eco.C.CnoNA2$WoodyPOLY))
 ##      3.2: Correlation of variables (numeric) #### 
 
 # RUN THIS CODE FIRST (FROM STU)
@@ -439,75 +468,80 @@ panel.lines2=function (x, y, col = par("col"), bg = NA, pch = par("pch"),
 
 # Subset model
 names(Total.Eco.C.CnoNA2)
-plot(CDW~CSand, data=Total.Eco.C.CnoNA2)
-Model.var.sub<-c("MAP.mm_yr","Fire_frequency.2000_2017","Sand.pip.per","tot.N.kg_m2","livestock","wild","Woody","DW", "Biomass_year.kgm2", "Soil.Ahor", "Soil.min", "Roots.kg.m2")
+Model.var.sub<-c("MAP.mm_yr","Fire_frequency","Sand","Tot.N.kg_m2","Livestock","Wild","Woody","DW", "Herb_year.kg_m2", "Soil.Ahor", "Soil.min", "Roots.kg_m2","Fire_frequencyPOLY","Roots.kg.m2POLY",   "SandPOLY","livestockPOLY","WoodyPOLY")
 
 # Create correlation matrix
 #pairs(Belowground.full.CnoNA[,Model.var.red],lower.panel = panel.cor)
 pairs(Total.Eco.C.CnoNA2[,Model.var.sub],lower.panel=panel.smooth2, upper.panel= panel.cor, na.action = stats::na.omit)
 
-# Create non-linear terms so we can keep track in the modelling
-
-# Quadratic terms
-# Poly fx over I(variable^2) #useful: use raw https://stackoverflow.com/questions/19484053/what-does-the-r-function-poly-really-do
-# Quadratic terms for key predictors (see pair plots)
-# Quadratic terms - Fire frequency, Roots, Sand, Livestock, Woody,
-Total.Eco.C.CnoNA2$CFire_frequencyPOLY <- as.numeric(scale(poly(Total.Eco.C.CnoNA2$Fire_frequency.2000_2017,2,raw = TRUE)[,2]))
-Total.Eco.C.CnoNA2$CRoots.kg.m2POLY <- as.numeric(scale(poly(Total.Eco.C.CnoNA2$Roots.kg.m2,2,raw = TRUE)[,2]))
-Total.Eco.C.CnoNA2$CSandPOLY <- as.numeric(scale(poly(Total.Eco.C.CnoNA2$Sand.pip.per,2,raw = TRUE)[,2]))
-Total.Eco.C.CnoNA2$ClivestockPOLY <- as.numeric(scale(poly(Total.Eco.C.CnoNA2$livestock,2,raw = TRUE)[,2]))
-Total.Eco.C.CnoNA2$CWoodyPOLY <- as.numeric(scale(poly(Total.Eco.C.CnoNA2$Woody,2,raw = TRUE)[,2]))
-# + CFire_frequencyPOLY + CRoots.kg.m2POLY + CSandPOLY
-# + ClivestockPOLY + CWoodyPOLY
-# Poly SUBSETS? & !(ClivestockPOLY & CWoody) & !(Clivestock & CSandPOLY) & !(CSoil.Ahor & CWoodyPOLY)
 
 # NOT UPDATED from here 
 # If I want these values in a table:
-Model.var.FULL <- Belowground.full.CnoNA[,c(14,28,26,27,12,13,51,32,64,16,22,21,15)]
-Model.var.Herb <- Belowground.full.CnoNA[,c(14,28,26,12,13,51,32,64,16,22,21,15)]
-Model.var.SUB <- Total.Eco.C.CnoNA2[,c(5,10,8,7,15,35,34,41,42,33,24,6,44,46,47)]
+#Model.var.FULL <- Belowground.full.CnoNA[,c(14,28,26,27,12,13,51,32,64,16,22,21,15)]
+#Model.var.Herb <- Belowground.full.CnoNA[,c(14,28,26,12,13,51,32,64,16,22,21,15)]
+#Model.var.SUB <- Total.Eco.C.CnoNA2[,c(5,10,8,7,15,35,34,41,42,33,24,6,44,46,47)]
 
-MycorFULL <- rcorr(as.matrix(Model.var.FULL), type="pearson") # Use the pearson correlation (r-value)
-MycorHERB <- rcorr(as.matrix(Model.var.Herb), type="pearson") # Use the pearson correlation (r-value)
-MycorSUB <- rcorr(as.matrix(Model.var.SUB), type="pearson") # Use the pearson correlation (r-value)
-MycorFULL <- as.data.frame(round(MycorFULL$r, digits=3))
-MycorHERB <- as.data.frame(round(MycorHERB$r, digits=3))
-MycorSUB <- as.data.frame(round(MycorSUB$r, digits=3))
-write.csv(MycorFULL, file= "Ecosystem carbon/VariableCorrelationFULL.csv")
-write.csv(MycorHERB, file= "Ecosystem carbon/VariableCorrelationHERB.csv")
-write.csv(MycorSUB, file= "Ecosystem carbon/VariableCorrelationSUB.csv")
+#MycorFULL <- rcorr(as.matrix(Model.var.FULL), type="pearson") # Use the pearson correlation (r-value)
+#MycorHERB <- rcorr(as.matrix(Model.var.Herb), type="pearson") # Use the pearson correlation (r-value)
+#MycorSUB <- rcorr(as.matrix(Model.var.SUB), type="pearson") # Use the pearson correlation (r-value)
+#MycorFULL <- as.data.frame(round(MycorFULL$r, digits=3))
+#MycorHERB <- as.data.frame(round(MycorHERB$r, digits=3))
+#MycorSUB <- as.data.frame(round(MycorSUB$r, digits=3))
+#write.csv(MycorFULL, file= "Ecosystem carbon/VariableCorrelationFULL.csv")
+#write.csv(MycorHERB, file= "Ecosystem carbon/VariableCorrelationHERB.csv")
+#write.csv(MycorSUB, file= "Ecosystem carbon/VariableCorrelationSUB.csv")
 
-MycorP <- as.data.frame(round(Mycor$P, digits=3))
+#MycorP <- as.data.frame(round(Mycor$P, digits=3))
 
 # The values here is pearson correlation coeficients - in other words, the r value (between -1 and 1 where 0 is no correlation). 
 # Tree basal area is 100 % correlated with Tree biomass, no need to use both, however, not so correlated with number of trees. 
 # Number of trees have a strong negative relationship with year of last fire. and quite a strong positive relationship with MAP.
 
 ##     3.3: Correlation of variables (factorial) ####
-Total.Eco.C.CnoNA2$MAP.mm_yr
 # Trees 
-plot(TreeBM.kg_m2~landuse, data= Ecosystem.Carbon) # COVARYING 
-plot(No.trees_m2~landuse, data= Block.Eco.C) # not covarying
+plot(Woody~landuse, data= Total.Eco.C.CnoNA2) # COVARYING 
 # Soil properties 
-plot(Sand.pip.per~landuse, data= Ecosystem.Carbon) # not covarying
-plot(mean.N.kg_m2~landuse,data=Ecosystem.Carbon) # not covarying
+plot(Sand.pip.per~landuse, data= Total.Eco.C.CnoNA2) # not covarying
+plot(tot.N.kg_m2~landuse,data=Total.Eco.C.CnoNA2) # not covarying
 # Site traits 
-plot(MAP.mm_yr~landuse, data= Ecosystem.Carbon) # not covarying
-plot(Last.fire_yr~landuse, data= Ecosystem.Carbon) # not covarying
-plot(Fire_frequency.2000_2017~landuse, data= Ecosystem.Carbon) # not covarying 
+plot(MAP.mm_yr~landuse, data= Total.Eco.C.CnoNA2) # not covarying
+plot(Fire_frequency.2000_2017~landuse, data= Total.Eco.C.CnoNA2) # not covarying 
 
-# Need to upload Belowground.full first.. 
-plot(livestock~landuse,data=Belowground.full) # COVARYING
-plot(livestock~Region,data=Belowground.full) # COVARYING
-plot(wild~landuse,data=Belowground.full) # not covarying 
+# Dung
+plot(livestock~landuse,data=Total.Eco.C.CnoNA2) # COVARYING
+plot(wild~landuse,data=Total.Eco.C.CnoNA2) # not covarying 
 
 ####  4: DATA MODELING: MODEL AVERAGING #### 
 # Want all variables in the model. However, you don´t want covarying variables in the same model. 
+# ALL covarying variables (R2>0.5): 
+# LANDUSE:    &!(CWoody & Landuse)&!(CLivestock & Landuse)
+# MAP:        &!(CMAP.mm_yr & CWild)&!(CMAP.mm_yr & CHerb_year.kg_m2)
+#             &!(CMAP.mm_yr & CRoots.kg_m2)&!(CMAP.mm_yr & livestockPOLY)
+# FIRE:       &!(CFire_frequency & CFire_frequencyPOLY)&!(CFire_frequency & CSandPOLY) 
+#             &!(CFire_frequency & livestockPOLY) 
+# SAND:       &!(CSand & CTot.N.kg_m2)&!(CSand & CLivestock)&!(CSand & CWild)
+#             &!(CSand & CSoil.Ahor)&!(CSand & CSoil.min)&!(CSand & CFire_frequencyPOLY)
+#             &!(CSand & CSandPOLY)&!(CSand & ClivestockPOLY)
+# NITROGEN:   &!(CTot.N.kg_m2 & CWild)&!(CTot.N.kg_m2 & CSoil.Ahor)&!(CTot.N.kg_m2 & CSoil.min)
+#             &!(CTot.N.kg_m2 & CSandPOLY)
+# LIVESTOCK   &!(CLivestock & CWoody)&!(CLivestock & CSoil.Ahor)&!(CLivestock & CWoodyPOLY)
+#             &!(CLivestock & ClivestockPOLY)&!(CLivestock & CSandPOLY)
+# WILD        &!(CWild & CSoil.Ahor)&!(CWild & CRoots.kg_m2)&!(CWild & CRoots.kg.m2POLY)
+#             &!(CWild & CSandPOLY)
+# WOODY       &!(CWoody & CHerb_year.kg_m2)&!(CWoody & CSoil.Ahor)&!(CWoody & ClivestockPOLY)
+#             &!(CWoody & CWoodyPOLY)
+# DW          &!(CDW & CHerb_year.kg_m2)
+# SOIL A      &!(CSoil.Ahor & CSoil.min)&!(CSoil.Ahor & CSandPOLY)&!(CSoil.Ahor & ClivestockPOLY)
+# SOIL MIN    &!(CSoil.min & CSandPOLY)
+# ROOTS       &!(CRoots.kg_m2 & CRoots.kg.m2POLY)
+# FIRE POLY   &!(CFire_frequencyPOLY & CSandPOLY)
+# SAND POLY   &!(CSandPOLY & ClivestockPOLY)
+
 ##      4.1. Global model for A-hor C ####
-Ahor.block<-lmer(CSoil.Ahor~ CMAP.mm_yr + landuse + 
+Ahor.block<-lmer(CSoil.Ahor~ CMAP.mm_yr + Landuse + 
                    CFire_frequency + CWoody +
-                   CSand + CBiomass_year + Clivestock + Cwild +
-                    landuse:CMAP.mm_yr + landuse:CSand +
+                   CSand + CHerb_year.kg_m2 + CLivestock + CWild +
+                    Landuse:CMAP.mm_yr + Landuse:CSand +
                     CFire_frequencyPOLY + CRoots.kg.m2POLY +
                      CWoodyPOLY+
                    (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
@@ -521,9 +555,9 @@ AIC(Ahor.block) #14.59402
 # Model averaging: All possible models between null and global
 # subset the covarying predictor variables (R2>0.50)
 modsetbelowA<-dredge(Ahor.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=
-                       !(CWoody & landuse)&!(CBiomass_year&CMAP.mm_yr)
-                     &!(CMAP.mm_yr & CBiomass_year)&!(Cwild & CMAP.mm_yr)&!(Cwild & CSand)
-                     &!(Clivestock & CSand)&!(Clivestock & CWoody))
+                       !(CWoody & Landuse)&!(CLivestock & Landuse)&!(CHerb_year.kg_m2&CMAP.mm_yr)
+                     &!(CMAP.mm_yr & CHerb_year.kg_m2)&!(CWild & CMAP.mm_yr)&!(CWild & CSand)
+                     &!(CLivestock & CSand)&!(CLivestock & CWoody))
 
 modselbelowA<-model.sel(modsetbelowA) #Model selection table giving AIC, deltaAIC and weighting
 modavgbelowA<-model.avg(modselbelowA)#Averages coefficient estimates across multiple models according to the weigthing from above
@@ -536,10 +570,10 @@ Ahor2 <- cbind(coef.Ahor, confint.Ahor)
 
 ##      4.2. Global model for Mineral hor C  ####
 # Maybe we should include A-hor here? 
-Min.block<-lmer(CSoil.min~ CMAP.mm_yr + landuse + 
+Min.block<-lmer(CSoil.min~ CMAP.mm_yr + Landuse + 
                   CFire_frequency + CWoody + 
-                  CSand + CBiomass_year + Clivestock + Cwild +
-                  landuse:CMAP.mm_yr + landuse:CSand + 
+                  CSand + CHerb_year.kg_m2 + CLivestock + CWild +
+                  Landuse:CMAP.mm_yr + Landuse:CSand + 
                   CFire_frequencyPOLY +
                   (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                 na.action=na.fail)
@@ -551,9 +585,9 @@ AIC(Min.block) #38.08962
 
 # Model averaging: All possible models between null and global
 modsetbelowM<-dredge(Min.block,trace = TRUE, rank = "AICc", REML = FALSE,
-                     subset=!(CWoody & landuse)&!(CBiomass_year&CMAP.mm_yr)
-                     &!(CMAP.mm_yr & CBiomass_year)&!(Cwild & CMAP.mm_yr)&!(Cwild & CSand)
-                     &!(Clivestock & CSand)&!(Clivestock & CWoody))
+                     subset=!(CWoody & Landuse)&!(CHerb_year.kg_m2&CMAP.mm_yr)
+                     &!(CMAP.mm_yr & CHerb_year.kg_m2)&!(CWild & CMAP.mm_yr)&!(CWild & CSand)
+                     &!(CLivestock & CSand)&!(CLivestock & CWoody))
 
 modselbelowM<-model.sel(modsetbelowM) #Model selection table giving AIC, deltaAIC and weighting
 modavgbelowM<-model.avg(modselbelowM)#Averages coefficient estimates across multiple models according to the weigthing from above
@@ -566,9 +600,9 @@ Minhor <- cbind(coef.Minhor, confint.Minhor)
 
 ##      4.3. Global model for Herbs ####
 # HERBACEOUS 
-Herbaceous.block<-lmer(CBiomass_year~ CMAP.mm_yr + landuse + CFire_frequency + 
-                         CWoody + CSand + Ctot.N.kg_m2 + Clivestock + Cwild +
-                          landuse:CMAP.mm_yr + landuse:CSand +
+Herbaceous.block<-lmer(CHerb_year.kg_m2~ CMAP.mm_yr + Landuse + CFire_frequency + 
+                         CWoody + CSand + CTot.N.kg_m2 + CLivestock + CWild +
+                          Landuse:CMAP.mm_yr + Landuse:CSand +
                          (1|Region),data = Total.Eco.C.CnoNA2, REML=F, 
                        na.action=na.fail)
 
@@ -579,9 +613,9 @@ AIC(Herbaceous.block) #38.03596
 
 # Model averaging: All possible models between null and global
 modsetaboveH<-dredge(Herbaceous.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=
-                       !(CWoody & landuse)&!(Ctot.N.kg_m2 & CSand)&!
-                       (Cwild & CMAP.mm_yr)&!(Cwild & CSand)&!
-                       (Clivestock & CSand)&!(Clivestock & CWoody))
+                       !(CWoody & Landuse)&!(CTot.N.kg_m2 & CSand)&!
+                       (CWild & CMAP.mm_yr)&!(CWild & CSand)&!
+                       (CLivestock & CSand)&!(CLivestock & CWoody))
 
 modselaboveH<-model.sel(modsetaboveH) #Model selection table giving AIC, deltaAIC and weighting
 modavgaboveH<-model.avg(modselaboveH)#Averages coefficient estimates across multiple models according to the weigthing from above
@@ -594,7 +628,7 @@ Herb <- cbind(coef.Herb, confint.Herb)
 #write.table(Herb, file="Ecosystem carbon/ConAvgH.txt") 
 
 ##      4.4. Global model for DW #### 
-DW.block<-lmer(CDW~ landuse + CFire_frequency+ CWoody +
+DW.block<-lmer(CDW~ Landuse + CFire_frequency+ CWoody +
                  (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                na.action=na.fail)
 
@@ -604,7 +638,7 @@ anova(DW.block)
 AIC(DW.block) #92.05196
 
 # Model averaging: All possible models between null and global
-modsetaboveDW<-dredge(DW.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CWoody & landuse))
+modsetaboveDW<-dredge(DW.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CWoody & Landuse))
 # & !(Ctot.N.kg_m2 & CSand))
 modselaboveDW<-model.sel(modsetaboveDW) #Model selection table giving AIC, deltaAIC and weighting
 modavgaboveDW<-model.avg(modselaboveDW)#Averages coefficient estimates across multiple models according to the weigthing from above
@@ -617,8 +651,8 @@ DW <- cbind(coef.DW, confint.DW)
 #write.table(DW, file="Ecosystem carbon/ConAvgDW.txt") 
 
 ##      4.5. Global model for Woody #### 
-Woody.block<-lmer(CWoody~ CMAP.mm_yr + landuse + CFire_frequency + CSand + Ctot.N.kg_m2 
-                  + landuse:CMAP.mm_yr + landuse:CSand +CFire_frequencyPOLY+ClivestockPOLY+
+Woody.block<-lmer(CWoody~ CMAP.mm_yr + Landuse + CFire_frequency + CSand + CTot.N.kg_m2 
+                  + Landuse:CMAP.mm_yr + Landuse:CSand +CFire_frequencyPOLY+ClivestockPOLY+
                     (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                   na.action=na.fail)
 
@@ -627,7 +661,7 @@ drop1(Woody.block,test="Chisq")
 anova(Woody.block)
 AIC(Woody.block) #27.71897
 # Model averaging: All possible models between null and global
-modsetaboveW<-dredge(Woody.block,trace = TRUE, rank = "AICc", REML = FALSE, subset= !(Ctot.N.kg_m2 & CSand))
+modsetaboveW<-dredge(Woody.block,trace = TRUE, rank = "AICc", REML = FALSE, subset= !(CTot.N.kg_m2 & CSand))
 modselaboveW<-model.sel(modsetaboveW) #Model selection table giving AIC, deltaAIC and weighting
 modavgaboveW<-model.avg(modselaboveW)#Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modavgaboveW)#Importance of each variable
@@ -644,12 +678,12 @@ woody <- cbind(coef.woody, confint.woody)
 summary(Belowground.full.CnoNA2)
 
 # A horizon 
-Belowground.Ahor <-lmer(CAhorC.kg_m2 ~ CMAP.mm_yr + landuse + CFire_frequency.2000_2017  
+Belowground.Ahor <-lmer(CAhorC.kg_m2 ~ CMAP.mm_yr + Landuse + CFire_frequency.2000_2017  
                         + CTreeBM.kg_m2 + CSand + CBiomass_year 
-                        + landuse:CMAP.mm_yr + landuse:CSand + 
+                        + Landuse:CMAP.mm_yr + Landuse:CSand + 
                           (1|Region/Block.ID), data = Belowground.full.CnoNA2, REML=F, na.action=na.fail)
 
-modsetbelow.Ahor<-dredge(Belowground.Ahor,trace = TRUE, rank = "AICc", REML = FALSE,subset=!(CTreeBM.kg_m2 & landuse))
+modsetbelow.Ahor<-dredge(Belowground.Ahor,trace = TRUE, rank = "AICc", REML = FALSE,subset=!(CTreeBM.kg_m2 & Landuse))
 
 modselbelow.Ahor<-model.sel(modsetbelow.Ahor) #Model selection table giving AIC, deltaAIC and weighting
 modavgbelow.Ahor<-model.avg(modselbelow.Ahor)#Averages coefficient estimates across multiple models according to the weigthing from above
@@ -667,7 +701,7 @@ Belowground.Ahor.sub <-lmer(AhorC.kg_m2 ~ CMAP.mm_yr + CFire_frequency.2000_2017
                               (1|Region/Block.ID), data = Belowground.full.CnoNA3, REML=F, na.action=na.fail)
 
 # Model averaging: All possible models between null and global
-modsetbelow.Ahor.sub<-dredge(Belowground.Ahor.sub,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CSand & CHerbaceous)) #&!(Cwild & CSand) & !(Cwild & CMAP.mm_yr) & !(Clivestock & CSand)) #Model selection table giving AIC, deltaAIC and weighting
+modsetbelow.Ahor.sub<-dredge(Belowground.Ahor.sub,trace = TRUE, rank = "AICc", REML = FALSE, subset=!(CSand & CHerbaceous)) #&!(CWild & CSand) & !(Cwild & CMAP.mm_yr) & !(Clivestock & CSand)) #Model selection table giving AIC, deltaAIC and weighting
 modavgbelow.Ahor.sub<-model.avg(modsetbelow.Ahor.sub)#Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modavgbelow.Ahor.sub)
 write.table(importance(modavgbelow.Ahor), file="Ecosystem carbon/importanceAhorDung.txt")#Importance of each variable
@@ -802,28 +836,28 @@ summary(Modlist.large4,Belowground.full.CnoNA) # not a good fit: P-value = 0.497
 ##        5.2.1: With Livestock/wild and roots AND ACCUMULATED ####
 
 Modlist.mecanistic1 <-   psem(
-  lme(Ctot.N.kg_m2~ CSand,random= ~ 1|Region/Block.ID,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(Cwild ~ Clivestock + CMAP.mm_yr,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CWoody~ CFire_frequency + Clivestock, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  #lme(CDW~ landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CBiomass_year ~ CMAP.mm_yr + CWoody + CDW + CFire_frequency,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CRoots.kg.m2~ CMAP.mm_yr + CSand + landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CSoil.Ahor~Clivestock + Cwild, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CTot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CWild ~ Clivestock + CMAP.mm_yr,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CWoody~ CFire_frequency + CLivestock, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  #lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CHerb_year.kg_m2 ~ CMAP.mm_yr + CWoody + CDW + CFire_frequency,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CRoots.kg_m2~ CMAP.mm_yr + CSand + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.Ahor~CLivestock + CWild, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   #lme(CSoil.min~ CSoil.Ahor + CSand, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  CSoil.Ahor%~~%Ctot.N.kg_m2,
-  CSoil.min%~~%Ctot.N.kg_m2,
+  CSoil.Ahor%~~%CTot.N.kg_m2,
+  CSoil.min%~~%CTot.N.kg_m2,
   CMAP.mm_yr%~~%CSand, 
-  CMAP.mm_yr%~~%landuse,
-  landuse%~~%CSand
+  CMAP.mm_yr%~~%Landuse,
+  Landuse%~~%CSand
 )
 
 summary(Modlist.mecanistic1,Total.Eco.C.CnoNA2) 
 
-# The roots seem to be related to MAP, Sand and landuse. However when I remove landuse, MAP and Sand are no longer significant.. 
-Roots <- lmer(CRoots.kg.m2~ CMAP.mm_yr + CSand + landuse + (1|Region), data=Total.Eco.C.CnoNA2, REML=F, na.action=na.fail)
+# The roots seem to be related to MAP, Sand and Landuse. However when I remove Landuse, MAP and Sand are no longer significant.. 
+Roots <- lmer(CRoots.kg.m2~ CMAP.mm_yr + CSand + Landuse + (1|Region), data=Total.Eco.C.CnoNA2, REML=F, na.action=na.fail)
 drop1(Roots, test="Chisq")
 
-Herb <- lmer(CBiomass_year ~ CMAP.mm_yr + CWoody + CDW + CFire_frequency + landuse + (1|Region),na.action=na.fail, data=Total.Eco.C.CnoNA2, REML=F)
+Herb <- lmer(CHerb_year.kg_m2 ~ CMAP.mm_yr + CWoody + CDW + CFire_frequency + Landuse + (1|Region),na.action=na.fail, data=Total.Eco.C.CnoNA2, REML=F)
 drop1(Herb, test="Chisq")
 
 tot.dung <- lmer(CSoil.Ahor~Ctotal.dung + (1|Region),na.action=na.fail, data=Total.Eco.C.CnoNA2, REML=F)
@@ -836,10 +870,10 @@ drop1(tot.dung, test="Chisq")
 
 Modlist.mecanistic2 <-   psem(
   lme(Ctot.N.kg_m2~ CSand,random= ~ 1|Region/Block.ID,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CRoots.kg.m2~ CMAP.mm_yr + CSand + landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(Ctotal.dung~ CMAP.mm_yr + CSand + landuse, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2), 
+  lme(CRoots.kg.m2~ CMAP.mm_yr + CSand + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(Ctotal.dung~ CMAP.mm_yr + CSand + Landuse, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2), 
   lme(CWoody~ Ctotal.dung + CSand + CFire_frequency, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CDW~ landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CAccum.bm.kg_m2 ~ CMAP.mm_yr,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CSoil.min~ CSand + CAccum.bm.kg_m2, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   CSoil.Ahor%~~%Ctot.N.kg_m2,
