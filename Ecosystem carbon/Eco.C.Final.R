@@ -498,18 +498,21 @@ pairs(Total.Eco.C.CnoNA2[,Model.var.sub],lower.panel=panel.smooth2, upper.panel=
 # Number of trees have a strong negative relationship with year of last fire. and quite a strong positive relationship with MAP.
 
 ##     3.3: Correlation of variables (factorial) ####
-# Trees 
-plot(Woody~landuse, data= Total.Eco.C.CnoNA2) # COVARYING 
+# Aboveground
+plot(Woody~Landuse, data= Total.Eco.C.CnoNA2) # COVARYING 
+summary(lm(Woody~Landuse, data= Total.Eco.C.CnoNA2))
+plot(Herb_year.kg_m2~Landuse, data= Total.Eco.C.CnoNA2) # COVARYING 
+summary(lm(Herb_year.kg_m2~Landuse, data= Total.Eco.C.CnoNA2))
 # Soil properties 
-plot(Sand.pip.per~landuse, data= Total.Eco.C.CnoNA2) # not covarying
-plot(tot.N.kg_m2~landuse,data=Total.Eco.C.CnoNA2) # not covarying
+plot(Sand.pip.per~Landuse, data= Total.Eco.C.CnoNA2) # not covarying
+plot(tot.N.kg_m2~Landuse,data=Total.Eco.C.CnoNA2) # not covarying
 # Site traits 
-plot(MAP.mm_yr~landuse, data= Total.Eco.C.CnoNA2) # not covarying
-plot(Fire_frequency.2000_2017~landuse, data= Total.Eco.C.CnoNA2) # not covarying 
+plot(MAP.mm_yr~Landuse, data= Total.Eco.C.CnoNA2) # not covarying
+plot(Fire_frequency~Landuse, data= Total.Eco.C.CnoNA2) # not covarying 
 
 # Dung
-plot(livestock~landuse,data=Total.Eco.C.CnoNA2) # COVARYING
-plot(wild~landuse,data=Total.Eco.C.CnoNA2) # not covarying 
+plot(livestock~Landuse,data=Total.Eco.C.CnoNA2) # COVARYING
+plot(wild~Landuse,data=Total.Eco.C.CnoNA2) # not covarying 
 
 ####  4: DATA MODELING: MODEL AVERAGING #### 
 # Want all variables in the model. However, you don´t want covarying variables in the same model. 
@@ -545,21 +548,21 @@ plot(wild~landuse,data=Total.Eco.C.CnoNA2) # not covarying
 # &!(CWoody & CWoodyPOLY)
 
 ##      4.1. Global model for A-hor C ####
-Ahor.block<-lmer(CSoil.Ahor~ Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLivestock+ #CTot.N.kg_m2
+Ahor.block.full<-lmer(CSoil.Ahor~ Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLivestock+ #CTot.N.kg_m2
                                 CWild+CTotal.dung+CHerb_year.kg_m2+CRoots.kg_m2+
                                 CSoil.min+CWoody+CDW+CFire_frequencyPOLY+CRoots.kg.m2POLY+
                                 CSandPOLY+ClivestockPOLY+CWoodyPOLY+
                    (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                  na.action=na.fail)
 
-summary(Ahor.block)
-drop1(Ahor.block,test="Chisq")  
-anova(Ahor.block)
-AIC(Ahor.block) #14.59402
+summary(Ahor.block.full)
+drop1(Ahor.block.full,test="Chisq")  
+anova(Ahor.block.full)
+AIC(Ahor.block.full) 
 
 # Model averaging: All possible models between null and global
 # subset the covarying predictor variables (R2>0.50)
-modsetbelowA<-dredge(Ahor.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=
+modsetbelowA.full<-dredge(Ahor.block.full,trace = TRUE, rank = "AICc", REML = FALSE, subset=
                        !(CWoody & Landuse) &!(CLivestock & Landuse)
                      &!(CMAP.mm_yr & CWild)&!(CMAP.mm_yr & CHerb_year.kg_m2)
                      &!(CMAP.mm_yr & CRoots.kg_m2)&!(CMAP.mm_yr & ClivestockPOLY)
@@ -589,31 +592,58 @@ modsetbelowA<-dredge(Ahor.block,trace = TRUE, rank = "AICc", REML = FALSE, subse
                      #&!(CLivestock & CSand)&!(CLivestock & CWoody))
 
 #Averaging terms
+modselbelowA.full<-model.sel(modsetbelowA.full) #Model selection table giving AIC, deltaAIC and weighting
+modavgbelowA.full<-model.avg(modselbelowA.full)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgbelowA.full)#Importance of each variable
+confint.Ahor.full <- confint(modavgbelowA.full)
+coef.Ahor.full <- summary(modavgbelowA.full)$coefmat.subset
+Ahor.full <- cbind(coef.Ahor.full, confint.Ahor.full)
+
+# Reduced model based on variable importance (<0.10) and p-value (>0.10)
+Ahor.block<-lmer(CSoil.Ahor~ Landuse+CSand+CLivestock+CTot.N.kg_m2+
+                   CWild+CHerb_year.kg_m2+
+                   CSoil.min+CSandPOLY+
+                   (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
+                 na.action=na.fail)
+
+# Model averaging: All possible models between null and global
+modsetbelowA<-dredge(Ahor.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=
+                       !(CLivestock & Landuse)
+                     &!(CSand & CLivestock)&!(CSand & CWild)
+                     &!(CSand & CSoil.min)
+                     &!(CSand & CSandPOLY)
+                     &!(CLivestock & CSandPOLY)
+                     &!(CWild & CSandPOLY)
+                     &!(CSoil.min & CSandPOLY)
+                     &!(CSand & CSandPOLY)
+                     &!(CTot.N.kg_m2 & CWild)&!(CTot.N.kg_m2 & CSoil.min)
+                     &!(CTot.N.kg_m2 & CSandPOLY)&!(CSand & CTot.N.kg_m2))
+
+#Averaging terms
 modselbelowA<-model.sel(modsetbelowA) #Model selection table giving AIC, deltaAIC and weighting
 modavgbelowA<-model.avg(modselbelowA)#Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modavgbelowA)#Importance of each variable
 #write.table(importance(modavgbelowA),file="Ecosystem carbon/importanceAhor.txt")
 confint.Ahor <- confint(modavgbelowA)
 coef.Ahor <- summary(modavgbelowA)$coefmat.subset
-Ahor2 <- cbind(coef.Ahor, confint.Ahor)
+Ahor <- cbind(coef.Ahor, confint.Ahor)
 #write.table(Ahor, file="Ecosystem carbon/ConAvgAhor.txt") 
 
 ##      4.2. Global model for Mineral hor C  ####
-# Maybe we should include A-hor here? 
-Min.block<-lmer(CSoil.min~ Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLivestock+ # CTot.N.kg_m2        
+Min.block.full<-lmer(CSoil.min~ Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLivestock+ # CTot.N.kg_m2        
                   CWild+CTotal.dung+CHerb_year.kg_m2+CRoots.kg_m2+
                   CSoil.Ahor+CWoody+CDW+CFire_frequencyPOLY+CRoots.kg.m2POLY+
                   CSandPOLY+ClivestockPOLY+CWoodyPOLY+
                   (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                 na.action=na.fail)
 
-summary(Min.block)
-drop1(Min.block,test="Chisq") # MAP,Fire,N,TreeBM
-anova(Min.block)
-AIC(Min.block) #38.08962
+summary(Min.block.full)
+drop1(Min.block.full,test="Chisq") # MAP,Fire,N,TreeBM
+anova(Min.block.full)
+AIC(Min.block.full)
 
 # Model averaging: All possible models between null and global
-modsetbelowM<-dredge(Min.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=
+modsetbelowM.full<-dredge(Min.block.full,trace = TRUE, rank = "AICc", REML = FALSE, subset=
                        !(CWoody & Landuse) &!(CLivestock & Landuse)
                      &!(CMAP.mm_yr & CWild)&!(CMAP.mm_yr & CHerb_year.kg_m2)
                      &!(CMAP.mm_yr & CRoots.kg_m2)&!(CMAP.mm_yr & ClivestockPOLY)
@@ -630,7 +660,6 @@ modsetbelowM<-dredge(Min.block,trace = TRUE, rank = "AICc", REML = FALSE, subset
                      &!(CWoody & CWoodyPOLY)
                      &!(CDW & CHerb_year.kg_m2)
                      &!(CSoil.Ahor & CSandPOLY)&!(CSoil.Ahor & ClivestockPOLY)
-                     &!(CRoots.kg_m2 & CRoots.kg.m2POLY)
                      &!(CFire_frequencyPOLY & CSandPOLY)
                      &!(CSandPOLY & ClivestockPOLY)
                      &!(CFire_frequency & CFire_frequencyPOLY)
@@ -638,9 +667,39 @@ modsetbelowM<-dredge(Min.block,trace = TRUE, rank = "AICc", REML = FALSE, subset
                      &!(CSand & CSandPOLY)
                      &!(CLivestock & ClivestockPOLY)
                      &!(CWoody & CWoodyPOLY))
- #                    !(CWoody & Landuse)&!(CHerb_year.kg_m2&CMAP.mm_yr)
- #                    &!(CMAP.mm_yr & CHerb_year.kg_m2)&!(CWild & CMAP.mm_yr)&!(CWild & CSand)
-  #                   &!(CLivestock & CSand)&!(CLivestock & CWoody))
+#                    !(CWoody & Landuse)&!(CHerb_year.kg_m2&CMAP.mm_yr)
+#                    &!(CMAP.mm_yr & CHerb_year.kg_m2)&!(CWild & CMAP.mm_yr)&!(CWild & CSand)
+#                   &!(CLivestock & CSand)&!(CLivestock & CWoody))
+
+modselbelowM.full<-model.sel(modsetbelowM.full) #Model selection table giving AIC, deltaAIC and weighting
+modavgbelowM.full<-model.avg(modselbelowM.full)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgbelowM.full)#Importance of each variable
+confint.Minhor.full <- confint(modavgbelowM.full)
+coef.Minhor.full <- summary(modavgbelowM.full)$coefmat.subset
+Minhor.full <- cbind(coef.Minhor.full, confint.Minhor.full)
+
+# Reduced model based on variable importance (<0.10) and p-value (>0.10)
+Min.block<-lmer(CSoil.min~ Landuse+CSand+#CTot.N.kg_m2+       
+                       CHerb_year.kg_m2+CRoots.kg_m2+
+                       CSoil.Ahor+CRoots.kg.m2POLY+
+                       CSandPOLY+
+                       (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
+                     na.action=na.fail)
+
+summary(Min.block)
+drop1(Min.block,test="Chisq") # MAP,Fire,N,TreeBM
+anova(Min.block)
+AIC(Min.block)
+
+# Model averaging: All possible models between null and global
+modsetbelowM<-dredge(Min.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=
+                            !(CSand & CSoil.Ahor)
+                          &!(CSand & CSandPOLY)
+                          &!(CSoil.Ahor & CSandPOLY)
+                          &!(CRoots.kg_m2 & CRoots.kg.m2POLY)
+                          &!(CSand & CSandPOLY))
+                    # &!(CTot.N.kg_m2 & CSoil.Ahor)
+                    # &!(CTot.N.kg_m2 & CSandPOLY)&!(CSand & CTot.N.kg_m2))
 
 modselbelowM<-model.sel(modsetbelowM) #Model selection table giving AIC, deltaAIC and weighting
 modavgbelowM<-model.avg(modselbelowM)#Averages coefficient estimates across multiple models according to the weigthing from above
@@ -653,20 +712,20 @@ Minhor <- cbind(coef.Minhor, confint.Minhor)
 
 ##      4.3. Global model for Herbs ####
 # HERBACEOUS 
-Herbaceous.block<-lmer(CHerb_year.kg_m2~ Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLivestock+ CTot.N.kg_m2+
+Herbaceous.block.full<-lmer(CHerb_year.kg_m2~ Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLivestock+ CTot.N.kg_m2+
                          CWild+CTotal.dung+CSoil.Ahor+CRoots.kg_m2+
                          CSoil.min+CWoody+CDW+CFire_frequencyPOLY+CRoots.kg.m2POLY+
                          CSandPOLY+ClivestockPOLY+CWoodyPOLY+
                          (1|Region),data = Total.Eco.C.CnoNA2, REML=F, 
                        na.action=na.fail)
 
-summary(Herbaceous.block)
-drop1(Herbaceous.block,test="Chisq")  
-anova(Herbaceous.block)
-AIC(Herbaceous.block) #38.03596
+summary(Herbaceous.block.full)
+drop1(Herbaceous.block.full,test="Chisq")  
+anova(Herbaceous.block.full)
+AIC(Herbaceous.block.full) 
 
 # Model averaging: All possible models between null and global
-modsetaboveH<-dredge(Herbaceous.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=                      !(CWoody & Landuse)&!(CLivestock & Landuse)
+modsetHerb.full<-dredge(Herbaceous.block.full,trace = TRUE, rank = "AICc", REML = FALSE, subset=                      !(CWoody & Landuse)&!(CLivestock & Landuse)
                      &!(CMAP.mm_yr & CWild)
                      &!(CMAP.mm_yr & CRoots.kg_m2)&!(CMAP.mm_yr & ClivestockPOLY)
                      &!(CFire_frequency & CFire_frequencyPOLY)&!(CFire_frequency & CSandPOLY) 
@@ -696,6 +755,33 @@ modsetaboveH<-dredge(Herbaceous.block,trace = TRUE, rank = "AICc", REML = FALSE,
                        #(CWild & CMAP.mm_yr)&!(CWild & CSand)&!
                        #(CLivestock & CSand)&!(CLivestock & CWoody))
 
+modselHerb.full<-model.sel(modsetHerb.full) #Model selection table giving AIC, deltaAIC and weighting
+modavgHerb.full<-model.avg(modselHerb.full)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgHerb.full)#Importance of each variable
+#Estimated coefficients given weighting
+confint.Herb.full <- confint(modavgHerb.full)
+coef.Herb.full <- summary(modavgHerb.full)$coefmat.subset
+Herb.full <- cbind(coef.Herb.full, confint.Herb.full)
+
+
+# Reduced model based on variable importance (<0.10) and p-value (>0.10)
+Herbaceous.block<-lmer(CHerb_year.kg_m2~ Landuse+CMAP.mm_yr+CFire_frequency+CTot.N.kg_m2+
+                              CTotal.dung+
+                              CWoody+CDW+CFire_frequencyPOLY+
+                              (1|Region),data = Total.Eco.C.CnoNA2, REML=F, 
+                            na.action=na.fail)
+
+summary(Herbaceous.block)
+drop1(Herbaceous.block,test="Chisq")  
+anova(Herbaceous.block)
+AIC(Herbaceous.block) #38.03596
+
+# Model averaging: All possible models between null and global
+modsetaboveH<-dredge(Herbaceous.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=
+                       !(CWoody & Landuse)
+                     &!(CFire_frequency & CFire_frequencyPOLY)
+                     &!(CFire_frequency & CFire_frequencyPOLY))
+
 modselaboveH<-model.sel(modsetaboveH) #Model selection table giving AIC, deltaAIC and weighting
 modavgaboveH<-model.avg(modselaboveH)#Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modavgaboveH)#Importance of each variable
@@ -707,48 +793,53 @@ Herb <- cbind(coef.Herb, confint.Herb)
 #write.table(Herb, file="Ecosystem carbon/ConAvgH.txt") 
 
 ##      4.4. Global model for DW #### 
-DW.block<-lmer(CDW~ Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLivestock+ CTot.N.kg_m2+
-                 CWild+CTotal.dung+CSoil.Ahor+CRoots.kg_m2+
-                 CSoil.min+CWoody+CHerb_year.kg_m2+CFire_frequencyPOLY+CRoots.kg.m2POLY+
-                 CSandPOLY+ClivestockPOLY+CWoodyPOLY+
+DW.block.full<-lmer(CDW~ Landuse+CFire_frequency+CLivestock+ CTot.N.kg_m2+
+                 CWild+CTotal.dung+
+                 CWoody+CHerb_year.kg_m2+CFire_frequencyPOLY+
+                 ClivestockPOLY+CWoodyPOLY+
                  (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                na.action=na.fail)
+
+summary(DW.block.full)
+drop1(DW.block.full,test="Chisq")  
+anova(DW.block.full)
+AIC(DW.block.full) #20.77802
+
+# Model averaging: All possible models between null and global
+modsetDW.full<-dredge(DW.block.full,trace = TRUE, rank = "AICc", REML = FALSE, subset=
+                      !(CFire_frequency & CFire_frequencyPOLY)
+                      &!(CFire_frequency & ClivestockPOLY) 
+                      &!(CTot.N.kg_m2 & CWild)
+                      &!(CLivestock & CWoody)&!(CLivestock & CWoodyPOLY)
+                      &!(CLivestock & ClivestockPOLY)
+                      &!(CWoody & CHerb_year.kg_m2)&!(CWoody & ClivestockPOLY)
+                      &!(CWoody & CWoodyPOLY)
+                      &!(CFire_frequency & CFire_frequencyPOLY)
+                      &!(CLivestock & ClivestockPOLY)
+                      &!(CWoody & CWoodyPOLY)
+                      &!(CWoody & Landuse))
+
+modselDW.full<-model.sel(modsetDW.full) #Model selection table giving AIC, deltaAIC and weighting
+modavgDW.full<-model.avg(modselDW.full)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgDW.full)#Importance of each variable
+confint.DW.full <- confint(modavgDW.full)
+coef.DW.full <- summary(modavgDW.full)$coefmat.subset
+DW.full <- cbind(coef.DW.full, confint.DW.full)
+
+# Reduce model 
+DW.block<-lmer(CDW~ Landuse+ CTot.N.kg_m2+CTotal.dung+
+                      CHerb_year.kg_m2+CFire_frequencyPOLY+
+                      (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
+                    na.action=na.fail)
 
 summary(DW.block)
 drop1(DW.block,test="Chisq")  
 anova(DW.block)
-AIC(DW.block) #92.05196
+AIC(DW.block) #38.63107
 
 # Model averaging: All possible models between null and global
-modsetaboveDW<-dredge(DW.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=
-                      !(CMAP.mm_yr & CWild)&!(CMAP.mm_yr & CHerb_year.kg_m2)
-                      &!(CMAP.mm_yr & CRoots.kg_m2)&!(CMAP.mm_yr & ClivestockPOLY)
-                      &!(CFire_frequency & CFire_frequencyPOLY)&!(CFire_frequency & CSandPOLY) 
-                      &!(CFire_frequency & ClivestockPOLY) 
-                      &!(CSand & CTot.N.kg_m2)&!(CSand & CLivestock)&!(CSand & CWild)
-                      &!(CSand & CSoil.Ahor)&!(CSand & CSoil.min)&!(CSand & CFire_frequencyPOLY)
-                      &!(CSand & CSandPOLY)&!(CSand & ClivestockPOLY)
-                      &!(CTot.N.kg_m2 & CWild)&!(CTot.N.kg_m2 & CSoil.Ahor)&!(CTot.N.kg_m2 & CSoil.min)
-                      &!(CTot.N.kg_m2 & CSandPOLY)
-                      &!(CLivestock & CWoody)&!(CLivestock & CSoil.Ahor)&!(CLivestock & CWoodyPOLY)
-                      &!(CLivestock & ClivestockPOLY)&!(CLivestock & CSandPOLY)
-                      &!(CWild & CSoil.Ahor)&!(CWild & CRoots.kg_m2)&!(CWild & CRoots.kg.m2POLY)
-                      &!(CWild & CSandPOLY)
-                      &!(CWoody & CHerb_year.kg_m2)&!(CWoody & CSoil.Ahor)&!(CWoody & ClivestockPOLY)
-                      &!(CWoody & CWoodyPOLY)
-                      &!(CSoil.Ahor & CSoil.min)&!(CSoil.Ahor & CSandPOLY)&!(CSoil.Ahor & ClivestockPOLY)
-                      &!(CSoil.min & CSandPOLY)
-                      &!(CRoots.kg_m2 & CRoots.kg.m2POLY)
-                      &!(CFire_frequencyPOLY & CSandPOLY)
-                      &!(CSandPOLY & ClivestockPOLY)
-                      &!(CFire_frequency & CFire_frequencyPOLY)
-                      &!(CRoots.kg_m2 & CRoots.kg.m2POLY)
-                      &!(CSand & CSandPOLY)
-                      &!(CLivestock & ClivestockPOLY)
-                      &!(CWoody & CWoodyPOLY))
-                   #     !(CWoody & Landuse))
+modsetaboveDW<-dredge(DW.block,trace = TRUE, rank = "AICc", REML = FALSE)
 
-# & !(Ctot.N.kg_m2 & CSand))
 modselaboveDW<-model.sel(modsetaboveDW) #Model selection table giving AIC, deltaAIC and weighting
 modavgaboveDW<-model.avg(modselaboveDW)#Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modavgaboveDW)#Importance of each variable
@@ -760,36 +851,33 @@ DW <- cbind(coef.DW, confint.DW)
 #write.table(DW, file="Ecosystem carbon/ConAvgDW.txt") 
 
 ##      4.5. Global model for Woody #### 
-Woody.block<-lmer(CWoody~ Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLivestock+ CTot.N.kg_m2+
-                    CWild+CTotal.dung+CSoil.Ahor+CRoots.kg_m2+
-                    CSoil.min+CDW+CHerb_year.kg_m2+CFire_frequencyPOLY+CRoots.kg.m2POLY+
+Woody.block.full<-lmer(CWoody~ Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLivestock+ CTot.N.kg_m2+
+                    CWild+CTotal.dung+CRoots.kg_m2
+                  +CDW+CHerb_year.kg_m2+CFire_frequencyPOLY+CRoots.kg.m2POLY+
                     CSandPOLY+ClivestockPOLY+
                     (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                   na.action=na.fail)
 
-summary(Woody.block)
-drop1(Woody.block,test="Chisq")  
-anova(Woody.block)
-AIC(Woody.block) #27.71897
+summary(Woody.block.full)
+drop1(Woody.block.full,test="Chisq")  
+anova(Woody.block.full)
+AIC(Woody.block.full) 
 
 # Model averaging: All possible models between null and global
-modsetaboveW<-dredge(Woody.block,trace = TRUE, rank = "AICc", REML = FALSE, subset= 
+modsetWoody.full<-dredge(Woody.block.full,trace = TRUE, rank = "AICc", REML = FALSE, subset= 
                        !(CMAP.mm_yr & CWild)&!(CMAP.mm_yr & CHerb_year.kg_m2)
                      &!(CMAP.mm_yr & CRoots.kg_m2)&!(CMAP.mm_yr & ClivestockPOLY)
                      &!(CFire_frequency & CFire_frequencyPOLY)&!(CFire_frequency & CSandPOLY) 
                      &!(CFire_frequency & ClivestockPOLY) 
                      &!(CSand & CTot.N.kg_m2)&!(CSand & CLivestock)&!(CSand & CWild)
-                     &!(CSand & CSoil.Ahor)&!(CSand & CSoil.min)&!(CSand & CFire_frequencyPOLY)
+                     &!(CSand & CFire_frequencyPOLY)
                      &!(CSand & CSandPOLY)&!(CSand & ClivestockPOLY)
-                     &!(CTot.N.kg_m2 & CWild)&!(CTot.N.kg_m2 & CSoil.Ahor)&!(CTot.N.kg_m2 & CSoil.min)
+                     &!(CTot.N.kg_m2 & CWild)
                      &!(CTot.N.kg_m2 & CSandPOLY)
-                     &!(CLivestock & CSoil.Ahor)
                      &!(CLivestock & ClivestockPOLY)&!(CLivestock & CSandPOLY)
-                     &!(CWild & CSoil.Ahor)&!(CWild & CRoots.kg_m2)&!(CWild & CRoots.kg.m2POLY)
+                     &!(CWild & CRoots.kg_m2)&!(CWild & CRoots.kg.m2POLY)
                      &!(CWild & CSandPOLY)
                      &!(CDW & CHerb_year.kg_m2)
-                     &!(CSoil.Ahor & CSoil.min)&!(CSoil.Ahor & CSandPOLY)&!(CSoil.Ahor & ClivestockPOLY)
-                     &!(CSoil.min & CSandPOLY)
                      &!(CRoots.kg_m2 & CRoots.kg.m2POLY)
                      &!(CFire_frequencyPOLY & CSandPOLY)
                      &!(CSandPOLY & ClivestockPOLY)
@@ -797,7 +885,33 @@ modsetaboveW<-dredge(Woody.block,trace = TRUE, rank = "AICc", REML = FALSE, subs
                      &!(CRoots.kg_m2 & CRoots.kg.m2POLY)
                      &!(CSand & CSandPOLY)
                      &!(CLivestock & ClivestockPOLY))
-#                       !(CTot.N.kg_m2 & CSand))
+
+modselWoody.full<-model.sel(modsetWoody.full) #Model selection table giving AIC, deltaAIC and weighting
+modavgWoody.full<-model.avg(modselWoody.full)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgWoody.full)#Importance of each variable
+summary(modavgWoody.full)#Estimated coefficients given weighting
+confint.woody.full <- confint(modavgWoody.full)
+coef.woody.full <- summary(modavgWoody.full)$coefmat.subset
+woody.full <- cbind(coef.woody.full, confint.woody.full)
+
+# Reduced model
+Woody.block<-lmer(CWoody~ Landuse+CFire_frequency+CSand+CLivestock+
+                    CTot.N.kg_m2+CHerb_year.kg_m2+CFire_frequencyPOLY+
+                    (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
+                  na.action=na.fail)
+
+summary(Woody.block)
+drop1(Woody.block,test="Chisq")  
+anova(Woody.block)
+AIC(Woody.block) 
+
+# Model averaging: All possible models between null and global
+modsetaboveW<-dredge(Woody.block,trace = TRUE, rank = "AICc", REML = FALSE, subset= 
+                     !(CFire_frequency & CFire_frequencyPOLY)
+                     &!(CSand & CTot.N.kg_m2)&!(CSand & CLivestock)
+                     &!(CSand & CFire_frequencyPOLY)
+                     &!(CFire_frequency & CFire_frequencyPOLY))
+
 modselaboveW<-model.sel(modsetaboveW) #Model selection table giving AIC, deltaAIC and weighting
 modavgaboveW<-model.avg(modselaboveW)#Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modavgaboveW)#Importance of each variable
@@ -809,20 +923,20 @@ woody <- cbind(coef.woody, confint.woody)
 #write.table(woody, file="Ecosystem carbon/ConAvgW.outl.txt") 
 
 ##      4.6. Global model for Roots #### 
-Root.block<-lmer(CRoots.kg_m2~ Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLivestock+ CTot.N.kg_m2+
+Root.block.full<-lmer(CRoots.kg_m2~ Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLivestock+ CTot.N.kg_m2+
                    CWild+CTotal.dung+CSoil.Ahor+CDW+
                    CSoil.min+CWoody+CHerb_year.kg_m2+CFire_frequencyPOLY+
                    CSandPOLY+ClivestockPOLY+CWoodyPOLY+
                  (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                na.action=na.fail)
 
-summary(Root.block)
-drop1(Root.block,test="Chisq")  
-anova(Root.block)
-AIC(Root.block) #92.05196
+summary(Root.block.full)
+drop1(Root.block.full,test="Chisq")  
+anova(Root.block.full)
+AIC(Root.block.full)
 
 # Model averaging: All possible models between null and global
-modsetaboveRoot<-dredge(Root.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=
+modsetRoot.full<-dredge(Root.block.full,trace = TRUE, rank = "AICc", REML = FALSE, subset=
                         !(CMAP.mm_yr & CWild)&!(CMAP.mm_yr & CHerb_year.kg_m2)
                       &!(CMAP.mm_yr & ClivestockPOLY)
                       &!(CFire_frequency & CFire_frequencyPOLY)&!(CFire_frequency & CSandPOLY) 
@@ -847,6 +961,28 @@ modsetaboveRoot<-dredge(Root.block,trace = TRUE, rank = "AICc", REML = FALSE, su
                       &!(CSand & CSandPOLY)
                       &!(CLivestock & ClivestockPOLY)
                       &!(CWoody & CWoodyPOLY))
+
+modselRoot.full<-model.sel(modsetRoot.full) #Model selection table giving AIC, deltaAIC and weighting
+modavgRoot.full<-model.avg(modselRoot.full)#Averages coefficient estimates across multiple models according to the weigthing from above
+importance(modavgRoot.full)#Importance of each variable
+confint.Root.full <- confint(modavgRoot.full)
+coef.Root.full <- summary(modavgRoot.full)$coefmat.subset
+Root.full<- cbind(coef.Root.full, confint.Root.full)
+
+# Reduced model
+Root.block<-lmer(CRoots.kg_m2~ Landuse+CMAP.mm_yr+CSand+
+                   CSandPOLY+
+                   (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
+                 na.action=na.fail)
+
+summary(Root.block)
+drop1(Root.block,test="Chisq")  
+anova(Root.block)
+AIC(Root.block) #34.09222
+
+# Model averaging: All possible models between null and global
+modsetaboveRoot<-dredge(Root.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=
+                          !(CSand & CSandPOLY))
 
 modselaboveRoot<-model.sel(modsetaboveRoot) #Model selection table giving AIC, deltaAIC and weighting
 modavgaboveRoot<-model.avg(modselaboveRoot)#Averages coefficient estimates across multiple models according to the weigthing from above
