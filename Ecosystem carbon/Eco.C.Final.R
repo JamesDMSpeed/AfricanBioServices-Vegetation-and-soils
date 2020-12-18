@@ -605,20 +605,25 @@ Ahor.full <- cbind(coef.Ahor.full, confint.Ahor.full)
 # Reduced model based on variable importance (<0.10) and p-value (>0.10)
 Ahor.block<-lmer(CSoil.Ahor~ Landuse+CSand+CLivestock+
                    CWild+CHerb_year.kg_m2+
-                   CSoil.min+CSandPOLY+
+                   CSoil.min+ #CSandPOLY+
                    (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                  na.action=na.fail)
+
+summary(Ahor.block) # Singularity effect - random factor is not explaining anything
+drop1(Ahor.block,test="Chisq") # CSand or CSandPoly
+plot(Soil.Ahor~Sand,Total.Eco.C.CnoNA2) # looks relatively linear use CSand
+AIC(Ahor.block)
 
 # Model averaging: All possible models between null and global
 modsetbelowA<-dredge(Ahor.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=
                        !(CLivestock & Landuse)
                      &!(CSand & CLivestock)&!(CSand & CWild)
-                     &!(CSand & CSoil.min)
-                     &!(CSand & CSandPOLY)
-                     &!(CLivestock & CSandPOLY)
-                     &!(CWild & CSandPOLY)
-                     &!(CSoil.min & CSandPOLY)
-                     &!(CSand & CSandPOLY))
+                     &!(CSand & CSoil.min))
+                     #&!(CSand & CSandPOLY)
+                     #&!(CLivestock & CSandPOLY)
+                    # &!(CWild & CSandPOLY)
+                    # &!(CSoil.min & CSandPOLY)
+                    # &!(CSand & CSandPOLY))
 
 #Averaging terms
 modselbelowA<-model.sel(modsetbelowA) #Model selection table giving AIC, deltaAIC and weighting
@@ -686,7 +691,7 @@ Min.block<-lmer(CSoil.min~ Landuse+CSand+
                        (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                      na.action=na.fail)
 
-summary(Min.block)
+summary(Min.block) # Singular fit again - 
 drop1(Min.block,test="Chisq") # MAP,Fire,N,TreeBM
 anova(Min.block)
 AIC(Min.block)
