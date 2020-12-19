@@ -1,4 +1,5 @@
 #### REORGANISED VERSION FOR ALL ANALYSIS FOR WRITE-UP #### 
+rm(list=ls())
 #### 1: PACKAGES #### 
 library(tidyr)
 library(plyr)
@@ -162,6 +163,8 @@ Ecosystem.Carbon$Total.basal.area_m2[is.na(Ecosystem.Carbon$Total.basal.area_m2)
 Ecosystem.Carbon$TreeBM.kg_m2[is.na(Ecosystem.Carbon$TreeBM.kg_m2)]<- 0
 Ecosystem.Carbon$No.trees_m2[is.na(Ecosystem.Carbon$No.trees_m2)]<- 0
 Ecosystem.Carbon$C.amount[is.na(Ecosystem.Carbon$C.amount)]<- 0
+
+Ecosystem.Carbon$Fire_frequency.2000_2017
 
 write.csv(Ecosystem.Carbon,file="Ecosystem carbon/Final.Ecosystem.Carbon.csv")
 
@@ -380,8 +383,13 @@ summary(Total.Eco.C)
 # But first rename some variables.. 
 colnames(Total.Eco.C) <- c("Block.ID","Region","Vilde.block","Landuse","MAP.mm_yr","Last.fire_yr","Fire_frequency","Clay","Silt","Sand","Tree.basal.area_m2","TreeBM.kg_m2","No.trees_m2","Mean.N.kg_m2.x","Soil.min","Livestock","Wild", "Total.dung","Tot.N.kg_m2","Herb_year.kg_m2","Roots.kg_m2","CMAP.mm_yr","CFire_frequency","CSand","CTreeBM.kg_m2","CTot.N.kg_m2","CLivestock","CWild","CTotal.dung","CHerb_year.kg_m2","CRoots.kg_m2","Herbaceous","CHerbaceous","Soil.Ahor", "Woody","DW","Tot.C.kg_m2","SE.Soil.Ahor","AhorN.kg_m2","MinN.kg_m2","CTot.C.kg_m2","CAhorN.kg_m2","CMinN.kg_m2","CSoil.min","CSoil.Ahor","CWoody","CDW")
 
-###
-Total.Eco.C[is.na(Total.Eco.C$CFire_frequency),]
+# Select only Makao, Ha
+levels(Total.Eco.C$Region)
+Total.Eco.C.CnoNA<-droplevels(Total.Eco.C[Total.Eco.C$Region=="Makao" | Total.Eco.C$Region== "Maswa" | Total.Eco.C$Region== "Mwantimba" | Total.Eco.C$Region=="Handajega" |
+                    Total.Eco.C$Region== "Seronera",]) 
+
+Total.Eco.C.CnoNA[Total.Eco.C.CnoNA$Region=="Seronera" & Total.Eco.C.CnoNA$Vilde.block=="4" ,]
+
 
 Total.Eco.C.CnoNA<-droplevels(Total.Eco.C[!is.na(Total.Eco.C$CFire_frequency),])
 Total.Eco.C.CnoNA<-droplevels(Total.Eco.C.CnoNA[(-16),]) # Remove outlier
