@@ -248,7 +248,7 @@ Roots <- Roots[
 colnames(Roots)[colnames(Roots) == "area"] <- "Region"
 
 #relevel
-levels(Roots$Region)
+levels(as.factor(Roots$Region))
 Roots$Region<- factor(Roots$Region, levels = c("Makao","Maswa","Mwantimba","Handajega"))
 Roots$Region<-as.factor(Roots$Region)
 
@@ -267,7 +267,6 @@ Block.Eco.C <- merge(Block.Eco.C,Total.dung, by="Block.ID", all.x = TRUE)
 Block.Eco.C <- merge(Block.Eco.C,tot.N.kg_m2, by="Block.ID", all.x = TRUE)
 Block.Eco.C <- merge(Block.Eco.C,MaritAccum, by="Block.ID", all.x = TRUE)
 Block.Eco.C <- merge(Block.Eco.C,RootsBlock, by="Block.ID", all.x = TRUE)
-
 
 colnames(Block.Eco.C)
 Block.Eco.C$CMAP.mm_yr <- as.numeric(scale(Block.Eco.C$MAP.mm_yr)) 
@@ -303,7 +302,7 @@ colnames(Soil.min)[35] <- "Herbaceous"
 Soil.min$CHerbaceous <- as.numeric(scale(Soil.min$Herbaceous))
 
 # Add data to belowground full 
-Belowground.full <- merge(Belowground.full,MaritAccum, by="Block.ID", all.x = TRUE)
+Belowground.full <- merge(Belowground.full, MaritAccum, by="Block.ID", all.x = TRUE)
 Belowground.full <- merge(Belowground.full, Herbaceous[ , c("Block.ID","C.amount")], by = "Block.ID", all.x=TRUE)
 Belowground.full <- merge(Belowground.full, Woody[ , c("Block.ID","C.amount")], by = "Block.ID", all.x=TRUE)
 Belowground.full <- merge(Belowground.full, DW[ , c("Block.ID","C.amount")], by = "Block.ID", all.x=TRUE)
@@ -381,9 +380,11 @@ summary(Total.Eco.C)
 # But first rename some variables.. 
 colnames(Total.Eco.C) <- c("Block.ID","Region","Vilde.block","Landuse","MAP.mm_yr","Last.fire_yr","Fire_frequency","Clay","Silt","Sand","Tree.basal.area_m2","TreeBM.kg_m2","No.trees_m2","Mean.N.kg_m2.x","Soil.min","Livestock","Wild", "Total.dung","Tot.N.kg_m2","Herb_year.kg_m2","Roots.kg_m2","CMAP.mm_yr","CFire_frequency","CSand","CTreeBM.kg_m2","CTot.N.kg_m2","CLivestock","CWild","CTotal.dung","CHerb_year.kg_m2","CRoots.kg_m2","Herbaceous","CHerbaceous","Soil.Ahor", "Woody","DW","Tot.C.kg_m2","SE.Soil.Ahor","AhorN.kg_m2","MinN.kg_m2","CTot.C.kg_m2","CAhorN.kg_m2","CMinN.kg_m2","CSoil.min","CSoil.Ahor","CWoody","CDW")
 
-Total.Eco.C.CnoNA<-Total.Eco.C[!is.na(Total.Eco.C$CFire_frequency),]
-Total.Eco.C.CnoNA<-Total.Eco.C.CnoNA[(-16),] # Remove outlier
-Total.Eco.C.CnoNA<-droplevels(Total.Eco.C.CnoNA)
+###
+Total.Eco.C[is.na(Total.Eco.C$CFire_frequency),]
+
+Total.Eco.C.CnoNA<-droplevels(Total.Eco.C[!is.na(Total.Eco.C$CFire_frequency),])
+Total.Eco.C.CnoNA<-droplevels(Total.Eco.C.CnoNA[(-16),]) # Remove outlier
 Total.Eco.C.CnoNA2<-Total.Eco.C.CnoNA[!is.na(Total.Eco.C.CnoNA$Livestock),]
 Total.Eco.C.CnoNA2 <- droplevels(Total.Eco.C.CnoNA2)
 
