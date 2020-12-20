@@ -13,6 +13,7 @@ library(lme4)
 library(glmmADMB) 
 library(piecewiseSEM) # SEM
 library(MuMIn) # to make "model.sel()" of different models 
+library(DHARMa) # model validation using simulations
 # library(emmeans) # estimated marginal means --> look at this for three ways interactions
 
 #### 2: CLEANING THE DATA #### 
@@ -383,7 +384,7 @@ summary(Total.Eco.C)
 # But first rename some variables.. 
 colnames(Total.Eco.C) <- c("Block.ID","Region","Vilde.block","Landuse","MAP.mm_yr","Last.fire_yr","Fire_frequency","Clay","Silt","Sand","Tree.basal.area_m2","TreeBM.kg_m2","No.trees_m2","Mean.N.kg_m2.x","Soil.min","Livestock","Wild", "Total.dung","Tot.N.kg_m2","Herb_year.kg_m2","Roots.kg_m2","CMAP.mm_yr","CFire_frequency","CSand","CTreeBM.kg_m2","CTot.N.kg_m2","CLivestock","CWild","CTotal.dung","CHerb_year.kg_m2","CRoots.kg_m2","Herbaceous","CHerbaceous","Soil.Ahor", "Woody","DW","Tot.C.kg_m2","SE.Soil.Ahor","AhorN.kg_m2","MinN.kg_m2","CTot.C.kg_m2","CAhorN.kg_m2","CMinN.kg_m2","CSoil.min","CSoil.Ahor","CWoody","CDW")
 
-# Select only Makao, Ha
+# Select only Makao, Maswa, Mwantimba, Handahega, Seronera
 levels(Total.Eco.C$Region)
 Total.Eco.C.CnoNA<-droplevels(Total.Eco.C[Total.Eco.C$Region=="Makao" | Total.Eco.C$Region== "Maswa" | Total.Eco.C$Region== "Mwantimba" | Total.Eco.C$Region=="Handajega" |
                     Total.Eco.C$Region== "Seronera",]) 
@@ -420,9 +421,10 @@ Total.Eco.C.CnoNAS4<-droplevels(Total.Eco.C.CnoNA[!Total.Eco.C.CnoNA$Block.ID=="
 Total.Eco.C.CnoNA1<-rbind(Total.Eco.C.CnoNAS4,Seronera4)
 
 summary(is.na(Total.Eco.C.CnoNA1))
-Total.Eco.C.CnoNA2<-droplevels(Total.Eco.C.CnoNA1[complete.cases(Total.Eco.C.CnoNA1[ , c("Livestock","Wild","Total.dung","Fire_frequency","Soil.Ahor","Soil.min","Herbaceous","Woody","DW","Roots.kg_m2")]), ])
-levels(Total.Eco.C.CnoNA2$Region)
-summary(is.na(Total.Eco.C.CnoNA2)) # NO Nas
+Total.Eco.C.CnoNA1$Region
+Total.Eco.C.CnoNA2<-droplevels(Total.Eco.C.CnoNA1[complete.cases(Total.Eco.C.CnoNA1[ , c("Livestock","Wild","Total.dung","Fire_frequency","Soil.Ahor","Soil.min","Herb_year.kg_m2","Woody","DW","Roots.kg_m2")]), ])
+Total.Eco.C.CnoNA2$Region # Makoa region missing
+summary(is.na(Total.Eco.C.CnoNA2)) # NO NAs for key variables in model - 1 Makao site missing Totak C?
 
 #Belowground full
 Belowground.full <- Belowground.full[-c(61,62,63,64),] # remove outlier
@@ -598,7 +600,7 @@ X1 <- model.matrix(~Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLivestock+ #CTot.N
 X2<-chkRank.drop.cols(X1, kind= "warn+drop.cols")
 TrtList<-colnames(X1)
 TrtListRkreduced<-colnames(X2)
-setdiff(TrtList,TrtListRkreduced) # "CTotal.dung" and "CWoodyPOLY" is being dropped 
+setdiff(TrtList,TrtListRkreduced) # "CTotal.dung" 
 
 
 Ahor.block.full<-lmer(CSoil.Ahor~ Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLivestock+ #CTot.N.kg_m2
@@ -637,8 +639,7 @@ modsetbelowA.full<-dredge(Ahor.block.full,trace = TRUE, rank = "AICc", REML = FA
                      &!(CFire_frequency & CFire_frequencyPOLY)
                      &!(CRoots.kg_m2 & CRoots.kg.m2POLY)
                      &!(CSand & CSandPOLY)
-                     &!(CLivestock & ClivestockPOLY)
-                     &!(CWoody & CWoodyPOLY))
+                     &!(CLivestock & ClivestockPOLY))
                        #!(CWoody & Landuse)&!(CLivestock & Landuse)&!(CHerb_year.kg_m2&CMAP.mm_yr)
                     # &!(CMAP.mm_yr & CHerb_year.kg_m2)&!(CWild & CMAP.mm_yr)&!(CWild & CSand)
                      #&!(CLivestock & CSand)&!(CLivestock & CWoody))
@@ -654,14 +655,18 @@ Ahor.full <- cbind(coef.Ahor.full, confint.Ahor.full)
 # Reduced model based on variable importance (<0.10) and p-value (>0.10)
 
 # Reduced model with Seronera...
-Ahor.blockS<-lmer(CSoil.Ahor~ Landuse+CSand+CDW+CHerb_year.kg_m2+CSoil.min+
-                         CHerb_year.kg_m2+CSoil.min++CWild+
+Ahor.blockS<-lmer(CSoil.Ahor~ Landuse+CSand+CDW+CHerb_year.kg_m2+
+                    CHerb_year.kg_m2+CWoodyPOLY+
+                        CSoil.min+CWild+
                         (1|Region),data = Total.Eco.C.CnoNA2, 
                         REML=F,na.action=na.fail)
 summary(Ahor.blockS) # Singularity effect - random factor is not explaining anything
 drop1(Ahor.blockS,test="Chisq") # CSand or CSandPoly
 plot(Soil.Ahor~Sand,Total.Eco.C.CnoNA2) # looks relatively linear use CSand
-AIC(Ahor.block)
+AIC(Ahor.blockS) #12.03654
+
+# Residual plot
+res <- simulateResiduals(Ahor.blockS, plot = T) # All Good! 
 
 # Model averaging: All possible models between null and global
 modsetbelowAS<-dredge(Ahor.blockS,trace = TRUE, rank = "AICc", REML = FALSE, subset=
@@ -747,8 +752,7 @@ modsetbelowM.full<-dredge(Min.block.full,trace = TRUE, rank = "AICc", REML = FAL
                      &!(CFire_frequency & CFire_frequencyPOLY)
                      &!(CRoots.kg_m2 & CRoots.kg.m2POLY)
                      &!(CSand & CSandPOLY)
-                     &!(CLivestock & ClivestockPOLY)
-                     &!(CWoody & CWoodyPOLY))
+                     &!(CLivestock & ClivestockPOLY))
 #                    !(CWoody & Landuse)&!(CHerb_year.kg_m2&CMAP.mm_yr)
 #                    &!(CMAP.mm_yr & CHerb_year.kg_m2)&!(CWild & CMAP.mm_yr)&!(CWild & CSand)
 #                   &!(CLivestock & CSand)&!(CLivestock & CWoody))
@@ -763,7 +767,8 @@ Minhor.full <- cbind(coef.Minhor.full, confint.Minhor.full)
 # Reduced model based on variable importance (<0.10) or p-value (>0.10), excluding one if both poly and normal appear. 
 
 # Reduced model with Seronera...
-Min.blockS<-lmer(CSoil.min~ CSoil.Ahor+CSand+CRoots.kg_m2+
+Min.blockS<-lmer(CSoil.min~ CSoil.Ahor+CRoots.kg_m2+CSand+CWoodyPOLY+
+                   CHerb_year.kg_m2+CRoots.kg.m2POLY+Landuse+CDW+
                        (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                      na.action=na.fail)
 
@@ -772,7 +777,11 @@ drop1(Min.blockS,test="Chisq") # MAP,Fire,N,TreeBM
 anova(Min.blockS)
 AIC(Min.blockS)
 
+# Residual plot
+res <- simulateResiduals(Min.blockS, plot = T) # KS significant deviation, but others OK
+
 modsetbelowMS<-dredge(Min.blockS,trace = TRUE, rank = "AICc", REML = FALSE, subset=
+                        !(CDW & CHerb_year.kg_m2) &
                        !(CSand & CSoil.Ahor))
 
 modselbelowMS<-model.sel(modsetbelowMS) #Model selection table giving AIC, deltaAIC and weighting
@@ -875,6 +884,9 @@ drop1(Herbaceous.blockS,test="Chisq")
 anova(Herbaceous.blockS)
 AIC(Herbaceous.blockS) #27.36935
 
+# Residual plot
+res <- simulateResiduals(Herbaceous.blockS, plot = T) # KS significant deviation, but others OK
+
 modsetaboveHS<-dredge(Herbaceous.blockS,trace = TRUE, rank = "AICc", REML = FALSE, subset=
                        !(CWoody & Landuse)
                       &!(CLivestock & CWoody))
@@ -927,7 +939,7 @@ DW.block.full<-lmer(CDW~ Landuse+CFire_frequency+CLivestock+ CTot.N.kg_m2+
 summary(DW.block.full)
 drop1(DW.block.full,test="Chisq")  
 anova(DW.block.full)
-AIC(DW.block.full) #20.77802
+AIC(DW.block.full) #46.8759
 
 # Model averaging: All possible models between null and global
 modsetDW.full<-dredge(DW.block.full,trace = TRUE, rank = "AICc", REML = FALSE, subset=
@@ -952,11 +964,20 @@ confint.DW.full <- confint(modavgDW.full)
 coef.DW.full <- summary(modavgDW.full)$coefmat.subset
 DW.full <- cbind(coef.DW.full, confint.DW.full)
 
-# Reduce model wit Seronera
+# Reduce model with Seronera
 DW.blockS<-lmer(CDW~ CHerb_year.kg_m2+CFire_frequencyPOLY+CWoodyPOLY+
                   CTot.N.kg_m2+Landuse+
                  (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                na.action=na.fail)
+
+summary(DW.blockS)
+drop1(DW.blockS,test="Chisq")  
+anova(DW.blockS)
+AIC(DW.blockS) #47.03263
+
+# Residual plot
+res <- simulateResiduals(DW.blockS, plot = T) # Issue with residual vs, predicted deviations detected...similar to be a pattern?
+# Issues with outliers in dataset
 
 modsetaboveDWS<-dredge(DW.blockS,trace = TRUE, rank = "AICc", REML = FALSE)
 
@@ -1002,7 +1023,7 @@ Woody.block.full<-lmer(CWoody~ Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLivesto
 summary(Woody.block.full)
 drop1(Woody.block.full,test="Chisq")  
 anova(Woody.block.full)
-AIC(Woody.block.full) 
+AIC(Woody.block.full) #17.9808
 
 # Model averaging: All possible models between null and global
 modsetWoody.full<-dredge(Woody.block.full,trace = TRUE, rank = "AICc", REML = FALSE, subset= 
@@ -1037,14 +1058,17 @@ woody.full <- cbind(coef.woody.full, confint.woody.full)
 
 
 # Reduced model with Seronera
-Woody.blockS<-lmer(CWoody~ CFire_frequencyPOLY+ClivestockPOLY+CTot.N.kg_m2+
+Woody.blockS<-lmer(CWoody~ CFire_frequencyPOLY+ClivestockPOLY+CTot.N.kg_m2+Landuse+
                          (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                        na.action=na.fail)
 
 summary(Woody.blockS)
 drop1(Woody.blockS,test="Chisq")  
 anova(Woody.blockS)
-AIC(Woody.blockS) 
+AIC(Woody.blockS) #31.40328
+
+# Residual plot
+res <- simulateResiduals(Woody.blockS, plot = T) # Issues residual vs predicted?
 
 modsetaboveWS<-dredge(Woody.blockS,trace = TRUE, rank = "AICc", REML = FALSE)
 
@@ -1096,7 +1120,7 @@ Root.block.full<-lmer(CRoots.kg_m2~ Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLi
 summary(Root.block.full)
 drop1(Root.block.full,test="Chisq")  
 anova(Root.block.full)
-AIC(Root.block.full)
+AIC(Root.block.full) #-826.9847
 
 # Model averaging: All possible models between null and global
 modsetRoot.full<-dredge(Root.block.full,trace = TRUE, rank = "AICc", REML = FALSE, subset=
@@ -1143,6 +1167,9 @@ summary(Root.blockS)
 drop1(Root.blockS,test="Chisq")  
 anova(Root.blockS)
 AIC(Root.blockS) #38.76362
+
+# Residual plot
+res <- simulateResiduals(Root.blockS, plot = T) # OK
 
 modsetaboveRootS<-dredge(Root.blockS,trace = TRUE, rank = "AICc", REML = FALSE, subset=
                            !(CTot.N.kg_m2 & CSoil.min))
