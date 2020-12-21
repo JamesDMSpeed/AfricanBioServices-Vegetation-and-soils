@@ -387,7 +387,8 @@ colnames(Total.Eco.C) <- c("Block.ID","Region","Vilde.block","Landuse","MAP.mm_y
 # Select only Makao, Maswa, Mwantimba, Handahega, Seronera
 levels(Total.Eco.C$Region)
 Total.Eco.C.CnoNA<-droplevels(Total.Eco.C[Total.Eco.C$Region=="Makao" | Total.Eco.C$Region== "Maswa" | Total.Eco.C$Region== "Mwantimba" | Total.Eco.C$Region=="Handajega" |
-                    Total.Eco.C$Region== "Seronera",]) 
+                    Total.Eco.C$Region== "Seronera",]) # Dropping Ikorongo and Park Nyigoti
+
 # Seronera - block 4 lacks woody and root - average woody from other Seroneras + average roots Handajega
 HandajegaRoots<-droplevels(Total.Eco.C.CnoNA[Total.Eco.C.CnoNA$Region=="Handajega",]) 
 mean(HandajegaRoots$Roots.kg_m2) # 0.1801801
@@ -400,14 +401,8 @@ mean(Seronera134$CHerb_year.kg_m2) # 0.4015829
 Seronera13<-droplevels(Total.Eco.C.CnoNA[Total.Eco.C.CnoNA$Block.ID=="17"  | Total.Eco.C.CnoNA$Block.ID=="18" | Total.Eco.C.CnoNA$Block.ID=="19"   ,])
 mean(Seronera13$Woody) # 0.02024409
 mean(Seronera13$CWoody) #-0.3696793
-#Seronera13$Roots.kg_m2[is.na(Seronera13$Roots.kg_m2)]<-0.1801801
-#Seronera13$CRoots.kg_m2[is.na(Seronera13$CRoots.kg_m2)]<- -0.2056412
-#Seronera13$Wild[is.na(Seronera13$Wild)]<-6.25
-#Seronera13$CWild[is.na(Seronera13$CWild)]<-0.369196
-#Seronera13$Total.dung[is.na(Seronera13$Total.dung)]<-6.25
-#Seronera13$CTotal.dung[is.na(Seronera13$CTotal.dung)]<--0.7198996
 
-Seronera4<-droplevels(Total.Eco.C.CnoNA[Total.Eco.C.CnoNA$Block.ID=="20" ,])
+Seronera4<-droplevels(Total.Eco.C.CnoNA[Total.Eco.C.CnoNA$Block.ID=="20" ,]) # Seperates only block 4 Seronera
 Seronera4$Roots.kg_m2<-0.1801801
 Seronera4$CRoots.kg_m2<- -0.2056412
 Seronera4$Woody<-0.02024409
@@ -421,10 +416,13 @@ Total.Eco.C.CnoNAS4<-droplevels(Total.Eco.C.CnoNA[!Total.Eco.C.CnoNA$Block.ID=="
 Total.Eco.C.CnoNA1<-rbind(Total.Eco.C.CnoNAS4,Seronera4)
 
 summary(is.na(Total.Eco.C.CnoNA1))
-Total.Eco.C.CnoNA1$Region
 Total.Eco.C.CnoNA2<-droplevels(Total.Eco.C.CnoNA1[complete.cases(Total.Eco.C.CnoNA1[ , c("Livestock","Wild","Total.dung","Fire_frequency","Soil.Ahor","Soil.min","Herb_year.kg_m2","Woody","DW","Roots.kg_m2")]), ])
 Total.Eco.C.CnoNA2$Region # Makoa region missing
 summary(is.na(Total.Eco.C.CnoNA2)) # NO NAs for key variables in model - 1 Makao site missing Totak C?
+
+# Remove Handajega with large woody C ?
+#max(Total.Eco.C.CnoNA2$Woody)
+#Total.Eco.C.CnoNA2<-droplevels(Total.Eco.C.CnoNA2[Total.Eco.C.CnoNA2$Woody<.5, ])
 
 #Belowground full
 Belowground.full <- Belowground.full[-c(61,62,63,64),] # remove outlier
@@ -652,7 +650,7 @@ confint.Ahor.full <- confint(modavgbelowA.full)
 coef.Ahor.full <- summary(modavgbelowA.full)$coefmat.subset
 Ahor.full <- cbind(coef.Ahor.full, confint.Ahor.full)
 
-# Reduced model based on variable importance (<0.10) and p-value (>0.10)
+# Reduced model based on variable importance (<0.10) and/or p-value (>0.10)
 
 # Reduced model with Seronera...
 Ahor.blockS<-lmer(CSoil.Ahor~ Landuse+CSand+CDW+CHerb_year.kg_m2+
@@ -885,7 +883,7 @@ anova(Herbaceous.blockS)
 AIC(Herbaceous.blockS) #27.36935
 
 # Residual plot
-res <- simulateResiduals(Herbaceous.blockS, plot = T) # KS significant deviation, but others OK
+res <- simulateResiduals(Herbaceous.blockS, plot = T) # OK
 
 modsetaboveHS<-dredge(Herbaceous.blockS,trace = TRUE, rank = "AICc", REML = FALSE, subset=
                        !(CWoody & Landuse)
@@ -1061,7 +1059,6 @@ woody.full <- cbind(coef.woody.full, confint.woody.full)
 Woody.blockS<-lmer(CWoody~ CFire_frequencyPOLY+ClivestockPOLY+CTot.N.kg_m2+Landuse+
                          (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                        na.action=na.fail)
-
 summary(Woody.blockS)
 drop1(Woody.blockS,test="Chisq")  
 anova(Woody.blockS)
@@ -1079,6 +1076,17 @@ summary(modavgaboveWS)#Estimated coefficients given weighting
 confint.woodyS <- confint(modavgaboveWS)
 coef.woodyS <- summary(modavgaboveWS)$coefmat.subset
 woodyS <- cbind(coef.woodyS, confint.woodyS)
+plot(Woody~ Fire_frequencyPOLY,Total.Eco.C.CnoNA2)
+
+plot(CWoody~ CFire_frequencyPOLY,Total.Eco.C.CnoNA2)
+Total.Eco.C.CnoNA2$Region
+Woody.blockSfire<-lmer(CWoody~ CFire_frequencyPOLY+(1|Region),data = Total.Eco.C.CnoNA2, REML=F)
+ff <- seq(min(Total.Eco.C.CnoNA2$CFire_frequencyPOLY), max(Total.Eco.C.CnoNA2$CFire_frequencyPOLY), length = 50)
+Sero <- rep("Seronera", length = 50)
+newdata<-data.frame(CFire_frequencyPOLY =ff,Region=Sero)
+tt<-predict(Woody.blockSfire, newdata, type="response")
+plot(CWoody~ CFire_frequencyPOLY,Total.Eco.C.CnoNA2)
+lines(ff,tt,col="red",lwd=1.5)
 
 
 # Reduced model without Seronera
