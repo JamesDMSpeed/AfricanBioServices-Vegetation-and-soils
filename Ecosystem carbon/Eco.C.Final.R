@@ -420,6 +420,7 @@ Total.Eco.C.CnoNA2<-droplevels(Total.Eco.C.CnoNA1[complete.cases(Total.Eco.C.Cno
 Total.Eco.C.CnoNA2$Region # Makoa region missing
 summary(is.na(Total.Eco.C.CnoNA2)) # NO NAs for key variables in model - 1 Makao site missing Totak C?
 
+
 # Remove Handajega with large woody C ?
 #max(Total.Eco.C.CnoNA2$Woody)
 #Total.Eco.C.CnoNA2<-droplevels(Total.Eco.C.CnoNA2[Total.Eco.C.CnoNA2$Woody<.5, ])
@@ -1054,7 +1055,6 @@ confint.woody.full <- confint(modavgWoody.full)
 coef.woody.full <- summary(modavgWoody.full)$coefmat.subset
 woody.full <- cbind(coef.woody.full, confint.woody.full)
 
-
 # Reduced model with Seronera
 Woody.blockS<-lmer(CWoody~ CFire_frequencyPOLY+ClivestockPOLY+CTot.N.kg_m2+Landuse+
                          (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
@@ -1087,7 +1087,6 @@ newdata<-data.frame(CFire_frequencyPOLY =ff,Region=Sero)
 tt<-predict(Woody.blockSfire, newdata, type="response")
 plot(CWoody~ CFire_frequencyPOLY,Total.Eco.C.CnoNA2)
 lines(ff,tt,col="red",lwd=1.5)
-
 
 # Reduced model without Seronera
 Woody.block<-lmer(CWoody~ Landuse+CFire_frequency+CSand+CLivestock+
