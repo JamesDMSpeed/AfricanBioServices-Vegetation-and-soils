@@ -49,6 +49,7 @@ names(Herbaceous2)
 Herbaceous2 <- Herbaceous2[c(1:3,15,5,6,8:11,17:21)]
 
 # Accumulated recidual biomass is given in g/m2, want to change it to kg/m2 
-Herbaceous2 <- mutate(Herbaceous2,Biomass_year.kgm2=Biomass_year/1000)
+Herbaceous2 <- mutate(Herbaceous2,HerbBM_year.kgm2=Biomass_year/1000)
+Herbaceous2 <- mutate(Herbaceous2,HerbC_year.kgm2=HerbBM_year.kgm2/2)
 
 write.csv(Herbaceous2, "Ecosystem carbon/Herbaceous.data/AccumHerbaceous.csv")

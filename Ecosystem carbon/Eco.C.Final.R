@@ -229,7 +229,7 @@ levels(Block.Eco.C$Carbon.pool) <- c("Woody","Herbaceous","Dead wood","Soil A-ho
 
 MaritAccum <- read.csv("Ecosystem carbon/Herbaceous.data/AccumHerbaceous.csv", header=TRUE)
 names(MaritAccum)
-MaritAccum <- MaritAccum[c(4,17)]
+MaritAccum <- MaritAccum[c("Block.ID","HerbC_year.kgm2")]
 
 # Livestock dung 
 Livestock.dung<- aggregate(livestock~Block.ID, mean, data=Belowground.full)
@@ -281,7 +281,7 @@ Block.Eco.C$Ctot.N.kg_m2 <- as.numeric(scale(Block.Eco.C$tot.N.kg_m2))
 Block.Eco.C$Clivestock <- as.numeric(scale(Block.Eco.C$livestock))
 Block.Eco.C$Cwild <- as.numeric(scale(Block.Eco.C$wild))
 Block.Eco.C$Ctotal.dung <- as.numeric(scale(Block.Eco.C$total.dung))
-Block.Eco.C$CBiomass_year <- as.numeric(scale(Block.Eco.C$Biomass_year.kgm2))
+Block.Eco.C$CHerbC_year.kgm2 <- as.numeric(scale(Block.Eco.C$HerbC_year.kgm2))
 #Block.Eco.C$CRes.bm.kg_m2 <- as.numeric(scale(Block.Eco.C$Res.bm.kg_m2))
 Block.Eco.C$CRoots.kg.m2 <- as.numeric(scale(Block.Eco.C$Roots.kg.m2))
 
@@ -298,6 +298,7 @@ Herbaceous<- Block.Eco.C %>%
   filter(Carbon.pool== "Herbaceous")
 
 Herbaceous$C.amount[Herbaceous$C.amount==0] <- NA
+Woody$C.amount[Woody$C.amount==0] <- NA
 Soil.Ahor <- cbind(Soil.Ahor,Herbaceous[17])
 colnames(Soil.Ahor)[35] <- "Herbaceous"
 Soil.Ahor$CHerbaceous <- as.numeric(scale(Soil.Ahor$Herbaceous))
@@ -326,7 +327,7 @@ colnames(Total.Eco.C)[15] <- "Soil.min"
 colnames(Total.Eco.C)[34] <- "Soil.Ahor"
 colnames(Total.Eco.C)[35] <- "Woody"
 colnames(Total.Eco.C)[36] <- "DW"
-Total.Eco.C$tot.C.kg_m2 <- Total.Eco.C$Soil.min + Total.Eco.C$Soil.Ahor + Total.Eco.C$Herbaceous + Total.Eco.C$Woody + Total.Eco.C$DW
+Total.Eco.C$tot.C.kg_m2 <- Total.Eco.C$Soil.min + Total.Eco.C$Soil.Ahor + Total.Eco.C$HerbC_year.kgm2 + Total.Eco.C$Woody + Total.Eco.C$DW # Changed herbaceous to the accumulated, then we remove the NA for Total.Eco.C. 
 
 Ahor.N <- aggregate(AhorN.kg_m2~Block.ID, mean, data=Belowground.full)
 Minhor.N <- aggregate(MinN.kg_m2~Block.ID, mean, data=Belowground.full)
@@ -351,7 +352,7 @@ Belowground.full$Ctot.C.kg_m2 <- as.numeric(scale(Belowground.full$tot.C.kg_m2))
 Belowground.full$Clivestock <- as.numeric(scale(Belowground.full$livestock)) 
 Belowground.full$Cwild <- as.numeric(scale(Belowground.full$wild)) 
 Belowground.full$Ctotal.dung <- as.numeric(scale(Belowground.full$total.dung)) 
-Belowground.full$CBiomass_year<- as.numeric(scale(Belowground.full$Biomass_year.kgm2)) 
+Belowground.full$CHerbC_year.kgm2<- as.numeric(scale(Belowground.full$HerbC_year.kgm2)) 
 #Belowground.full$CRes.bm.kg_m2 <- as.numeric(scale(Belowground.full$Res.bm.kg_m2)) 
 Belowground.full$CHerbaceous <- as.numeric(scale(Belowground.full$Herbaceous)) 
 Belowground.full$CAhorC.kg_m2 <- as.numeric(scale(Belowground.full$AhorC.kg_m2))
@@ -395,19 +396,19 @@ mean(HandajegaRoots$Roots.kg_m2) # 0.1801801
 mean(HandajegaRoots$CRoots.kg_m2) # -0.2056412
 
 Seronera134<-droplevels(Total.Eco.C.CnoNA[Total.Eco.C.CnoNA$Block.ID=="17"  | Total.Eco.C.CnoNA$Block.ID=="18" | Total.Eco.C.CnoNA$Block.ID=="19"  | Total.Eco.C.CnoNA$Block.ID=="20"   ,])
-mean(Seronera134$Herb_year.kg_m2) #0.2289444
+mean(Seronera134$Herb_year.kg_m2) #0.1144722
 mean(Seronera134$CHerb_year.kg_m2) # 0.4015829
 
 Seronera13<-droplevels(Total.Eco.C.CnoNA[Total.Eco.C.CnoNA$Block.ID=="17"  | Total.Eco.C.CnoNA$Block.ID=="18" | Total.Eco.C.CnoNA$Block.ID=="19"   ,])
 mean(Seronera13$Woody) # 0.02024409
-mean(Seronera13$CWoody) #-0.3696793
+mean(Seronera13$CWoody) #-0.3848206
 
 Seronera4<-droplevels(Total.Eco.C.CnoNA[Total.Eco.C.CnoNA$Block.ID=="20" ,]) # Seperates only block 4 Seronera
 Seronera4$Roots.kg_m2<-0.1801801
 Seronera4$CRoots.kg_m2<- -0.2056412
 Seronera4$Woody<-0.02024409
-Seronera4$CWoody<- -0.3696793 #Seronea 4 is being treated as a 0, but should be NA
-Seronera4$Herb_year.kg_m2<-0.2289444
+Seronera4$CWoody<- -0.3848206 
+Seronera4$Herb_year.kg_m2<-0.1144722
 Seronera4$CHerb_year.kg_m2<-0.4015829
   
 #Seronera1234<-rbind(Seronera13,Seronera4)
@@ -417,9 +418,8 @@ Total.Eco.C.CnoNA1<-rbind(Total.Eco.C.CnoNAS4,Seronera4)
 
 summary(is.na(Total.Eco.C.CnoNA1))
 Total.Eco.C.CnoNA2<-droplevels(Total.Eco.C.CnoNA1[complete.cases(Total.Eco.C.CnoNA1[ , c("Livestock","Wild","Total.dung","Fire_frequency","Soil.Ahor","Soil.min","Herb_year.kg_m2","Woody","DW","Roots.kg_m2")]), ])
-Total.Eco.C.CnoNA2$Region # Makoa region missing
-summary(is.na(Total.Eco.C.CnoNA2)) # NO NAs for key variables in model - 1 Makao site missing Totak C?
-
+Total.Eco.C.CnoNA2$Region
+summary(is.na(Total.Eco.C.CnoNA2)) 
 
 # Remove Handajega with large woody C ?
 #max(Total.Eco.C.CnoNA2$Woody)
@@ -506,7 +506,7 @@ panel.lines2=function (x, y, col = par("col"), bg = NA, pch = par("pch"),
 
 # Subset model
 names(Total.Eco.C.CnoNA2)
-Model.var.sub<-c("MAP.mm_yr","Fire_frequency","Sand","Tot.N.kg_m2","Livestock","Wild","Total.dung","Woody","DW", "Herb_year.kg_m2", "Soil.Ahor", "Soil.min", "Roots.kg_m2","Fire_frequencyPOLY","Roots.kg.m2POLY",   "SandPOLY","livestockPOLY","WoodyPOLY")
+Model.var.sub<-c("MAP.mm_yr","Fire_frequency","Sand","Tot.N.kg_m2","Livestock","Wild","Total.dung","Woody", "Herb_year.kg_m2", "Soil.Ahor", "Roots.kg_m2","Fire_frequencyPOLY","Roots.kg.m2POLY",   "SandPOLY","livestockPOLY","WoodyPOLY")
 
 # Create correlation matrix
 #pairs(Belowground.full.CnoNA[,Model.var.red],lower.panel = panel.cor)
@@ -556,7 +556,7 @@ boxplot(Wild~Landuse,data=Total.Eco.C.CnoNA2) # not covarying
 
 ####  4: DATA MODELING: MODEL AVERAGING #### 
 # Want all variables in the model. However, you don´t want covarying variables in the same model. 
-# ALL covarying variables (R2>0.5): 
+# ALL covarying variables (R2>0.5) without Seronera: 
 # LANDUSE:    &!(CWoody & Landuse)&!(CLivestock & Landuse)
 # MAP:        &!(CMAP.mm_yr & CWild)&!(CMAP.mm_yr & CHerb_year.kg_m2)
 #             &!(CMAP.mm_yr & CRoots.kg_m2)&!(CMAP.mm_yr & ClivestockPOLY)
@@ -571,7 +571,7 @@ boxplot(Wild~Landuse,data=Total.Eco.C.CnoNA2) # not covarying
 #             &!(CLivestock & ClivestockPOLY)&!(CLivestock & CSandPOLY)
 # WILD        &!(CWild & CSoil.Ahor)&!(CWild & CRoots.kg_m2)&!(CWild & CRoots.kg.m2POLY)
 #             &!(CWild & CSandPOLY)
-# WOODY       &!(CWoody & CHerb_year.kg_m2)&!(CWoody & CSoil.Ahor)&!(CWoody & ClivestockPOLY)
+# WOODY       &!(CWoody & CHerb_year.kg_m2)&!(CWoody & CSoil.Ahor)
 #             &!(CWoody & CWoodyPOLY)
 # DW          &!(CDW & CHerb_year.kg_m2)
 # SOIL A      &!(CSoil.Ahor & CSoil.min)&!(CSoil.Ahor & CSandPOLY)&!(CSoil.Ahor & ClivestockPOLY)
@@ -582,6 +582,10 @@ boxplot(Wild~Landuse,data=Total.Eco.C.CnoNA2) # not covarying
 # TOTAL DUNG  &!(CTotal.dung & Clivestock)&!(CTotal.dung & ClivestockPOLY)
 #             &!(CTotal.dung & CHerb_year.kg_m2)&!(CTotal.dung & CMAP.mm_yr)
 #             &!(CTotal.dung & CSoil.Ahor)&!(CTotal.dung & CWoody)
+
+# With Seronera: 
+# Remove: &!(CLivestock & CWoodyPOLY)
+# Add: &!(CHerb_year.kg_m2 & CWoodyPOLY)&!(CHerb_year.kg_m2 & CFire_frequencyPOLY)
 
 # IN ALL MODELS normal and poly terms also need to be excluded - these covary and not of interest! 
 # &!(CFire_frequency & CFire_frequencyPOLY)
