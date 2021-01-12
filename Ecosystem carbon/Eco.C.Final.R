@@ -506,7 +506,7 @@ panel.lines2=function (x, y, col = par("col"), bg = NA, pch = par("pch"),
 
 # Subset model
 names(Total.Eco.C.CnoNA2)
-Model.var.sub<-c("MAP.mm_yr","Fire_frequency","Sand","Tot.N.kg_m2","Livestock","Wild","Total.dung","Woody", "Herb_year.kg_m2", "Soil.Ahor", "Soil.min","Roots.kg_m2","Fire_frequencyPOLY","Roots.kg.m2POLY",   "SandPOLY","livestockPOLY","WoodyPOLY", "DW")
+Model.var.sub<-c("MAP.mm_yr","Fire_frequency","Sand","Tot.N.kg_m2","Livestock","Wild","Total.dung","Woody", "Herb_year.kg_m2", "Soil.Ahor", "Soil.min","Roots.kg_m2","Fire_frequencyPOLY","Roots.kg_m2POLY",   "SandPOLY","LivestockPOLY","WoodyPOLY", "DW")
 
 # Create correlation matrix
 #pairs(Belowground.full.CnoNA[,Model.var.red],lower.panel = panel.cor)
@@ -633,7 +633,7 @@ Ahor.full <- cbind(coef.Ahor.full, confint.Ahor.full)
 
 # Reduced model with Seronera...
 Ahor.blockS<-lmer(CSoil.Ahor~ Landuse+CSand+CDW+
-                        CSoil.min+CWild+CLivestock+
+                        CSoil.min+CWild+CLivestock +
                         (1|Region),data = Total.Eco.C.CnoNA2, 
                         REML=F,na.action=na.fail)
 summary(Ahor.blockS) # Singularity effect - random factor is not explaining anything
@@ -1084,7 +1084,7 @@ Root.blockS<-lmer(CRoots.kg_m2~ Landuse+ CMAP.mm_yr+ CTot.N.kg_m2+
                                 CSoil.min+ CSandPOLY + CDW+ CTotal.dung +
                    (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                  na.action=na.fail)
-
+plot(Roots.kg_m2~Wild,data=Total.Eco.C.CnoNA2)
 summary(Root.blockS)
 drop1(Root.blockS,test="Chisq")  
 anova(Root.blockS)
@@ -1305,24 +1305,15 @@ Modlist.mecanistic1 <-   psem(
 
 summary(Modlist.mecanistic1,Total.Eco.C.CnoNA2) 
 
-# The roots seem to be related to MAP, Sand and Landuse. However when I remove Landuse, MAP and Sand are no longer significant.. 
-Roots <- lmer(CRoots.kg.m2~ CMAP.mm_yr + CSand + Landuse + (1|Region), data=Total.Eco.C.CnoNA2, REML=F, na.action=na.fail)
-drop1(Roots, test="Chisq")
-
-Herb <- lmer(CHerb_year.kg_m2 ~ CMAP.mm_yr + CWoody + CDW + CFire_frequency + Landuse + (1|Region),na.action=na.fail, data=Total.Eco.C.CnoNA2, REML=F)
-drop1(Herb, test="Chisq")
-
-tot.dung <- lmer(CSoil.Ahor~Ctotal.dung + (1|Region),na.action=na.fail, data=Total.Eco.C.CnoNA2, REML=F)
-drop1(tot.dung, test="Chisq")
-
 # Add POLYterms to the model AND Seronera block 4:  
 Modlist.mecanistic2 <-   psem(
   lme(CTot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),# Should we use Livestock or LivestockPOLY here? From below, the best model seems to be livestock and sand, but non of them turns out significant in the SEM.. I only keep sand for now.
   lme(CWild ~ CLivestock + CMAP.mm_yr,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CWoody~ CFire_frequency + CSandPOLY + CMAP.mm_yr, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CHerb_year.kg_m2 ~ CMAP.mm_yr + CDW + CFire_frequency + CLivestockPOLY,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CRoots.kg_m2~ CSandPOLY + CMAP.mm_yr + Landuse ,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2), # The best model keeps all even though they are not significant. 
-  lme(CSoil.Ahor~CLivestock + CSand, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),# best model is with livestock (not livestockPOLY)
+  #lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  #lme(CRoots.kg_m2~ CMAP.mm_yr ,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2), 
+  lme(CSoil.Ahor~ CSand, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CSoil.min~ CSoil.Ahor, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   CSoil.Ahor%~~%CTot.N.kg_m2,
   CSoil.min%~~%CTot.N.kg_m2,
@@ -1363,6 +1354,16 @@ R11 <- lmer(CRoots.kg_m2~ CSand + CMAP.mm_yr + Landuse + (1|Region)
          ,na.action=na.fail, data=Total.Eco.C.CnoNA2, REML=FALSE)
 AIC(R1,R11) # slightly better with sandPOLY. 
 
+# Try a simple linear model with all variables 
+Root1 <- lm(CRoots.kg_m2~CMAP.mm_yr + CTot.N.kg_m2 + Landuse, 
+               data=Total.Eco.C.CnoNA2)
+Root2 <- update(Root1, .~.-CTot.N.kg_m2)
+Root3 <- update(Root1, .~.-CMAP.mm_yr)
+Root4 <- update(Root1, .~.-Landuse)
+Root5 <- update(Root1, .~.+CSandPOLY)
+Root6 <- update(Root5, .~.-CTot.N.kg_m2)
+
+AIC(Root1,Root2,Root3,Root4,Root5,Root6)
 ##        5.2.2: With Total dung and roots AND ACCUMULATED #### 
 
 Modlist.mecanistic2 <-   psem(
