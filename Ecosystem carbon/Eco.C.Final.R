@@ -5,7 +5,7 @@ library(tidyr)
 library(plyr)
 library(dplyr)
 #library("Hmisc") # For the correlation plot 
-#library(ggplot2)
+library(ggplot2)
 #library(lattice) # xy.plot
 
 library(nlme)
@@ -508,9 +508,14 @@ panel.lines2=function (x, y, col = par("col"), bg = NA, pch = par("pch"),
 names(Total.Eco.C.CnoNA2)
 Model.var.sub<-c("MAP.mm_yr","Fire_frequency","Sand","Tot.N.kg_m2","Livestock","Wild","Total.dung","Woody", "Herb_year.kg_m2", "Soil.Ahor", "Soil.min","Roots.kg_m2","Fire_frequencyPOLY","Roots.kg_m2POLY",   "SandPOLY","LivestockPOLY","WoodyPOLY", "DW")
 
+# FIRE and Woody
+Model.var.fire<-c("Fire_frequency","Fire_frequencyPOLY","Woody", "Herb_year.kg_m2")
+
 # Create correlation matrix
 #pairs(Belowground.full.CnoNA[,Model.var.red],lower.panel = panel.cor)
 pairs(Total.Eco.C.CnoNA2[,Model.var.sub],lower.panel=panel.smooth2, upper.panel= panel.cor, na.action = stats::na.omit)
+
+pairs(Total.Eco.C.CnoNA2[,Model.var.fire],lower.panel=panel.smooth2, upper.panel= panel.cor, na.action = stats::na.omit)
 
 
 # NOT UPDATED from here 
@@ -1310,11 +1315,11 @@ summary(Modlist.mecanistic1,Total.Eco.C.CnoNA2)
 Modlist.mecanistic2 <-   psem(
   lme(CTot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),# Should we use Livestock or LivestockPOLY here? From below, the best model seems to be livestock and sand, but non of them turns out significant in the SEM.. I only keep sand for now.
   lme(CWild ~ CLivestock + CMAP.mm_yr,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CWoody~ CFire_frequency + CSandPOLY + CMAP.mm_yr, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CWoody~ CFire_frequencyPOLY + CSandPOLY + CMAP.mm_yr, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CHerb_year.kg_m2 ~ CMAP.mm_yr + CDW + CFire_frequency + CLivestockPOLY,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  #lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  #lme(CRoots.kg_m2~ CMAP.mm_yr ,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2), 
-  lme(CSoil.Ahor~ CSand, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  #lme(CRoots.kg_m2~ CMAP.mm_yr + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2), 
+  lme(CSoil.Ahor~ CSand + Landuse, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CSoil.min~ CSoil.Ahor, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   CSoil.Ahor%~~%CTot.N.kg_m2,
   CSoil.min%~~%CTot.N.kg_m2,
@@ -1322,7 +1327,8 @@ Modlist.mecanistic2 <-   psem(
   CMAP.mm_yr%~~%Landuse,
   Landuse%~~%CSand,
   CSand%~~%CSandPOLY,
-  CLivestock%~~%CLivestockPOLY
+  CLivestock%~~%CLivestockPOLY,
+  CFire_frequency%~~%CFire_frequencyPOLY
 ) 
 
 summary(Modlist.mecanistic2,Total.Eco.C.CnoNA2) 
@@ -1385,14 +1391,8 @@ summary(Modlist.mecanistic2,Total.Eco.C.CnoNA2)
 ####  6: PLOTING  ####
 ##      6.1: Dung variables ####
 # Creating a variable for livestock dung per m2 
-names(Total.Eco.C.CnoNA2)
-Total.Eco.C.CnoNA2$livestock_m2 <- Total.Eco.C.CnoNA2$livestock/200
-Total.Eco.C.CnoNA2$wild_m2 <- Total.Eco.C.CnoNA2$wild/200
 
-summary(lm(AhorC.kg_m2~ratio, data=Belowground.full.CnoNA2))
-Total.Eco.C.CnoNA2$total.dung <- Total.Eco.C.CnoNA2$livestock+Total.Eco.C.CnoNA2$wild
-
-DungC <- lme(Soil.Ahor~ livestock + wild, random= ~ 1|Region.x,na.action=na.fail, method= "REML",data=Total.Eco.C.CnoNA2)
+DungC <- lme(Soil.Ahor~ Livestock + Wild, random= ~ 1|Region,na.action=na.fail, method= "REML",data=Total.Eco.C.CnoNA2)
 #DungC2 <- lme(Soil.Ahor~ total.dung, random= ~ 1|Region.x,na.action=na.fail, method= "REML",data=Total.Eco.C.CnoNA2)
 summary(DungC)
 #summary(DungC2)
@@ -1407,8 +1407,8 @@ summary(DungC)
 str(Belowground.full.CnoNA2)
 
 #A:Specify covariate values for predictions
-MyData <- expand.grid(livestock = seq(min(Total.Eco.C.CnoNA2$livestock), max(Total.Eco.C.CnoNA2$livestock)),
-                      wild = seq(min(Total.Eco.C.CnoNA2$wild), max(Total.Eco.C.CnoNA2$wild)))
+MyData <- expand.grid(livestock = seq(min(Total.Eco.C.CnoNA2$Livestock), max(Total.Eco.C.CnoNA2$Livestock)),
+                      wild = seq(min(Total.Eco.C.CnoNA2$Wild), max(Total.Eco.C.CnoNA2$Wild)))
 
 X <- model.matrix(~livestock + wild, data=MyData)
 head(X)
@@ -1452,10 +1452,10 @@ Livestock <- ggplot(data = Total.Eco.C.CnoNA2)
 
 Livestock + xlab(expression(paste("Livestock dung (counts 200 ", m^-2,")"))) +  ylab(expression(paste("A-horizon carbon (kg ", m^-2,")")))  +
   geom_ribbon(data=MyDataLiv,aes(x=livestock,ymin=SeLo,ymax=SeUp),fill="lightgoldenrod3",alpha=.50,lwd=FALSE,show.legend=FALSE)+
-  geom_line(data=MyDataLiv,aes(y=Soil.Ahor,x=livestock)) + 
-  geom_errorbar(aes(x = livestock,ymin=Soil.Ahor-SE.Soil.Ahor,ymax=Soil.Ahor+SE.Soil.Ahor),stat = "identity",width=1.3,lwd=0.5,show.legend=F) +
-  geom_point(aes(x =livestock,y = Soil.Ahor),size = 5, stroke=1.5, shape=21, fill="lightgoldenrod3") +
-  # scale_x_continuous(breaks=c(-30,-20,-10,0),labels=c(30,20,10,0))  +
+  geom_line(data=MyDataLiv,aes(y=Soil.Ahor,x=livestock)) +
+  #geom_errorbar(aes(x = Livestock,ymin=Soil.Ahor-SE.Soil.Ahor,ymax=Soil.Ahor+SE.Soil.Ahor),stat = "identity",width=1.3,lwd=0.5,show.legend=F) +
+  geom_point(aes(x =Livestock,y = Soil.Ahor),size = 5, stroke=1.5, shape=21, fill="lightgoldenrod3") +
+  scale_x_continuous(breaks=c(-30,-20,-10,0),labels=c(30,20,10,0))  +
   theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="transparent")
         ,plot.background=element_rect(fill="transparent",colour=NA)
@@ -1479,9 +1479,9 @@ Livestock + xlab(expression(paste("Livestock dung (counts 200 ", m^-2,")"))) +  
         ,strip.text.y = element_blank()
         ,panel.spacing = unit(.1, "lines"))
 
-ggsave("Ecosystem carbon/Figures/LivestockAhorNormal.png",
-       width= 15, height = 15,units ="cm",bg ="transparent",
-       dpi = 600, limitsize = TRUE)
+#ggsave("Ecosystem carbon/Figures/LivestockAhorNormal.png",
+#       width= 15, height = 15,units ="cm",bg ="transparent",
+#       dpi = 600, limitsize = TRUE)
 
 # Wild 
 Wild <- ggplot(data = Total.Eco.C.CnoNA2)
@@ -1489,8 +1489,8 @@ Wild <- ggplot(data = Total.Eco.C.CnoNA2)
 Wild + xlab(expression(paste("Wild dung (counts 200 ", m^-2,")"))) +  ylab(expression(paste("A-horizon carbon (kg ", m^-2,")")))  +
   geom_ribbon(data=MyDataWild,aes(x=wild,ymin=SeLo,ymax=SeUp),fill="tan2",alpha=.50,lwd=FALSE,show.legend=FALSE)+
   geom_line(data=MyDataWild,aes(y=Soil.Ahor,x=wild)) + 
-  geom_errorbar(aes(x=wild, ymin=Soil.Ahor-SE.Soil.Ahor,ymax=Soil.Ahor+SE.Soil.Ahor),stat = "identity",width=0.5,lwd=0.5,show.legend=F) +
-  geom_point(aes(x = wild,y = Soil.Ahor),size = 5, stroke=1.5, shape=21, fill="tan2")  +
+  #geom_errorbar(aes(x=wild, ymin=Soil.Ahor-SE.Soil.Ahor,ymax=Soil.Ahor+SE.Soil.Ahor),stat = "identity",width=0.5,lwd=0.5,show.legend=F) +
+  geom_point(aes(x = Wild,y = Soil.Ahor),size = 5, stroke=1.5, shape=21, fill="tan2")  +
   theme(rect = element_rect(fill ="transparent")
         ,panel.background=element_rect(fill="transparent")
         ,plot.background=element_rect(fill="transparent",colour=NA)
@@ -1514,9 +1514,9 @@ Wild + xlab(expression(paste("Wild dung (counts 200 ", m^-2,")"))) +  ylab(expre
         ,strip.text.y = element_blank()
         ,panel.spacing = unit(.1, "lines"))
 
-ggsave("Ecosystem carbon/Figures/WildAhor.png",
-       width= 15, height = 15,units ="cm",bg ="transparent",
-       dpi = 600, limitsize = TRUE)
+#ggsave("Ecosystem carbon/Figures/WildAhor.png",
+#       width= 15, height = 15,units ="cm",bg ="transparent",
+#       dpi = 600, limitsize = TRUE)
 
 
 ##      6.2: Importance #### 
