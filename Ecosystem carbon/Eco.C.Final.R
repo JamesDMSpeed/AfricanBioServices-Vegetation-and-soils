@@ -317,7 +317,7 @@ colnames(Belowground.full)[32] <- "Herbaceous"
 colnames(Belowground.full)[33] <- "Woody"
 colnames(Belowground.full)[34] <- "DW"
 
-#         3.1.2: Creating usefull datasets ####
+#### 3.1.2: Creating usefull datasets ####
 
 # Both above and belowground block
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
@@ -385,40 +385,41 @@ summary(Total.Eco.C)
 # But first rename some variables.. 
 colnames(Total.Eco.C) <- c("Block.ID","Region","Vilde.block","Landuse","MAP.mm_yr","Last.fire_yr","Fire_frequency","Clay","Silt","Sand","Tree.basal.area_m2","TreeBM.kg_m2","No.trees_m2","Mean.N.kg_m2.x","Soil.min","Livestock","Wild", "Total.dung","Tot.N.kg_m2","Herb_year.kg_m2","Roots.kg_m2","CMAP.mm_yr","CFire_frequency","CSand","CTreeBM.kg_m2","CTot.N.kg_m2","CLivestock","CWild","CTotal.dung","CHerb_year.kg_m2","CRoots.kg_m2","Herbaceous","CHerbaceous","Soil.Ahor", "Woody","DW","Tot.C.kg_m2","SE.Soil.Ahor","AhorN.kg_m2","MinN.kg_m2","CTot.C.kg_m2","CAhorN.kg_m2","CMinN.kg_m2","CSoil.min","CSoil.Ahor","CWoody","CDW")
 
-# Select only Makao, Maswa, Mwantimba, Handahega, Seronera
+# Select only Makao, Maswa, Mwantimba, Handahega - (drop Seronera)
 levels(Total.Eco.C$Region)
-Total.Eco.C.CnoNA<-droplevels(Total.Eco.C[Total.Eco.C$Region=="Makao" | Total.Eco.C$Region== "Maswa" | Total.Eco.C$Region== "Mwantimba" | Total.Eco.C$Region=="Handajega" |
-                    Total.Eco.C$Region== "Seronera",]) # Dropping Ikorongo and Park Nyigoti
+Total.Eco.C.CnoNA<-droplevels(Total.Eco.C[Total.Eco.C$Region=="Makao" | Total.Eco.C$Region== "Maswa" | Total.Eco.C$Region== "Mwantimba" | Total.Eco.C$Region=="Handajega" ,]) #|
+#                    Total.Eco.C$Region== "Seronera",]) # Dropping Ikorongo and Park Nyigoti
 
 # Seronera - block 4 lacks woody and root - average woody from other Seroneras + average roots Handajega
-HandajegaRoots<-droplevels(Total.Eco.C.CnoNA[Total.Eco.C.CnoNA$Region=="Handajega",]) 
-mean(HandajegaRoots$Roots.kg_m2) # 0.1801801
-mean(HandajegaRoots$CRoots.kg_m2) # -0.2056412
+#HandajegaRoots<-droplevels(Total.Eco.C.CnoNA[Total.Eco.C.CnoNA$Region=="Handajega",]) 
+#mean(HandajegaRoots$Roots.kg_m2) # 0.1801801
+#mean(HandajegaRoots$CRoots.kg_m2) # -0.2056412
 
-Seronera134<-droplevels(Total.Eco.C.CnoNA[Total.Eco.C.CnoNA$Block.ID=="17"  | Total.Eco.C.CnoNA$Block.ID=="18" | Total.Eco.C.CnoNA$Block.ID=="19"  | Total.Eco.C.CnoNA$Block.ID=="20"   ,])
-mean(Seronera134$Herb_year.kg_m2) #0.1144722
-mean(Seronera134$CHerb_year.kg_m2) # 0.4015829
+#Seronera134<-droplevels(Total.Eco.C.CnoNA[Total.Eco.C.CnoNA$Block.ID=="17"  | Total.Eco.C.CnoNA$Block.ID=="18" | Total.Eco.C.CnoNA$Block.ID=="19"  | Total.Eco.C.CnoNA$Block.ID=="20"   ,])
+#mean(Seronera134$Herb_year.kg_m2) #0.1144722
+#mean(Seronera134$CHerb_year.kg_m2) # 0.4015829
 
-Seronera13<-droplevels(Total.Eco.C.CnoNA[Total.Eco.C.CnoNA$Block.ID=="17"  | Total.Eco.C.CnoNA$Block.ID=="18" | Total.Eco.C.CnoNA$Block.ID=="19"   ,])
-mean(Seronera13$Woody) # 0.02024409
-mean(Seronera13$CWoody) #-0.3848206
+#Seronera13<-droplevels(Total.Eco.C.CnoNA[Total.Eco.C.CnoNA$Block.ID=="17"  | Total.Eco.C.CnoNA$Block.ID=="18" | Total.Eco.C.CnoNA$Block.ID=="19"   ,])
+#mean(Seronera13$Woody) # 0.02024409
+#mean(Seronera13$CWoody) #-0.3848206
 
-Seronera4<-droplevels(Total.Eco.C.CnoNA[Total.Eco.C.CnoNA$Block.ID=="20" ,]) # Seperates only block 4 Seronera
-Seronera4$Roots.kg_m2<-0.1801801
-Seronera4$CRoots.kg_m2<- -0.2056412
-Seronera4$Woody<-0.02024409
-Seronera4$CWoody<- -0.3848206 
-Seronera4$Herb_year.kg_m2<-0.1144722
-Seronera4$CHerb_year.kg_m2<-0.4015829
+#Seronera4<-droplevels(Total.Eco.C.CnoNA[Total.Eco.C.CnoNA$Block.ID=="20" ,]) # Seperates only block 4 Seronera
+#Seronera4$Roots.kg_m2<-0.1801801
+#Seronera4$CRoots.kg_m2<- -0.2056412
+#Seronera4$Woody<-0.02024409
+#Seronera4$CWoody<- -0.3848206 
+#Seronera4$Herb_year.kg_m2<-0.1144722
+#Seronera4$CHerb_year.kg_m2<-0.4015829
   
 #Seronera1234<-rbind(Seronera13,Seronera4)
 #Total.Eco.C.CnoNAS4<-droplevels(Total.Eco.C.CnoNA[!Total.Eco.C.CnoNA$Region=="Seronera" ,])
-Total.Eco.C.CnoNAS4<-droplevels(Total.Eco.C.CnoNA[!Total.Eco.C.CnoNA$Block.ID=="20" ,])
-Total.Eco.C.CnoNA1<-rbind(Total.Eco.C.CnoNAS4,Seronera4)
+#Total.Eco.C.CnoNAS4<-droplevels(Total.Eco.C.CnoNA[!Total.Eco.C.CnoNA$Block.ID=="20" ,])
+#Total.Eco.C.CnoNA1<-rbind(Total.Eco.C.CnoNAS4,Seronera4)
 
 summary(is.na(Total.Eco.C.CnoNA1))
-Total.Eco.C.CnoNA2<-droplevels(Total.Eco.C.CnoNA1[complete.cases(Total.Eco.C.CnoNA1[ , c("Livestock","Wild","Total.dung","Fire_frequency","Soil.Ahor","Soil.min","Herb_year.kg_m2","Woody","DW","Roots.kg_m2")]), ])
+Total.Eco.C.CnoNA2<-droplevels(Total.Eco.C.CnoNA[complete.cases(Total.Eco.C.CnoNA[ , c("Livestock","Wild","Total.dung","Fire_frequency","Soil.Ahor","Soil.min","Herb_year.kg_m2","Woody","DW","Roots.kg_m2")]), ])
 Total.Eco.C.CnoNA2$Region
+levels(as.factor(Total.Eco.C.CnoNA2$Block.ID)) # 16
 summary(is.na(Total.Eco.C.CnoNA2)) 
 
 # Remove Handajega with large woody C ?
@@ -594,7 +595,7 @@ X1 <- model.matrix(~Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLivestock+ #CTot.N
 X2<-chkRank.drop.cols(X1, kind= "warn+drop.cols")
 TrtList<-colnames(X1)
 TrtListRkreduced<-colnames(X2)
-setdiff(TrtList,TrtListRkreduced) # "CTotal.dung" 
+setdiff(TrtList,TrtListRkreduced) # "CTotal.dung" "CWoodyPOLY" 
 
 
 Ahor.block.full<-lmer(CSoil.Ahor~ Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLivestock+
@@ -632,60 +633,69 @@ modavgbelowA.full<-model.avg(modselbelowA.full)#Averages coefficient estimates a
 importance(modavgbelowA.full)#Importance of each variable
 confint.Ahor.full <- confint(modavgbelowA.full)
 coef.Ahor.full <- summary(modavgbelowA.full)$coefmat.subset
-Ahor.full <- cbind(coef.Ahor.full, confint.Ahor.full)
+Ahor.full <- as.data.frame(cbind(rownames(coef.Ahor.full),coef.Ahor.full, confint.Ahor.full))
+colnames(Ahor.full)[1]<-"Terms"
 
-# Reduced model based on variable importance (<0.10) and/or p-value (>0.10)
+#  Reduced model based on variable p-value (<0.05) 
+Ahor.Select<-droplevels(Ahor.full[Ahor.full$`Pr(>|z|)`<.05 | Ahor.full$Terms=="(Intercept)", ]) # selects p values <0.05 + intercept
+Ahor.fullImp<-as.data.frame(importance(modavgbelowA.full))
+Ahor.fullImp$Terms<-rownames(Ahor.fullImp)
+colnames(Ahor.fullImp)<-c("Importance","Terms")
+Ahor.ImpSelect<-Ahor.fullImp[Ahor.fullImp$Terms %in% Ahor.Select$Terms,]
 
-# Reduced model with Seronera...
-Ahor.blockS<-lmer(CSoil.Ahor~ Landuse+CSand+CDW+
-                        CSoil.min+CWild+CLivestock +
-                        (1|Region),data = Total.Eco.C.CnoNA2, 
-                        REML=F,na.action=na.fail)
-summary(Ahor.blockS) # Singularity effect - random factor is not explaining anything
-drop1(Ahor.blockS,test="Chisq") # CSand or CSandPoly
-plot(Soil.Ahor~Sand,Total.Eco.C.CnoNA2) # looks relatively linear use CSand
-AIC(Ahor.blockS) #14.32976
+write.table(Ahor.ImpSelect,file="Ecosystem carbon/Model_average/importanceAhor.txt")
+write.table(Ahor.Select, file="Ecosystem carbon/Model_average/ConAvgAhor.txt") 
 
-# Residual plot
-res <- simulateResiduals(Ahor.blockS, plot = T) # All Good! 
-
-# Model averaging: All possible models between null and global
-modsetbelowAS<-dredge(Ahor.blockS,trace = TRUE, rank = "AICc", REML = FALSE, subset=
-                        !(CLivestock & Landuse)
-                      &!(CSand & CWild)&!(CSand & CSoil.min))
-
-#Averaging terms
-modselbelowAS<-model.sel(modsetbelowAS) #Model selection table giving AIC, deltaAIC and weighting
-modavgbelowAS<-model.avg(modselbelowAS)#Averages coefficient estimates across multiple models according to the weigthing from above
-importance(modavgbelowAS)#Importance of each variable
-write.table(importance(modavgbelowAS),file="Ecosystem carbon/Model_average/importanceAhor.txt")
-confint.AhorS <- confint(modavgbelowAS)
-coef.AhorS <- summary(modavgbelowAS)$coefmat.subset
-AhorS <- cbind(coef.AhorS, confint.AhorS)
-write.table(AhorS, file="Ecosystem carbon/Model_average/ConAvgAhor.txt") 
-
-# No Seronera data - reduced model
-Ahor.block<-lmer(CSoil.Ahor~ Landuse+CSand+CLivestock+
-                   CWild+CHerb_year.kg_m2+
-                   CSoil.min+ #CSandPOLY+
+# No Seronera data - reduced model 
+Ahor.block<-lmer(CSoil.Ahor~ Landuse+CSand+
+                   CSoil.min+CWild+CLivestock +
                    (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
                  na.action=na.fail)
 
 summary(Ahor.block) # Singularity effect - random factor is not explaining anything
 drop1(Ahor.block,test="Chisq") # CSand or CSandPoly
 plot(Soil.Ahor~Sand,Total.Eco.C.CnoNA2) # looks relatively linear use CSand
-AIC(Ahor.block)
+AIC(Ahor.block) #16.11399
+
+# Residual plot
+res <- simulateResiduals(Ahor.blockS, plot = T) # OK - convergence issues
+
+# Reduced model with Seronera...
+#Ahor.blockS<-lmer(CSoil.Ahor~ Landuse+CSand+CDW+
+#                        CSoil.min+CWild+CLivestock +
+#                        (1|Region),data = Total.Eco.C.CnoNA2, 
+#                        REML=F,na.action=na.fail)
+#summary(Ahor.blockS) # Singularity effect - random factor is not explaining anything
+#drop1(Ahor.blockS,test="Chisq") # CSand or CSandPoly
+#plot(Soil.Ahor~Sand,Total.Eco.C.CnoNA2) # looks relatively linear use CSand
+#plot(Soil.Ahor~CLivestock,Total.Eco.C.CnoNA2) #
+#AIC(Ahor.blockS) #14.52493
 
 # Model averaging: All possible models between null and global
-modsetbelowA<-dredge(Ahor.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=
-                       !(CLivestock & Landuse)
-                     &!(CSand & CLivestock)&!(CSand & CWild)
-                     &!(CSand & CSoil.min))
+#modsetbelowAS<-dredge(Ahor.blockS,trace = TRUE, rank = "AICc", REML = FALSE, subset=
+#                        !(CLivestock & Landuse)
+#                      &!(CSand & CWild)&!(CSand & CSoil.min))
 
 #Averaging terms
-modselbelowA<-model.sel(modsetbelowA) #Model selection table giving AIC, deltaAIC and weighting
-modavgbelowA<-model.avg(modselbelowA)#Averages coefficient estimates across multiple models according to the weigthing from above
-importance(modavgbelowA)#Importance of each variable
+#modselbelowAS<-model.sel(modsetbelowAS) #Model selection table giving AIC, deltaAIC and weighting
+#modavgbelowAS<-model.avg(modselbelowAS)#Averages coefficient estimates across multiple models according to the weigthing from above
+#importance(modavgbelowAS)#Importance of each variable
+#write.table(importance(modavgbelowAS),file="Ecosystem carbon/Model_average/importanceAhor.txt")
+#confint.AhorS <- confint(modavgbelowAS)
+#coef.AhorS <- summary(modavgbelowAS)$coefmat.subset
+#AhorS <- cbind(coef.AhorS, confint.AhorS)
+#write.table(AhorS, file="Ecosystem carbon/Model_average/ConAvgAhor.txt") 
+
+# Model averaging: All possible models between null and global
+#modsetbelowA<-dredge(Ahor.block,trace = TRUE, rank = "AICc", REML = FALSE, subset=
+#                       !(CLivestock & Landuse)
+#                     &!(CSand & CLivestock)&!(CSand & CWild)
+#                     &!(CSand & CSoil.min))
+
+#Averaging terms
+#modselbelowA<-model.sel(modsetbelowA) #Model selection table giving AIC, deltaAIC and weighting
+#modavgbelowA<-model.avg(modselbelowA)#Averages coefficient estimates across multiple models according to the weigthing from above
+#importance(modavgbelowA)#Importance of each variable
 
 ##      4.2. Global model for Mineral hor C  ####
 Min.block.full<-lmer(CSoil.min~ Landuse+CMAP.mm_yr+CFire_frequency+CSand+CLivestock+ # CTot.N.kg_m2        
@@ -722,9 +732,31 @@ modavgbelowM.full<-model.avg(modselbelowM.full)#Averages coefficient estimates a
 importance(modavgbelowM.full)#Importance of each variable
 confint.Minhor.full <- confint(modavgbelowM.full)
 coef.Minhor.full <- summary(modavgbelowM.full)$coefmat.subset
-Minhor.full <- cbind(coef.Minhor.full, confint.Minhor.full)
+Minhor.full  <- as.data.frame(cbind(rownames(coef.Minhor.full ),coef.Minhor.full , confint.Minhor.full ))
+colnames(Minhor.full)[1]<-"Terms"
 
-# Reduced model based on variable importance (<0.10) or p-value (>0.10), excluding one if both poly and normal appear. 
+#  Reduced model based on variable p-value (<0.05) 
+Minhor.Select<-droplevels(Minhor.full[Minhor.full$`Pr(>|z|)`<.05 | Ahor.full$Terms=="(Intercept)", ]) 
+
+Minhor.fullImp<-as.data.frame(importance(modavgbelowM.full))
+Ahor.fullImp$Terms<-rownames(Ahor.fullImp)
+colnames(Ahor.fullImp)<-c("Importance","Terms")
+Ahor.ImpSelect<-Ahor.fullImp[Ahor.fullImp$Terms %in% Ahor.Select$Terms,]
+
+# Reduce model without Seronera...
+Min.block<-lmer(CSoil.min~ Landuse+CSand+       
+                  CHerb_year.kg_m2+CRoots.kg_m2+
+                  CSoil.Ahor+
+                  (1|Region),data = Total.Eco.C.CnoNA2, REML=F,
+                na.action=na.fail)
+
+summary(Min.block) # Singular fit again - 
+drop1(Min.block,test="Chisq") # MAP,Fire,N,TreeBM
+anova(Min.block)
+AIC(Min.block)
+
+
+
 
 # Reduced model with Seronera...
 Min.blockS<-lmer(CSoil.min~ CSoil.Ahor+CRoots.kg_m2+CSand+CWoodyPOLY+
@@ -1575,6 +1607,7 @@ rownames(importance.W) <- (c("FirePOLY","Livestock","Sand","Nitrogen","Land-use"
 col.Ahor <- c("darkgray","burlywood","darkkhaki","bisque4","burlywood4","gray19")
 #png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.AhorFull.png")
 par(mar=c(5,14,1,2))
+#<-barplot(t(as.matrix(importance.Ahor)), horiz=T,las=1,xlab='Relative variable importance',main='Soil A-horizon Carbon',axisname=T,col=col.Ahor,beside=T,cex.main = 1,cex.axis=2,cex.lab=1,cex.names=2)
 barplot(t(as.matrix(importance.Ahor)), horiz=T,las=1,xlab='Relative variable importance',main='Soil A-horizon Carbon',axisname=T,col=col.Ahor,beside=T,cex.main = 1,cex.axis=2,cex.lab=1,cex.names=2)
 dev.off()
 
