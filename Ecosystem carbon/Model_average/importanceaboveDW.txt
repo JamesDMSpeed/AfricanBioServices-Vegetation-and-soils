@@ -1,5 +1,2 @@
-"x"
-"CHerb_year.kg_m2" 0.558615827161062
-"Landuse" 0.241894538048907
-"CWild" 0.143468906402281
-"CLivestockPOLY" 0.13962976917193
+"Importance" "Terms"
+"CHerb_year.kg_m2" 0.362274902206394 "CHerb_year.kg_m2"

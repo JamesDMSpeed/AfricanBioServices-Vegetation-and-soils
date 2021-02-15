@@ -1,7 +1,6 @@
-"x"
-"CFire_frequencyPOLY" 0.99987008199617
-"CLivestock" 0.713536098867273
-"CSand" 0.604581231910731
-"CTot.N.kg_m2" 0.105991392775995
-"Landuse" 0.10049961338358
-"CHerb_year.kg_m2" 0.000108330529995761
+"Importance" "Terms"
+"CFire_frequencyPOLY" 0.97694900666203 "CFire_frequencyPOLY"
+"CLivestock" 0.359626001123356 "CLivestock"
+"CSand" 0.262238813360243 "CSand"
+"CTot.N.kg_m2" 0.21676353549606 "CTot.N.kg_m2"
+"CHerb_year.kg_m2" 0.000104127938703597 "CHerb_year.kg_m2"
