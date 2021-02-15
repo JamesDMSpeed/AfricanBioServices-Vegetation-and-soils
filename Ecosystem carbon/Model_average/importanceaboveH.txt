@@ -4,3 +4,4 @@
 "CFire_frequencyPOLY" 0.321862513507841 "CFire_frequencyPOLY"
 "CTot.N.kg_m2" 0.221292888320504 "CTot.N.kg_m2"
 "CWoody" 0.153145363378962 "CWoody"
+"CLivestock" 0.139691672279386 "CLivestock"

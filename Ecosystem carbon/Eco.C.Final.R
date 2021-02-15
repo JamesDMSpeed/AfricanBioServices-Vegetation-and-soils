@@ -7,7 +7,6 @@ library(dplyr)
 #library("Hmisc") # For the correlation plot 
 library(ggplot2)
 #library(lattice) # xy.plot
-
 library(nlme)
 library(lme4)
 library(glmmADMB) 
@@ -854,7 +853,7 @@ Herb.Select<-droplevels(Herb.full[Herb.full$`Pr(>|z|)`<.05 | Herb.full$Terms=="(
 Herb.fullImp<-as.data.frame(importance(modavgHerb.full))
 Herb.fullImp$Terms<-rownames(Herb.fullImp)
 colnames(Herb.fullImp)<-c("Importance","Terms")
-Herb.ImpSelect<-Herb.fullImp[Herb.fullImp$Terms %in% Herb.Select$Terms,]
+Herb.ImpSelect<-Herb.fullImp[Herb.fullImp$Terms %in% Herb.Select$Terms | Herb.fullImp$Terms=="CLivestock",]
 # CTotal.dung not found in importance, but significant thus low importance? 
 # Livestock is marginal i.e. 0.06 and this of course strongly correlates with total dung
 
@@ -1031,7 +1030,10 @@ woody.Select<-droplevels(woody.full[woody.full$`Pr(>|z|)`<.05 | woody.full$Terms
 woody.fullImp<-as.data.frame(importance(modavgWoody.full))
 woody.fullImp$Terms<-rownames(woody.fullImp)
 colnames(woody.fullImp)<-c("Importance","Terms")
-woody.ImpSelect<-woody.fullImp[woody.fullImp$Terms %in% woody.Select$Terms,] # Total Dung not present again in importance
+woody.ImpSelect<-woody.fullImp[woody.fullImp$Terms %in% woody.Select$Terms | woody.fullImp$Terms=="CLivestock",] # Total Dung not present again in importance
+TotDungWood<-droplevels(woody.fullImp[woody.fullImp$Terms=="CLivestock",])
+TotDungWood$Terms<-"CTotal.dung"
+woody.ImpSelect<-rbind(woody.ImpSelect,TotDungWood)
 
 write.table(woody.ImpSelect,file="Ecosystem carbon/Model_average/importanceaboveW.txt")
 write.table(woody.Select, file="Ecosystem carbon/Model_average/ConAvgW.txt") 
@@ -1583,9 +1585,7 @@ Wild + xlab(expression(paste("Wild dung (counts 200 ", m^-2,")"))) +  ylab(expre
 #       width= 15, height = 15,units ="cm",bg ="transparent",
 #       dpi = 600, limitsize = TRUE)
 
-
 ##      6.2: Importance #### 
-par(mfrow=c(1,1))
 importance.Ahor<- read.table("Ecosystem carbon/Model_average/importanceAhor.txt")
 importance.Minhor<- read.table("Ecosystem carbon/Model_average/importanceMinhor.txt")
 importance.Roots<- read.table("Ecosystem carbon/Model_average/importanceRoots.txt")
@@ -1602,25 +1602,27 @@ importance.W<- read.table("Ecosystem carbon/Model_average/importanceaboveW.txt")
 #importance.MinHor.dung<- read.table("Ecosystem carbon/importanceMinHorDung.txt")
 
 # I now have all my importance variables 
-colnames(importance.Ahor)<-'Ahor'
-colnames(importance.Minhor)<-'MinHor'
-colnames(importance.Roots)<-'Roots'
-colnames(importance.H)<-'Herbs'
-colnames(importance.DW)<-'DW'
-colnames(importance.W)<-'Woody'
+colnames(importance.Ahor)<-c('importance','Terms')
+colnames(importance.Minhor)<-c('importance','Terms')
+colnames(importance.Roots)<-c('importance','Terms')
+colnames(importance.H)<-c('importance','Terms')
+colnames(importance.DW)<-c('importance','Terms')
+colnames(importance.W)<-c('importance','Terms')
 
-rownames(importance.Ahor) <- (c("Sand","Land-use","Dead wood","Soil min","Livestock","Wild"))
-
-rownames(importance.Minhor) <- (c("Surface soil","Roots","Sand","Dead wood","Herbaceous","Land-use","WoodyPOLY"))
-
-rownames(importance.Roots) <- (c("Land-use","MAP","Total dung","Nitrogen","Soil min","SandPOLY","Dead wood"))
-
-rownames(importance.H) <- (c("Fire frequency","Dead wood","MAP","Land-use","Livestock","Nitrogen","Woody", "Sand"))
-
-rownames(importance.DW) <- (c("Herbaceous","Land-use","Wild","LivestockPOLY"))
-
-rownames(importance.W) <- (c("FirePOLY","Livestock","Sand","Nitrogen","Land-use","Herbaceous"))
-
+#Standardize terms
+rownames(importance.Ahor) <- (c("Sand","Soil mineral","Wild","Livestock"))
+importance.Ahor$Terms<- (c("Sand","Soil mineral","Wild","Livestock"))
+rownames(importance.Minhor) <- (c("Soil surface","Sand"))
+importance.Minhor$Terms <- (c("Soil surface","Sand"))
+rownames(importance.Roots) <- (c("Rainfall","Land-use","SandPOLY","Livestock"))
+importance.Roots$Terms <- (c("Rainfall","Land-use","SandPOLY","Livestock"))
+rownames(importance.H) <- (c("Dead wood","Rainfall","Fire frequencyPOLY","Soil nitrogen","Woody", "Total herbivore")) # ISSUSE - Total Dung missing
+importance.H$Terms<- (c("Dead wood","Rainfall","Fire frequencyPOLY","Soil nitrogen","Woody", "Total herbivore")) 
+rownames(importance.DW) <- (c("Herbaceous"))
+importance.DW$Terms <- (c("Herbaceous"))
+rownames(importance.W) <- (c("Fire frequencyPOLY","Livestock","Sand","Soil nitrogen","Herbaceous","Total herbivore")) # ISSUSE - Total Dung missing
+importance.W$Terms <- (c("Fire frequencyPOLY","Livestock","Sand","Soil nitrogen","Herbaceous","Total herbivore"))
+  
 # Colours 
 # Fire: darkorange3
 # Landuse: burlywood, 
@@ -1635,49 +1637,105 @@ rownames(importance.W) <- (c("FirePOLY","Livestock","Sand","Nitrogen","Land-use"
 # Min-hor: bisque4, 
 # A-hor: saddlebrown, 
 # Roots: peru
+# Total dung: chocolate4
 
-# Plot A-hor Full
-col.Ahor <- c("darkgray","burlywood","darkkhaki","bisque4","burlywood4","gray19")
-#png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.AhorFull.png")
-par(mar=c(5,14,1,2))
-#<-barplot(t(as.matrix(importance.Ahor)), horiz=T,las=1,xlab='Relative variable importance',main='Soil A-horizon Carbon',axisname=T,col=col.Ahor,beside=T,cex.main = 1,cex.axis=2,cex.lab=1,cex.names=2)
-barplot(t(as.matrix(importance.Ahor)), horiz=T,las=1,xlab='Relative variable importance',main='Soil A-horizon Carbon',axisname=T,col=col.Ahor,beside=T,cex.main = 1,cex.axis=2,cex.lab=1,cex.names=2)
-dev.off()
+# Merge terms and colours
+#importance.Ahor<-merge(importance.Ahor,TermsCols, by=c("Terms"))
+#importance.Minhor<-merge(importance.Minhor,TermsCols, by=c("Terms"))
+#importance.Roots<-merge(importance.Roots,TermsCols, by=c("Terms"))
+#importance.H<-merge(importance.H,TermsCols, by=c("Terms"))
+#importance.DW<-merge(importance.DW,TermsCols, by=c("Terms"))
+#importance.W<-merge(importance.W,TermsCols, by=c("Terms"))
 
-# Plot Min-hor FULL
-col.min <- c("saddlebrown","peru","darkgray","darkkhaki","darkolivegreen4","burlywood","darkolivegreen")
-#png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.MinhorFull.png")
-par(mar=c(5,14,1,2))
-barplot(t(as.matrix(importance.Minhor)), horiz=T,las=1,xlab='Relative variable importance',main='Soil Mineral-horizon Carbon',cex.main = 1,axisname=T,col= col.min,beside=T,cex.axis=2,cex.lab=1,cex.names=2)
-dev.off()
+# Model names
+importance.Ahor$model<-"Soil surface"
+importance.Minhor$model<-"Soil mineral"
+importance.Roots$model<-"Roots"
+importance.H$model<-"Herbaceous"
+importance.DW$model<-"Dead wood"
+importance.W$model<-"Woody"
 
-# Plot Herb 
-col.herb <- c("darkorange3","darkkhaki","deepskyblue4","burlywood","gray19","floralwhite","darkolivegreen","darkgray")
-#png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.Herb.png")
-par(mar=c(5,13,1,1))
-barplot(t(as.matrix(importance.H)), horiz=T,las=1,xlab='Relative variable importance',main='Herbaceous Carbon',cex.main = 1,axisname=T,col=col.herb,beside=T,cex.axis=2,cex.lab=1,cex.names=2)
-dev.off()
+ModelImp<-rbind(importance.Ahor,importance.Minhor,importance.Roots,importance.H,importance.DW,importance.W)
 
-# Plot DW 
-col.DW <- c("darkolivegreen4","burlywood","gray19","burlywood4")
-#png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.DW.png")
-par(mar=c(5,13,1,1))
-barplot(t(as.matrix(importance.DW)), horiz=T,las=1,xlab='Relative variable importance',main='Dead Wood Carbon',cex.main = 1,axisname=T,col=col.DW,beside=T,cex.axis=2,cex.lab=1,cex.names=2)
-dev.off()
+#Colours
+Terms <- c("Fire frequency","Fire frequencyPOLY", "Land-use", "Livestock", "Wild", "Herbaceous", "Woody",
+           "Dead wood", "Sand", "SandPOLY", "Soil nitrogen", "Rainfall", "Soil mineral", "Soil surface",
+           "Roots", "Total herbivore")
+colour_code<-c("darkorange3","darkorange3","burlywood","burlywood4","gray19","darkolivegreen4","darkolivegreen",
+               "darkkhaki","darkgray", "darkgray","floralwhite", "deepskyblue4", "bisque4","saddlebrown", 
+               "peru", "chocolate4")
+TermsCols<-data.frame(Terms,colour_code)
+TermsCols <- distinct(TermsCols, Terms, colour_code)
+pal <- TermsCols$colour_code
+names(pal)<- TermsCols$Terms
 
-#Plot Woody
-col.W <- c("darkorange3","burlywood4","darkgray","floralwhite","burlywood","darkolivegreen4")
-#png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.Woody.outl.png")
-par(mar=c(5,13,1,1))
-barplot(t(as.matrix(importance.W)),horiz=T,las=1,xlab='Relative variable importance',main='Woody Carbon',cex.main = 1,axisname=T,col=col.W,beside=T,cex.axis=2,cex.lab=1,cex.names=2)
-dev.off()
+# Model importance
+library(tidytext)
+library(wbstats)
+library(scales)
+library(forcats)
+#ModelImp<-ModelImp %>% group_by(model) %>% ungroup %>%
+#  mutate(reorder2 = reorder_within(Terms,importance,model)) %>% 
+#  arrange(model, reorder2) %>%
+#  mutate(order = row_number())%>% print(n=40)
+#ModelImp$reorder2<-as.character(ModelImp$reorder2)
+#words<-strsplit(ModelImp$reorder2,"___")
+#ModelImp$reorder2<-sapply(words, "[", 1)
 
-#Plot Roots
-col.roots <- c("burlywood","deepskyblue4","gray25","floralwhite","bisque4","darkgray","darkkhaki")
-#png(filename = "Ecosystem carbon/Figures/Fig.thesis/imp.Roots.png")
-par(mar=c(5,13,1,1))
-barplot(t(as.matrix(importance.Roots)),horiz=T,las=1,xlab='Relative variable importance',main='Roots Carbon',cex.main = 1,axisname=T,col=col.roots,beside=T,cex.axis=2,cex.lab=1,cex.names=2)
-dev.off()
+ModelImp$model<-as.factor(ModelImp$model)
+levels(ModelImp$model)<-c("Dead \n wood","Herbaceous \n","Roots \n","Soil \n mineral","Soil \n surface","Woody \n")
+ModelImp$model<- factor(ModelImp$model, levels = c("Herbaceous \n","Woody \n","Dead \n wood","Roots \n","Soil \n surface","Soil \n mineral"))
+
+# Importance plot
+# https://stackoverflow.com/questions/52214071/how-to-order-data-by-value-within-ggplot-facets
+# https://trinkerrstuff.wordpress.com/2016/12/23/ordering-categories-within-ggplot2-facets/
+
+#ModelImp %>% 
+#  mutate(Terms = reorder(Terms,importance)) %>%
+#  group_by(model, Terms) %>% 
+#  arrange(importance) %>% 
+#  ungroup() %>% 
+#  mutate(Terms = factor(paste(Terms, model, sep = "__"), 
+#                       levels = rev(paste(Terms, model, sep = "__")))) %>%
+#  ggplot(aes(x=Terms,y=importance, col=Terms, fill=Terms)) +
+#  geom_col(width = 0.75, position = position_dodge2(width = 0.8),show.legend=F)+
+#  scale_x_discrete(labels = function(x) gsub("__.+$", "", x)) +
+#  facet_grid(rows = vars(model), scales = "free_y", switch = "y", space = "free_y") +
+#coord_flip() 
+
+ModImpPlot<-ggplot(ModelImp,aes(x=reorder_within(Terms, -importance, model),y=importance, fill=Terms))
+ModImpPlot<-ModImpPlot+geom_col(col="black",lwd=.25,width = 0.75, position = position_dodge2(width = 0.8),show.legend=F)
+ModImpPlot<-ModImpPlot+scale_fill_manual(values=pal)
+ModImpPlot<-ModImpPlot+scale_colour_manual(values=pal)
+ModImpPlot<-ModImpPlot+xlab("Terms")+ylab("Relative variable importance")
+ModImpPlot<-ModImpPlot+scale_x_discrete(labels = function(x) gsub("__.+$", "", x), expand=c(0,0))
+ModImpPlot<-ModImpPlot+scale_y_continuous(limits=c(0,1), expand=c(0,0))
+ModImpPlot<-ModImpPlot+facet_grid(rows=vars(model), scale="free_y",space="free",switch = "y")#
+#ModImpPlot<-ModImpPlot+facet_wrap(~model, scale="free_y",ncol=1)#
+ModImpPlot<-ModImpPlot+coord_flip()
+ModImpPlot<-ModImpPlot+ggtitle("(a) Model importance")
+ModImpPlot<-ModImpPlot+theme_classic()
+ModImpPlot<-ModImpPlot+theme(
+  panel.spacing.y = unit(1.4, "lines"),
+  plot.margin = margin(0.5, 0.5, 0.5, 0.5, unit = "cm"),
+  plot.title = element_text(size = 15, face = "bold"), 
+  strip.background = element_blank(),
+  strip.text.y = element_text(size = 12, angle = 270, face = "bold"),
+  strip.placement = "outside",
+  axis.title.x = element_text(size = 12, margin = margin(t = 0.5, b = 0.5, unit = "cm")),
+  axis.title.y = element_blank(),
+  axis.text = element_text(size = 12),
+  legend.position = "none",
+  panel.grid.major.y = element_blank(),
+  axis.text.x=element_text(size=12,color="black",margin=margin(2.5,2.5,2.5,2.5,"mm")),
+  axis.ticks.y=element_blank(),
+  axis.ticks.length=unit(-1.5, "mm"),
+  axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm")),
+  axis.text.y.right =element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+)
+ModImpPlot
+
+ggsave("Ecosystem carbon/Figures/Model_importances.jpeg", scale=1,width= 20, height = 28,units ="cm",bg ="transparent", dpi = 800, limitsize = TRUE)#,compression = "lzw")
 
 ##      6.3: Variable coefficients from model averages ####
 con.avg.Ahor<- read.table("Ecosystem carbon/Model_average/ConAvgAhor.txt")
@@ -1686,6 +1744,33 @@ con.avg.H<- read.table("Ecosystem carbon/Model_average/ConAvgH.txt")
 con.avg.DW<- read.table("Ecosystem carbon/Model_average/ConAvgDW.txt")
 con.avg.W<- read.table("Ecosystem carbon/Model_average/ConAvgW.txt")
 con.avg.Roots<- read.table("Ecosystem carbon/Model_average/ConAvgRoots.txt")
+
+#Standardize terms
+rownames(con.avg.Ahor) <- (c("Intercept","Sand","Landuse","Soil mineral","Livestock","Wild"))
+con.avg.Ahor$Terms <- (c("Intercept","Sand","Landuse","Soil mineral","Livestock","Wild"))
+rownames(importance.Minhor) <- (c("Soil surface","Sand"))
+importance.Minhor$Terms <- (c("Soil surface","Sand"))
+rownames(importance.Roots) <- (c("Rainfall","Land-use","SandPOLY","Livestock"))
+importance.Roots$Terms <- (c("Rainfall","Land-use","SandPOLY","Livestock"))
+rownames(importance.H) <- (c("Dead wood","Rainfall","Fire frequencyPOLY","Soil nitrogen","Woody", "Total herbivore")) # ISSUSE - Total Dung missing
+importance.H$Terms<- (c("Dead wood","Rainfall","Fire frequencyPOLY","Soil nitrogen","Woody", "Total herbivore")) 
+rownames(importance.DW) <- (c("Herbaceous"))
+importance.DW$Terms <- (c("Herbaceous"))
+rownames(importance.W) <- (c("Fire frequencyPOLY","Livestock","Sand","Soil nitrogen","Herbaceous","Total herbivore")) # ISSUSE - Total Dung missing
+importance.W$Terms <- (c("Fire frequencyPOLY","Livestock","Sand","Soil nitrogen","Herbaceous","Total herbivore"))
+
+
+
+# Model names
+con.avg.Ahor$model<-"Soil surface"
+con.avg.Minhor$model<-"Soil mineral"
+con.avg.Roots$model<-"Roots"
+con.avg.H$model<-"Herbaceous"
+con.avg.DW$model<-"Dead wood"
+con.avg.W$model<-"Woody"
+
+ModelImp<-rbind(importance.Ahor,importance.Minhor,importance.Roots,importance.H,importance.DW,importance.W)
+
 
 #Reorder rows
 rownames(con.avg.Ahor)
@@ -1706,12 +1791,6 @@ con.avg.Roots <- con.avg.Roots[c(-1),]
 
 # Add SD, rather use 95 % confint
 # con.avg.AhorFull$SD <- con.avg.AhorFull$Std..Error * sqrt(length(con.avg.AhorFull$Std..Error))
-# con.avg.MinHorFull$SD <- con.avg.MinHorFull$Std..Error * sqrt(length(con.avg.MinHorFull$Std..Error))
-# con.avg.H$SD <- con.avg.H$Std..Error * sqrt(length(con.avg.H$Std..Error))
-# con.avg.DW$SD <- con.avg.DW$Std..Error * sqrt(length(con.avg.DW$Std..Error))
-# con.avg.W$SD <- con.avg.W$Std..Error * sqrt(length(con.avg.W$Std..Error))
-# con.avg.Ahor.dung$SD <- con.avg.Ahor.dung$Std..Error * sqrt(length(con.avg.Ahor.dung$Std..Error))
-# con.avg.MinHor.dung$SD <- con.avg.MinHor.dung$Std..Error * sqrt(length(con.avg.MinHor.dung$Std..Error))
 
 # Add Significance 
 con.avg.Ahor$sign <- con.avg.Ahor$Pr...z..

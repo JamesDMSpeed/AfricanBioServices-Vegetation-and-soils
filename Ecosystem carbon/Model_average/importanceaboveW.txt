@@ -4,3 +4,4 @@
 "CSand" 0.262238813360243 "CSand"
 "CTot.N.kg_m2" 0.21676353549606 "CTot.N.kg_m2"
 "CHerb_year.kg_m2" 0.000104127938703597 "CHerb_year.kg_m2"
+"CLivestock1" 0.359626001123356 "CTotal.dung"
