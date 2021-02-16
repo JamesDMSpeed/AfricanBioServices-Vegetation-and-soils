@@ -1674,6 +1674,7 @@ library(tidytext)
 library(wbstats)
 library(scales)
 library(forcats)
+library(lemon)
 #ModelImp<-ModelImp %>% group_by(model) %>% ungroup %>%
 #  mutate(reorder2 = reorder_within(Terms,importance,model)) %>% 
 #  arrange(model, reorder2) %>%
@@ -1709,7 +1710,7 @@ ModImpPlot<-ModImpPlot+scale_fill_manual(values=pal)
 ModImpPlot<-ModImpPlot+xlab("Terms")+ylab("Relative variable importance")
 ModImpPlot<-ModImpPlot+scale_x_discrete(labels = function(x) gsub("__.+$", "", x), expand=c(0,0))
 ModImpPlot<-ModImpPlot+scale_y_continuous(limits=c(0,1), expand=c(0,0))
-ModImpPlot<-ModImpPlot+facet_grid(rows=vars(model), scale="free_y",space="free",switch = "y")#
+ModImpPlot<-ModImpPlot+facet_rep_grid(rows=vars(model), scale="free_y",space="free",switch = "y",repeat.tick.labels = FALSE)#
 #ModImpPlot<-ModImpPlot+facet_wrap(~model, scale="free_y",ncol=1)#
 ModImpPlot<-ModImpPlot+coord_flip()
 ModImpPlot<-ModImpPlot+ggtitle("(a) Model importance")
@@ -1787,7 +1788,7 @@ ModConPlot<-ModConPlot+scale_fill_manual(values=pal)
 ModConPlot<-ModConPlot+xlab("Terms")+ylab("Coefficent")
 ModConPlot<-ModConPlot+scale_x_discrete(labels = function(x) gsub("__.+$", "", x), expand=c(0,0))
 ModConPlot<-ModConPlot+scale_y_continuous(limits=c(-2.5,2), expand=c(0,0))
-ModConPlot<-ModConPlot+facet_grid(rows=vars(model), scale="free_y",space="free",switch = "y")#
+ModConPlot<-ModConPlot+facet_rep_grid(rows=vars(model), scale="free_y",space="free",switch = "y",repeat.tick.labels=F)#
 #ModImpPlot<-ModImpPlot+facet_wrap(~model, scale="free_y",ncol=1)#
 ModConPlot<-ModConPlot+coord_flip()
 ModConPlot<-ModConPlot+ggtitle("(b) Model coefficients")
