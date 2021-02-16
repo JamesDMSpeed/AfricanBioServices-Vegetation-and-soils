@@ -1686,7 +1686,7 @@ ModelImp$model<-as.factor(ModelImp$model)
 levels(ModelImp$model)<-c("Dead \n wood","Herbaceous \n","Roots \n","Soil \n mineral","Soil \n surface","Woody \n")
 ModelImp$model<- factor(ModelImp$model, levels = c("Herbaceous \n","Woody \n","Dead \n wood","Roots \n","Soil \n surface","Soil \n mineral"))
 
-# Importance plot
+##### Model importance plot ####
 # https://stackoverflow.com/questions/52214071/how-to-order-data-by-value-within-ggplot-facets
 # https://trinkerrstuff.wordpress.com/2016/12/23/ordering-categories-within-ggplot2-facets/
 
@@ -1706,7 +1706,6 @@ ModelImp$model<- factor(ModelImp$model, levels = c("Herbaceous \n","Woody \n","D
 ModImpPlot<-ggplot(ModelImp,aes(x=reorder_within(Terms, -importance, model),y=importance, fill=Terms))
 ModImpPlot<-ModImpPlot+geom_col(col="black",lwd=.25,width = 0.75, position = position_dodge2(width = 0.8),show.legend=F)
 ModImpPlot<-ModImpPlot+scale_fill_manual(values=pal)
-ModImpPlot<-ModImpPlot+scale_colour_manual(values=pal)
 ModImpPlot<-ModImpPlot+xlab("Terms")+ylab("Relative variable importance")
 ModImpPlot<-ModImpPlot+scale_x_discrete(labels = function(x) gsub("__.+$", "", x), expand=c(0,0))
 ModImpPlot<-ModImpPlot+scale_y_continuous(limits=c(0,1), expand=c(0,0))
@@ -1735,7 +1734,7 @@ ModImpPlot<-ModImpPlot+theme(
 )
 ModImpPlot
 
-ggsave("Ecosystem carbon/Figures/Model_importances.jpeg", scale=1,width= 20, height = 28,units ="cm",bg ="transparent", dpi = 800, limitsize = TRUE)#,compression = "lzw")
+#ggsave("Ecosystem carbon/Figures/Model_importances.jpeg", scale=1,width= 20, height = 28,units ="cm",bg ="transparent", dpi = 800, limitsize = TRUE)#,compression = "lzw")
 
 ##      6.3: Variable coefficients from model averages ####
 con.avg.Ahor<- read.table("Ecosystem carbon/Model_average/ConAvgAhor.txt")
@@ -1748,18 +1747,16 @@ con.avg.Roots<- read.table("Ecosystem carbon/Model_average/ConAvgRoots.txt")
 #Standardize terms
 rownames(con.avg.Ahor) <- (c("Intercept","Sand","Landuse","Soil mineral","Livestock","Wild"))
 con.avg.Ahor$Terms <- (c("Intercept","Sand","Landuse","Soil mineral","Livestock","Wild"))
-rownames(importance.Minhor) <- (c("Soil surface","Sand"))
-importance.Minhor$Terms <- (c("Soil surface","Sand"))
-rownames(importance.Roots) <- (c("Rainfall","Land-use","SandPOLY","Livestock"))
-importance.Roots$Terms <- (c("Rainfall","Land-use","SandPOLY","Livestock"))
-rownames(importance.H) <- (c("Dead wood","Rainfall","Fire frequencyPOLY","Soil nitrogen","Woody", "Total herbivore")) # ISSUSE - Total Dung missing
-importance.H$Terms<- (c("Dead wood","Rainfall","Fire frequencyPOLY","Soil nitrogen","Woody", "Total herbivore")) 
-rownames(importance.DW) <- (c("Herbaceous"))
-importance.DW$Terms <- (c("Herbaceous"))
-rownames(importance.W) <- (c("Fire frequencyPOLY","Livestock","Sand","Soil nitrogen","Herbaceous","Total herbivore")) # ISSUSE - Total Dung missing
-importance.W$Terms <- (c("Fire frequencyPOLY","Livestock","Sand","Soil nitrogen","Herbaceous","Total herbivore"))
-
-
+rownames(con.avg.Minhor) <- (c("Intercept","Soil surface","Sand"))
+con.avg.Minhor$Terms <- (c("Intercept","Soil surface","Sand"))
+rownames(con.avg.Roots) <- (c("Intercept", "Rainfall", "SandPOLY", "Land-use","Livestock"))
+con.avg.Roots$Terms <- (c("Intercept", "Rainfall", "SandPOLY", "Land-use","Livestock"))
+rownames(con.avg.H) <- (c("Intercept","Dead wood","Rainfall","Fire frequencyPOLY","Soil nitrogen","Woody", "Total herbivore")) # ISSUSE - Total Dung missing
+con.avg.H$Terms <- (c("Intercept","Dead wood","Rainfall","Fire frequencyPOLY","Soil nitrogen","Woody", "Total herbivore"))
+rownames(con.avg.DW) <- (c("Intercept","Herbaceous"))
+con.avg.DW$Terms <- (c("Intercept","Herbaceous"))
+rownames(con.avg.W) <- (c("Intercept","Fire frequencyPOLY","Livestock","Sand","Total herbivore","Soil nitrogen","Herbaceous")) # ISSUSE - Total Dung missing
+con.avg.W$Terms <- (c("Intercept","Fire frequencyPOLY","Livestock","Sand","Total herbivore","Soil nitrogen","Herbaceous"))
 
 # Model names
 con.avg.Ahor$model<-"Soil surface"
@@ -1769,125 +1766,60 @@ con.avg.H$model<-"Herbaceous"
 con.avg.DW$model<-"Dead wood"
 con.avg.W$model<-"Woody"
 
-ModelImp<-rbind(importance.Ahor,importance.Minhor,importance.Roots,importance.H,importance.DW,importance.W)
+ModelConAvg<-rbind(con.avg.Ahor,con.avg.Minhor,con.avg.Roots,con.avg.H,con.avg.DW,con.avg.W)
+colnames(ModelConAvg)
+colnames(ModelConAvg)<-c("Terms","Estimate","Std..Error","Adjusted.SE","z.value","p.value",
+                         "lo.CI","high.CI","model")
 
+ModelConAvg$model<-as.factor(ModelConAvg$model)
+levels(ModelConAvg$model)<-c("Dead \n wood","Herbaceous \n","Roots \n","Soil \n mineral","Soil \n surface","Woody \n")
+ModelConAvg$model<- factor(ModelConAvg$model, levels = c("Herbaceous \n","Woody \n","Dead \n wood","Roots \n","Soil \n surface","Soil \n mineral"))
 
-#Reorder rows
-rownames(con.avg.Ahor)
-con.avg.Ahor<-con.avg.Ahor[c(1,2,3,4,6,5,7),]
-con.avg.Minhor<-con.avg.Minhor[c(1,2,3,4,5,6,8,7),]
-con.avg.H<-con.avg.H[c(1,3,2,4,5,6,8,7,9),]
-con.avg.DW<-con.avg.DW[c(1,2,3,4,5),]
-con.avg.W<-con.avg.W[c(1,2,3,4,5,6,7),] 
-con.avg.Roots <- con.avg.Roots[c(1,4,2,5,3,6,7,8),]
+# Add importance to synchronize ordering
+ModelConAvg<-merge(ModelConAvg,ModelImp, by=c("Terms","model"))
 
-# remove first row 
-con.avg.Ahor<-con.avg.Ahor[c(-1),]
-con.avg.Minhor<-con.avg.Minhor[c(-1),]
-con.avg.H<-con.avg.H[c(-1),]
-con.avg.DW<-con.avg.DW[c(-1),]
-con.avg.W<-con.avg.W[c(-1),]
-con.avg.Roots <- con.avg.Roots[c(-1),]
+# Model coefficient plot
+ModConPlot<-ggplot(ModelConAvg,aes(x=reorder_within(Terms, -importance, model),y=Estimate, fill=Terms))
+ModConPlot<-ModConPlot+geom_hline(yintercept=0, linetype="dashed", col="grey")
+ModConPlot<-ModConPlot+geom_errorbar(aes(ymin = lo.CI,ymax = high.CI),col="black",lwd=.5,width = 0.1, position = position_dodge2(width = 0.8),alpha=.6,show.legend=F)
+ModConPlot<-ModConPlot+geom_point(shape=21,col="black",size=4.5, position = position_dodge2(width = 0.8),show.legend=F)
+ModConPlot<-ModConPlot+scale_fill_manual(values=pal)
+ModConPlot<-ModConPlot+xlab("Terms")+ylab("Coefficent")
+ModConPlot<-ModConPlot+scale_x_discrete(labels = function(x) gsub("__.+$", "", x), expand=c(0,0))
+ModConPlot<-ModConPlot+scale_y_continuous(limits=c(-2.5,2), expand=c(0,0))
+ModConPlot<-ModConPlot+facet_grid(rows=vars(model), scale="free_y",space="free",switch = "y")#
+#ModImpPlot<-ModImpPlot+facet_wrap(~model, scale="free_y",ncol=1)#
+ModConPlot<-ModConPlot+coord_flip()
+ModConPlot<-ModConPlot+ggtitle("(b) Model coefficients")
+ModConPlot<-ModConPlot+theme_classic()
+ModConPlot<-ModConPlot+theme(
+  panel.spacing.y = unit(1.4, "lines"),
+  plot.margin = margin(0.5, 0.5, 0.5, 0.5, unit = "cm"),
+  plot.title = element_text(size = 15, face = "bold"), 
+  strip.background = element_blank(),
+  strip.text.y = element_blank(),
+  strip.placement = "outside",
+  axis.title.x = element_text(size = 12, margin = margin(t = 0.5, b = 0.5, unit = "cm")),
+  axis.title.y = element_blank(),
+  legend.position = "none",
+  panel.grid.major.y = element_blank(),
+  axis.text.x=element_text(size=12,color="black",margin=margin(2.5,2.5,2.5,2.5,"mm")),
+  axis.ticks.y=element_blank(),
+  axis.ticks.length=unit(-1.5, "mm"),
+  axis.text.y = element_blank())
+ModConPlot
 
-# Add SD, rather use 95 % confint
-# con.avg.AhorFull$SD <- con.avg.AhorFull$Std..Error * sqrt(length(con.avg.AhorFull$Std..Error))
+# Combine plots
+library(grid)
+library(gridExtra)
+library(egg)
 
-# Add Significance 
-con.avg.Ahor$sign <- con.avg.Ahor$Pr...z..
-con.avg.Ahor$sign[con.avg.Ahor$sign>0.05] <- 1
-con.avg.Ahor$sign[con.avg.Ahor$sign<0.05] <- 16
+egg::ggarrange(ModImpPlot,ModConPlot, ncol=2)
 
-con.avg.Minhor$sign <- con.avg.Minhor$Pr...z..
-con.avg.Minhor$sign[con.avg.Minhor$sign>0.05] <- 1
-con.avg.Minhor$sign[con.avg.Minhor$sign<0.05] <- 16
-
-con.avg.H$sign <- con.avg.H$Pr...z..
-con.avg.H$sign[con.avg.H$sign>0.05] <- 1
-con.avg.H$sign[con.avg.H$sign<0.05] <- 16
-
-con.avg.W$sign <- con.avg.W$Pr...z..
-con.avg.W$sign[con.avg.W$sign>0.05] <- 1
-con.avg.W$sign[con.avg.W$sign<0.05] <- 16
-
-con.avg.Roots$sign <- con.avg.Roots$Pr...z..
-con.avg.Roots$sign[con.avg.Roots$sign>0.05] <- 1
-con.avg.Roots$sign[con.avg.Roots$sign<0.05] <- 16
-
-con.avg.DW$sign <- con.avg.DW$Pr...z..
-con.avg.DW$sign[con.avg.DW$sign>0.05] <- 1
-con.avg.DW$sign[con.avg.DW$sign<0.05] <- 16
-
-# creating the "frame" and then plotting
-
-# A-hor
-#png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Ahor.png")
-par(mar=c(5,12,1,1))
-plot(rep(NA,6),1:6, xlim=c(-0.5,1.5), type="n", ann=F,axes=F, bty="n")
-points(con.avg.Ahor$Estimate,1:6,pch=con.avg.Ahor$sign,col=c(col.Ahor), lwd=2, cex=2)
-arrows(y0=1:6, x0=con.avg.Ahor$X2.5..,x1=con.avg.Ahor$X97.5..,col=c(col.Ahor), angle=90,length=0.05,code=3,lwd=2)
-abline(v=0)
-axis(1,cex.axis=2)
-axis(2, at=1:6, labels= c("Sand","Land-use","Dead wood","Soil min","Livestock","Wild"),par(las=1),cex.axis=2)
-
+filename <- paste0("Ecosystem carbon/Figures/", "Model_importances_coef", "_",Sys.Date(), ".jpeg" )
+jpeg(filename,width= 36, height = 38,units ="cm",bg ="transparent", res = 800)
+egg::ggarrange(ModImpPlot,ModConPlot, ncol=2)
 dev.off()
-
-# Min-hor
-#png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Minhor.png")
-par(mar=c(5,12,1,1))
-plot(rep(NA,7),1:7, xlim=c(-2,2), type="n", ann=F,axes=F, bty="n")
-arrows(y0=1:7, x0=con.avg.Minhor$X2.5.., x1=con.avg.Minhor$X97.5..,col=c(col.min), angle=90,length=0.05,code=3,lwd=2)
-points(con.avg.Minhor$Estimate,1:7,pch=con.avg.Minhor$sign,col=c(col.min), lwd=2, cex=2)
-abline(v=0)
-axis(1,cex.axis=2)
-axis(2, at=1:7, labels= c("Surface soil","Roots","Sand","Dead wood","Herbaceous","Land-use","WoodyPOLY"),par(las=1),cex.axis=2)
-dev.off()
-
-# Herb
-#png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Herb.png")
-par(mar=c(5,13,1,1))
-plot(rep(NA,8),1:8, xlim=c(-2,2), type="n", ann=F,axes=F, bty="n")
-points(con.avg.H$Estimate,1:8,pch=con.avg.H$sign,col=c(col.herb), lwd=2, cex=2)
-arrows(y0=1:8, x0=con.avg.H$X2.5.., x1=con.avg.H$X97.5..,col=c(col.herb), angle=90,length=0.05,code=3,lwd=2)
-abline(v=0)
-axis(1,cex.axis=2)
-axis(2, at=1:8, labels= c("Fire frequency","Dead wood","MAP","Land-use","Livestock","Nitrogen","Woody", "Sand"),par(las=1),cex.axis=2)
-dev.off()
-
-# DW
-png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.DW.png")
-par(mar=c(5,13,1,1))
-plot(rep(NA,4),1:4, xlim=c(-2,2), type="n", ann=F,axes=F, bty="n")
-points(con.avg.DW$Estimate,1:4,pch=con.avg.DW$sign,col=c(col.DW), lwd=2, cex=2)
-arrows(y0=1:4, x0=con.avg.DW$X2.5.., x1=con.avg.DW$X97.5..,col=c(col.DW), angle=90,length=0.05,code=3,lwd=2)
-abline(v=0)
-axis(1,cex.axis=2)
-axis(2, at=1:4, labels= c("Herbaceous","Land-use","Wild","LivestockPOLY"),par(las=1),cex.axis=2)
-dev.off()
-
-#Woody
-png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Woody.png")
-par(mar=c(5,13,1,1))
-plot(rep(NA,6),1:6, xlim=c(-1,2), type="n", ann=F,axes=F, bty="n")
-points(con.avg.W$Estimate,1:6,pch=con.avg.W$sign,col=c(col.W), lwd=2, cex=2)
-arrows(y0=1:6, x0=con.avg.W$X2.5.., x1=con.avg.W$X97.5..,col=c(col.W), angle=90,length=0.05,code=3,lwd=2)
-abline(v=0)
-axis(1,cex.axis=2)
-axis(2, at=1:6, labels= c("FirePOLY","Livestock","Sand","Nitrogen","Land-use","Herbaceous"),par(las=1), cex.axis=2) # Without outlier 
-
-dev.off()
-
-#Roots 
-png(filename = "Ecosystem carbon/Figures/Fig.thesis/coef.Roots.png")
-par(mar=c(5,13,1,1))
-plot(rep(NA,7),1:7, xlim=c(-3,2), type="n", ann=F,axes=F, bty="n")
-points(con.avg.Roots$Estimate,1:7,pch=con.avg.Roots$sign,col=c(col.roots), lwd=2, cex=2)
-arrows(y0=1:7, x0=con.avg.Roots$X2.5.., x1=con.avg.Roots$X97.5..,col=c(col.roots), angle=90,length=0.05,code=3,lwd=2)
-abline(v=0)
-axis(1,cex.axis=2)
-axis(2, at=1:7, labels= c("Land-use","MAP","Total dung","Nitrogen","Soil min","SandPOLY","Dead wood"),par(las=1), cex.axis=2) 
-
-dev.off()
-
 
 ##      6.4: Check the relationship between the factors Landuse, climat(dry-int-wet), climate.kat (Dry vs Wet) and texture ####
 names(Belowground.full)
