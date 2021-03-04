@@ -1313,9 +1313,9 @@ summary(Modlist.mecanistic1,Total.Eco.C.CnoNA2)
 
 # Add POLYterms to the model AND Seronera block 4:  
 Modlist.mecanistic2 <-   psem(
-  lme(CTot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),# Should we use Livestock or LivestockPOLY here? From below, the best model seems to be livestock and sand, but non of them turns out significant in the SEM.. I only keep sand for now.
+  lme(CTot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),# Should we use LivestockPOLY here? From below, the best model seems to be livestock and sand. When adding livestock, sand is not dignificant anymore, and the marginal R-squared is lowered. 
   lme(CWild ~ CLivestock + CMAP.mm_yr,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CWoody~ CFire_frequencyPOLY + CSandPOLY + CMAP.mm_yr, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CWoody~ CFire_frequencyPOLY + CSandPOLY + CLivestock, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CHerb_year.kg_m2 ~ CMAP.mm_yr + CDW + CFire_frequency + CLivestockPOLY,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   #lme(CRoots.kg_m2~ CMAP.mm_yr + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2), 
@@ -1517,7 +1517,6 @@ Wild + xlab(expression(paste("Wild dung (counts 200 ", m^-2,")"))) +  ylab(expre
 #ggsave("Ecosystem carbon/Figures/WildAhor.png",
 #       width= 15, height = 15,units ="cm",bg ="transparent",
 #       dpi = 600, limitsize = TRUE)
-
 
 ##      6.2: Importance #### 
 par(mfrow=c(1,1))
