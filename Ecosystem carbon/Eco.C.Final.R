@@ -13,6 +13,7 @@ library(glmmADMB)
 library(piecewiseSEM) # SEM
 library(MuMIn) # to make "model.sel()" of different models 
 library(DHARMa) # model validation using simulations
+library(GLMMadaptive)
 # library(emmeans) # estimated marginal means --> look at this for three ways interactions
 
 #### 2: CLEANING THE DATA #### 
@@ -191,6 +192,7 @@ Properties.Region <- cbind(aggregate(Clay~Region, mean, data=Belowground),
 # I have region and block.ID as random effects 
 # Choose the model with the smallest AIC value 
 #### PACKAGES #### 
+#install.packages(c("dplyr","ggplot2","nlme","lme4","piecewiseSEM"))
 library(tidyr)
 library(plyr)
 library(dplyr)
@@ -223,7 +225,6 @@ levels(Block.Eco.C$Carbon.pool) <- c("Woody","Herbaceous","Dead wood","Soil A-ho
 
 # Add Marit's data on accumulated and residual biomass, dung data and nitrogen
 #Marit <- read.csv("Ecosystem carbon/Herbaceous.data/Herbaceous.csv", header=TRUE)
-#names(Marit)
 #Marit <- Marit[c(7,12,13)]
 
 MaritAccum <- read.csv("Ecosystem carbon/Herbaceous.data/AccumHerbaceous.csv", header=TRUE)
@@ -415,7 +416,7 @@ Total.Eco.C.CnoNA<-droplevels(Total.Eco.C[Total.Eco.C$Region=="Makao" | Total.Ec
 #Total.Eco.C.CnoNAS4<-droplevels(Total.Eco.C.CnoNA[!Total.Eco.C.CnoNA$Block.ID=="20" ,])
 #Total.Eco.C.CnoNA1<-rbind(Total.Eco.C.CnoNAS4,Seronera4)
 
-summary(is.na(Total.Eco.C.CnoNA1))
+summary(is.na(Total.Eco.C.CnoNA))
 Total.Eco.C.CnoNA2<-droplevels(Total.Eco.C.CnoNA[complete.cases(Total.Eco.C.CnoNA[ , c("Livestock","Wild","Total.dung","Fire_frequency","Soil.Ahor","Soil.min","Herb_year.kg_m2","Woody","DW","Roots.kg_m2")]), ])
 Total.Eco.C.CnoNA2$Region
 levels(as.factor(Total.Eco.C.CnoNA2$Block.ID)) # 16
@@ -632,10 +633,14 @@ importance(modavgbelowA.full)#Importance of each variable
 confint.Ahor.full <- confint(modavgbelowA.full)
 coef.Ahor.full <- summary(modavgbelowA.full)$coefmat.subset
 Ahor.full <- as.data.frame(cbind(rownames(coef.Ahor.full),coef.Ahor.full, confint.Ahor.full))
-colnames(Ahor.full)[1]<-"Terms"
-
+colnames(Ahor.full)[1]<-"Terms" 
 #  Reduced model based on variable p-value (<0.05) 
-Ahor.Select<-droplevels(Ahor.full[Ahor.full$`Pr(>|z|)`<.05 | Ahor.full$Terms=="(Intercept)", ]) # selects p values <0.05 + intercept
+Ahor.Select<-droplevels(Ahor.full[Ahor.full$`Pr(>|z|)`<.05 | Ahor.full$Terms=="(Intercept)", ])
+# I get a warning here, and then the Ahor.Select dataframe just has NA´s except for the intercept.
+#Warning message:
+#  In Ops.factor(Ahor.full$`Pr(>|z|)`, 0.05) : ‘<’ not meaningful for factors
+
+# selects p values <0.05 + intercept
 plot(Soil.Ahor~ Sand,Total.Eco.C.CnoNA2) # AhorC and Sand looks linear decline
 Ahor.Select<-droplevels(Ahor.Select[!Ahor.Select$Terms=="CSandPOLY", ])
 Ahor.fullImp<-as.data.frame(importance(modavgbelowA.full))
