@@ -507,7 +507,9 @@ panel.lines2=function (x, y, col = par("col"), bg = NA, pch = par("pch"),
 
 # Subset model
 names(Total.Eco.C.CnoNA2)
-Model.var.sub<-c("MAP.mm_yr","Fire_frequency","Sand","Tot.N.kg_m2","Livestock","Wild","Total.dung","Woody", "Herb_year.kg_m2", "Soil.Ahor", "Soil.min","Roots.kg_m2","Fire_frequencyPOLY","Roots.kg_m2POLY",   "SandPOLY","LivestockPOLY","WoodyPOLY", "DW")
+Model.var.sub<-c("MAP.mm_yr","Fire_frequency","Sand","Tot.N.kg_m2","Livestock","Wild","Total.dung",
+                 "Woody", "Herb_year.kg_m2", "Soil.Ahor", "Soil.min","Roots.kg_m2","Fire_frequencyPOLY",
+                 "Roots.kg_m2POLY","SandPOLY","LivestockPOLY","WoodyPOLY", "DW")
 
 # FIRE and Woody
 Model.var.fire<-c("Fire_frequency","Fire_frequencyPOLY","Woody", "Herb_year.kg_m2")
@@ -636,9 +638,6 @@ Ahor.full <- as.data.frame(cbind(rownames(coef.Ahor.full),coef.Ahor.full, confin
 colnames(Ahor.full)[1]<-"Terms" 
 #  Reduced model based on variable p-value (<0.05) 
 Ahor.Select<-droplevels(Ahor.full[Ahor.full$`Pr(>|z|)`<.05 | Ahor.full$Terms=="(Intercept)", ])
-# I get a warning here, and then the Ahor.Select dataframe just has NA´s except for the intercept.
-#Warning message:
-#  In Ops.factor(Ahor.full$`Pr(>|z|)`, 0.05) : ‘<’ not meaningful for factors
 
 # selects p values <0.05 + intercept
 plot(Soil.Ahor~ Sand,Total.Eco.C.CnoNA2) # AhorC and Sand looks linear decline
@@ -1264,6 +1263,7 @@ write.table(Minhor, file="Ecosystem carbon/ConAvgMinhorFull.txt")
 # save(MySummary, file="")
 library(MuMIn)
 library(piecewiseSEM)
+library(multcompView)
 vignette('piecewiseSEM') # too look at the package 
 
 # Going to make two SEM, one larger model (all sites) and a reduce model (ones with herbaceous and dung data) with more detailed measurements. Larger model is more a relationship between main pools, while smaller model is more mechanistic looking into herbaceous and root production and local herbivore assemblage etc.
@@ -1460,6 +1460,30 @@ Modlist.mecanistic2 <-   psem(
 
 summary(Modlist.mecanistic2,Total.Eco.C.CnoNA2) 
 
+##      5.3. FINAL SEM-MODEL with Polyterms and without Seronera, dataset: Total.Eco.C.CnoNA2 ####
+
+
+Modlist.mecanistic.final <-   psem(
+  lme(CTot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),# Should we use LivestockPOLY here? From below, the best model seems to be livestock and sand. When adding livestock, sand is not dignificant anymore, and the marginal R-squared is lowered. 
+  lme(CWild ~ CLivestock + CMAP.mm_yr,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CWoody~ CFire_frequencyPOLY + CSandPOLY + CLivestock, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CHerb_year.kg_m2 ~ CMAP.mm_yr + CDW + CFire_frequency + CLivestockPOLY,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CRoots.kg_m2~ CMAP.mm_yr + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2), 
+  lme(CSoil.Ahor~ CSand + Landuse, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.min~ CSoil.Ahor, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  CSoil.Ahor%~~%CTot.N.kg_m2,
+  CSoil.min%~~%CTot.N.kg_m2,
+  CMAP.mm_yr%~~%CSand, 
+  CMAP.mm_yr%~~%Landuse,
+  Landuse%~~%CSand,
+  CSand%~~%CSandPOLY,
+  CLivestock%~~%CLivestockPOLY,
+  CFire_frequency%~~%CFire_frequencyPOLY
+) 
+
+summary(Modlist.mecanistic.final,Total.Eco.C.CnoNA2)
+summary(Modlist.mecanistic.final, .progressBar = F)
 ####  6: PLOTING  ####
 ##      6.1: Dung variables ####
 # Creating a variable for livestock dung per m2 
