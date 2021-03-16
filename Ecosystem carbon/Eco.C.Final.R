@@ -1463,8 +1463,6 @@ summary(Modlist.mecanistic2,Total.Eco.C.CnoNA2)
 
 ##      5.3. FINAL SEM-MODEL with Polyterms and without Seronera, dataset: Total.Eco.C.CnoNA2 ####
 
-as.matrix(dist(Total.Eco.C.CnoNA2))
-Dist <- as.matrix(dist(Total.Eco.C.CnoNA2))
 Total.Eco.C.CnoNA2 <- droplevels(Total.Eco.C.CnoNA2)
 
 Modlist.mecanistic.final <-   psem(
@@ -1475,19 +1473,19 @@ Modlist.mecanistic.final <-   psem(
   lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CRoots.kg_m2~ CMAP.mm_yr + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2), 
   lme(CSoil.Ahor~ CSand + Landuse, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CSoil.min~ CSoil.Ahor, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  CSoil.Ahor%~~%CTot.N.kg_m2,
-  CSoil.min%~~%CTot.N.kg_m2,
-  CMAP.mm_yr%~~%CSand, 
-  CMAP.mm_yr%~~%Landuse,
-  Landuse%~~%CSand,
-  CSand%~~%CSandPOLY,
-  CLivestock%~~%CLivestockPOLY,
-  CFire_frequency%~~%CFire_frequencyPOLY
+  lme(CSoil.min~ CSoil.Ahor, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2)#,
+  #CSoil.Ahor%~~%CTot.N.kg_m2,
+  #CSoil.min%~~%CTot.N.kg_m2,
+  #CMAP.mm_yr%~~%CSand, 
+ # CMAP.mm_yr%~~%Landuse,
+ # Landuse%~~%CSand,
+ # CSand%~~%CSandPOLY,
+ ## CLivestock%~~%CLivestockPOLY,
+ # CFire_frequency%~~%CFire_frequencyPOLY
 ) 
 
 summary(Modlist.mecanistic.final,Total.Eco.C.CnoNA2)
-summary(Modlist.mecanistic.final, use = "complete.obs")
+
 ####  6: PLOTING  ####
 ##      6.1: Dung variables ####
 # Creating a variable for livestock dung per m2 
