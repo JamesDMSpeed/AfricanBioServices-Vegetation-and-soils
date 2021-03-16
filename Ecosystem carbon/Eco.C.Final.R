@@ -192,7 +192,7 @@ Properties.Region <- cbind(aggregate(Clay~Region, mean, data=Belowground),
 # I have region and block.ID as random effects 
 # Choose the model with the smallest AIC value 
 #### PACKAGES #### 
-#install.packages(c("dplyr","ggplot2","nlme","lme4","piecewiseSEM"))
+
 library(tidyr)
 library(plyr)
 library(dplyr)
@@ -440,7 +440,8 @@ names(Belowground.full)
 # Going to use Total.Eco.C.CnoNA2, so I can remove some variables I dont need. 
 colnames(Total.Eco.C.CnoNA2)
 Total.Eco.C.CnoNA2 <- Total.Eco.C.CnoNA2[c("Block.ID","Region","Vilde.block","Landuse","MAP.mm_yr","Fire_frequency","Clay","Silt","Sand","Livestock","Wild", "Total.dung","Tot.N.kg_m2","Woody","DW","Herb_year.kg_m2","Roots.kg_m2","Soil.Ahor","Soil.min","CMAP.mm_yr","CFire_frequency","CSand","CTot.N.kg_m2","CLivestock","CWild","CTotal.dung","CHerb_year.kg_m2","CRoots.kg_m2","CSoil.min","CSoil.Ahor","CWoody","CDW")]
-
+str(Total.Eco.C.CnoNA2)
+rowSums(is.na(Total.Eco.C.CnoNA2))
 # Create non-linear terms so we can keep track in the modelling
 
 # Quadratic terms
@@ -1462,6 +1463,9 @@ summary(Modlist.mecanistic2,Total.Eco.C.CnoNA2)
 
 ##      5.3. FINAL SEM-MODEL with Polyterms and without Seronera, dataset: Total.Eco.C.CnoNA2 ####
 
+as.matrix(dist(Total.Eco.C.CnoNA2))
+Dist <- as.matrix(dist(Total.Eco.C.CnoNA2))
+Total.Eco.C.CnoNA2 <- droplevels(Total.Eco.C.CnoNA2)
 
 Modlist.mecanistic.final <-   psem(
   lme(CTot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),# Should we use LivestockPOLY here? From below, the best model seems to be livestock and sand. When adding livestock, sand is not dignificant anymore, and the marginal R-squared is lowered. 
@@ -1483,7 +1487,7 @@ Modlist.mecanistic.final <-   psem(
 ) 
 
 summary(Modlist.mecanistic.final,Total.Eco.C.CnoNA2)
-summary(Modlist.mecanistic.final, .progressBar = F)
+summary(Modlist.mecanistic.final, use = "complete.obs")
 ####  6: PLOTING  ####
 ##      6.1: Dung variables ####
 # Creating a variable for livestock dung per m2 
