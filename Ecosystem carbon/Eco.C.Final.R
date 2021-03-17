@@ -1264,7 +1264,6 @@ write.table(Minhor, file="Ecosystem carbon/ConAvgMinhorFull.txt")
 # save(MySummary, file="")
 library(MuMIn)
 library(piecewiseSEM)
-library(multcompView)
 vignette('piecewiseSEM') # too look at the package 
 
 # Going to make two SEM, one larger model (all sites) and a reduce model (ones with herbaceous and dung data) with more detailed measurements. Larger model is more a relationship between main pools, while smaller model is more mechanistic looking into herbaceous and root production and local herbivore assemblage etc.
@@ -1463,8 +1462,6 @@ summary(Modlist.mecanistic2,Total.Eco.C.CnoNA2)
 
 ##      5.3. FINAL SEM-MODEL with Polyterms and without Seronera, dataset: Total.Eco.C.CnoNA2 ####
 
-Total.Eco.C.CnoNA2 <- droplevels(Total.Eco.C.CnoNA2)
-
 Modlist.mecanistic.final <-   psem(
   lme(CTot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),# Should we use LivestockPOLY here? From below, the best model seems to be livestock and sand. When adding livestock, sand is not dignificant anymore, and the marginal R-squared is lowered. 
   lme(CWild ~ CLivestock + CMAP.mm_yr,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
@@ -1473,15 +1470,15 @@ Modlist.mecanistic.final <-   psem(
   lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
   lme(CRoots.kg_m2~ CMAP.mm_yr + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2), 
   lme(CSoil.Ahor~ CSand + Landuse, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CSoil.min~ CSoil.Ahor, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2)#,
-  #CSoil.Ahor%~~%CTot.N.kg_m2,
-  #CSoil.min%~~%CTot.N.kg_m2,
-  #CMAP.mm_yr%~~%CSand, 
- # CMAP.mm_yr%~~%Landuse,
- # Landuse%~~%CSand,
- # CSand%~~%CSandPOLY,
- ## CLivestock%~~%CLivestockPOLY,
- # CFire_frequency%~~%CFire_frequencyPOLY
+  lme(CSoil.min~ CSoil.Ahor, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  CSoil.Ahor%~~%CTot.N.kg_m2,
+  CSoil.min%~~%CTot.N.kg_m2,
+  CMAP.mm_yr%~~%CSand, 
+  CMAP.mm_yr%~~%Landuse,
+  Landuse%~~%CSand,
+  CSand%~~%CSandPOLY,
+  CLivestock%~~%CLivestockPOLY,
+  CFire_frequency%~~%CFire_frequencyPOLY
 ) 
 
 summary(Modlist.mecanistic.final,Total.Eco.C.CnoNA2)
