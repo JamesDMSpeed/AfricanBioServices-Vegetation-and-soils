@@ -1462,26 +1462,51 @@ summary(Modlist.mecanistic2,Total.Eco.C.CnoNA2)
 
 ##      5.3. FINAL SEM-MODEL with Polyterms and without Seronera, dataset: Total.Eco.C.CnoNA2 ####
 
-Modlist.mecanistic.final <-   psem(
-  lme(CTot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),# Should we use LivestockPOLY here? From below, the best model seems to be livestock and sand. When adding livestock, sand is not dignificant anymore, and the marginal R-squared is lowered. 
-  lme(CWild ~ CLivestock + CMAP.mm_yr,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CWoody~ CFire_frequencyPOLY + CSandPOLY + CLivestock, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CHerb_year.kg_m2 ~ CMAP.mm_yr + CDW + CFire_frequency + CLivestockPOLY,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CRoots.kg_m2~ CMAP.mm_yr + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2), 
-  lme(CSoil.Ahor~ CSand + Landuse, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CSoil.min~ CSoil.Ahor, random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  CSoil.Ahor%~~%CTot.N.kg_m2,
-  CSoil.min%~~%CTot.N.kg_m2,
+str(Total.Eco.C.CnoNA2) #need to change landuse into a factor
+Total.Eco.C.CnoNA2$Landuse <- as.factor(Total.Eco.C.CnoNA2$Landuse)
+Total.Eco.C.CnoNA2 <- droplevels(Total.Eco.C.CnoNA2)
+
+# Start out with a model based on the conseptual model 
+Modlist.conseptual <-   psem(
+  lme(CWoody~ Landuse + CSand + CFire_frequency + CMAP.mm_yr, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CHerb_year.kg_m2 ~ CWoody + CTot.N.kg_m2 + CMAP.mm_yr + Landuse + CFire_frequency + CSand,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CRoots.kg_m2~ CHerb_year.kg_m2, CMAP.mm_yr + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.Ahor~ CHerb_year.kg_m2 + CFire_frequency, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.min~ CSoil.Ahor + CSand, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CTot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  CSoil.Ahor%~~%CTot.N.kg_m2, # We know these are highly correlated, but no path.. 
+  CSoil.min%~~%CTot.N.kg_m2 # We know these are highly correlated, but no path..
+)
+
+
+summary(Modlist.conseptual,Total.Eco.C.CnoNA2)
+
+# Work on this model until I get the best fit: 
+Modlist.final <-   psem(
+  lme(CTot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CWild ~ CLivestock + CMAP.mm_yr + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CWoody~ CSandPOLY + CFire_frequencyPOLY + CLivestock, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  #lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CHerb_year.kg_m2 ~CMAP.mm_yr + CFire_frequency + CDW + CLivestock,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  #lme(CRoots.kg_m2~ CMAP.mm_yr ,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.Ahor~CSand + Landuse, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.min~ CSoil.Ahor , random= ~ 1|Region/Block.ID,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  CSoil.Ahor%~~%CTot.N.kg_m2, # We know these are highly correlated, but no path.. 
+  CSoil.min%~~%CTot.N.kg_m2, # We know these are highly correlated, but no path..
   CMAP.mm_yr%~~%CSand, 
   CMAP.mm_yr%~~%Landuse,
   Landuse%~~%CSand,
   CSand%~~%CSandPOLY,
   CLivestock%~~%CLivestockPOLY,
   CFire_frequency%~~%CFire_frequencyPOLY
-) 
+)
 
-summary(Modlist.mecanistic.final,Total.Eco.C.CnoNA2)
+summary(Modlist.final,Total.Eco.C.CnoNA2)
+
+#I get this warning message when I add Landuse to Wild: 
+#1: In B * (sd.x/sd.y) :
+#  longer object length is not a multiple of shorter object length
 
 ####  6: PLOTING  ####
 ##      6.1: Dung variables ####
