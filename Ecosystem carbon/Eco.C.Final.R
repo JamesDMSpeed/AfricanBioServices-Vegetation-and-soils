@@ -1486,7 +1486,7 @@ summary(Modlist.conseptual,Total.Eco.C.CnoNA2)
 Modlist.final <-   psem(
   lme(CTot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
   lme(CWild ~ CLivestock + CMAP.mm_yr + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CWoody~ CSandPOLY + CFire_frequencyPOLY + CLivestock, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CWoody~  CFire_frequencyPOLY + CLivestock, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
   #lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
   lme(CHerb_year.kg_m2 ~CMAP.mm_yr + CFire_frequency + CDW + CLivestock,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
   #lme(CRoots.kg_m2~ CMAP.mm_yr ,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
@@ -1494,9 +1494,9 @@ Modlist.final <-   psem(
   lme(CSoil.min~ CSoil.Ahor , random= ~ 1|Region/Block.ID,na.action=na.omit, data=Total.Eco.C.CnoNA2),
   CSoil.Ahor%~~%CTot.N.kg_m2, # We know these are highly correlated, but no path.. 
   CSoil.min%~~%CTot.N.kg_m2, # We know these are highly correlated, but no path..
-  CMAP.mm_yr%~~%CSand, 
-  CMAP.mm_yr%~~%Landuse,
-  Landuse%~~%CSand,
+  #CMAP.mm_yr%~~%CSand, 
+  #CMAP.mm_yr%~~%Landuse,
+ # Landuse%~~%CSand,
   CSand%~~%CSandPOLY,
   CLivestock%~~%CLivestockPOLY,
   CFire_frequency%~~%CFire_frequencyPOLY
@@ -1516,7 +1516,6 @@ DungC <- lme(Soil.Ahor~ Livestock + Wild, random= ~ 1|Region,na.action=na.fail, 
 #DungC2 <- lme(Soil.Ahor~ total.dung, random= ~ 1|Region.x,na.action=na.fail, method= "REML",data=Total.Eco.C.CnoNA2)
 summary(DungC)
 #summary(DungC2)
-
 # Prediction lines: 
 #A. Specify covariate values for predictions
 #B. Create X matrix with expand.grid
