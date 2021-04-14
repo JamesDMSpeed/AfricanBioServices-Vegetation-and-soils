@@ -436,12 +436,29 @@ Belowground.full.CnoNA2 <- droplevels(Belowground.full.CnoNA2)
 Belowground.full.CnoNA3 <- droplevels(Belowground.full.CnoNA3)
 names(Belowground.full)
 
-#         3.1.4: Preparing Total.Eco.C.CnoNA2 and adding non-linear terms ####
+#         3.1.4: Preparing Total.Eco.C.CnoNA2, adding C:N ratios and non-linear terms ####
 # Going to use Total.Eco.C.CnoNA2, so I can remove some variables I dont need. 
 colnames(Total.Eco.C.CnoNA2)
-Total.Eco.C.CnoNA2 <- Total.Eco.C.CnoNA2[c("Block.ID","Region","Vilde.block","Landuse","MAP.mm_yr","Fire_frequency","Clay","Silt","Sand","Livestock","Wild", "Total.dung","Tot.N.kg_m2","Woody","DW","Herb_year.kg_m2","Roots.kg_m2","Soil.Ahor","Soil.min","CMAP.mm_yr","CFire_frequency","CSand","CTot.N.kg_m2","CLivestock","CWild","CTotal.dung","CHerb_year.kg_m2","CRoots.kg_m2","CSoil.min","CSoil.Ahor","CWoody","CDW")]
+Total.Eco.C.CnoNA2 <- Total.Eco.C.CnoNA2[c("Block.ID","Region","Vilde.block","Landuse",
+                                           "MAP.mm_yr","Fire_frequency","Clay","Silt","Sand",
+                                           "Livestock","Wild", "Total.dung","Tot.N.kg_m2",
+                                           "AhorN.kg_m2","MinN.kg_m2",
+                                           "Woody","DW","Herb_year.kg_m2","Roots.kg_m2",
+                                           "Soil.Ahor","Soil.min","CMAP.mm_yr","CFire_frequency",
+                                           "CSand","CTot.N.kg_m2",
+                                           "CLivestock","CWild","CTotal.dung","CHerb_year.kg_m2",
+                                           "CRoots.kg_m2","CSoil.min","CSoil.Ahor","CWoody","CDW")]
 str(Total.Eco.C.CnoNA2)
 rowSums(is.na(Total.Eco.C.CnoNA2))
+
+# Add C:N ratios 
+# 1. For the soil A-hor and min-hor
+Total.Eco.C.CnoNA2 <- mutate(Total.Eco.C.CnoNA2,AhorC_N = Soil.Ahor/AhorN.kg_m2)
+Total.Eco.C.CnoNA2 <- mutate(Total.Eco.C.CnoNA2,MinhorC_N = Soil.min/MinN.kg_m2)
+par(mfrow=c(1,2))
+boxplot(AhorC_N~Landuse, data=Total.Eco.C.CnoNA2)
+boxplot(MinhorC_N~Landuse, data=Total.Eco.C.CnoNA2)
+
 # Create non-linear terms so we can keep track in the modelling
 
 # Quadratic terms
@@ -464,6 +481,7 @@ Total.Eco.C.CnoNA2$CRoots.kg_m2POLY <- as.numeric(scale(Total.Eco.C.CnoNA2$Roots
 Total.Eco.C.CnoNA2$CSandPOLY <- as.numeric(scale(Total.Eco.C.CnoNA2$SandPOLY))
 Total.Eco.C.CnoNA2$CLivestockPOLY <- as.numeric(scale(Total.Eco.C.CnoNA2$LivestockPOLY))
 Total.Eco.C.CnoNA2$CWoodyPOLY <- as.numeric(scale(Total.Eco.C.CnoNA2$WoodyPOLY))
+colnames(Total.Eco.C.CnoNA2)
 ##      3.2: Correlation of variables (numeric) #### 
 
 # RUN THIS CODE FIRST (FROM STU)
@@ -1508,8 +1526,49 @@ summary(Modlist.final,Total.Eco.C.CnoNA2)
 #1: In B * (sd.x/sd.y) :
 #  longer object length is not a multiple of shorter object length
 
-####  6: PLOTING  ####
-##      6.1: Dung variables ####
+##    6: ECOSYSTEM CARBON ANALYSIS ####
+# STU: 
+# I was looking into whether some form of nested paired t-test was possible. 
+# We can pair ecosystem C across borders, but also stocks of surface soil C, 
+# mineral C, woody C, herbaceous C etc. Doing so ends up with multiple tests 
+# to which we would need to do a Bonferroni correction or something similar. 
+
+colnames(Total.Eco.C.CnoNA2) # will aggregate "Woody","DW" ,"Herb_year.kg_m2","Roots.kg_m2","Soil.Ahor","Soil.min" per landuse
+
+SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
+landuse.C <- cbind(
+  aggregate(Woody~Landuse, mean, data= Total.Eco.C.CnoNA2),
+  aggregate(Woody~Landuse, SE, data= Total.Eco.C.CnoNA2)[2],
+  aggregate(Herb_year.kg_m2~Landuse, mean, data= Total.Eco.C.CnoNA2)[2],
+  aggregate(Herb_year.kg_m2~Landuse, SE, data= Total.Eco.C.CnoNA2)[2],
+  aggregate(DW~Landuse, mean, data= Total.Eco.C.CnoNA2)[2],
+  aggregate(DW~Landuse, SE, data= Total.Eco.C.CnoNA2)[2],
+  aggregate(Roots.kg_m2~Landuse, mean, data= Total.Eco.C.CnoNA2)[2],
+  aggregate(Roots.kg_m2~Landuse, SE, data= Total.Eco.C.CnoNA2)[2],
+  aggregate(Soil.Ahor~Landuse, mean, data= Total.Eco.C.CnoNA2)[2],
+  aggregate(Soil.Ahor~Landuse, SE, data= Total.Eco.C.CnoNA2)[2],
+  aggregate(Soil.min~Landuse, mean, data= Total.Eco.C.CnoNA2)[2],
+  aggregate(Soil.min~Landuse, SE, data= Total.Eco.C.CnoNA2)[2])
+
+colnames(landuse.C)
+colnames(landuse.C) <- c("Landuse","Woody","Woody_SE","Herb","Herb_SE","DW","DW_SE",
+                        "Roots","Roots_SE","Soil.Ahor","Soil.Ahor_SE","Soil.min","Soil.min_SE") 
+
+# Create a long format: 
+landuse.C.long <- gather(landuse.C, Carbon.pool,C.amount, Woody,Herb,DW,Roots,Soil.Ahor,Soil.min,factor_key=TRUE)
+landuse.C.long_SE <- gather(landuse.C, Carbon.pool,C.amount, Woody_SE,Herb_SE,DW_SE,Roots_SE,Soil.Ahor_SE,Soil.min_SE,factor_key=TRUE)
+landuse.C.long <- landuse.C.long[,c(1,8,9)]
+landuse.C.long_SE <- landuse.C.long_SE[,c(1,8,9)]
+Landuse.Carbon <- cbind(landuse.C.long,landuse.C.long_SE[3])
+colnames(Landuse.Carbon)[4] <- "C.amount_SE"
+levels(Landuse.Carbon$Carbon.pool)
+
+Landuse.Carbon$Main.pool <- c("Aboveground","Aboveground","Aboveground","Aboveground",
+                              "Aboveground","Aboveground", "Belowground","Belowground",
+                              "Belowground","Belowground","Belowground","Belowground")
+
+####  7: PLOTING  ####
+##      7.1: Dung variables ####
 # Creating a variable for livestock dung per m2 
 
 DungC <- lme(Soil.Ahor~ Livestock + Wild, random= ~ 1|Region,na.action=na.fail, method= "REML",data=Total.Eco.C.CnoNA2)
@@ -1637,7 +1696,7 @@ Wild + xlab(expression(paste("Wild dung (counts 200 ", m^-2,")"))) +  ylab(expre
 #       width= 15, height = 15,units ="cm",bg ="transparent",
 #       dpi = 600, limitsize = TRUE)
 
-##      6.2: Importance #### 
+##      7.2: Importance #### 
 importance.Ahor<- read.table("Ecosystem carbon/Model_average/importanceAhor.txt")
 importance.Minhor<- read.table("Ecosystem carbon/Model_average/importanceMinhor.txt")
 importance.Roots<- read.table("Ecosystem carbon/Model_average/importanceRoots.txt")
@@ -1739,7 +1798,7 @@ ModelImp$model<-as.factor(ModelImp$model)
 levels(ModelImp$model)<-c("Dead \n wood","Herbaceous \n","Roots \n","Soil \n mineral","Soil \n surface","Woody \n")
 ModelImp$model<- factor(ModelImp$model, levels = c("Herbaceous \n","Woody \n","Dead \n wood","Roots \n","Soil \n surface","Soil \n mineral"))
 
-##### Model importance plot ####
+##          7.2.1 Model importance plot ####
 # https://stackoverflow.com/questions/52214071/how-to-order-data-by-value-within-ggplot-facets
 # https://trinkerrstuff.wordpress.com/2016/12/23/ordering-categories-within-ggplot2-facets/
 
@@ -1789,7 +1848,7 @@ ModImpPlot
 
 #ggsave("Ecosystem carbon/Figures/Model_importances.jpeg", scale=1,width= 20, height = 28,units ="cm",bg ="transparent", dpi = 800, limitsize = TRUE)#,compression = "lzw")
 
-##      6.3: Variable coefficients from model averages ####
+##      7.3: Variable coefficients from model averages ####
 con.avg.Ahor<- read.table("Ecosystem carbon/Model_average/ConAvgAhor.txt")
 con.avg.Minhor<- read.table("Ecosystem carbon/Model_average/ConAvgMinHor.txt")
 con.avg.H<- read.table("Ecosystem carbon/Model_average/ConAvgH.txt")
@@ -1874,7 +1933,7 @@ jpeg(filename,width= 36, height = 38,units ="cm",bg ="transparent", res = 800)
 egg::ggarrange(ModImpPlot,ModConPlot, ncol=2)
 dev.off()
 
-##      6.4: Check the relationship between the factors Landuse, climat(dry-int-wet), climate.kat (Dry vs Wet) and texture ####
+##      7.4: Check the relationship between the factors Landuse, climat(dry-int-wet), climate.kat (Dry vs Wet) and texture ####
 names(Belowground.full)
 plot(AhorC.kg_m2~climate,data = Belowground.full)
 plot(MinC.kg_m2~climate,data = Belowground.full)
@@ -1923,6 +1982,65 @@ xyplot(tot.C.kg_m2~CFire_frequency.2000_2017|climate.kat,data=Belowground.full)
 anova(Fire.climate)
 
 
-##      6.5: Fire and aboveground C ####
+##      7.5: Fire and aboveground C ####
 
 plot(Herbaceous~Fire_frequency.2000_2017, data=Total.Eco.C.CnoNA2)
+
+##      7.6: Ecosystem C and Landuse ####
+
+# USE THE DATASET: Landuse.Carbon
+# Legend titeles
+legend_titleLAND <- "Land-use"
+legend_titleCarbon <- "Carbon Pool"
+
+Lines_gone <- theme(panel.grid.major.x = element_blank(),
+                    panel.grid.minor.x = element_blank(),
+                    panel.grid.major.y = element_blank(),
+                    panel.grid.minor.y = element_blank())
+
+#Transform the data onto the display scale
+Landuse.Carbon$mean <- Landuse.Carbon$C.amount
+Landuse.Carbon$sd_up <- Landuse.Carbon$C.amount + Landuse.Carbon$C.amount_SE
+Landuse.Carbon$sd_low <- Landuse.Carbon$C.amount - Landuse.Carbon$C.amount_SE
+
+Carbon.pool <- ggplot(data = Landuse.Carbon, aes(x = Carbon.pool,y = mean, shape = Landuse, colour= Carbon.pool))
+
+Carbon.pool + xlab("Carbon pool") +  ylab(expression(paste("Carbon (kg", m^-2,")"))) + 
+  facet_wrap(~Main.pool,scales="free") +
+  geom_errorbar(aes(ymin=sd_low,ymax=sd_up),stat = "identity",width=.4,lwd=1.1,show.legend=F, position=position_dodge(width=0.4)) +
+  geom_point(fill="white",size = 6, stroke=1.5,show.legend=T, position=position_dodge(width=0.4))  +
+  scale_shape_manual(legend_titleLAND,values=c(21,22)) +
+  scale_color_manual(legend_titleCarbon, breaks = c("Woody","Herb","DW","Roots","Soil.Ahor","Soil.min" ),values=c("forestgreen","darkolivegreen","darkgoldenrod","forestgreen","salmon4","burlywood4")) +
+  theme(rect = element_rect(fill ="transparent")
+        ,panel.background=element_rect(fill="transparent")
+        ,plot.background=element_rect(fill="transparent",colour=NA)
+        ,panel.grid.minor = element_blank()
+        ,panel.border = element_blank()
+        ,panel.grid.major.x = element_blank()
+        ,panel.grid.major.y = element_blank()
+        ,axis.text=element_text(size=16,color="black")
+        ,axis.title.y=element_text(size=16,color="black")
+        ,axis.title.x=element_text(size=16,color="black")
+        ,axis.text.x=element_text(size=14,color="black",
+                                  margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.ticks.length=unit(-1.5, "mm") # - because we want them inwards. 
+        ,axis.text.y = element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.text.y.right =element_text(margin=margin(2.5,2.5,2.5,2.5,"mm"))
+        ,axis.line.y = element_line(color="black", size = .5)
+        ,axis.line.x = element_line(color="black", size = .5)
+        ,plot.margin = unit(c(2.5,2.5,2.5,2.5), "mm")
+        ,strip.background = element_rect(fill="transparent",colour=NA)
+        ,strip.text.x = element_text(size=14,margin = margin(.5,.5,.5,.5, "mm"),hjust = .02)
+        ,strip.text.y = element_blank()
+        ,panel.spacing = unit(.1, "lines")
+        ,legend.text=element_text(size=14)
+        ,legend.title=element_text(size=15)
+        ,legend.position = "right"
+        ,legend.justification = "top"
+        ,legend.direction="vertical"
+        ,legend.key.width = unit(1.2,"cm"))
+
+#ggsave("Ecosystem carbon/Figures/EcoC.Landuse.png",
+#       width= 30, height = 15,units ="cm",bg ="transparent",
+#       dpi = 600, limitsize = TRUE)
+
