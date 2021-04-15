@@ -1533,38 +1533,41 @@ summary(Modlist.final,Total.Eco.C.CnoNA2)
 # mineral C, woody C, herbaceous C etc. Doing so ends up with multiple tests 
 # to which we would need to do a Bonferroni correction or something similar. 
 
-colnames(Total.Eco.C.CnoNA2) # will aggregate "Woody","DW" ,"Herb_year.kg_m2","Roots.kg_m2","Soil.Ahor","Soil.min" per landuse
+# Include Ikorongo and Park Nyigoti in C stocks
+Total.Eco.C.CnoNA3<-droplevels(Total.Eco.C[Total.Eco.C$Region=="Makao" | Total.Eco.C$Region== "Maswa" | Total.Eco.C$Region== "Mwantimba" | Total.Eco.C$Region=="Handajega" | Total.Eco.C$Region=="Park Nyigoti" | Total.Eco.C$Region=="Ikorongo" ,])
+
+colnames(Total.Eco.C.CnoNA3) # will aggregate "Woody","DW" ,"Soil.Ahor","Soil.min" per landuse
 
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 landuse.C <- cbind(
-  aggregate(Woody~Landuse, mean, data= Total.Eco.C.CnoNA2),
-  aggregate(Woody~Landuse, SE, data= Total.Eco.C.CnoNA2)[2],
-  aggregate(Herb_year.kg_m2~Landuse, mean, data= Total.Eco.C.CnoNA2)[2],
-  aggregate(Herb_year.kg_m2~Landuse, SE, data= Total.Eco.C.CnoNA2)[2],
-  aggregate(DW~Landuse, mean, data= Total.Eco.C.CnoNA2)[2],
-  aggregate(DW~Landuse, SE, data= Total.Eco.C.CnoNA2)[2],
-  aggregate(Roots.kg_m2~Landuse, mean, data= Total.Eco.C.CnoNA2)[2],
-  aggregate(Roots.kg_m2~Landuse, SE, data= Total.Eco.C.CnoNA2)[2],
-  aggregate(Soil.Ahor~Landuse, mean, data= Total.Eco.C.CnoNA2)[2],
-  aggregate(Soil.Ahor~Landuse, SE, data= Total.Eco.C.CnoNA2)[2],
-  aggregate(Soil.min~Landuse, mean, data= Total.Eco.C.CnoNA2)[2],
-  aggregate(Soil.min~Landuse, SE, data= Total.Eco.C.CnoNA2)[2])
+  aggregate(Woody~Landuse, mean, data= Total.Eco.C.CnoNA3),
+  aggregate(Woody~Landuse, SE, data= Total.Eco.C.CnoNA3)[2],
+  aggregate(Herbaceous~Landuse, mean, data= Total.Eco.C.CnoNA3)[2],
+  aggregate(Herbaceous~Landuse, SE, data= Total.Eco.C.CnoNA3)[2],
+  aggregate(DW~Landuse, mean, data= Total.Eco.C.CnoNA3)[2],
+  aggregate(DW~Landuse, SE, data= Total.Eco.C.CnoNA3)[2],
+  #aggregate(Roots.kg_m2~Landuse, mean, data= Total.Eco.C.CnoNA3)[2],
+  #aggregate(Roots.kg_m2~Landuse, SE, data= Total.Eco.C.CnoNA3)[2],
+  aggregate(Soil.Ahor~Landuse, mean, data= Total.Eco.C.CnoNA3)[2],
+  aggregate(Soil.Ahor~Landuse, SE, data= Total.Eco.C.CnoNA3)[2],
+  aggregate(Soil.min~Landuse, mean, data= Total.Eco.C.CnoNA3)[2],
+  aggregate(Soil.min~Landuse, SE, data= Total.Eco.C.CnoNA3)[2])
 
 colnames(landuse.C)
-colnames(landuse.C) <- c("Landuse","Woody","Woody_SE","Herb","Herb_SE","DW","DW_SE",
-                        "Roots","Roots_SE","Soil.Ahor","Soil.Ahor_SE","Soil.min","Soil.min_SE") 
+colnames(landuse.C) <- c("Landuse","Woody","Woody_SE","Herb","Herb_SE","DW","DW_SE", #"Roots","Roots_SE",
+                        "Soil.Ahor","Soil.Ahor_SE","Soil.min","Soil.min_SE") 
 
 # Create a long format: 
-landuse.C.long <- gather(landuse.C, Carbon.pool,C.amount, Woody,Herb,DW,Roots,Soil.Ahor,Soil.min,factor_key=TRUE)
-landuse.C.long_SE <- gather(landuse.C, Carbon.pool,C.amount, Woody_SE,Herb_SE,DW_SE,Roots_SE,Soil.Ahor_SE,Soil.min_SE,factor_key=TRUE)
-landuse.C.long <- landuse.C.long[,c(1,8,9)]
-landuse.C.long_SE <- landuse.C.long_SE[,c(1,8,9)]
+landuse.C.long <- gather(landuse.C, Carbon.pool,C.amount, Woody,Herb,DW,Soil.Ahor,Soil.min,factor_key=TRUE) #Roots
+landuse.C.long_SE <- gather(landuse.C, Carbon.pool,C.amount, Woody_SE,Herb_SE,DW_SE,Soil.Ahor_SE,Soil.min_SE,factor_key=TRUE) #Roots_SE
+landuse.C.long <- landuse.C.long[,c(1,7,8)]
+landuse.C.long_SE <- landuse.C.long_SE[,c(1,7,8)]
 Landuse.Carbon <- cbind(landuse.C.long,landuse.C.long_SE[3])
 colnames(Landuse.Carbon)[4] <- "C.amount_SE"
 levels(Landuse.Carbon$Carbon.pool)
 
 Landuse.Carbon$Main.pool <- c("Aboveground","Aboveground","Aboveground","Aboveground",
-                              "Aboveground","Aboveground", "Belowground","Belowground",
+                              "Aboveground","Aboveground", #"Belowground","Belowground",
                               "Belowground","Belowground","Belowground","Belowground")
 
 ####  7: PLOTING  ####
