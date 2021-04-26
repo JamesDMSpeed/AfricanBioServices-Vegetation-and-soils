@@ -459,6 +459,22 @@ par(mfrow=c(1,2))
 boxplot(AhorC_N~Landuse, data=Total.Eco.C.CnoNA2)
 boxplot(MinhorC_N~Landuse, data=Total.Eco.C.CnoNA2)
 
+# 2. For the Herb C:N:P
+HerbCNP<-read.csv(file="Ecosystem Carbon/Herbaceous.data/Herb_CNP.csv", head=T)
+HerbCNP$CN<-HerbCNP$Herb_C/HerbCNP$Herb_N
+HerbCNP$CP<-HerbCNP$Herb_C/HerbCNP$Herb_P
+
+# Remove Seronera
+HerbCNP<-droplevels(HerbCNP[!HerbCNP$Region=="Seronera",])
+
+# Average CNP ratios by land-use
+aggregate(CN~landuse,HerbCNP,mean)
+aggregate(CP~landuse,HerbCNP,mean)
+
+par(mfrow=c(1,2))
+boxplot(CN~landuse, data=HerbCNP, main="C:N ratio")
+boxplot(CP~landuse, data=HerbCNP, main="C:P ratio")
+
 # Create non-linear terms so we can keep track in the modelling
 
 # Quadratic terms
