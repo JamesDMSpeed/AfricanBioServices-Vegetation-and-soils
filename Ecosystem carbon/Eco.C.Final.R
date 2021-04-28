@@ -456,8 +456,8 @@ rowSums(is.na(Total.Eco.C.CnoNA2))
 Total.Eco.C.CnoNA2 <- mutate(Total.Eco.C.CnoNA2,AhorC_N = Soil.Ahor/AhorN.kg_m2)
 Total.Eco.C.CnoNA2 <- mutate(Total.Eco.C.CnoNA2,MinhorC_N = Soil.min/MinN.kg_m2)
 par(mfrow=c(1,2))
-boxplot(AhorC_N~Landuse, data=Total.Eco.C.CnoNA2)
-boxplot(MinhorC_N~Landuse, data=Total.Eco.C.CnoNA2)
+boxplot(AhorC_N~Landuse, data=Total.Eco.C.CnoNA2, main="C:N ratio")
+boxplot(MinhorC_N~Landuse, data=Total.Eco.C.CnoNA2, main="C:N ratio")
 
 # 2. For the Herb C:N:P
 HerbCNP<-read.csv(file="Ecosystem Carbon/Herbaceous.data/Herb_CNP.csv", head=T)
@@ -1585,6 +1585,18 @@ levels(Landuse.Carbon$Carbon.pool)
 Landuse.Carbon$Main.pool <- c("Aboveground","Aboveground","Aboveground","Aboveground",
                               "Aboveground","Aboveground", #"Belowground","Belowground",
                               "Belowground","Belowground","Belowground","Belowground")
+
+# T-test carbon stocks across land-use 
+W<-lmer(Woody ~ Landuse + (1|Region), 
+            data = Total.Eco.C.CnoNA3, REML = TRUE)
+summary(W)
+anova(W)
+
+pairwise.t.test(Total.Eco.C.CnoNA3$Woody, Total.Eco.C.CnoNA3$Landuse, p.adjust.method = "bonferroni")
+pairwise.t.test(Total.Eco.C.CnoNA3$Herb_year.kg_m2, Total.Eco.C.CnoNA3$Landuse, p.adjust.method = "bonferroni")
+pairwise.t.test(Total.Eco.C.CnoNA3$DW, Total.Eco.C.CnoNA3$Landuse, p.adjust.method = "bonferroni")
+pairwise.t.test(Total.Eco.C.CnoNA3$Soil.Ahor, Total.Eco.C.CnoNA3$Landuse, p.adjust.method = "bonferroni")
+pairwise.t.test(Total.Eco.C.CnoNA3$Soil.min, Total.Eco.C.CnoNA3$Landuse, p.adjust.method = "bonferroni")
 
 ####  7: PLOTING  ####
 ##      7.1: Dung variables ####
