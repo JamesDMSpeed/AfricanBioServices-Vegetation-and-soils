@@ -1552,6 +1552,65 @@ summary(Modlist.final,Total.Eco.C.CnoNA2)
 # Include Ikorongo and Park Nyigoti in C stocks
 Total.Eco.C.CnoNA3<-droplevels(Total.Eco.C[Total.Eco.C$Region=="Makao" | Total.Eco.C$Region== "Maswa" | Total.Eco.C$Region== "Mwantimba" | Total.Eco.C$Region=="Handajega" | Total.Eco.C$Region=="Park Nyigoti" | Total.Eco.C$Region=="Ikorongo" ,])
 
+#Gather plot level dataset in long fromat with Carbon pool 
+#EcoC<-dplyr::select(Total.Eco.C.CnoNA3,Region,Landuse,Vilde.block,Soil.Ahor,Soil.min,Herbaceous, Woody,DW)
+#EcoC_long <- gather(EcoC,Carbon.pool, C.amount,c("Soil.Ahor","Soil.min","Herbaceous", "Woody","DW"), factor_key=TRUE)
+# T-test carbon stocks across land-use 
+#EcoC_long$site_code<-as.factor(with(EcoC_long, paste(Landuse,Carbon.pool, sep="-")))
+#pairwise.t.test(EcoC_long$C.amount, EcoC_long$site_code, paired=T,p.adjust.method = "bonferroni")
+#W<-lmer(C.amount ~ Carbon.pool*Landuse + (1|Region), data = EcoC_long, REML = TRUE)
+#summary(W)
+#anova(W)
+
+# Seperate out ecosystem C dataset by land-use
+EcoCwild<-droplevels(Total.Eco.C.CnoNA3[Total.Eco.C.CnoNA3$Landuse=="Wild",])
+EcoCpasture<-droplevels(Total.Eco.C.CnoNA3[Total.Eco.C.CnoNA3$Landuse=="Pasture",])
+
+# Tests of normality - model assumption
+a<-cbind(EcoCwild$Soil.Ahor,EcoCpasture$Soil.Ahor)
+b<-cbind(EcoCwild$Soil.min,EcoCpasture$Soil.min)
+c<-cbind(EcoCwild$Woody,EcoCpasture$Woody)
+d<-cbind(EcoCwild$DW,EcoCpasture$DW)
+e<-cbind(EcoCwild$Herbaceous,EcoCpasture$Herbaceous)
+f<-cbind(EcoCwild$Tot.C.kg_m2,EcoCpasture$Tot.C.kg_m2)
+
+shapiro.test(a) #NS
+shapiro.test(b) #NS
+shapiro.test(c) # Significant diff from normality
+shapiro.test(d) # Significant diff from normality
+shapiro.test(e) # Significant diff from normality
+shapiro.test(f) #NS
+
+# t.test = normal, wilcox.test = non-normal - standardize for all
+tTotEcoC<-wilcox.test(EcoCwild$Tot.C.kg_m2, EcoCpasture$Tot.C.kg_m2, paired=T)
+tSoilAhor<-wilcox.test(EcoCwild$Soil.Ahor, EcoCpasture$Soil.Ahor, paired=T) # 12 (wild) vs 12 (pasture)
+tSoilMinhor<-wilcox.test(EcoCwild$Soil.min, EcoCpasture$Soil.min, paired=T)
+tWoody<-wilcox.test(EcoCwild$Woody, EcoCpasture$Woody, paired=T)
+tDW<-wilcox.test(EcoCwild$DW, EcoCpasture$DW, paired=T) # Issue cannot compute ties? 
+tHerbaceous<-wilcox.test(EcoCwild$Herbaceous, EcoCpasture$Herbaceous, paired=T)
+
+
+library(broom.mixed)
+tTotEcoC <- as.data.frame(broom.mixed::tidy(tTotEcoC, conf.int = T))
+tSoilAhor <- as.data.frame(broom.mixed::tidy(tSoilAhor, conf.int = T))
+tSoilMinhor <- as.data.frame(broom.mixed::tidy(tSoilMinhor, conf.int = T))
+tWoody <- as.data.frame(broom.mixed::tidy(tWoody, conf.int = T))
+tDW <- as.data.frame(broom.mixed::tidy(tDW, conf.int = T))
+tHerbaceous <- as.data.frame(broom.mixed::tidy(tHerbaceous, conf.int = T))
+tTotEcoC$Carbon.pool<-"Total_ecosystem"
+tSoilAhor$Carbon.pool<-"Soil_surface"
+tSoilMinhor$Carbon.pool<-"Soil_mineral"
+tWoody$Carbon.pool<-"Woody"
+tDW$Carbon.pool<-"Deadwood"
+tHerbaceous$Carbon.pool<-"Herbaceous"
+
+EcoCpoolWilcox<-rbind(tTotEcoC,tSoilAhor,tSoilMinhor,tWoody,tDW,tHerbaceous)
+
+# Adjust p-values for multiple test = 6
+EcoCpoolWilcox$p.adjust<-p.adjust(EcoCpoolWilcox$p.value,method = "bonferroni", n = 6)
+EcoCpoolWilcox
+
+# Carbon pool averages
 colnames(Total.Eco.C.CnoNA3) # will aggregate "Woody","DW" ,"Soil.Ahor","Soil.min" per landuse
 
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
@@ -1585,18 +1644,6 @@ levels(Landuse.Carbon$Carbon.pool)
 Landuse.Carbon$Main.pool <- c("Aboveground","Aboveground","Aboveground","Aboveground",
                               "Aboveground","Aboveground", #"Belowground","Belowground",
                               "Belowground","Belowground","Belowground","Belowground")
-
-# T-test carbon stocks across land-use 
-W<-lmer(Woody ~ Landuse + (1|Region), 
-            data = Total.Eco.C.CnoNA3, REML = TRUE)
-summary(W)
-anova(W)
-
-pairwise.t.test(Total.Eco.C.CnoNA3$Woody, Total.Eco.C.CnoNA3$Landuse, p.adjust.method = "bonferroni")
-pairwise.t.test(Total.Eco.C.CnoNA3$Herb_year.kg_m2, Total.Eco.C.CnoNA3$Landuse, p.adjust.method = "bonferroni")
-pairwise.t.test(Total.Eco.C.CnoNA3$DW, Total.Eco.C.CnoNA3$Landuse, p.adjust.method = "bonferroni")
-pairwise.t.test(Total.Eco.C.CnoNA3$Soil.Ahor, Total.Eco.C.CnoNA3$Landuse, p.adjust.method = "bonferroni")
-pairwise.t.test(Total.Eco.C.CnoNA3$Soil.min, Total.Eco.C.CnoNA3$Landuse, p.adjust.method = "bonferroni")
 
 ####  7: PLOTING  ####
 ##      7.1: Dung variables ####
