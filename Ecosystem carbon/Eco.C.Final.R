@@ -72,6 +72,7 @@ Deadwood.carbon$Region<- factor(Deadwood.carbon$Region, levels = c("Makao","Masw
 
 Soil.carbon$Region<- factor(Soil.carbon$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
+colnames(Soil.texture)[1] <- "Region"
 Soil.texture$Region<- factor(Soil.texture$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera","Park Nyigoti","Ikorongo"))
 
 # Merge the datasets 
@@ -167,7 +168,8 @@ Ecosystem.Carbon$C.amount[is.na(Ecosystem.Carbon$C.amount)]<- 0
 
 Ecosystem.Carbon$Fire_frequency.2000_2017
 
-write.csv(Ecosystem.Carbon,file="Ecosystem carbon/Final.Ecosystem.Carbon.csv")
+write.csv(Ecosystem.Carbon,file="Ecosystem carbon/Final.Ecosystem.Carbon_updated.csv")
+
 
 ##    2.3: Making a table for the article ####
 names(Belowground)
@@ -203,7 +205,7 @@ library(piecewiseSEM)
 library(MuMIn) 
 ##     3.1: Prepare data for modelling ####
 #         3.1.1: Uploading data ####
-Block.Eco.C <- read.csv("Ecosystem carbon/Final.Ecosystem.Carbon.csv", head=T)
+Block.Eco.C <- read.csv("Ecosystem carbon/Final.Ecosystem.Carbon_updated.csv", head=T)
 Belowground.full <- read.csv("Ecosystem carbon/Soil.data/Belowground.Carbon.csv", head=T)
 
 fire <- filter(Block.Eco.C, landuse=="Pasture")
@@ -229,6 +231,8 @@ levels(Block.Eco.C$Carbon.pool) <- c("Woody","Herbaceous","Dead wood","Soil A-ho
 
 MaritAccum <- read.csv("Ecosystem carbon/Herbaceous.data/AccumHerbaceous.csv", header=TRUE)
 names(MaritAccum)
+colnames(MaritAccum)[18] <- "HerbC50_year.kgm2"
+MaritAccum <- mutate(MaritAccum,HerbC_year.kgm2=HerbBM_year.kgm2*0.3925)
 MaritAccum <- MaritAccum[c("Block.ID","HerbC_year.kgm2")]
 
 # Livestock dung 

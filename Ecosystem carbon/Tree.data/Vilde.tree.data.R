@@ -477,6 +477,13 @@ levels(Dead.wood.red$Region)
 
 Dead.wood.red$Region<- factor(Dead.wood.red$Region, levels = c("Makao","Maswa","Mwantimba","Handajega","Seronera", "Park Nyigoti","Ikorongo"))
 
+colnames(Dead.wood.red)[5] <- "Carbon50.kg_m2"
+
+Dead.wood.red <- mutate(Dead.wood.red,kg_m2=Carbon50.kg_m2*2)
+Dead.wood.red <- mutate(Dead.wood.red,Carbon.kg_m2=kg_m2*0.485)
+colnames(Dead.wood.red)
+Dead.wood.red <- Dead.wood.red[,c(1:4,7)]
+
 # Aggregate dead wood per circle - and then per Block and Region
 SE<- function(x) sqrt(var(x,na.rm=TRUE)/length(na.omit(x)))
 names(Dead.wood.red)
@@ -502,7 +509,7 @@ Dead.wood.C.block <- Dead.wood.C.block[
 # Adding a collumn of land-use
 Dead.wood.C.block$Landuse <- as.factor(c("Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Wild","Pasture","Pasture","Pasture","Pasture","Wild","Wild","Wild","Wild"))
 
-write.csv(DW.block,file="Ecosystem carbon/Tree.data/DW.Block.csv")
+write.csv(Dead.wood.C.block,file="Ecosystem carbon/Tree.data/DW.Block.csv")
 #write.csv(DW.Region,file="Ecosystem carbon/Tree.data/DW.Region.csv")
 
 # Exploring the data DW per Block
