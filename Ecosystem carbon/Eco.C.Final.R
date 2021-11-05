@@ -14,6 +14,7 @@ library(piecewiseSEM) # SEM
 library(MuMIn) # to make "model.sel()" of different models 
 library(DHARMa) # model validation using simulations
 library(GLMMadaptive)
+library(broom.mixed)
 # library(emmeans) # estimated marginal means --> look at this for three ways interactions
 
 #### 2: CLEANING THE DATA #### 
@@ -668,6 +669,7 @@ modsetbelowA.full<-dredge(Ahor.block.full,trace = TRUE, rank = "AICc", REML = FA
                           &!(CFire_frequencyPOLY & CWoodyPOLY))
 
 #Averaging terms
+tTotEcoC <- as.data.frame(broom.mixed::tidy(tTotEcoC, conf.int = T))
 modselbelowA.full<-model.sel(modsetbelowA.full) #Model selection table giving AIC, deltaAIC and weighting
 modavgbelowA.full<-model.avg(modselbelowA.full)#Averages coefficient estimates across multiple models according to the weigthing from above
 importance(modavgbelowA.full)#Importance of each variable
@@ -1608,7 +1610,6 @@ EcoCpoolWilcox<-rbind(tTotEcoC,tSoilAhor,tSoilMinhor,tWoody,tDW,tHerbaceous)
 EcoCpoolWilcox$p.adjust<-p.adjust(EcoCpoolWilcox$p.value,method = "bonferroni", n = 6)
 EcoCpoolWilcox
 
-
 ####  7: PLOTING  ####
 ##      7.1: Dung variables ####
 # Creating a variable for livestock dung per m2 
@@ -1747,7 +1748,7 @@ importance.Roots<- read.table("Ecosystem carbon/Model_average/importanceRoots.tx
 #importance.AhorHerbs<- read.table("Ecosystem carbon/importanceAhorFull.txt")
 #importance.MinHorHerbs<- read.table("Ecosystem carbon/importanceMinHorFull.txt")
 importance.H<- read.table("Ecosystem carbon/Model_average/importanceaboveH.txt")
-importance.DW<- read.table("Ecosystem carbon/Model_average/importanceaboveDW.txt")
+importance.DW<- read.table("Ecosystem carbon/Model_average/importanceaboveDW.txt") # Nothing empty
 importance.W<- read.table("Ecosystem carbon/Model_average/importanceaboveW.txt")
 #importance.W2<- read.table("Ecosystem carbon/importanceWoody2.txt")
 #importance.W.outl <- read.table("Ecosystem carbon/importanceaboveW.outl.txt")
@@ -1759,7 +1760,7 @@ colnames(importance.Ahor)<-c('importance','Terms')
 colnames(importance.Minhor)<-c('importance','Terms')
 colnames(importance.Roots)<-c('importance','Terms')
 colnames(importance.H)<-c('importance','Terms')
-colnames(importance.DW)<-c('importance','Terms')
+#colnames(importance.DW)<-c('importance','Terms')
 colnames(importance.W)<-c('importance','Terms')
 
 #Standardize terms
@@ -1769,10 +1770,10 @@ rownames(importance.Minhor) <- (c("Soil surface","Sand"))
 importance.Minhor$Terms <- (c("Soil surface","Sand"))
 rownames(importance.Roots) <- (c("Rainfall","Land-use","SandPOLY","Livestock"))
 importance.Roots$Terms <- (c("Rainfall","Land-use","SandPOLY","Livestock"))
-rownames(importance.H) <- (c("Dead wood","Rainfall","Fire frequencyPOLY","Soil nitrogen","Woody", "Total herbivore")) # ISSUSE - Total Dung missing
-importance.H$Terms<- (c("Dead wood","Rainfall","Fire frequencyPOLY","Soil nitrogen","Woody", "Total herbivore")) 
-rownames(importance.DW) <- (c("Herbaceous"))
-importance.DW$Terms <- (c("Herbaceous"))
+rownames(importance.H) <- (c("Fire frequencyPOLY","Rainfall","Soil surface","Woody", "Livestock")) # ISSUSE - Total Dung missing
+importance.H$Terms<- (c("Fire frequencyPOLY","Rainfall","Soil surface","Woody", "Livestock")) 
+#rownames(importance.DW) <- (c("Herbaceous"))
+#importance.DW$Terms <- (c("Herbaceous"))
 rownames(importance.W) <- (c("Fire frequencyPOLY","Livestock","Sand","Soil nitrogen","Herbaceous","Total herbivore")) # ISSUSE - Total Dung missing
 importance.W$Terms <- (c("Fire frequencyPOLY","Livestock","Sand","Soil nitrogen","Herbaceous","Total herbivore"))
   
@@ -1805,10 +1806,10 @@ importance.Ahor$model<-"Soil surface"
 importance.Minhor$model<-"Soil mineral"
 importance.Roots$model<-"Roots"
 importance.H$model<-"Herbaceous"
-importance.DW$model<-"Dead wood"
+#importance.DW$model<-"Dead wood"
 importance.W$model<-"Woody"
 
-ModelImp<-rbind(importance.Ahor,importance.Minhor,importance.Roots,importance.H,importance.DW,importance.W)
+ModelImp<-rbind(importance.Ahor,importance.Minhor,importance.Roots,importance.H,importance.W) #importance.DW
 
 #Colours
 Terms <- c("Fire frequency","Fire frequencyPOLY", "Land-use", "Livestock", "Wild", "Herbaceous", "Woody",
@@ -1837,8 +1838,8 @@ library(lemon)
 #ModelImp$reorder2<-sapply(words, "[", 1)
 
 ModelImp$model<-as.factor(ModelImp$model)
-levels(ModelImp$model)<-c("Dead \n wood","Herbaceous \n","Roots \n","Soil \n mineral","Soil \n surface","Woody \n")
-ModelImp$model<- factor(ModelImp$model, levels = c("Herbaceous \n","Woody \n","Dead \n wood","Roots \n","Soil \n surface","Soil \n mineral"))
+levels(ModelImp$model)<-c("Herbaceous \n","Roots \n","Soil \n mineral","Soil \n surface","Woody \n") #"Dead \n wood"
+ModelImp$model<- factor(ModelImp$model, levels = c("Herbaceous \n","Woody \n","Roots \n","Soil \n surface","Soil \n mineral")) #"Dead \n wood"
 
 ##          7.2.1 Model importance plot ####
 # https://stackoverflow.com/questions/52214071/how-to-order-data-by-value-within-ggplot-facets
@@ -1856,6 +1857,7 @@ ModelImp$model<- factor(ModelImp$model, levels = c("Herbaceous \n","Woody \n","D
 #  scale_x_discrete(labels = function(x) gsub("__.+$", "", x)) +
 #  facet_grid(rows = vars(model), scales = "free_y", switch = "y", space = "free_y") +
 #coord_flip() 
+class(ModelImp$importance)
 
 ModImpPlot<-ggplot(ModelImp,aes(x=reorder_within(Terms, -importance, model),y=importance, fill=Terms))
 ModImpPlot<-ModImpPlot+geom_col(col="black",lwd=.25,width = 0.75, position = position_dodge2(width = 0.8),show.legend=F)
@@ -1894,7 +1896,7 @@ ModImpPlot
 con.avg.Ahor<- read.table("Ecosystem carbon/Model_average/ConAvgAhor.txt")
 con.avg.Minhor<- read.table("Ecosystem carbon/Model_average/ConAvgMinHor.txt")
 con.avg.H<- read.table("Ecosystem carbon/Model_average/ConAvgH.txt")
-con.avg.DW<- read.table("Ecosystem carbon/Model_average/ConAvgDW.txt")
+#con.avg.DW<- read.table("Ecosystem carbon/Model_average/ConAvgDW.txt")
 con.avg.W<- read.table("Ecosystem carbon/Model_average/ConAvgW.txt")
 con.avg.Roots<- read.table("Ecosystem carbon/Model_average/ConAvgRoots.txt")
 
@@ -1907,8 +1909,8 @@ rownames(con.avg.Roots) <- (c("Intercept", "Rainfall", "SandPOLY", "Land-use","L
 con.avg.Roots$Terms <- (c("Intercept", "Rainfall", "SandPOLY", "Land-use","Livestock"))
 rownames(con.avg.H) <- (c("Intercept","Dead wood","Rainfall","Fire frequencyPOLY","Soil nitrogen","Woody", "Total herbivore")) # ISSUSE - Total Dung missing
 con.avg.H$Terms <- (c("Intercept","Dead wood","Rainfall","Fire frequencyPOLY","Soil nitrogen","Woody", "Total herbivore"))
-rownames(con.avg.DW) <- (c("Intercept","Herbaceous"))
-con.avg.DW$Terms <- (c("Intercept","Herbaceous"))
+#rownames(con.avg.DW) <- (c("Intercept","Herbaceous"))
+#con.avg.DW$Terms <- (c("Intercept","Herbaceous"))
 rownames(con.avg.W) <- (c("Intercept","Fire frequencyPOLY","Livestock","Sand","Total herbivore","Soil nitrogen","Herbaceous")) # ISSUSE - Total Dung missing
 con.avg.W$Terms <- (c("Intercept","Fire frequencyPOLY","Livestock","Sand","Total herbivore","Soil nitrogen","Herbaceous"))
 
@@ -1917,17 +1919,17 @@ con.avg.Ahor$model<-"Soil surface"
 con.avg.Minhor$model<-"Soil mineral"
 con.avg.Roots$model<-"Roots"
 con.avg.H$model<-"Herbaceous"
-con.avg.DW$model<-"Dead wood"
+#con.avg.DW$model<-"Dead wood"
 con.avg.W$model<-"Woody"
 
-ModelConAvg<-rbind(con.avg.Ahor,con.avg.Minhor,con.avg.Roots,con.avg.H,con.avg.DW,con.avg.W)
+ModelConAvg<-rbind(con.avg.Ahor,con.avg.Minhor,con.avg.Roots,con.avg.H,con.avg.W) #con.avg.DW
 colnames(ModelConAvg)
 colnames(ModelConAvg)<-c("Terms","Estimate","Std..Error","Adjusted.SE","z.value","p.value",
                          "lo.CI","high.CI","model")
 
 ModelConAvg$model<-as.factor(ModelConAvg$model)
-levels(ModelConAvg$model)<-c("Dead \n wood","Herbaceous \n","Roots \n","Soil \n mineral","Soil \n surface","Woody \n")
-ModelConAvg$model<- factor(ModelConAvg$model, levels = c("Herbaceous \n","Woody \n","Dead \n wood","Roots \n","Soil \n surface","Soil \n mineral"))
+levels(ModelConAvg$model)<-c("Herbaceous \n","Roots \n","Soil \n mineral","Soil \n surface","Woody \n") #"Dead \n wood"
+ModelConAvg$model<- factor(ModelConAvg$model, levels = c("Herbaceous \n","Woody \n","Roots \n","Soil \n surface","Soil \n mineral")) #"Dead \n wood"
 
 # Add importance to synchronize ordering
 ModelConAvg<-merge(ModelConAvg,ModelImp, by=c("Terms","model"))
