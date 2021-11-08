@@ -1522,8 +1522,8 @@ Modlist.conseptual <-   psem(
   lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
   lme(CHerb_year.kg_m2 ~ CWoody + CTot.N.kg_m2 + CMAP.mm_yr + Landuse + CFire_frequency + CSand,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
   lme(CRoots.kg_m2~ CHerb_year.kg_m2 + CMAP.mm_yr + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CSoil.Ahor~ CHerb_year.kg_m2 + CFire_frequency, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Total.Eco.C.CnoNA2),
-  lme(CSoil.min~ CSoil.Ahor + CSand, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.Ahor~ CHerb_year.kg_m2 + CFire_frequency, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.min~ CSoil.Ahor + CSand, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
   lme(CTot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
   CSoil.Ahor%~~%CTot.N.kg_m2, # We know these are highly correlated, but no path.. 
   CSoil.min%~~%CTot.N.kg_m2 # We know these are highly correlated, but no path..
@@ -1541,8 +1541,8 @@ Modlist.final <-   psem(
   #lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
   lme(CHerb_year.kg_m2 ~CMAP.mm_yr + CFire_frequency + CDW + CLivestock,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
   #lme(CRoots.kg_m2~ CMAP.mm_yr ,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CSoil.Ahor~CSand + Landuse, random= ~ 1|Region/Block.ID,na.action=na.omit, data=Total.Eco.C.CnoNA2),
-  lme(CSoil.min~ CSoil.Ahor , random= ~ 1|Region/Block.ID,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.Ahor~CSand + Landuse, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.min~ CSoil.Ahor , random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
   CSoil.Ahor%~~%CTot.N.kg_m2, # We know these are highly correlated, but no path.. 
   CSoil.min%~~%CTot.N.kg_m2, # We know these are highly correlated, but no path..
   #CMAP.mm_yr%~~%CSand, 
@@ -1554,6 +1554,7 @@ Modlist.final <-   psem(
 )
 
 summary(Modlist.final,Total.Eco.C.CnoNA2)
+
 
 #I get this warning message when I add Landuse to Wild: 
 #1: In B * (sd.x/sd.y) :
