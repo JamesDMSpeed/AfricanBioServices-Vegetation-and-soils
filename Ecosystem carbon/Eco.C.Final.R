@@ -391,8 +391,7 @@ colnames(Total.Eco.C) <- c("Block.ID","Region","Vilde.block","Landuse","MAP.mm_y
 
 # Select only Makao, Maswa, Mwantimba, Handahega - (drop Seronera)
 levels(Total.Eco.C$Region)
-Total.Eco.C.CnoNA<-droplevels(Total.Eco.C[Total.Eco.C$Region=="Makao" | Total.Eco.C$Region== "Maswa" | Total.Eco.C$Region== "Mwantimba" | Total.Eco.C$Region=="Handajega" ,]) #|
-#                    Total.Eco.C$Region== "Seronera",]) # Dropping Ikorongo and Park Nyigoti
+Total.Eco.C.CnoNA<-droplevels(Total.Eco.C[Total.Eco.C$Region=="Makao" | Total.Eco.C$Region== "Maswa" | Total.Eco.C$Region== "Mwantimba" | Total.Eco.C$Region=="Handajega",])# | Total.Eco.C$Region== "Seronera",]) # Dropping Ikorongo and Park Nyigoti
 
 # Seronera - block 4 lacks woody and root - average woody from other Seroneras + average roots Handajega
 #HandajegaRoots<-droplevels(Total.Eco.C.CnoNA[Total.Eco.C.CnoNA$Region=="Handajega",]) 
