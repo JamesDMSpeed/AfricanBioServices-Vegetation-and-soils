@@ -1642,6 +1642,7 @@ AIC(Modlist.final)#140.248
 # REMOVE LIVESTOCK FROM SURFACE SOIL AIC: 153.006
 # REMOVE WILD FROM SURFACE SOIL AIC:  146.139
 # REMOVE BOTH AIC: 153.006
+# THE AIC DOES NOT INPROVE WITH POLY-terms! 
 
 Model.estimates<- as.data.frame(summary(Modlist.final)$coef)
 #write.csv(Model.estimates,file="SEM.estimates.csv")
