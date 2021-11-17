@@ -546,9 +546,9 @@ panel.lines2=function (x, y, col = par("col"), bg = NA, pch = par("pch"),
 
 # Subset model
 names(Total.Eco.C.CnoNA2)
-Model.var.sub<-c("MAP.mm_yr","Fire_frequency","Sand","Tot.N.kg_m2","Livestock","Wild","Total.dung",
-                 "Woody", "Herb_year.kg_m2", "Soil.Ahor", "Soil.min","Roots.kg_m2","Fire_frequencyPOLY",
-                 "Roots.kg_m2POLY","SandPOLY","LivestockPOLY","WoodyPOLY", "DW")
+Model.var.sub<-c("MAP.mm_yr","Fire_frequency","Sand","Tot.N.kg_m2","Livestock","Wild",
+                  "Fire_frequencyPOLY","SandPOLY","LivestockPOLY", "Herb_year.kg_m2")
+# "Soil.Ahor", "Soil.min","Roots.kg_m2","Woody", "Herb_year.kg_m2","Roots.kg_m2POLY","WoodyPOLY", "DW"
 
 # FIRE and Woody
 Model.var.fire<-c("Fire_frequency","Fire_frequencyPOLY","Woody", "Herb_year.kg_m2")
@@ -1516,49 +1516,144 @@ str(Total.Eco.C.CnoNA2) #need to change landuse into a factor
 Total.Eco.C.CnoNA2$Landuse <- as.factor(Total.Eco.C.CnoNA2$Landuse)
 Total.Eco.C.CnoNA2 <- droplevels(Total.Eco.C.CnoNA2)
 
-# Start out with a model based on the conseptual model 
+# Start out with a model based on the conceptual model 
 Modlist.conseptual <-   psem(
-  lme(CWoody~ Landuse + CSand + CFire_frequency + CMAP.mm_yr, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
-  lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
-  lme(CHerb_year.kg_m2 ~ CWoody + CTot.N.kg_m2 + CMAP.mm_yr + Landuse + CFire_frequency + CSand,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
-  lme(CRoots.kg_m2~ CHerb_year.kg_m2 + CMAP.mm_yr + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CSoil.Ahor~ CHerb_year.kg_m2 + CFire_frequency, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
-  lme(CSoil.min~ CSoil.Ahor + CSand, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
-  lme(CTot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
-  CSoil.Ahor%~~%CTot.N.kg_m2, # We know these are highly correlated, but no path.. 
-  CSoil.min%~~%CTot.N.kg_m2 # We know these are highly correlated, but no path..
+  lme(CWoody~ CFire_frequency + CLivestock + CWild + CMAP.mm_yr + CSand + CTot.N.kg_m2, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CDW~ CFire_frequency + Landuse,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CHerb_year.kg_m2 ~ CFire_frequency + CLivestock + CWild + CMAP.mm_yr + CSand + CTot.N.kg_m2,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CRoots.kg_m2~ CMAP.mm_yr + CSand + CTot.N.kg_m2 + CWoody + CHerb_year.kg_m2,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.Ahor~ CWoody + CHerb_year.kg_m2 + CRoots.kg_m2 + CLivestock + CWild + CFire_frequency + CTot.N.kg_m2, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.min~ CSoil.Ahor, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CWild~ CSand + CMAP.mm_yr, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CLivestock~ CSand + CMAP.mm_yr, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CTot.N.kg_m2~ CHerb_year.kg_m2 + CWild + CLivestock,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  CWild%~~%Landuse,
+  CLivestock%~~%Landuse
 )
 
 summary(Modlist.conseptual,Total.Eco.C.CnoNA2)
 
-drop1(Modlist.conseptual,test="Chisq")
+# With POLY: Check out FirePOLY in relation to Woody later 
+Modlist.conseptual2 <-   psem(
+  lme(CWoody~ CFire_frequencyPOLY + CLivestockPOLY + CWild + CMAP.mm_yr + SandPOLY + CTot.N.kg_m2, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CDW~ CFire_frequencyPOLY + Landuse,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CHerb_year.kg_m2 ~ CFire_frequencyPOLY + CLivestockPOLY + CWild + CMAP.mm_yr + SandPOLY + CTot.N.kg_m2,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CRoots.kg_m2~ CMAP.mm_yr + SandPOLY + CTot.N.kg_m2 + CWoody + CHerb_year.kg_m2,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.Ahor~ CWoody + CHerb_year.kg_m2 + CRoots.kg_m2 + CLivestockPOLY + CWild + CFire_frequencyPOLY + CTot.N.kg_m2, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.min~ CSoil.Ahor, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CWild~ SandPOLY, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CLivestock~ SandPOLY, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CTot.N.kg_m2~ CHerb_year.kg_m2,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  CWild%~~%Landuse,
+  CLivestock%~~%Landuse
+)
 
-# Work on this model until I get the best fit: 
+summary(Modlist.conseptual2,Total.Eco.C.CnoNA2)
+
+# Work on the model, add and remove first time: 
+Modlist.conseptual3 <-   psem(
+  lme(CWoody~ CFire_frequency + CLivestock + CMAP.mm_yr + CSand + CTot.N.kg_m2, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CDW~ CFire_frequency + Landuse,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CHerb_year.kg_m2 ~ CFire_frequency + CWild + CMAP.mm_yr + CSand + CTot.N.kg_m2,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CRoots.kg_m2~ CMAP.mm_yr + CSand + CTot.N.kg_m2 + CHerb_year.kg_m2 + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.Ahor~ CWoody + CHerb_year.kg_m2 + CLivestock + CWild + CFire_frequency + CTot.N.kg_m2, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.min~ CSoil.Ahor + CTot.N.kg_m2, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CWild~ CSand, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CLivestock~ CSand, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CTot.N.kg_m2~ CHerb_year.kg_m2 + CSand,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  CWild%~~%Landuse,
+  CLivestock%~~%Landuse
+)
+
+summary(Modlist.conseptual3,Total.Eco.C.CnoNA2)
+
+# Work on the model, add and remove second time: 
+Modlist.conseptual4 <-   psem(
+  lme(CWoody~ CFire_frequency + CMAP.mm_yr + CSand + CTot.N.kg_m2, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CHerb_year.kg_m2 ~ CFire_frequency + CWild + CMAP.mm_yr + CSand + CTot.N.kg_m2,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),# vil ikke fjerne wild
+  lme(CRoots.kg_m2~ CMAP.mm_yr + CSand + CTot.N.kg_m2 + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.Ahor~ CWoody + CHerb_year.kg_m2 + CLivestock + CWild + CTot.N.kg_m2, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.min~ CSoil.Ahor + CTot.N.kg_m2 + CWild + CSand, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CWild~ CSand, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CLivestock~ CSand, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CTot.N.kg_m2~ CHerb_year.kg_m2 + CSand,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  CWild%~~%Landuse,
+  CLivestock%~~%Landuse
+)
+
+summary(Modlist.conseptual4,Total.Eco.C.CnoNA2)
+
+# Work on the model, add and remove third time: 
+Modlist.conseptual5 <-   psem(
+  lme(CWoody~ CFire_frequency + CMAP.mm_yr + CSand, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CDW~ CWoody,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CHerb_year.kg_m2 ~ CFire_frequency + CMAP.mm_yr,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CRoots.kg_m2~ CMAP.mm_yr + CSand + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.Ahor~ CWoody + CHerb_year.kg_m2 + CLivestock + CWild + CTot.N.kg_m2, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.min~ CSoil.Ahor + CTot.N.kg_m2 + CWild + CSand, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  #lme(CWild~ CSand, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  #lme(CLivestock~ CSand, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CTot.N.kg_m2~ CHerb_year.kg_m2 + CSand,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  CWild%~~%Landuse,
+  CLivestock%~~%Landuse
+)
+
+summary(Modlist.conseptual5,Total.Eco.C.CnoNA2)
+
+# Work on this model till best fit: 
 Modlist.final <-   psem(
+  lme(CWoody~ CFire_frequency + CMAP.mm_yr + CSandPOLY, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  #lme(CDW~ CSand,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CHerb_year.kg_m2 ~ CFire_frequency + CMAP.mm_yr + Landuse,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CRoots.kg_m2~ CMAP.mm_yr + CSand + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.Ahor~ CWoody + CHerb_year.kg_m2 + CLivestock + CWild + CTot.N.kg_m2, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.min~ CSoil.Ahor + CTot.N.kg_m2 + CWild + CSand, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
   lme(CTot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
-  lme(CWild ~ CLivestock + CMAP.mm_yr + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CWoody~  CFire_frequencyPOLY + CLivestock, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
-  #lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
-  lme(CHerb_year.kg_m2 ~CMAP.mm_yr + CFire_frequency + CDW + CLivestock,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
-  #lme(CRoots.kg_m2~ CMAP.mm_yr ,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
-  lme(CSoil.Ahor~CSand + Landuse, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
-  lme(CSoil.min~ CSoil.Ahor , random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
-  CSoil.Ahor%~~%CTot.N.kg_m2, # We know these are highly correlated, but no path.. 
-  CSoil.min%~~%CTot.N.kg_m2, # We know these are highly correlated, but no path..
-  #CMAP.mm_yr%~~%CSand, 
-  #CMAP.mm_yr%~~%Landuse,
- # Landuse%~~%CSand,
-  CSand%~~%CSandPOLY,
-  CLivestock%~~%CLivestockPOLY,
-  CFire_frequency%~~%CFire_frequencyPOLY
+  CWild%~~%Landuse,
+  CLivestock%~~%Landuse,
+  CSand%~~%CSand
 )
 
 summary(Modlist.final,Total.Eco.C.CnoNA2)
 
+# Best fit with ONLY significant predictors: 
+Modlist.final2 <-   psem(
+  lme(CWoody~ CFire_frequency + CMAP.mm_yr + CSandPOLY, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  #lme(CDW~ CSand,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CHerb_year.kg_m2 ~ CFire_frequency + CMAP.mm_yr + Landuse,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CRoots.kg_m2~ CMAP.mm_yr + CSand + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.Ahor~ CTot.N.kg_m2 + Landuse, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CSoil.min~ CSoil.Ahor + CTot.N.kg_m2 + CWild + CSand, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  lme(CTot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+  CWild%~~%Landuse,
+  CLivestock%~~%Landuse,
+  CSand%~~%CSand
+)
 
-#I get this warning message when I add Landuse to Wild: 
-#1: In B * (sd.x/sd.y) :
-#  longer object length is not a multiple of shorter object length
+summary(Modlist.final2,Total.Eco.C.CnoNA2)
+
+# PREVIOUS BEST: Work on this model until I get the best fit: 
+#Modlist.final <-   psem(
+#  lme(CTot.N.kg_m2~ CSand,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+#  lme(CWild ~ CLivestock + CMAP.mm_yr + Landuse,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+#  lme(CWoody~  CFire_frequencyPOLY + CLivestock, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+#  #lme(CDW~ Landuse,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+#  lme(CHerb_year.kg_m2 ~CMAP.mm_yr + CFire_frequency + CDW + CLivestock,random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+#  #lme(CRoots.kg_m2~ CMAP.mm_yr ,random= ~ 1|Region,na.action=na.fail, data=Total.Eco.C.CnoNA2),
+#  lme(CSoil.Ahor~CSand + Landuse, random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+#  lme(CSoil.min~ CSoil.Ahor , random= ~ 1|Region,na.action=na.omit, data=Total.Eco.C.CnoNA2),
+# CSoil.Ahor%~~%CTot.N.kg_m2, # We know these are highly correlated, but no path.. 
+#  CSoil.min%~~%CTot.N.kg_m2, # We know these are highly correlated, but no path..
+  #CMAP.mm_yr%~~%CSand, 
+  #CMAP.mm_yr%~~%Landuse,
+ # Landuse%~~%CSand,
+#  CSand%~~%CSandPOLY,
+#  CLivestock%~~%CLivestockPOLY,
+#  CFire_frequency%~~%CFire_frequencyPOLY
+#)
+
+#summary(Modlist.final,Total.Eco.C.CnoNA2)
 
 ##    6: ECOSYSTEM CARBON ANALYSIS ####
 
