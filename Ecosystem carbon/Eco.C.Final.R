@@ -1731,6 +1731,15 @@ EcoCpoolWilcox<-rbind(tSoilAhor,tSoilMinhor,tWoody,tDW,tHerbaceous)
 EcoCpoolWilcox$p.adjust<-p.adjust(EcoCpoolWilcox$p.value,method = "bonferroni", n = 5)
 EcoCpoolWilcox
 
+#### 6.1 BULK DENSITY CYLINDER VS AUGER #### 
+# Averaged at the block level
+BD <- data.frame (AugerBD=c(1.07,1.03,1,1.17,1.34,1.36,1.12,1.43,1.46,1.32,1.41,1.14,0.99,1.16,1.2),
+CylinderBD=c(1.06,1.05,1.09,1.2,1.33,1.48, 1.17, 1.42, 1.26, 1.43,1.47,1.17,1.19,1.16,1.31))
+BD %>% summarise(count = n(),AugerBDmean = mean(AugerBD, na.rm = TRUE),AugerBDsd = sd(AugerBD, na.rm = TRUE),
+                 count = n(),CylinderBDmean = mean(CylinderBD, na.rm = TRUE),CylinderBDsd = sd(CylinderBD, na.rm = TRUE)) # similiar variance
+t.test(BD$AugerBD, BD$CylinderBD, paired = TRUE, alternative = "two.sided")
+#t = -1.7025, df = 14, p-value = 0.1108
+
 ####  7: PLOTING  ####
 ##      7.1: Dung variables ####
 # Creating a variable for livestock dung per m2 
